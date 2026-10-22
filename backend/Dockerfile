@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore first so the package layer is cached while only source files change.
-COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY Directory.Build.props Directory.Packages.props ./
 COPY src/SportsBooking.Domain/SportsBooking.Domain.csproj src/SportsBooking.Domain/
 COPY src/SportsBooking.Application/SportsBooking.Application.csproj src/SportsBooking.Application/
 COPY src/SportsBooking.Infrastructure/SportsBooking.Infrastructure.csproj src/SportsBooking.Infrastructure/

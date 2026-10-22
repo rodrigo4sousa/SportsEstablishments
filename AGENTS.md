@@ -42,12 +42,18 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 
 ## Commands
 See [README.md](README.md) for full setup.
-- Everything: `docker compose up --build` (app :3000, API :5080, Swagger :5080/swagger, Mailpit :8025)
-- Backend build: `dotnet build backend/SportsBooking.slnx`
-- Backend tests (Docker must be running): `dotnet test backend/SportsBooking.slnx`
-- New migration: `dotnet ef migrations add <Name> --project backend/src/SportsBooking.Infrastructure --startup-project backend/src/SportsBooking.Api --output-dir Persistence/Migrations`
+- Everything: `docker compose up --build` (app :3000, API :5080, Swagger :5080/swagger, Mailpit :8025, Postgres :5432)
+- Backend build: `dotnet build backend/SportsBooking.slnx` (also regenerates `backend/src/SportsBooking.Api/openapi/sportsbooking-api.json`; commit it)
+- Backend tests (Docker must be running, Testcontainers): `dotnet test backend/SportsBooking.slnx`. Uses Microsoft.Testing.Platform (opted in via `backend/global.json`); filter with `dotnet test --project <proj> -- --filter-method "*Name*"`.
+- API locally: `dotnet run --project backend/src/SportsBooking.Api` (needs `docker compose up -d postgres`)
+- New migration (from `backend/`, local tool): `dotnet ef migrations add <Name> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`
 - Frontend (in `frontend/`): `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
-- Regenerate API types (after a backend build): `npm run gen:api` in `frontend/`
+- Regenerate API types after a backend build: `npm run gen:api` in `frontend/` (commit `src/lib/api/schema.d.ts`; CI checks drift)
+
+## Gotchas
+- Next.js 16.4 differs from older versions (e.g. `error.tsx` gets `retry`, `cacheComponents` is on, `proxy.ts` replaces `middleware.ts`). Read [frontend/AGENTS.md](frontend/AGENTS.md) and the bundled docs in `frontend/node_modules/next/dist/docs/` before writing frontend code.
+- Build-time OpenAPI generation starts the app as `GetDocument.Insider`; `Program.cs` gives it a placeholder connection string and skips migrations. Keep startup code safe for that.
+- EF migrations folder is marked `generated_code` (its own `.editorconfig`); test projects allow underscores in test names (CA1707 off).
 
 ## Definition of done
 A story is done only when every acceptance criterion is covered by tests (unit, integration and/or component) and the CI is green.
