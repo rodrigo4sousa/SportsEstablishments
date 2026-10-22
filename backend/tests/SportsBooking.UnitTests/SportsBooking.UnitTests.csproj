@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\SportsBooking.Domain\SportsBooking.Domain.csproj" />
     <ProjectReference Include="..\..\src\SportsBooking.Api\SportsBooking.Api.csproj" />
   </ItemGroup>
 
