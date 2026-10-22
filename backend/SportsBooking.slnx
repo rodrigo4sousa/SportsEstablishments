@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SportsBooking.Api/SportsBooking.Api.csproj" />
+    <Project Path="src/SportsBooking.Application/SportsBooking.Application.csproj" />
+    <Project Path="src/SportsBooking.Domain/SportsBooking.Domain.csproj" />
+    <Project Path="src/SportsBooking.Infrastructure/SportsBooking.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SportsBooking.IntegrationTests/SportsBooking.IntegrationTests.csproj" />
+    <Project Path="tests/SportsBooking.UnitTests/SportsBooking.UnitTests.csproj" />
+  </Folder>
+</Solution>
