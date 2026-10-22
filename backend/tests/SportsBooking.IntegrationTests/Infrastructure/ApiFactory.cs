@@ -17,6 +17,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgresImage).Build();
 
+    public string ConnectionString => _postgres.GetConnectionString();
+
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
