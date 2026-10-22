@@ -97,7 +97,7 @@ public sealed partial class AdminAccountSeeder(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Admin account not seeded: AdminSeed:Email and AdminSeed:Password are not set. The application runs without an admin.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Admin seed skipped: AdminSeed:Email and AdminSeed:Password are not set. A new installation has no admin until they are.")]
     private static partial void LogNotConfigured(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Admin account not seeded: only one of AdminSeed:Email and AdminSeed:Password is set.")]
