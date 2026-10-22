@@ -48,6 +48,24 @@ npm run dev
 
 Set `API_INTERNAL_URL` to point the frontend at a different API address.
 
+## Admin account
+
+There is no public sign-up for the platform admin. The API creates the admin account at startup from two settings, if it does not exist yet:
+
+| Setting | Docker compose (`.env`) | Environment variable |
+| --- | --- | --- |
+| Email | `ADMIN_SEED_EMAIL` | `AdminSeed__Email` |
+| Password (8+ characters) | `ADMIN_SEED_PASSWORD` | `AdminSeed__Password` |
+
+For `dotnet run`, use user-secrets instead of files:
+
+```bash
+dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Email" "you@example.com"
+dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Password" "<a long password>"
+```
+
+If the settings are missing or invalid, the API starts without an admin and logs a warning or error. The seed never changes an existing admin (changing the password setting later has no effect), never creates a second admin and never promotes an existing account.
+
 ## Tests and checks
 
 ```bash

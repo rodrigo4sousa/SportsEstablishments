@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <!-- dotnet user-secrets for local development values (e.g. AdminSeed:Password). -->
+    <UserSecretsId>5f0a3c8e-2b1d-4d7e-9a64-3e8c1f2b7d90</UserSecretsId>
     <!-- Build-time OpenAPI document, consumed by the frontend (npm run gen:api). -->
     <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>
     <OpenApiGenerateDocumentsOptions>--file-name sportsbooking-api</OpenApiGenerateDocumentsOptions>

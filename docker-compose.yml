@@ -31,6 +31,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-sportsbooking};Username=${POSTGRES_USER:-sportsbooking};Password=${POSTGRES_PASSWORD:-sportsbooking};GSS Encryption Mode=Disable
+      # Admin account created at startup (US04); empty means no admin. Set them in .env, never in this file.
+      AdminSeed__Email: ${ADMIN_SEED_EMAIL:-}
+      AdminSeed__Password: ${ADMIN_SEED_PASSWORD:-}
     ports:
       - "5080:8080"
     depends_on:
