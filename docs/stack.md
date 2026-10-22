@@ -242,7 +242,7 @@ Para ir marcando à medida que fica feito.
 - [ ] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita.
 - [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
 - [ ] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE.
-- [ ] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin.
+- [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
 - [ ] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação.
 - [ ] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe).
 - [ ] HTTPS em todo o lado e HSTS em produção.
