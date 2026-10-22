@@ -24,6 +24,8 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 - Pagamentos ficam fora do MVP.
 - Datas guardadas em UTC e mostradas em hora de Lisboa.
 ## Épico 1 — Contas e acesso
+
+**Requisito transversal às histórias de autenticação (US01, US03, US04).** Todas as sessões, de qualquer perfil, são renovadas pelo `POST /api/auth/refresh`, que verifica sempre que a conta continua ativa antes de emitir novos tokens. Uma conta desativada não recebe novos tokens, e o pedido de refresh é tratado como falhado (401). Há um teste de integração para este caso.
  
 ### US01 · Registo de jogador · M · 3 pontos
  
@@ -50,7 +52,8 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
  
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
-- A sessão usa JWT com expiração; um token expirado ou inválido devolve 401 e o front end pede novo login.
+- A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
+- O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
 - O logout termina a sessão no browser.
 - Uma conta de dono desativada (US29) não consegue entrar.
@@ -276,6 +279,8 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
  
 - É obrigatório indicar o motivo.
 - O dono desativado não consegue entrar, e os seus clubes deixam de aparecer na pesquisa e de aceitar reservas.
+- A desativação revoga os refresh tokens do dono, e o `POST /api/auth/refresh` recusa contas desativadas, por isso não é emitido nenhum token novo.
+- **Compromisso aceite (JWT sem estado, validade curta):** um access token já emitido continua válido até expirar, no máximo 15 minutos depois da desativação, porque a API valida o JWT sem consultar a base de dados. Durante esse período o dono ainda consegue fazer pedidos; depois disso, a sessão termina.
 - As reservas futuras não são canceladas automaticamente; o admin vê quantas há antes de confirmar.
 - O admin pode reativar a conta.
 - Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.
