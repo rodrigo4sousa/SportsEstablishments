@@ -51,7 +51,7 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 See [README.md](README.md) for full setup.
 - Everything: `docker compose up --build` (app :3000, API :5080, Swagger :5080/swagger, Mailpit :8025, Postgres :5432)
 - Backend build: `dotnet build backend/SportsBooking.slnx` (also regenerates `backend/src/SportsBooking.Api/openapi/sportsbooking-api.json`; commit it)
-- Backend tests (Docker must be running, Testcontainers): `dotnet test backend/SportsBooking.slnx`. Uses Microsoft.Testing.Platform (opted in via `backend/global.json`); filter with `dotnet test --project <proj> -- --filter-method "*Name*"`.
+- Backend tests (Docker must be running, Testcontainers): `dotnet test backend/SportsBooking.slnx`. Uses Microsoft.Testing.Platform (opted in via the repo-root `global.json`); filter with `dotnet test --project <proj> -- --filter-method "*Name*"`.
 - API locally: `dotnet run --project backend/src/SportsBooking.Api` (needs `docker compose up -d postgres`)
 - New migration (from `backend/`, local tool): `dotnet ef migrations add <Name> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`
 - Frontend (in `frontend/`): `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
