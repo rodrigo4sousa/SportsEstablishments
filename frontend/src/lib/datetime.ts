@@ -69,6 +69,32 @@ export function formatLisbonDateTime(instant: Instant): string {
   return `${formatLisbonDate(instant)} ${formatLisbonTime(instant)}`;
 }
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * When clocks go back (last Sunday of October) the Lisbon wall-clock hour 01:00–02:00 happens twice.
+ * Returns "(verão)" for the first occurrence (WEST), "(inverno)" for the second (WET), and null otherwise.
+ */
+export function lisbonRepeatedHourLabel(instant: Instant): "(verão)" | "(inverno)" | null {
+  const date = toDate(instant);
+  const wallClock = formatLisbonDateTime(date);
+
+  if (formatLisbonDateTime(new Date(date.getTime() + ONE_HOUR_MS)) === wallClock) {
+    return "(verão)";
+  }
+  if (formatLisbonDateTime(new Date(date.getTime() - ONE_HOUR_MS)) === wallClock) {
+    return "(inverno)";
+  }
+  return null;
+}
+
+/** "14:30", or "01:30 (verão)" / "01:30 (inverno)" inside the repeated hour. Use it for slot times. */
+export function formatLisbonSlotTime(instant: Instant): string {
+  const label = lisbonRepeatedHourLabel(instant);
+  const time = formatLisbonTime(instant);
+  return label ? `${time} ${label}` : time;
+}
+
 /** Lisbon calendar date as "YYYY-MM-DD", for API query parameters and date pickers. */
 export function lisbonDateKey(instant: Instant): string {
   return dateKeyFormatter.format(toDate(instant));

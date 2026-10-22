@@ -3,7 +3,9 @@ import {
   formatLisbonDate,
   formatLisbonDateTime,
   formatLisbonLongDate,
+  formatLisbonSlotTime,
   formatLisbonTime,
+  lisbonRepeatedHourLabel,
   lisbonDateKey,
   lisbonToday,
 } from "./datetime";
@@ -57,6 +59,15 @@ describe.each(browserTimeZones)("in a browser set to $zone", ({ zone, januaryOff
     expect(formatLisbonTime("2026-10-25T02:00:00Z")).toBe("02:00");
   });
 
+  it("labels the repeated hour on 25 October 2026 as verão then inverno", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(formatLisbonSlotTime("2026-10-25T00:00:00Z")).toBe("01:00 (verão)");
+    expect(formatLisbonSlotTime("2026-10-25T00:30:00Z")).toBe("01:30 (verão)");
+    expect(formatLisbonSlotTime("2026-10-25T01:00:00Z")).toBe("01:00 (inverno)");
+    expect(formatLisbonSlotTime("2026-10-25T01:30:00Z")).toBe("01:30 (inverno)");
+  });
+
   it("uses the Lisbon date around midnight", () => {
     useBrowserTimeZone(zone, januaryOffsetMinutes);
 
@@ -67,6 +78,27 @@ describe.each(browserTimeZones)("in a browser set to $zone", ({ zone, januaryOff
     expect(lisbonDateKey("2026-12-31T23:30:00Z")).toBe("2026-12-31");
     expect(lisbonToday(new Date("2026-07-31T22:59:59Z"))).toBe("2026-07-31");
     expect(lisbonToday(new Date("2026-07-31T23:00:00Z"))).toBe("2026-08-01");
+  });
+});
+
+describe("repeated hour label", () => {
+  it("is absent outside the repeated hour, including right before and after it", () => {
+    expect(lisbonRepeatedHourLabel("2026-10-24T23:59:00Z")).toBeNull(); // 00:59 WEST
+    expect(lisbonRepeatedHourLabel("2026-10-25T02:00:00Z")).toBeNull(); // 02:00 WET
+    expect(lisbonRepeatedHourLabel("2026-07-15T00:30:00Z")).toBeNull();
+    expect(formatLisbonSlotTime("2026-07-15T09:00:00Z")).toBe("10:00");
+  });
+
+  it("is absent on the spring-forward day, where no hour repeats", () => {
+    expect(lisbonRepeatedHourLabel("2026-03-29T00:30:00Z")).toBeNull(); // 00:30 WET
+    expect(lisbonRepeatedHourLabel("2026-03-29T01:00:00Z")).toBeNull(); // 02:00 WEST
+  });
+
+  it("tells apart the two slots that share a wall-clock time", () => {
+    // The 60-minute slot 00:00–01:00 UTC runs from 01:00 WEST to 01:00 WET.
+    expect(`${formatLisbonSlotTime("2026-10-25T00:00:00Z")} – ${formatLisbonSlotTime("2026-10-25T01:00:00Z")}`).toBe(
+      "01:00 (verão) – 01:00 (inverno)",
+    );
   });
 });
 
