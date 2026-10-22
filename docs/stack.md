@@ -176,6 +176,8 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_no_overlap
 - Horários de funcionamento como dia da semana e `TimeOnly`, mais o fuso do clube (`Europe/Lisbon`).
 - A geração de slots converte hora local para UTC com `TimeZoneInfo.FindSystemTimeZoneById("Europe/Lisbon")`.
 - Testes para as mudanças de hora de 2026: 29 de março (a hora entre a 1h e as 2h não existe) e 25 de outubro (a hora entre a 1h e as 2h repete-se).
+- Regras decididas: uma hora local que não existe avança para depois do salto (01:30 passa a 02:30); uma hora que se repete usa a primeira ocorrência (hora de verão). Os slots são blocos de tempo real a partir da abertura, por isso nesses dias há menos um ou mais um slot. Na hora repetida, a UI mostra «(verão)» ou «(inverno)».
+- Limitação conhecida do MVP: o fecho mais tarde é às 00:00; horários que passam da meia-noite não são suportados.
 **Queries**
  
 - Leituras com `AsNoTracking()` e projeção direta para DTOs com `Select`; nunca devolver entidades na API.

@@ -16,7 +16,13 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 - No generic repository (Application uses `IAppDbContext`), no MediatR, no AutoMapper, no FluentAssertions 8 (use Shouldly).
 - Thin controllers. Entities have private setters and intention methods (`booking.Cancel(reason, now)`). Expected failures are returned results, not exceptions. `async` + `CancellationToken` all the way.
 - Public IDs: `Guid.CreateVersion7()`. Money: `decimal` / `numeric(10,2)`. Dates: UTC `timestamptz`; opening hours as `TimeOnly` + club time zone `Europe/Lisbon`.
-- Time (T04): convert local↔UTC only via `SportsBooking.Domain.Scheduling.ClubTime` (nonexistent local time → shifted past the DST gap; repeated time → first occurrence; `Today()` gives the Lisbon date). Generate slots only via `SlotGenerator`: blocks of real elapsed time from opening, so DST days have one slot fewer/more; closing `00:00` = midnight. Frontend shows dates only through `frontend/src/lib/datetime.ts` (Lisbon, pt-PT); never `toLocaleString()` without `timeZone`.
+- Time (T04): convert local↔UTC only via `SportsBooking.Domain.Scheduling.ClubTime`. `Today()` gives the Lisbon date. Decided DST rules:
+  - A local time that does not exist (clocks go forward, last Sunday of March) moves forward past the gap: 01:30 → 02:30 WEST.
+  - A local time that happens twice (clocks go back, last Sunday of October) uses its first occurrence (WEST).
+  - Slots come only from `SlotGenerator`: blocks of real elapsed time from opening, so DST days have one slot fewer/more and every slot lasts exactly its duration.
+  - In the UI, times inside the repeated October hour are labelled "(verão)" / "(inverno)" via `formatLisbonSlotTime`; slots are never hidden.
+- Opening hours: closing `00:00` = midnight. Hours past midnight (e.g. 22:00–02:00) are rejected; known MVP limitation.
+- Frontend shows dates only through `frontend/src/lib/datetime.ts` (Lisbon, pt-PT); never `toLocaleString()` without `timeZone`.
 - Overlapping bookings are prevented by a PostgreSQL exclusion constraint (`23P01` → 409), not only app code.
 - Errors: ProblemDetails (RFC 9457) via `AddProblemDetails()` + global `IExceptionHandler`. Every error has a stable `code` (e.g. `slot_taken`) and `traceId`; the front end picks the message by `code`. Status codes: see table in docs/stack.md.
 - Auth: ASP.NET Core Identity (core only). JWT access token (15 min) + rotating refresh token (7 days), both **httpOnly cookies**; front end learns the user via `GET /api/auth/me`. On a 401 the client calls `POST /api/auth/refresh` once and retries; login only if refresh fails. Refresh **must** reject deactivated accounts. Accepted trade-off: an already-issued access token stays valid up to 15 min after deactivation (no per-request active check). Front end and API are **same origin** (Next.js rewrites `/api/*` in dev, Caddy in prod); no CORS. API checks `Origin` on mutating requests.

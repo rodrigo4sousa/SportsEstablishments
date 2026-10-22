@@ -84,6 +84,7 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
 - Campos obrigatórios em falta são rejeitados com mensagem por campo.
 - Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
+- O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
 ### US07 · Gerir campos · M · 5 pontos
  
 Como dono, quero adicionar, editar e desativar campos, para controlar o que está disponível para reserva.
@@ -102,6 +103,8 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
 - Os slots são gerados a partir da abertura, em blocos da duração definida; um bloco que passe da hora de fecho não é gerado.
 - Mudar o horário não altera reservas já feitas; uma reserva fora do novo horário continua válida.
 - As horas são introduzidas e mostradas em hora de Lisboa (T04).
+- O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
+- Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
@@ -184,6 +187,7 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Um slot não aparece como livre se tiver reserva confirmada, estiver bloqueado, estiver fora do horário ou já tiver começado.
 - Só se podem escolher datas de hoje até 30 dias à frente.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
+- No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
 ### US18 · Reservar slot · M · 3 pontos
  
 Como jogador, quero reservar um slot livre, para garantir o campo.
