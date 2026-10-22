@@ -10,7 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:api": "openapi-typescript ../backend/src/SportsBooking.Api/openapi/SportsBooking.Api.json -o src/lib/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../backend/src/SportsBooking.Api/openapi/sportsbooking-api.json -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
