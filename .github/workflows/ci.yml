@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - run: dotnet tool restore
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+
+      # Integration tests start PostgreSQL with Testcontainers (Docker is available on ubuntu runners).
+      - run: dotnet test -c Release --no-build
+
+      - name: OpenAPI document is up to date
+        run: git diff --exit-code -- src/SportsBooking.Api/openapi
+
+      - name: No EF Core model changes without a migration
+        run: dotnet ef migrations has-pending-model-changes --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --no-build --configuration Release
+
+      - name: No vulnerable packages
+        run: |
+          dotnet package list --vulnerable --include-transitive --format json > vulnerable.json
+          cat vulnerable.json
+          if grep -q '"vulnerabilities"' vulnerable.json; then
+            echo "::error::Vulnerable NuGet packages found"
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: API types are up to date with the OpenAPI document
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/lib/api
+
+      # Dev-only tooling (eslint-config-next) currently has advisories with no fix; production dependencies must be clean.
+      - run: npm audit --omit=dev --audit-level=high
