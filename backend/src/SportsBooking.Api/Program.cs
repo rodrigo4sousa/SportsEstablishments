@@ -29,11 +29,17 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "SportsBooking API v1"));
+}
 
-    if (!isOpenApiGeneration)
+if (!isOpenApiGeneration)
+{
+    // Production applies migrations with a migration bundle at deploy time, before the API starts.
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     {
         await app.Services.MigrateDatabaseAsync();
     }
+
+    await app.Services.SeedAdminAccountAsync();
 }
 
 app.MapControllers();

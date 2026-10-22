@@ -30,13 +30,16 @@ public static class DependencyInjection
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");
 
-        services.AddAccounts();
+        services.AddAccounts(configuration);
 
         return services;
     }
 
-    private static void AddAccounts(this IServiceCollection services)
+    private static void AddAccounts(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<AdminSeedOptions>(configuration.GetSection(AdminSeedOptions.SectionName));
+        services.AddScoped<AdminAccountSeeder>();
+
         // Identity core only (no UI): PBKDF2 password hashing, user and role stores on EF Core.
         services
             .AddIdentityCore<AppUser>(options =>
@@ -60,5 +63,12 @@ public static class DependencyInjection
         await using var scope = services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
+    }
+
+    /// <summary>Creates the admin account from AdminSeed settings if it does not exist yet (US04).</summary>
+    public static async Task SeedAdminAccountAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<AdminAccountSeeder>().SeedAsync(cancellationToken);
     }
 }

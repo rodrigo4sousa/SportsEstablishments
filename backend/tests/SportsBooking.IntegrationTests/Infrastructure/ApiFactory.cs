@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using SportsBooking.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 using Testcontainers.PostgreSql;
 
 [assembly: AssemblyFixture(typeof(SportsBooking.IntegrationTests.Infrastructure.ApiFactory))]
@@ -22,13 +23,34 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
-        await Services.MigrateDatabaseAsync();
+        // Starting the host applies migrations and runs the startup seed, as in development.
+        _ = Server;
     }
+
+    /// <summary>
+    /// A separate app instance on its own fresh database, for tests that depend on startup behaviour.
+    /// Logs are captured; read them with <c>app.Services.GetFakeLogCollector()</c>.
+    /// </summary>
+    public WebApplicationFactory<Program> CreateIsolatedApp(string databaseName, IReadOnlyDictionary<string, string?>? settings = null) =>
+        WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("ConnectionStrings:Default", ConnectionStringFor(databaseName));
+            foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+            {
+                builder.UseSetting(key, value);
+            }
+
+            builder.ConfigureLogging(logging => logging.AddFakeLogging());
+        });
+
+    public string ConnectionStringFor(string databaseName) =>
+        new NpgsqlConnectionStringBuilder(ConnectionString) { Database = databaseName }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-        builder.UseSetting("ConnectionStrings:Default", _postgres.GetConnectionString());
+        builder.UseSetting("ConnectionStrings:Default", ConnectionString);
+        builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
     }
 
     public override async ValueTask DisposeAsync()
