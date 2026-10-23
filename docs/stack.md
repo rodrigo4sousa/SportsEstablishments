@@ -243,8 +243,8 @@ Para ir marcando à medida que fica feito.
 - [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
 - [x] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE. (US01)
 - [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
-- [ ] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação.
-- [ ] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe).
+- [x] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação (login, registo e refresh). (US03)
+- [ ] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe). Login feito (US03); falta a recuperação (US05).
 - [ ] HTTPS em todo o lado e HSTS em produção.
 - [ ] Cabeçalhos de segurança: Content-Security-Policy, X-Content-Type-Options, Referrer-Policy.
 - [ ] Segredos em variáveis de ambiente (user-secrets em desenvolvimento); `.env` no `.gitignore`.
