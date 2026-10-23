@@ -37,6 +37,7 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
 - Campos inválidos são rejeitados com mensagem por campo, no front end e na API.
 - Depois do registo, o jogador fica com sessão iniciada e vai para a página inicial.
 - A conta criada tem o perfil Jogador.
+- Decidido: pedidos POST, PUT, PATCH e DELETE sem cabeçalho `Origin`, ou com um `Origin` de outro site, são rejeitados com 403 `origin_not_allowed`.
 - Decisões de implementação (provisórias, a confirmar):
   - **Email já usado (compromisso aceite):** o critério pede uma mensagem a dizê-lo, por isso o registo revela que um email tem conta. A API responde 409 com o código `email_taken` e sempre a mesma mensagem («Já existe uma conta com este email.»), seja a conta de jogador, de dono ou de admin, sem mais nenhum dado. A comparação ignora maiúsculas e minúsculas e os espaços à volta; o índice único da base de dados decide registos simultâneos. A alternativa sem enumeração (responder sempre «verifica o teu email» e avisar por email) contraria este critério e o de sessão iniciada logo a seguir. O login (US03) e a recuperação (US05) continuam sem revelar se o email existe. O rate limiting das rotas `/api/auth/*` fica para a US03 (ver lá).
   - Nome obrigatório, até 100 caracteres; os espaços à volta são removidos.
@@ -46,7 +47,6 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
   - Sessão: a validade de 7 dias do refresh token é absoluta (a rotação mantém a data de expiração), por isso é preciso entrar de novo, no máximo, 7 dias depois do registo ou do login. Um refresh token já usado que volte a aparecer termina todas as sessões da conta (docs/stack.md); dois separadores a renovar ao mesmo tempo podem por isso terminar a sessão.
   - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
   - Pedidos anónimos a rotas que não existem recebem 401 (política de fallback que exige sessão), e não 404.
-  - Pedidos POST, PUT, PATCH e DELETE sem cabeçalho `Origin` são rejeitados com 403 `origin_not_allowed`, tal como os de outra origem.
   - A conta de admin criada pelo seed tem o nome «Administrador».
   - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou a ligação «Criar conta» sem sessão. A ligação para o login aparece com a US03.
 ### US02 · Registo de dono · M · 2 pontos
@@ -65,7 +65,9 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
 - O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
-- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem. Falta o rate limiting das rotas `/api/auth/*` (que também trava a enumeração pelo registo), e para o fazer é preciso decidir em que proxies confiar para o IP do cliente (`X-Forwarded-For` do Caddy e do Next.js).
+- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem.
+- Rate limiting e bloqueio temporário de conta nas rotas `/api/auth/*`. Isto também trava a enumeração de emails pelo registo (US01).
+- Só o Caddy é de confiança para o `X-Forwarded-For` (`KnownProxies` / `ForwardedHeaders`), para o IP usado no rate limiting não poder ser forjado.
 - A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
 - O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
@@ -365,6 +367,7 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - Os segredos (ligação à base de dados, chave JWT, SMTP, conta de admin) vêm de variáveis de ambiente, nunca do repositório.
 - As migrações são aplicadas no deploy de forma controlada.
 - Existe um endpoint `/health` para verificar se a API está a responder.
+- **Bloqueio:** o deploy público só pode ficar online depois de o rate limiting da US03 estar feito, porque o registo com um email repetido revela se existe conta (US01).
 ## Resumo de pontos
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) |
