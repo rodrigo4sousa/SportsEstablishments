@@ -101,6 +101,8 @@ O front end e a API têm de estar no mesmo site: o Caddy (em produção) ou os r
 - Como o browser envia os cookies sozinho, os pedidos que alteram dados precisam de proteção: o SameSite=Lax bloqueia POST vindos de outros sites, e a API rejeita POST, PUT, PATCH e DELETE cujo cabeçalho `Origin` não seja o do site.
 - Bloqueio de conta do Identity depois de várias tentativas falhadas e rate limiting (middleware nativo) nas rotas `/api/auth/*`.
 - Desativar um dono (US29) ou mudar a palavra-passe revoga os refresh tokens; a sessão acaba no máximo quando o access token expira (15 minutos).
+- O `POST /api/auth/refresh` verifica sempre que a conta está ativa antes de emitir tokens; uma conta desativada recebe 401 e não renova a sessão.
+- **Compromisso conhecido:** o access token é um JWT sem estado, validado sem ir à base de dados. Um token já emitido continua válido até expirar (no máximo 15 minutos), mesmo depois de a conta ser desativada. A validade curta e a verificação no refresh limitam essa janela. Não há verificação de conta ativa em cada pedido.
 ## Front end: servidor e cliente
  
 Server Components por omissão; `'use client'` só onde há interação, e o mais abaixo possível na árvore.
@@ -174,6 +176,8 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_no_overlap
 - Horários de funcionamento como dia da semana e `TimeOnly`, mais o fuso do clube (`Europe/Lisbon`).
 - A geração de slots converte hora local para UTC com `TimeZoneInfo.FindSystemTimeZoneById("Europe/Lisbon")`.
 - Testes para as mudanças de hora de 2026: 29 de março (a hora entre a 1h e as 2h não existe) e 25 de outubro (a hora entre a 1h e as 2h repete-se).
+- Regras decididas: uma hora local que não existe avança para depois do salto (01:30 passa a 02:30); uma hora que se repete usa a primeira ocorrência (hora de verão). Os slots são blocos de tempo real a partir da abertura, por isso nesses dias há menos um ou mais um slot. Na hora repetida, a UI mostra «(verão)» ou «(inverno)».
+- Limitação conhecida do MVP: o fecho mais tarde é às 00:00; horários que passam da meia-noite não são suportados.
 **Queries**
  
 - Leituras com `AsNoTracking()` e projeção direta para DTOs com `Select`; nunca devolver entidades na API.
@@ -238,7 +242,7 @@ Para ir marcando à medida que fica feito.
 - [ ] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita.
 - [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
 - [ ] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE.
-- [ ] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin.
+- [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
 - [ ] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação.
 - [ ] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe).
 - [ ] HTTPS em todo o lado e HSTS em produção.

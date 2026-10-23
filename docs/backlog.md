@@ -24,6 +24,8 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 - Pagamentos ficam fora do MVP.
 - Datas guardadas em UTC e mostradas em hora de Lisboa.
 ## Épico 1 — Contas e acesso
+
+**Requisito transversal às histórias de autenticação (US01, US03, US04).** Todas as sessões, de qualquer perfil, são renovadas pelo `POST /api/auth/refresh`, que verifica sempre que a conta continua ativa antes de emitir novos tokens. Uma conta desativada não recebe novos tokens, e o pedido de refresh é tratado como falhado (401). Há um teste de integração para este caso.
  
 ### US01 · Registo de jogador · M · 3 pontos
  
@@ -50,7 +52,9 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
  
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
-- A sessão usa JWT com expiração; um token expirado ou inválido devolve 401 e o front end pede novo login.
+- O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
+- A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
+- O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
 - O logout termina a sessão no browser.
 - Uma conta de dono desativada (US29) não consegue entrar.
@@ -61,7 +65,16 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - A conta de admin é criada no arranque a partir de variáveis de ambiente (email e palavra-passe), se ainda não existir.
 - Não existe nenhum endpoint nem página que crie contas de admin ou promova outras contas a admin.
 - Sem as variáveis definidas, a aplicação arranca sem admin e regista um aviso no log.
-- O admin entra pelo login normal (US03) e vai para `/admin`.
+- Só uma das variáveis definida, email inválido ou palavra-passe com menos de 8 caracteres: a API não arranca e mostra um erro claro, que nunca inclui o email nem a palavra-passe.
+- Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente nunca é alterado (mudar a variável da palavra-passe depois não tem efeito).
+- Se o email já pertence a uma conta de jogador ou de dono, essa conta nunca é promovida a admin; fica um aviso no log, sem o email.
+- O seed corre em todos os ambientes, sempre depois das migrações. Em produção as migrações são aplicadas no deploy (T06), antes de a API arrancar.
+- Mudar a palavra-passe do admin é um procedimento manual, descrito no README: apagar a conta de admin e arrancar a API com as novas variáveis.
+- O critério «o admin entra pelo login normal e vai para `/admin`» passou para a US03.
+- Decisões de implementação:
+  - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
+  - Os espaços à volta do email são removidos antes de o validar; o resto da validação é estrita (a palavra-passe é usada tal como está).
+  - As palavras-passe de todas as contas são guardadas com PBKDF2-HMAC-SHA512 e 210 000 iterações (formato v3 do Identity); hashes antigos com menos iterações são atualizados no login seguinte.
 ### US05 · Recuperar palavra-passe · D · 3 pontos
  
 Como utilizador, quero redefinir a palavra-passe por email, para recuperar o acesso se a esquecer.
@@ -81,6 +94,7 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
 - Campos obrigatórios em falta são rejeitados com mensagem por campo.
 - Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
+- O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
 ### US07 · Gerir campos · M · 5 pontos
  
 Como dono, quero adicionar, editar e desativar campos, para controlar o que está disponível para reserva.
@@ -99,6 +113,8 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
 - Os slots são gerados a partir da abertura, em blocos da duração definida; um bloco que passe da hora de fecho não é gerado.
 - Mudar o horário não altera reservas já feitas; uma reserva fora do novo horário continua válida.
 - As horas são introduzidas e mostradas em hora de Lisboa (T04).
+- O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
+- Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
@@ -181,6 +197,7 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Um slot não aparece como livre se tiver reserva confirmada, estiver bloqueado, estiver fora do horário ou já tiver começado.
 - Só se podem escolher datas de hoje até 30 dias à frente.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
+- No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
 ### US18 · Reservar slot · M · 3 pontos
  
 Como jogador, quero reservar um slot livre, para garantir o campo.
@@ -276,6 +293,8 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
  
 - É obrigatório indicar o motivo.
 - O dono desativado não consegue entrar, e os seus clubes deixam de aparecer na pesquisa e de aceitar reservas.
+- A desativação revoga os refresh tokens do dono, e o `POST /api/auth/refresh` recusa contas desativadas, por isso não é emitido nenhum token novo.
+- **Compromisso aceite (JWT sem estado, validade curta):** um access token já emitido continua válido até expirar, no máximo 15 minutos depois da desativação, porque a API valida o JWT sem consultar a base de dados. Durante esse período o dono ainda consegue fazer pedidos; depois disso, a sessão termina.
 - As reservas futuras não são canceladas automaticamente; o admin vê quantas há antes de confirmar.
 - O admin pode reativar a conta.
 - Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.

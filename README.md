@@ -26,7 +26,7 @@ docker compose up --build
 | Mailpit (test inbox) | http://localhost:8025 |
 | PostgreSQL | `localhost:5432` (user/password/db `sportsbooking`) |
 
-The browser only talks to the app. Next.js rewrites `/api/*` to the API, so frontend and API share one origin and the auth cookies stay first-party. EF Core migrations are applied automatically when the API starts in Development.
+The browser only talks to the app. Next.js rewrites `/api/*` to the API, so frontend and API share one origin and the auth cookies stay first-party. EF Core migrations are applied automatically when the API starts in Development; in other environments they must be applied before the API starts (see [Admin account](#admin-account)).
 
 Stop with `docker compose down` (add `-v` to also delete the database volume).
 
@@ -47,6 +47,44 @@ npm run dev
 ```
 
 Set `API_INTERNAL_URL` to point the frontend at a different API address.
+
+## Admin account
+
+There is no public sign-up for the platform admin. The API creates the admin account at startup from two settings, if it does not exist yet:
+
+| Setting | Docker compose (`.env`) | Environment variable |
+| --- | --- | --- |
+| Email | `ADMIN_SEED_EMAIL` | `AdminSeed__Email` |
+| Password (8+ characters) | `ADMIN_SEED_PASSWORD` | `AdminSeed__Password` |
+
+For `dotnet run`, use user-secrets instead of files:
+
+```bash
+dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Email" "you@example.com"
+dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Password" "<a long password>"
+```
+
+- **Both settings missing:** the API starts without an admin and logs a warning.
+- **Only one set, a malformed email or a password under 8 characters:** the API refuses to start. The error names the setting, never its value. Whitespace around the email is trimmed first.
+- The seed never changes an existing admin (changing the password setting later has no effect), never creates a second admin and never promotes an existing player or owner account (it logs a warning instead).
+
+The seed runs in **every environment**, right after migrations, so the database schema must be up to date before the API starts. Development (and `docker compose`) applies migrations on startup; production applies them at deploy time with a migration bundle, before starting the API.
+
+### Changing the admin password
+
+There is no endpoint for it, and the seed never touches an existing admin. To change the admin password (or email) by hand:
+
+1. Stop the API.
+2. Delete the admin account. Its profile link (`user_roles`) is deleted with it:
+
+   ```bash
+   docker compose exec postgres psql -U sportsbooking -d sportsbooking -c \
+     "DELETE FROM users WHERE id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.normalized_name = 'ADMIN');"
+   ```
+
+3. Set the new `AdminSeed` values and start the API. The seed creates the admin again, with a new id.
+
+This works while nothing else references the admin account. Revisit it when admin actions start being recorded (US29).
 
 ## Tests and checks
 
