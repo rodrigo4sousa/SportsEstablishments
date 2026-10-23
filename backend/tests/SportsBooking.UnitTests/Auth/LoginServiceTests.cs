@@ -108,5 +108,7 @@ public sealed class LoginServiceTests
 
         public Task<Result<SessionTokens>> RefreshAsync(string? refreshToken, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task EndAsync(string? refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -97,6 +97,33 @@ internal sealed partial class SessionService(
         return Tokens(presented.UserId, account.Profile, now, nextValue, next.ExpiresAt);
     }
 
+    public async Task EndAsync(string? refreshToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return;
+        }
+
+        var hash = RefreshToken.Hash(refreshToken);
+        var presented = await dbContext.RefreshTokens.AsNoTracking()
+            .SingleOrDefaultAsync(token => token.TokenHash == hash, cancellationToken);
+        if (presented is null)
+        {
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var revoked = await dbContext.RefreshTokens
+            .Where(token => token.Id == presented.Id && token.RevokedAt == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(token => token.RevokedAt, now.UtcDateTime), cancellationToken);
+        if (revoked == 0)
+        {
+            // Already used: the same signal of theft as on refresh.
+            LogReusedToken(logger, presented.UserId);
+            await RevokeAllAsync(presented.UserId, now, cancellationToken);
+        }
+    }
+
     private async Task RevokeAllAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken) =>
         await dbContext.RefreshTokens
             .Where(token => token.UserId == userId && token.RevokedAt == null)

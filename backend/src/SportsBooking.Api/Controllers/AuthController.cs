@@ -80,6 +80,20 @@ public sealed class AuthController(
         return NoContent();
     }
 
+    /// <summary>
+    /// US03: ends the session. Revokes the refresh token from the cookie (if any) and clears both cookies. Always 204,
+    /// with or without a valid session, so it also works after the access token has expired.
+    /// </summary>
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        await sessions.EndAsync(Request.Cookies[AuthCookies.RefreshToken], cancellationToken);
+        AuthCookies.Delete(Response);
+        return NoContent();
+    }
+
     /// <summary>The signed-in account. The front end learns who is signed in only from here.</summary>
     [HttpGet("me")]
     [ProducesResponseType<AccountResponse>(StatusCodes.Status200OK, "application/json")]

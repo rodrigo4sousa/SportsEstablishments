@@ -19,6 +19,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>The site's own origin in tests; HTTPS so that Secure cookies round-trip.</summary>
     public const string SiteOrigin = "https://localhost";
 
+    /// <summary>The access token signing key of the test host.</summary>
+    public const string SigningKey = "integration-tests-signing-key-0123456789";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgresImage).Build();
 
     public string ConnectionString => _postgres.GetConnectionString();
@@ -55,7 +58,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
-        builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-0123456789");
+        builder.UseSetting("Jwt:SigningKey", SigningKey);
     }
 
     public override async ValueTask DisposeAsync()

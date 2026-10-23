@@ -17,6 +17,12 @@ public interface ISessionService
     /// A token that is presented again after use revokes every session of that account.
     /// </summary>
     Task<Result<SessionTokens>> RefreshAsync(string? refreshToken, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// US03 logout: revokes this refresh token, if it is a known and active one. A token that was already used is
+    /// treated as on refresh (every session of the account is revoked). Missing or unknown tokens are ignored.
+    /// </summary>
+    Task EndAsync(string? refreshToken, CancellationToken cancellationToken);
 }
 
 public sealed record SessionTokens(
