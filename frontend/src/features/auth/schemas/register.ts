@@ -8,7 +8,7 @@ export const NAME_MAX_LENGTH = 100;
 export const EMAIL_MAX_LENGTH = 256;
 export const PASSWORD_MIN_LENGTH = 8;
 
-const PHONE_PATTERN = /^\+?[0-9]{9,15}$/;
+export const PHONE_PATTERN = /^\+?[0-9]{9,15}$/;
 const INVALID_EMAIL = "Indica um email válido, por exemplo nome@exemplo.pt.";
 
 export const registerSchema = z.object({

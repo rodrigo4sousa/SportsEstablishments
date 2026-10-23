@@ -1,0 +1,78 @@
+import { screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { describe, expect, it, vi } from "vitest";
+import { server } from "@/test/msw";
+import { renderWithProviders } from "@/test/render";
+import { EditClub } from "./edit-club";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() }),
+}));
+
+const id = "0199f7a0-0000-7000-8000-0000000000c1";
+
+function problem(status: number, code: string) {
+  return HttpResponse.json({ status, title: "Erro", code, traceId: "t" }, { status, headers: { "Content-Type": "application/problem+json" } });
+}
+
+describe("EditClub", () => {
+  it("loads the club and shows its edit form", async () => {
+    server.use(
+      http.get(`/api/manage/clubs/${id}`, () =>
+        HttpResponse.json({
+          id,
+          slug: "clube-de-tenis-da-foz",
+          name: "Clube de Ténis da Foz",
+          address: "Rua do Mar, 1",
+          locality: "Porto",
+          phone: "912345678",
+          contactEmail: "geral@tenisfoz.pt",
+          cancellationWindowHours: 12,
+          timeZone: "Europe/Lisbon",
+        }),
+      ),
+    );
+
+    renderWithProviders(<EditClub clubId={id} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("A carregar o clube");
+    expect(await screen.findByLabelText(/^nome$/i)).toHaveValue("Clube de Ténis da Foz");
+    expect(screen.getByLabelText(/janela de cancelamento/i)).toHaveValue("12");
+  });
+
+  it("shows the not-found page for a club the API answers 404 for (unknown, or another owner's)", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`/api/manage/clubs/${id}`, () => {
+        calls++;
+        return problem(404, "club_not_found");
+      }),
+    );
+
+    renderWithProviders(<EditClub clubId={id} />);
+
+    expect(await screen.findByRole("heading", { name: "Clube não encontrado" })).toBeInTheDocument();
+    expect(screen.getByText("Este clube não existe ou não é teu.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar aos clubes" })).toHaveAttribute("href", "/manage");
+    expect(screen.queryByLabelText(/^nome$/i)).not.toBeInTheDocument();
+    expect(calls).toBe(1);
+  });
+
+  it("shows the same page for a 404 without our error code (e.g. an id the routing rejects)", async () => {
+    server.use(http.get(`/api/manage/clubs/${id}`, () => problem(404, "not_found")));
+
+    renderWithProviders(<EditClub clubId={id} />);
+
+    expect(await screen.findByRole("heading", { name: "Clube não encontrado" })).toBeInTheDocument();
+  });
+
+  it("shows an error, not the not-found page, when the API fails", async () => {
+    server.use(http.get(`/api/manage/clubs/${id}`, () => problem(500, "internal_error")));
+
+    renderWithProviders(<EditClub clubId={id} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Ocorreu um erro inesperado. Tenta novamente mais tarde.");
+    expect(screen.queryByRole("heading", { name: "Clube não encontrado" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+  });
+});
