@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Options;
+using Npgsql;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Identity;
 using SportsBooking.IntegrationTests.Infrastructure;
@@ -36,6 +38,17 @@ public sealed class AdminSeedTests(ApiFactory factory)
     {
         await using var scope = app.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>().GetUsersInRoleAsync(Profiles.Admin);
+    }
+
+    private async Task<bool> DatabaseExistsAsync(string databaseName)
+    {
+        await using var connection = new NpgsqlConnection(factory.ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)", connection)
+        {
+            Parameters = { new() { Value = databaseName } },
+        };
+        return (bool)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }
 
     private static List<FakeLogRecord> SeederLogs(WebApplicationFactory<Program> app) =>
@@ -108,28 +121,26 @@ public sealed class AdminSeedTests(ApiFactory factory)
     }
 
     [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    public async Task With_only_one_setting_no_admin_is_created_and_a_warning_is_logged(bool withEmail, bool withPassword)
+    [InlineData("admin-only@reservas.test", null, "must be set together")]
+    [InlineData(null, Password, "must be set together")]
+    [InlineData("not-an-email", Password, "not a valid email address")]
+    [InlineData("admin@reservas.test", "curta", "at least 8 characters")]
+    public async Task Partial_or_invalid_settings_stop_the_api_with_an_error_that_hides_the_values(
+        string? email, string? password, string expectedMessage)
     {
-        var email = NewEmail();
-        await using var app = Start(NewDatabaseName(), withEmail ? email : null, withPassword ? Password : null);
+        var databaseName = NewDatabaseName();
+        await using var app = factory.CreateIsolatedApp(databaseName, Seed(email, password));
 
-        (await AdminsAsync(app)).ShouldBeEmpty();
-        SeederLogs(app).ShouldContain(record => record.Level == LogLevel.Warning && record.Message.Contains("only one", StringComparison.Ordinal));
-        LogsShouldNotContainSecrets(app, Password, email);
-    }
+        var exception = Should.Throw<OptionsValidationException>(() => _ = app.Server);
 
-    [Theory]
-    [InlineData("not-an-email", Password, "valid email")]
-    [InlineData("admin@reservas.test", "curta", "at least 8")]
-    public async Task Invalid_settings_create_no_admin_and_log_an_error_without_the_values(string email, string password, string expectedMessage)
-    {
-        await using var app = Start(NewDatabaseName(), email, password);
+        exception.Message.ShouldContain(expectedMessage);
+        foreach (var secret in new[] { email, password }.Where(secret => !string.IsNullOrEmpty(secret)))
+        {
+            exception.ToString().ShouldNotContain(secret!, Case.Insensitive);
+        }
 
-        (await AdminsAsync(app)).ShouldBeEmpty();
-        SeederLogs(app).ShouldContain(record => record.Level == LogLevel.Error && record.Message.Contains(expectedMessage, StringComparison.Ordinal));
-        LogsShouldNotContainSecrets(app, password, email);
+        // Validation runs before migrations: the API never touched the database.
+        (await DatabaseExistsAsync(databaseName)).ShouldBeFalse();
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.Options;
 using SportsBooking.Api.ErrorHandling;
 using SportsBooking.Application;
 using SportsBooking.Infrastructure;
@@ -33,6 +34,9 @@ if (app.Environment.IsDevelopment())
 
 if (!isOpenApiGeneration)
 {
+    // Invalid settings (e.g. a partial admin seed) stop the API before it touches the database.
+    app.Services.GetRequiredService<IStartupValidator>().Validate();
+
     // Production applies migrations with a migration bundle at deploy time, before the API starts.
     if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     {

@@ -64,10 +64,10 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - A conta de admin é criada no arranque a partir de variáveis de ambiente (email e palavra-passe), se ainda não existir.
 - Não existe nenhum endpoint nem página que crie contas de admin ou promova outras contas a admin.
 - Sem as variáveis definidas, a aplicação arranca sem admin e regista um aviso no log.
+- Só uma das variáveis definida, email inválido ou palavra-passe com menos de 8 caracteres: a API não arranca e mostra um erro claro, que nunca inclui o email nem a palavra-passe.
 - O admin entra pelo login normal (US03) e vai para `/admin`.
 - Decisões de implementação (conservadoras, a confirmar):
   - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
-  - Só uma das variáveis definida, email inválido ou palavra-passe curta: não é criado admin, a aplicação arranca e regista o erro no log, sem mostrar os valores.
   - Se o email já pertence a outra conta, essa conta nunca é promovida a admin.
   - Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente não é alterado (mudar a variável da palavra-passe depois não tem efeito).
 ### US05 · Recuperar palavra-passe · D · 3 pontos

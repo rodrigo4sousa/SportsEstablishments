@@ -37,7 +37,10 @@ public static class DependencyInjection
 
     private static void AddAccounts(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<AdminSeedOptions>(configuration.GetSection(AdminSeedOptions.SectionName));
+        services.AddOptions<AdminSeedOptions>()
+            .Bind(configuration.GetSection(AdminSeedOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AdminSeedOptions>, AdminSeedOptionsValidator>();
         services.AddScoped<AdminAccountSeeder>();
 
         // Identity core only (no UI): PBKDF2 password hashing, user and role stores on EF Core.

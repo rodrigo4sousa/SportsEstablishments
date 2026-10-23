@@ -21,23 +21,14 @@ public sealed partial class AdminAccountSeeder(
 {
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
+        // Partial or invalid settings never get here: AdminSeedOptionsValidator stops the API at startup.
         var email = options.Value.Email;
         var password = options.Value.Password;
 
-        switch (AdminSeedSettings.Evaluate(email, password))
+        if (AdminSeedSettings.Evaluate(email, password) == AdminSeedConfiguration.NotConfigured)
         {
-            case AdminSeedConfiguration.NotConfigured:
-                LogNotConfigured(logger);
-                return;
-            case AdminSeedConfiguration.PartiallyConfigured:
-                LogPartiallyConfigured(logger);
-                return;
-            case AdminSeedConfiguration.InvalidEmail:
-                LogInvalidEmail(logger);
-                return;
-            case AdminSeedConfiguration.PasswordTooShort:
-                LogPasswordTooShort(logger, PasswordPolicy.MinimumLength);
-                return;
+            LogNotConfigured(logger);
+            return;
         }
 
         var existingAdmins = await userManager.GetUsersInRoleAsync(Profiles.Admin);
@@ -99,15 +90,6 @@ public sealed partial class AdminAccountSeeder(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Admin seed skipped: AdminSeed:Email and AdminSeed:Password are not set. A new installation has no admin until they are.")]
     private static partial void LogNotConfigured(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Admin account not seeded: only one of AdminSeed:Email and AdminSeed:Password is set.")]
-    private static partial void LogPartiallyConfigured(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Admin account not seeded: AdminSeed:Email is not a valid email address.")]
-    private static partial void LogInvalidEmail(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Admin account not seeded: AdminSeed:Password must have at least {MinimumLength} characters.")]
-    private static partial void LogPasswordTooShort(ILogger logger, int minimumLength);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin account already exists; nothing to seed.")]
     private static partial void LogAlreadyExists(ILogger logger);
