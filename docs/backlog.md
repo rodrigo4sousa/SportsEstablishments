@@ -15,6 +15,7 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 **Regras decididas**
  
 - Um email corresponde a uma só conta e a um só perfil.
+- A plataforma é um único marketplace: uma conta de jogador serve em todos os clubes de todos os donos. Não há sites nem domínios por dono.
 - Um dono pode ter vários clubes; cada clube pertence a um só dono.
 - Janela de cancelamento definida por clube, 24 horas por omissão. Conta a que estiver em vigor no momento do cancelamento.
 - Reservas de hoje até 30 dias à frente.
@@ -58,6 +59,8 @@ Como dono de um clube, quero criar a minha conta de dono, para registar e gerir 
 - Um email já usado noutra conta (de qualquer perfil) é rejeitado.
 - A conta criada tem o perfil Dono.
 - Depois do registo, o dono entra em `/manage` e é convidado a criar o primeiro clube.
+- Estado: feita. A página é `/register/owner` e o endpoint é `POST /api/auth/register/owner`: o perfil Dono é fixo no endpoint e nunca vem do pedido, por isso nenhum pedido cria um admin. Mesmo corpo, mesmas validações, o mesmo 409 `email_taken` para qualquer perfil e os mesmos cookies que o registo de jogador. O registo de jogador e o de dono partilham o mesmo limite de pedidos por IP.
+- Provisório: o botão «Criar o primeiro clube» de `/manage` é um marcador desativado até existir a US06 (por agora todos os donos veem o estado vazio, porque ainda não há lista de clubes).
 - Decidido: um utilizador com sessão que abra `/login` ou `/register` (incluindo a página de registo de donos) é reencaminhado para a página inicial do seu perfil, com uma verificação no servidor.
 ### US03 · Login e logout · M · 5 pontos
  
@@ -123,6 +126,7 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
 - Campos obrigatórios em falta são rejeitados com mensagem por campo.
 - Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
+- Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Provisório: numa colisão acrescenta-se um sufixo numérico. A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
 - O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
 ### US07 · Gerir campos · M · 5 pontos
  
@@ -216,7 +220,7 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
 - Clubes sem campos ativos, ou de donos desativados, não aparecem.
 - Uma pesquisa sem resultados mostra uma mensagem clara.
 - Resultados paginados, 20 por página.
-- Abrir um resultado mostra a página do clube, com contactos e campos.
+- Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
 - A pesquisa funciona sem sessão iniciada.
 ### US17 · Ver slots livres · M · 5 pontos
  
