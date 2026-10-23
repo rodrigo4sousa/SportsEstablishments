@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Common;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Identity;
@@ -29,6 +30,9 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>((serviceProvider, options) => options
             .UseNpgsql(serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString)
             .UseSnakeCaseNamingConvention());
+
+        // The same scoped instance, seen by Application code through its interface.
+        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");
