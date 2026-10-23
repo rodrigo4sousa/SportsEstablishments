@@ -81,7 +81,7 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
   - **Rate limiting:** janela fixa de 1 minuto, por IP do cliente e por rota: login 10, registo 5, refresh 30 pedidos (o refresh tem mais margem porque vários utilizadores podem partilhar um IP). Um cliente IPv6 conta por rede /64. Valores configuráveis em `RateLimiting:Auth`. Acima do limite: 429 `too_many_requests` com `Retry-After`.
   - **Proxies de confiança:** por omissão nenhum; o IP é o da ligação. Em produção só o Caddy, com um endereço fixo (`ForwardedHeaders:KnownProxies`), e não a rede inteira. O contentor do Next.js nunca é de confiança: o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em desenvolvimento todos os pedidos partilham um limite (o do contentor do Next.js), o que chega para um programador.
   - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
-  - **Por decidir quando existir o `proxy.ts`:** o refresh feito no servidor (pelo Next.js) chega à API a partir do contentor do Next.js, por isso todos esses refreshes partilham um limite. Ou o Next.js chama a API através do Caddy, ou o limite do refresh tem de contar com isso.
+  - Os refreshes vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  
 Como dono da plataforma, quero que a conta de admin seja criada na instalação, para não haver forma pública de alguém se tornar admin.
