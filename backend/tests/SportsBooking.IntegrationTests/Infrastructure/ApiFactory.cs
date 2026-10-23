@@ -64,7 +64,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:Auth:LoginPermitLimit", "100000");
         builder.UseSetting("RateLimiting:Auth:RegisterPermitLimit", "100000");
         builder.UseSetting("RateLimiting:Auth:RefreshPermitLimit", "100000");
-        builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestClientAddress>());
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<IStartupFilter, TestClientAddress>();
+            services.AddControllers().AddApplicationPart(typeof(ProfileAreasTestController).Assembly);
+        });
     }
 
     public override async ValueTask DisposeAsync()
