@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -18,6 +19,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     /// <summary>The site's own origin in tests; HTTPS so that Secure cookies round-trip.</summary>
     public const string SiteOrigin = "https://localhost";
+
+    /// <summary>The access token signing key of the test host.</summary>
+    public const string SigningKey = "integration-tests-signing-key-0123456789";
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgresImage).Build();
 
@@ -55,7 +59,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
-        builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-0123456789");
+        builder.UseSetting("Jwt:SigningKey", SigningKey);
+        // Every test request shares one address; rate limiting is tested on its own app (RateLimitingTests).
+        builder.UseSetting("RateLimiting:Auth:LoginPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:RegisterPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:RefreshPermitLimit", "100000");
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<IStartupFilter, TestClientAddress>();
+            services.AddControllers().AddApplicationPart(typeof(ProfileAreasTestController).Assembly);
+        });
     }
 
     public override async ValueTask DisposeAsync()

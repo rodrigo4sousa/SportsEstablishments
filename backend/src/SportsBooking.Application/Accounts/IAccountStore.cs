@@ -9,6 +9,13 @@ public interface IAccountStore
     /// </summary>
     Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// US03: the account with this email (compared case-insensitively) and password. Returns null, after the same
+    /// password-hashing work, when the email is unknown, the password is wrong, or the account is locked out or
+    /// deactivated. Wrong passwords count towards the lockout.
+    /// </summary>
+    Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken);
+
     Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken);
 }
 

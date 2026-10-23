@@ -58,6 +58,7 @@ Como dono de um clube, quero criar a minha conta de dono, para registar e gerir 
 - Um email já usado noutra conta (de qualquer perfil) é rejeitado.
 - A conta criada tem o perfil Dono.
 - Depois do registo, o dono entra em `/manage` e é convidado a criar o primeiro clube.
+- Decidido: um utilizador com sessão que abra `/login` ou `/register` (incluindo a página de registo de donos) é reencaminhado para a página inicial do seu perfil, com uma verificação no servidor.
 ### US03 · Login e logout · M · 5 pontos
  
 Como utilizador registado, quero entrar e sair da minha conta, para aceder à área do meu perfil.
@@ -73,6 +74,19 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
 - O logout termina a sessão no browser: recebe o cookie `refresh_token` (que vai para todo o `/api/auth`), revoga esse token na base de dados e apaga os dois cookies com os mesmos caminhos com que foram criados.
 - Uma conta de dono desativada (US29) não consegue entrar.
+- Estado: back end e front end feitos (página `/login`, redirecionamento por perfil, guardas das áreas, botão «Sair», refresh entre separadores).
+- Decidido (front end): o servidor nunca renova a sessão (o cookie `refresh_token` só vai para `/api/auth`). Os guardas vivem nos layouts de `/manage` e `/admin`; sem sessão → `/login?next=<caminho>`; perfil errado → a área desse utilizador. A página de login tenta primeiro um refresh silencioso no browser e, com sucesso, segue para `next`. `next` só é aceite se for um caminho relativo que começa por uma única `/` e pertence à área do utilizador; senão vai para a página inicial do perfil (jogador `/`, dono `/manage`, admin `/admin`). Só um separador de cada vez renova a sessão (Web Locks API).
+- Decisões de implementação (provisórias, a confirmar):
+  - **Falha genérica:** email desconhecido, palavra-passe errada, conta bloqueada e conta desativada dão todos o mesmo 401 `invalid_credentials` («Email ou palavra-passe incorretos.»), depois do mesmo trabalho de hash, para o tempo de resposta também não revelar se o email existe. Um email mal formado também dá este 401; só os campos vazios dão 400 `validation_failed`, por campo.
+  - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
+  - **Bloqueio:** 5 palavras-passe erradas seguidas bloqueiam a conta durante 15 minutos (bloqueio do Identity). Tentativas durante o bloqueio não o prolongam. Um login certo recomeça a contagem. Tentativas erradas em paralelo na mesma conta podem não ser todas contadas (controlo de concorrência do Identity); o rate limiting cobre esse caso.
+  - **Rate limiting:** janela fixa de 1 minuto, por IP do cliente e por rota: login 10, registo 5, refresh 30 pedidos (o refresh tem mais margem porque vários utilizadores podem partilhar um IP). Um cliente IPv6 conta por rede /64. Valores configuráveis em `RateLimiting:Auth`. Acima do limite: 429 `too_many_requests` com `Retry-After`.
+  - **Proxies de confiança:** por omissão nenhum; o IP é o da ligação. Em produção só o Caddy, com um endereço fixo (`ForwardedHeaders:KnownProxies`), e não a rede inteira. O contentor do Next.js nunca é de confiança: o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em desenvolvimento todos os pedidos partilham um limite (o do contentor do Next.js), o que chega para um programador.
+  - **Páginas públicas (front end):** `/` e as páginas de pesquisa e de clube ficam públicas para todos os perfis; os guardas só existem em `/manage` e `/admin`. Um utilizador com sessão que abra `/login` só é reencaminhado se o refresh silencioso funcionar; o redireccionamento no servidor de `/login` e `/register` para a página inicial do perfil fica para a US02 (ver lá).
+  - **Caminho de regresso:** o guarda de um layout não conhece o caminho completo do pedido, por isso `next` é a página inicial da área (`/manage` ou `/admin`), não a subpágina onde o utilizador estava. Decidido: resolve-se quando existir a primeira subpágina (US06, páginas de clube em `/manage`), com um `proxy.ts` pequeno que só encaminha o caminho do pedido num cabeçalho, para o layout o ler. O `proxy.ts` continua a ser uma camada de conveniência: não renova tokens nem decide acessos.
+  - **`next` e a área do utilizador:** para o jogador, a sua área são as páginas públicas (tudo exceto `/manage`, `/admin`, `/login` e `/register`); um dono só aceita caminhos de `/manage` e um admin só de `/admin`.
+  - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
+  - Os refreshes vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  
 Como dono da plataforma, quero que a conta de admin seja criada na instalação, para não haver forma pública de alguém se tornar admin.
@@ -367,7 +381,7 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - Os segredos (ligação à base de dados, chave JWT, SMTP, conta de admin) vêm de variáveis de ambiente, nunca do repositório.
 - As migrações são aplicadas no deploy de forma controlada.
 - Existe um endpoint `/health` para verificar se a API está a responder.
-- **Bloqueio:** o deploy público só pode ficar online depois de o rate limiting da US03 estar feito, porque o registo com um email repetido revela se existe conta (US01).
+- O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.
 ## Resumo de pontos
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) |

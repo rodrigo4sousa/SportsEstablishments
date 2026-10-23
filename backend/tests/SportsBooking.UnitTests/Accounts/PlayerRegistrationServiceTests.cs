@@ -68,6 +68,9 @@ public sealed class PlayerRegistrationServiceTests
             return Task.FromResult<AccountResponse?>(new AccountResponse(Guid.CreateVersion7(), account.Name, account.Email, Profiles.Player));
         }
 
+        public Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
@@ -85,5 +88,7 @@ public sealed class PlayerRegistrationServiceTests
 
         public Task<Result<SessionTokens>> RefreshAsync(string? refreshToken, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task EndAsync(string? refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -5,6 +5,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Next.js provides this marker module at build time; tests load server-only code as plain modules.
+      "server-only": fileURLToPath(new URL("./src/test/server-only.ts", import.meta.url)),
     },
   },
   test: {

@@ -17,6 +17,12 @@ public interface ISessionService
     /// A token that is presented again after use revokes every session of that account.
     /// </summary>
     Task<Result<SessionTokens>> RefreshAsync(string? refreshToken, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// US03 logout: revokes this refresh token, if it is a known and active one. A token that was already used is
+    /// treated as on refresh (every session of the account is revoked). Missing or unknown tokens are ignored.
+    /// </summary>
+    Task EndAsync(string? refreshToken, CancellationToken cancellationToken);
 }
 
 public sealed record SessionTokens(
@@ -32,4 +38,14 @@ public static class AuthErrors
         ErrorCodes.InvalidRefreshToken,
         "Sessão terminada",
         "A tua sessão terminou. Inicia sessão novamente.");
+
+    /// <summary>
+    /// US03: the one answer for every failed login (unknown email, wrong password, locked or deactivated account),
+    /// so it never reveals whether an email has an account.
+    /// </summary>
+    public static ServiceError InvalidCredentials { get; } = new(
+        ErrorKind.Unauthorized,
+        ErrorCodes.InvalidCredentials,
+        "Não foi possível entrar",
+        "Email ou palavra-passe incorretos.");
 }
