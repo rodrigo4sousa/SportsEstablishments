@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using SportsBooking.Domain.Accounts;
 
 namespace SportsBooking.Infrastructure.Identity;
@@ -29,7 +28,7 @@ public static class AdminSeedSettings
             return AdminSeedConfiguration.PartiallyConfigured;
         }
 
-        if (!IsPlainEmailAddress(email!))
+        if (!EmailAddressPolicy.IsValid(email))
         {
             return AdminSeedConfiguration.InvalidEmail;
         }
@@ -38,10 +37,4 @@ public static class AdminSeedSettings
             ? AdminSeedConfiguration.Valid
             : AdminSeedConfiguration.PasswordTooShort;
     }
-
-    // A bare address only: no display name, no surrounding whitespace.
-    private static bool IsPlainEmailAddress(string email) =>
-        MailAddress.TryCreate(email, out var address)
-        && string.Equals(address.Address, email, StringComparison.Ordinal)
-        && address.Host.Contains('.', StringComparison.Ordinal);
 }

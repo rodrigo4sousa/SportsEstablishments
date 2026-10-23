@@ -14,4 +14,7 @@ public static class ErrorCodes
     public const string Conflict = "conflict";
     public const string TooManyRequests = "too_many_requests";
     public const string InternalError = "internal_error";
+
+    /// <summary>400 with per-field messages in <c>errors</c>.</summary>
+    public const string ValidationFailed = "validation_failed";
 }
