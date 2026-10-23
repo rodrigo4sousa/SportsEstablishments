@@ -58,7 +58,7 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 - Code, identifiers, commits, branch names: **English**. User-facing UI text and API error messages: **Portuguese (pt-PT)**.
 - Commits: Conventional Commits with the story ID: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`.
 - Branches: `feat/US18-short-name` (`chore/T01-...` for technical stories). `main` is protected; merge via PR with green CI (squash).
-- Merge order (stacked branches, squash merges): 1) `fix/T01-frontend-dockerfile`, 2) `feat/US04-admin-seed` (T04 + US04), 3) `feat/US01-player-registration`. Every PR has `main` as base. After each squash merge, rebase the next branch before opening its PR: `git rebase --onto main <previous-branch-tip-before-merge> <branch>`. The Dockerfile fix (`d76fd5d`) is in the US01 history, not in US04's; once it is on `main`, the `--onto` rebase of US01 drops it. If git reports it as already applied, that is expected.
+- Merge order: branch from `main`, one PR per story, squash merge.
 - Each bug gets a reproducing test first, then the fix.
 
 ## Commands
