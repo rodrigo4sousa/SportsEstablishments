@@ -28,14 +28,18 @@ builder.Services
 builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddApiProblemDetails();
 builder.Services.AddOriginCheck(builder.Configuration);
+builder.Services.AddAuthRateLimiting(builder.Configuration);
 builder.Services.AddCookieJwtAuthentication();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer<ProblemDetailsSchemaTransformer>());
 
 var app = builder.Build();
 
+// First: the client IP (rate limiting) comes from X-Forwarded-For only when a trusted proxy sent it.
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseOriginCheck();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

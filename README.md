@@ -59,6 +59,21 @@ Sign-in uses two httpOnly cookies (a 15-minute JWT and a rotating refresh token,
 
 The API refuses to start if either is missing or invalid. Mutating requests without the site's `Origin` header get 403, so for `curl` add `-H "Origin: http://localhost:3000"`.
 
+### Rate limiting and trusted proxies
+
+Login, registration and refresh are rate limited per client IP (429 `too_many_requests`). Five wrong passwords lock an account for 15 minutes. Both sets of values are provisional (US03 in [docs/backlog.md](docs/backlog.md)).
+
+| Setting | Default |
+| --- | --- |
+| `RateLimiting:Auth:Window` | `00:01:00` |
+| `RateLimiting:Auth:LoginPermitLimit` / `RegisterPermitLimit` / `RefreshPermitLimit` | 10 / 5 / 30 requests per window |
+| `ForwardedHeaders:KnownProxies` (IP addresses) and `ForwardedHeaders:KnownNetworks` (CIDR) | none |
+
+The client IP is the connection's address. `X-Forwarded-For` is believed only from a configured proxy; from anyone else it is ignored, so a client cannot pick its own rate-limit partition. The API refuses to start if an entry is not a valid address or network.
+
+- **Development (`docker compose`, `dotnet run`): configure nothing.** The browser reaches the API through the Next.js rewrite, so every request comes from the frontend container (or localhost) and shares one limit, which is fine for one developer. Don't trust the Next.js container: its rewrite passes on an `X-Forwarded-For` sent by the browser unchanged, so trusting it would let any client choose its own IP.
+- **Production: trust only Caddy.** Give the Caddy container a fixed address on the network it shares with the API and set `ForwardedHeaders__KnownProxies__0=<that address>`. Caddy replaces `X-Forwarded-For` with the real client address unless it is told to trust an upstream proxy, so leave its `trusted_proxies` unset. Don't trust the whole network: any other container on it could then spoof the header. (Deploy is T06.)
+
 ## Admin account
 
 There is no public sign-up for the platform admin. The API creates the admin account at startup from two settings, if it does not exist yet:

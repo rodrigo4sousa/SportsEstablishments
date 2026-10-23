@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -59,6 +60,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
         builder.UseSetting("Jwt:SigningKey", SigningKey);
+        // Every test request shares one address; rate limiting is tested on its own app (RateLimitingTests).
+        builder.UseSetting("RateLimiting:Auth:LoginPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:RegisterPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:RefreshPermitLimit", "100000");
+        builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestClientAddress>());
     }
 
     public override async ValueTask DisposeAsync()
