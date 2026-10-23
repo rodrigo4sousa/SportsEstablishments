@@ -34,7 +34,8 @@ public sealed class AuthController(
         }
 
         AuthCookies.Append(Response, result.Value.Session);
-        return CreatedAtAction(nameof(Me), result.Value.Account);
+        // Relative on purpose: behind the proxy, the request host is the API's internal name.
+        return Created("/api/auth/me", result.Value.Account);
     }
 
     /// <summary>Renews the session from the refresh token cookie and rotates it. Refused for deactivated accounts.</summary>

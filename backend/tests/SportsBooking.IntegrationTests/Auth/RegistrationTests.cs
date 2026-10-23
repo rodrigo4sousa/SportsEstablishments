@@ -69,7 +69,9 @@ public sealed class RegistrationTests(ApiFactory factory)
         using var response = await RegisterAsync(Registration(email), browser);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        response.Headers.Location.ShouldNotBeNull().AbsolutePath.ShouldBe("/api/auth/me");
+        // Relative: behind the proxy the API's own host name is internal (e.g. http://api:8080) and must not leak.
+        response.Headers.Location.ShouldNotBeNull().IsAbsoluteUri.ShouldBeFalse();
+        response.Headers.Location.OriginalString.ShouldBe("/api/auth/me");
         var account = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
         account.GetProperty("name").GetString().ShouldBe("Ana Silva");
         account.GetProperty("email").GetString().ShouldBe(email);
