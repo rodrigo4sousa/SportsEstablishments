@@ -46,7 +46,7 @@ npm install
 npm run dev
 ```
 
-Set `API_INTERNAL_URL` to point the frontend at a different API address.
+Set `API_INTERNAL_URL` to point the frontend at a different API address. `docker-compose.yml` defines it once (`http://api:8080`) and passes it to the image build (the rewrites are fixed at build time) and to the frontend container's environment (server code reads it at run time).
 
 ## Sessions and security settings
 

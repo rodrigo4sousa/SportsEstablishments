@@ -11,18 +11,18 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # public/ is optional in Next.js and not in the repository yet; the runtime stage copies it.
 RUN mkdir -p public
-# Rewrites are resolved at build time, so the internal API URL is a build argument.
-ARG API_INTERNAL_URL=http://api:8080
+# Rewrites are resolved at build time, so the internal API URL is a build argument. It has no default here:
+# docker-compose.yml owns it (as build argument, and as environment for server code at run time).
+ARG API_INTERNAL_URL
+RUN test -n "$API_INTERNAL_URL" || (echo "Build argument API_INTERNAL_URL is required (docker-compose.yml sets it)." >&2; exit 1)
 ENV API_INTERNAL_URL=$API_INTERNAL_URL \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-# Server code (the area guards) calls the API at runtime, so the runtime stage needs the URL too.
-ARG API_INTERNAL_URL=http://api:8080
-ENV API_INTERNAL_URL=$API_INTERNAL_URL \
-    NODE_ENV=production \
+# API_INTERNAL_URL (read by server code at run time) comes from the container environment, not from the image.
+ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
