@@ -242,7 +242,7 @@ Os testes de integração correm contra um PostgreSQL real, porque as regras mai
 Para ir marcando à medida que fica feito.
  
 - [x] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita. (US01)
-- [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
+- [x] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02, `OwnedClubs`; o teste de acesso descobre os endpoints novos sozinho). (US06)
 - [x] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE. (US01)
 - [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
 - [x] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação (login, registo e refresh). (US03)

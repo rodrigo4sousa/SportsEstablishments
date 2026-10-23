@@ -126,8 +126,17 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
 - Campos obrigatórios em falta são rejeitados com mensagem por campo.
 - Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
+- Decidido: a janela de cancelamento lê-se do clube no momento do cancelamento e nunca é copiada para as reservas. A US19 (e a US12) seguem esta regra.
 - Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Provisório: numa colisão acrescenta-se um sufixo numérico. A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
 - O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
+- Estado: back end feito (`/api/manage/clubs`: criar, listar, ver e editar, com o perfil Dono e a T02); falta o front end.
+- Decisões de implementação (provisórias, a confirmar):
+  - Os cinco campos de texto são obrigatórios: nome (até 100 caracteres), morada (até 200), localidade (até 100), telefone e email de contacto (as mesmas regras da US01: 9 a 15 algarismos com `+` opcional; um endereço simples com ponto no domínio). Os espaços à volta são removidos, e os do telefone também.
+  - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
+  - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
+  - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
+  - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
+  - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
 ### US07 · Gerir campos · M · 5 pontos
  
 Como dono, quero adicionar, editar e desativar campos, para controlar o que está disponível para reserva.
@@ -247,6 +256,7 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
 - A lista separa «Próximas» e «Anteriores», ordenadas por data.
 - Cada reserva mostra clube, campo, data, hora, preço e estado.
 - O jogador pode cancelar uma reserva futura até à janela de cancelamento do clube; depois disso, o botão aparece desativado com a explicação.
+- A janela é a que o clube tem no momento do cancelamento (lida de `Club.CancellationWindowHours`), nunca uma cópia guardada na reserva (decidido na US06).
 - A API recusa cancelamentos fora da janela, mesmo que o pedido não venha do front end.
 - A reserva cancelada passa a «Cancelada pelo jogador» e o slot volta a ficar livre.
 ### US20 · Reserva semanal recorrente · D · 8 pontos
@@ -353,6 +363,7 @@ Como dono da plataforma, quero que cada utilizador só aceda ao que lhe pertence
 - Os recursos de um clube (clube, campos, bloqueios, reservas) verificam que o clube pertence ao dono autenticado.
 - Pedidos a recursos de outro dono devolvem 404, para não revelar que existem.
 - Testes de integração cobrem: o dono A não lê nem altera dados do dono B; um jogador não acede a `/manage` nem a `/admin`; um dono não acede a `/admin`.
+- Estado: feita para os clubes (US06). O mecanismo é o `OwnedClubs` (Application): todas as consultas da área do dono partem dos clubes do dono com sessão, e um clube de outro dono dá o mesmo 404 `club_not_found` que um clube que não existe. Um teste descobre sozinho todos os endpoints `/api/manage` (401 sem sessão, 403 para jogador e admin, 404 para o clube de outro dono nas rotas com `{clubId}`), por isso cobre também os endpoints que vierem a seguir (campos, bloqueios, reservas). Como usar: ver AGENTS.md.
 ### T03 · Sem reservas duplicadas · 5 pontos
  
 Como jogador, quero ter a certeza de que um slot reservado é só meu, para não chegar ao campo e encontrá-lo ocupado.
