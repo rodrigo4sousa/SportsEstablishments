@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.Options;
 using SportsBooking.Api.ErrorHandling;
+using SportsBooking.Api.Security;
 using SportsBooking.Application;
 using SportsBooking.Infrastructure;
 
@@ -10,7 +11,11 @@ var builder = WebApplication.CreateBuilder(args);
 var isOpenApiGeneration = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 if (isOpenApiGeneration)
 {
-    builder.Configuration.AddInMemoryCollection([new("ConnectionStrings:Default", "Host=unused-during-openapi-generation")]);
+    builder.Configuration.AddInMemoryCollection(
+    [
+        new("ConnectionStrings:Default", "Host=unused-during-openapi-generation"),
+        new("Security:AllowedOrigins:0", "https://unused-during-openapi-generation"),
+    ]);
 }
 
 builder.Services
@@ -19,12 +24,14 @@ builder.Services
 
 builder.Services.AddControllers();
 builder.Services.AddApiProblemDetails();
+builder.Services.AddOriginCheck(builder.Configuration);
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseOriginCheck();
 
 if (app.Environment.IsDevelopment())
 {

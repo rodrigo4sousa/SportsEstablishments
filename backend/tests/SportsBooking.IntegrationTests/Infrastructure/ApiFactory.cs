@@ -16,6 +16,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string PostgresImage = "postgres:18.6";
 
+    /// <summary>The site's own origin in tests; HTTPS so that Secure cookies round-trip.</summary>
+    public const string SiteOrigin = "https://localhost";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgresImage).Build();
 
     public string ConnectionString => _postgres.GetConnectionString();
@@ -51,6 +54,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
+        builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
     }
 
     public override async ValueTask DisposeAsync()

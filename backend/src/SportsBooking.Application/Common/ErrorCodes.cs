@@ -17,4 +17,7 @@ public static class ErrorCodes
 
     /// <summary>400 with per-field messages in <c>errors</c>.</summary>
     public const string ValidationFailed = "validation_failed";
+
+    /// <summary>403: a mutating request whose <c>Origin</c> is not the site's own (CSRF defence).</summary>
+    public const string OriginNotAllowed = "origin_not_allowed";
 }
