@@ -36,14 +36,16 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseOriginCheck();
-app.UseAuthentication();
-app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi().AllowAnonymous();
+    // Swagger UI is middleware, not an endpoint: it must run before the fallback authorization policy.
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "SportsBooking API v1"));
+    app.MapOpenApi().AllowAnonymous();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (!isOpenApiGeneration)
 {
