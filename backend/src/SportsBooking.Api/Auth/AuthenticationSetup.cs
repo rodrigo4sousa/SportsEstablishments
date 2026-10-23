@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using SportsBooking.Application.Common;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
 
@@ -37,6 +38,10 @@ internal static class AuthenticationSetup
             .AddPolicy(Profiles.Player, policy => policy.RequireRole(Profiles.Player))
             .AddPolicy(Profiles.Owner, policy => policy.RequireRole(Profiles.Owner))
             .AddPolicy(Profiles.Admin, policy => policy.RequireRole(Profiles.Admin));
+
+        // Who is signed in, for Application code (e.g. OwnedClubs); read from the token, never from the request.
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
         return services;
     }

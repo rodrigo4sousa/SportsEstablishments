@@ -2,6 +2,8 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Clubs;
+using SportsBooking.Application.Common;
 
 namespace SportsBooking.Application;
 
@@ -13,6 +15,12 @@ public static class DependencyInjection
         services.AddScoped<AccountRegistrationService>();
         services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddScoped<LoginService>();
+
+        services.AddSingleton<IValidator<PageRequest>, PageRequestValidator>();
+        services.AddSingleton<CreateClubRequestValidator>();
+        services.AddSingleton<UpdateClubRequestValidator>();
+        services.AddScoped<OwnedClubs>();
+        services.AddScoped<ClubService>();
 
         return services;
     }

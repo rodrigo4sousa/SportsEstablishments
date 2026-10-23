@@ -5,9 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
+using SportsBooking.Infrastructure.Clubs;
 using SportsBooking.Infrastructure.Identity;
 using SportsBooking.Infrastructure.Persistence;
 
@@ -33,6 +35,7 @@ public static class DependencyInjection
 
         // The same scoped instance, seen by Application code through its interface.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+        services.AddScoped<IClubStore, ClubStore>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");
