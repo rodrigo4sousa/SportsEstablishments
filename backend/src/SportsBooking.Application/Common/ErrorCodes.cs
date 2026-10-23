@@ -26,4 +26,10 @@ public static class ErrorCodes
 
     /// <summary>401 from <c>POST /api/auth/refresh</c>: the session cannot be renewed; the user must sign in again.</summary>
     public const string InvalidRefreshToken = "invalid_refresh_token";
+
+    /// <summary>
+    /// 401 from <c>POST /api/auth/login</c>, the same for an unknown email, a wrong password and a locked or
+    /// deactivated account.
+    /// </summary>
+    public const string InvalidCredentials = "invalid_credentials";
 }

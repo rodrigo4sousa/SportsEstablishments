@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<AdminSeedOptions>, AdminSeedOptionsValidator>();
         services.AddScoped<AdminAccountSeeder>();
         services.AddScoped<IAccountStore, AccountStore>();
+        services.AddSingleton<FallbackPasswordHash>();
 
         // Identity core only (no UI): PBKDF2 password hashing, user and role stores on EF Core.
         services
@@ -74,6 +75,10 @@ public static class DependencyInjection
                 options.Password.RequireLowercase = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireNonAlphanumeric = false;
+                // US03: wrong passwords lock the account for a while (provisional values in LoginLockout).
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = LoginLockout.MaxFailedAttempts;
+                options.Lockout.DefaultLockoutTimeSpan = LoginLockout.Duration;
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>();

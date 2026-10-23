@@ -32,4 +32,14 @@ public static class AuthErrors
         ErrorCodes.InvalidRefreshToken,
         "Sessão terminada",
         "A tua sessão terminou. Inicia sessão novamente.");
+
+    /// <summary>
+    /// US03: the one answer for every failed login (unknown email, wrong password, locked or deactivated account),
+    /// so it never reveals whether an email has an account.
+    /// </summary>
+    public static ServiceError InvalidCredentials { get; } = new(
+        ErrorKind.Unauthorized,
+        ErrorCodes.InvalidCredentials,
+        "Não foi possível entrar",
+        "Email ou palavra-passe incorretos.");
 }

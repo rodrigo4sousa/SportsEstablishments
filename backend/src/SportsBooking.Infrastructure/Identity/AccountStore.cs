@@ -7,7 +7,10 @@ using SportsBooking.Infrastructure.Persistence;
 
 namespace SportsBooking.Infrastructure.Identity;
 
-internal sealed class AccountStore(UserManager<AppUser> userManager, AppDbContext dbContext) : IAccountStore
+internal sealed class AccountStore(
+    UserManager<AppUser> userManager,
+    AppDbContext dbContext,
+    FallbackPasswordHash fallbackHash) : IAccountStore
 {
     // The email is also the user name, so a taken email can show up as either error.
     private static readonly HashSet<string> EmailTakenErrors =
@@ -52,6 +55,27 @@ internal sealed class AccountStore(UserManager<AppUser> userManager, AppDbContex
         }
 
         return new AccountResponse(user.Id, user.Name, user.Email!, Profiles.Player);
+    }
+
+    public async Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user?.PasswordHash is null || !user.IsActive || await userManager.IsLockedOutAsync(user))
+        {
+            // No real check to make, but the same hashing work, so timing does not tell these cases apart.
+            fallbackHash.Verify(password);
+            return null;
+        }
+
+        // Also upgrades a hash made with fewer iterations (PasswordHasherOptions).
+        if (!await userManager.CheckPasswordAsync(user, password))
+        {
+            await userManager.AccessFailedAsync(user);
+            return null;
+        }
+
+        await userManager.ResetAccessFailedCountAsync(user);
+        return await FindAsync(user.Id, cancellationToken);
     }
 
     public async Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken) =>

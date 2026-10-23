@@ -12,6 +12,7 @@ namespace SportsBooking.Api.Controllers;
 [Route("api/auth")]
 public sealed class AuthController(
     PlayerRegistrationService registration,
+    LoginService login,
     ISessionService sessions,
     IAccountStore accounts) : ControllerBase
 {
@@ -36,6 +37,29 @@ public sealed class AuthController(
         AuthCookies.Append(Response, result.Value.Session);
         // Relative on purpose: behind the proxy, the request host is the API's internal name.
         return Created("/api/auth/me", result.Value.Account);
+    }
+
+    /// <summary>
+    /// US03: signs in a player, owner or admin (session cookies set) and returns the account, as <c>/me</c> does.
+    /// Every failure is the same 401 <c>invalid_credentials</c>: unknown email, wrong password, locked or deactivated
+    /// account. Empty fields are a 400 <c>validation_failed</c>.
+    /// </summary>
+    [HttpPost("login")]
+    [Consumes("application/json")]
+    [AllowAnonymous]
+    [ProducesResponseType<AccountResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await login.LoginAsync(request, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return this.Problem(result.Error!);
+        }
+
+        AuthCookies.Append(Response, result.Value.Session);
+        return Ok(result.Value.Account);
     }
 
     /// <summary>Renews the session from the refresh token cookie and rotates it. Refused for deactivated accounts.</summary>
