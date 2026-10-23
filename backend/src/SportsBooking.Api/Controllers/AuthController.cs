@@ -10,8 +10,33 @@ namespace SportsBooking.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(ISessionService sessions, IAccountStore accounts) : ControllerBase
+public sealed class AuthController(
+    PlayerRegistrationService registration,
+    ISessionService sessions,
+    IAccountStore accounts) : ControllerBase
 {
+    /// <summary>
+    /// US01: creates a player account and signs the player in (session cookies set). A taken email is a 409
+    /// <c>email_taken</c>; invalid fields are a 400 <c>validation_failed</c> with one message per field.
+    /// </summary>
+    [HttpPost("register")]
+    [Consumes("application/json")]
+    [AllowAnonymous]
+    [ProducesResponseType<AccountResponse>(StatusCodes.Status201Created, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> Register(RegisterPlayerRequest request, CancellationToken cancellationToken)
+    {
+        var result = await registration.RegisterAsync(request, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return this.Problem(result.Error!);
+        }
+
+        AuthCookies.Append(Response, result.Value.Session);
+        return CreatedAtAction(nameof(Me), result.Value.Account);
+    }
+
     /// <summary>Renews the session from the refresh token cookie and rotates it. Refused for deactivated accounts.</summary>
     [HttpPost("refresh")]
     [AllowAnonymous]

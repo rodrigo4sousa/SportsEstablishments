@@ -6,6 +6,8 @@ namespace SportsBooking.Infrastructure.Identity;
 
 internal static class IdentityModelConfiguration
 {
+    public const string NormalizedEmailIndex = "ix_users_normalized_email";
+
     // Fixed ids and stamps keep the seeded roles stable across migrations.
     private static readonly IdentityRole<Guid>[] ProfileRoles =
     [
@@ -24,7 +26,7 @@ internal static class IdentityModelConfiguration
             user.Property(u => u.Name).HasMaxLength(AccountNamePolicy.MaximumLength).IsRequired();
             user.Ignore(u => u.IsActive);
             // One email = one account, enforced by the database and not only by UserManager.
-            user.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName("ix_users_normalized_email");
+            user.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName(NormalizedEmailIndex);
             user.HasIndex(u => u.NormalizedUserName).HasDatabaseName("ix_users_normalized_user_name");
         });
 

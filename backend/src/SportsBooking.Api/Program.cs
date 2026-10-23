@@ -24,7 +24,8 @@ builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers();
+// Missing fields reach FluentValidation (pt-PT messages per field) instead of MVC's implicit [Required].
+builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddApiProblemDetails();
 builder.Services.AddOriginCheck(builder.Configuration);
 builder.Services.AddCookieJwtAuthentication();

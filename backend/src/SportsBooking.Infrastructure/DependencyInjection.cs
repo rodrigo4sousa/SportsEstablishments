@@ -64,6 +64,9 @@ public static class DependencyInjection
             .AddIdentityCore<AppUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
+                // The user name is the email, already checked by EmailAddressPolicy; Identity's default character
+                // list would reject valid addresses such as o'neill@exemplo.pt.
+                options.User.AllowedUserNameCharacters = string.Empty;
                 // US01 requires at least 8 characters and nothing else.
                 options.Password.RequiredLength = PasswordPolicy.MinimumLength;
                 options.Password.RequiredUniqueChars = 1;
