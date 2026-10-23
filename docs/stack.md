@@ -84,7 +84,7 @@ O JavaScript do browser nunca toca nos tokens: ficam em cookies httpOnly, que um
  
 1. `POST /api/auth/login`: a API valida as credenciais com o Identity e responde com os dois cookies.
 2. Cada pedido leva o `access_token` automaticamente; o JwtBearer do ASP.NET Core lê-o do cookie (evento `OnMessageReceived`).
-3. Com um 401, o cliente chama `POST /api/auth/refresh` uma vez e repete o pedido. Só há um refresh em curso de cada vez.
+3. Com um 401, o cliente chama `POST /api/auth/refresh` uma vez e repete o pedido. Só há um refresh em curso de cada vez: dentro do separador, os pedidos partilham o mesmo refresh; entre separadores, a Web Locks API (`navigator.locks`) deixa um separador de cada vez renovar, e quem obtém o lock repete primeiro o pedido original, porque outro separador pode já ter renovado (os cookies são partilhados). Sem `navigator.locks`, vale só a regra por separador.
 4. Cada refresh roda o token: o antigo fica inválido e sai um novo. Se um token já usado voltar a aparecer, todos os tokens desse utilizador são revogados (sinal de roubo).
 5. `POST /api/auth/logout` revoga o refresh token na BD e apaga os dois cookies.
 **Mesma origem, obrigatório**
@@ -94,8 +94,10 @@ O front end e a API têm de estar no mesmo site: o Caddy (em produção) ou os r
 **No Next.js**
  
 - Os Server Components leem o cookie com `cookies()` e passam o cabeçalho `Cookie` quando chamam a API.
-- Os Server Components não conseguem escrever cookies. Se o access token expirou e há refresh token, a renovação é feita no `proxy.ts` (o antigo `middleware.ts`, renomeado no Next.js 16), que pode escrever cookies na resposta.
-- O `proxy.ts` só faz redirecionamentos de conveniência (sem sessão → login). Quem decide o acesso é sempre a API.
+- Os Server Components não conseguem escrever cookies, e o servidor nunca renova a sessão. Decidido (US03): o cookie `refresh_token` tem `Path=/api/auth`, por isso os pedidos de páginas não o levam e o Next.js não tem como fazer refresh. Não há renovação de tokens no `proxy.ts`; os refreshes vêm sempre do browser.
+- Os guardas do servidor vivem nos layouts das áreas (`/manage` para o Dono, `/admin` para o Admin): um helper em `lib/server` (`import 'server-only'`) chama `GET /api/auth/me` no URL interno da API com o cabeçalho `Cookie` do utilizador e `cache: 'no-store'`. Sem sessão válida → `/login?next=<caminho da área>`; sessão de outro perfil → a área desse utilizador. Com `cacheComponents`, o guarda lê cookies, por isso fica dentro de um `<Suspense>`. As páginas públicas (`/`, pesquisa, páginas de clube) ficam abertas a todos.
+- Um access token expirado leva ao `/login?next=...`. A página de login tenta primeiro, no browser, um `POST /api/auth/refresh` silencioso: com 204 segue para `next` (se for um caminho relativo da área do utilizador; senão, a página inicial do perfil), caso contrário mostra o formulário.
+- Os guardas são só uma conveniência (redirecionamentos). Quem decide o acesso é sempre a API (401/403).
 **CSRF e força bruta**
  
 - Como o browser envia os cookies sozinho, os pedidos que alteram dados precisam de proteção: o SameSite=Lax bloqueia POST vindos de outros sites, e a API rejeita POST, PUT, PATCH e DELETE cujo cabeçalho `Origin` não seja o do site.
