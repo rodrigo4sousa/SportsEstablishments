@@ -91,9 +91,9 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
   - **Caminho de regresso:** o guarda lê o caminho completo do pedido (cabeçalho `x-pathname`, posto pelo `proxy.ts` mínimo, que o reescreve sempre e não renova tokens nem decide acessos) e envia para `/login?next=<caminho completo>`; o `next` continua a ser validado por `safeNext`.
   - **`next` e a área do utilizador:** para o jogador, a sua área são as páginas públicas (tudo exceto `/manage`, `/admin`, `/login` e `/register`); um dono só aceita caminhos de `/manage` e um admin só de `/admin`.
   - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
+  - **Refreshes:** vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
 - Decisões de implementação (provisórias, a confirmar):
   - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
-  - Os refreshes vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  
 Como dono da plataforma, quero que a conta de admin seja criada na instalação, para não haver forma pública de alguém se tornar admin.
