@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * US01 registration rules, for immediate feedback only: the API validates again and has the last word.
- * Limits and messages match the API's RegisterPlayerRequestValidator.
+ * Limits and messages match the API's RegisterAccountRequestValidator.
  */
 export const NAME_MAX_LENGTH = 100;
 export const EMAIL_MAX_LENGTH = 256;

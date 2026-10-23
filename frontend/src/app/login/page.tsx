@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { GuestOnly } from "@/components/guest-only";
 import { LoginScreen } from "@/features/auth/components/login-screen";
 
 export const metadata: Metadata = {
@@ -14,9 +15,11 @@ export default function Page() {
         <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
         <p className="text-muted-foreground">Entra na tua conta para reservar campos ou gerir o teu clube.</p>
       </div>
-      {/* The screen reads the `next` search parameter in the browser. */}
+      {/* A signed-in user is sent to their area; the screen itself reads the `next` search parameter in the browser. */}
       <Suspense fallback={null}>
-        <LoginScreen />
+        <GuestOnly>
+          <LoginScreen />
+        </GuestOnly>
       </Suspense>
       <p className="text-sm text-muted-foreground">
         <Link href="/" className="underline underline-offset-4">

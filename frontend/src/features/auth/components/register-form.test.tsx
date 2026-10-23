@@ -185,3 +185,70 @@ describe("RegisterForm", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
   });
 });
+
+describe("RegisterForm for owners", () => {
+  const owner: Account = { ...account, id: "0199f7a0-0000-7000-8000-0000000000bb", name: "Rui Dono", email: "rui@exemplo.pt", profile: "Owner" };
+
+  beforeEach(() => {
+    replace.mockReset();
+  });
+
+  it("registers an owner on the owner endpoint and goes to /manage", async () => {
+    let body: Record<string, unknown> = {};
+    let playerEndpointCalls = 0;
+    server.use(
+      http.post("/api/auth/register/owner", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(owner, { status: 201 });
+      }),
+      http.post("/api/auth/register", () => {
+        playerEndpointCalls++;
+        return HttpResponse.json(account, { status: 201 });
+      }),
+    );
+    const { queryClient } = renderWithProviders(<RegisterForm variant="owner" />);
+
+    const user = await fillIn({ name: " Rui Dono ", email: " rui@exemplo.pt ", password: "palavra-passe", phone: "912 345 678" });
+    await submit(user);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/manage"));
+    // The same fields as the player form, and no profile: the endpoint decides it.
+    expect(body).toEqual({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe", phone: "912345678" });
+    expect(playerEndpointCalls).toBe(0);
+    expect(queryClient.getQueryData(currentUserQueryKey)).toEqual(owner);
+    expect(field(/palavra-passe/i)).toHaveValue("");
+  });
+
+  it("is a form of its own for owners and applies the same field rules", async () => {
+    let requests = 0;
+    server.use(
+      http.post("/api/auth/register/owner", () => {
+        requests++;
+        return HttpResponse.json(owner, { status: 201 });
+      }),
+    );
+    renderWithProviders(<RegisterForm variant="owner" />);
+
+    expect(screen.getByRole("form", { name: "Criar conta de dono" })).toBeInTheDocument();
+    const user = await fillIn({ email: "rui@", password: "curta", phone: "123" });
+    await submit(user);
+
+    expectFieldError(/^nome$/i, "Indica o teu nome.");
+    expectFieldError(/^email$/i, "Indica um email válido, por exemplo nome@exemplo.pt.");
+    expectFieldError(/palavra-passe/i, "A palavra-passe tem de ter pelo menos 8 caracteres.");
+    expectFieldError(/telemóvel/i, "Indica um número de telemóvel válido, com 9 a 15 algarismos.");
+    expect(requests).toBe(0);
+  });
+
+  it("says on the email field that the email is already registered, whatever profile has it", async () => {
+    server.use(http.post("/api/auth/register/owner", () => problem(409, "email_taken")));
+    renderWithProviders(<RegisterForm variant="owner" />);
+
+    const user = await fillIn({ name: "Rui", email: "Rui@Exemplo.pt", password: "palavra-passe" });
+    await submit(user);
+
+    await waitFor(() => expectFieldError(/^email$/i, "Já existe uma conta com este email."));
+    expect(field(/^email$/i)).toHaveFocus();
+    expect(replace).not.toHaveBeenCalled();
+  });
+});

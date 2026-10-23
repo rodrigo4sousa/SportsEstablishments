@@ -3,10 +3,10 @@ using SportsBooking.Domain.Accounts;
 
 namespace SportsBooking.Application.Accounts;
 
-/// <summary>US01 field rules, applied to a <see cref="RegisterPlayerRequest.Normalized"/> request. Messages are pt-PT.</summary>
-public sealed class RegisterPlayerRequestValidator : AbstractValidator<RegisterPlayerRequest>
+/// <summary>US01/US02 field rules, applied to a <see cref="RegisterAccountRequest.Normalized"/> request. Messages are pt-PT.</summary>
+public sealed class RegisterAccountRequestValidator : AbstractValidator<RegisterAccountRequest>
 {
-    public RegisterPlayerRequestValidator()
+    public RegisterAccountRequestValidator()
     {
         RuleFor(request => request.Name)
             .Cascade(CascadeMode.Stop)

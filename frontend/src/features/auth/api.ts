@@ -3,7 +3,7 @@ import type { components } from "@/lib/api/schema";
 
 export type Account = components["schemas"]["AccountResponse"];
 export type LoginRequest = components["schemas"]["LoginRequest"];
-export type RegisterPlayerRequest = components["schemas"]["RegisterPlayerRequest"];
+export type RegisterAccountRequest = components["schemas"]["RegisterAccountRequest"];
 
 export const currentUserQueryKey = ["auth", "me"] as const;
 
@@ -29,7 +29,15 @@ export async function logout(): Promise<void> {
   await apiRequest("/api/auth/logout", { method: "POST" });
 }
 
-/** US01: creates the player account; the API answers with the session cookies already set. */
-export function registerPlayer(request: RegisterPlayerRequest): Promise<Account> {
-  return apiJson<Account>("/api/auth/register", { method: "POST", body: JSON.stringify(request) });
+/** Who is signing up: each has its own endpoint, and the API fixes the profile (it is never part of the request). */
+export type RegistrationVariant = "player" | "owner";
+
+const REGISTER_PATHS: Record<RegistrationVariant, string> = {
+  player: "/api/auth/register",
+  owner: "/api/auth/register/owner",
+};
+
+/** US01 and US02: creates a player or owner account; the API answers with the session cookies already set. */
+export function registerAccount(variant: RegistrationVariant, request: RegisterAccountRequest): Promise<Account> {
+  return apiJson<Account>(REGISTER_PATHS[variant], { method: "POST", body: JSON.stringify(request) });
 }

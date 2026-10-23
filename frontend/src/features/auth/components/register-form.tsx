@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
-import { currentUserQueryKey, registerPlayer } from "../api";
+import { profileHome } from "@/lib/auth/redirects";
+import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
 import {
   PASSWORD_MIN_LENGTH,
   registerSchema,
@@ -25,8 +26,21 @@ type FieldName = (typeof FIELDS)[number];
 
 const EMPTY_FORM: RegisterFormValues = { name: "", email: "", password: "", phone: "" };
 
-/** US01: player registration. On success the player is signed in and goes to the home page. */
-export function RegisterForm() {
+type RegisterFormProps = {
+  /** Player (US01) or owner (US02) sign-up: the same form, a different endpoint. Defaults to player. */
+  variant?: RegistrationVariant;
+};
+
+const FORM_LABELS: Record<RegistrationVariant, string> = {
+  player: "Criar conta",
+  owner: "Criar conta de dono",
+};
+
+/**
+ * US01 and US02 registration. On success the user is signed in and goes to the home of their profile:
+ * `/` for a player, `/manage` for an owner.
+ */
+export function RegisterForm({ variant = "player" }: RegisterFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const form = useForm<RegisterFormValues, unknown, RegisterFormData>({
@@ -36,12 +50,12 @@ export function RegisterForm() {
   const { errors } = form.formState;
 
   const registration = useMutation({
-    mutationFn: registerPlayer,
+    mutationFn: (request: RegisterAccountRequest) => registerAccount(variant, request),
     onSuccess: (account) => {
       queryClient.setQueryData(currentUserQueryKey, account);
       // Pages stay mounted across navigations (cacheComponents), so clear the form, password included.
       form.reset(EMPTY_FORM);
-      router.replace("/");
+      router.replace(profileHome(account.profile));
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) {
@@ -75,7 +89,7 @@ export function RegisterForm() {
   return (
     <form
       noValidate
-      aria-label="Criar conta"
+      aria-label={FORM_LABELS[variant]}
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => registration.mutate(values))}
     >

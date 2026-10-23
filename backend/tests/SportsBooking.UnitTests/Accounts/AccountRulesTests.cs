@@ -23,6 +23,13 @@ public sealed class AccountRulesTests
     }
 
     [Fact]
+    public void A_visitor_can_sign_up_as_a_player_or_an_owner_but_never_as_an_admin()
+    {
+        Profiles.SelfRegistration.ShouldBe([Profiles.Player, Profiles.Owner]);
+        Profiles.SelfRegistration.ShouldNotContain(Profiles.Admin);
+    }
+
+    [Fact]
     public void There_are_exactly_three_distinct_profiles()
     {
         Profiles.All.ShouldBe([Profiles.Player, Profiles.Owner, Profiles.Admin]);
