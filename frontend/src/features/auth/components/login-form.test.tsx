@@ -59,6 +59,8 @@ describe("LoginForm", () => {
     ["Admin", null, "/admin"],
     ["Owner", "/manage", "/manage"],
     ["Admin", "/admin", "/admin"],
+    ["Owner", "/manage/clubs/new", "/manage/clubs/new"],
+    ["Owner", "/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=a", "/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=a"],
   ] as const)("a %s signing in with next=%s goes to %s", async (profile, next, destination) => {
     let body: unknown;
     server.use(

@@ -12,6 +12,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
+let requestedPath: string | null = null;
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers(requestedPath === null ? {} : { "x-pathname": requestedPath }),
+}));
+
 let session: Account | null = null;
 vi.mock("@/lib/server/session", () => ({
   getSessionAccount: async () => session,
@@ -30,11 +35,24 @@ describe("AreaGuard", () => {
   beforeEach(() => {
     redirect.mockClear();
     session = null;
+    requestedPath = null;
   });
 
   it("sends a visitor without a session to the login page, to come back to the area", async () => {
     await expect(renderGuard("Owner")).rejects.toThrow("NEXT_REDIRECT /login?next=%2Fmanage");
     await expect(renderGuard("Admin")).rejects.toThrow("NEXT_REDIRECT /login?next=%2Fadmin");
+  });
+
+  it("sends a visitor without a session back to the subpage they asked for", async () => {
+    requestedPath = "/manage/clubs/new";
+
+    await expect(renderGuard("Owner")).rejects.toThrow("NEXT_REDIRECT /login?next=%2Fmanage%2Fclubs%2Fnew");
+  });
+
+  it("does not trust a requested path outside the area", async () => {
+    requestedPath = "/admin/owners";
+
+    await expect(renderGuard("Owner")).rejects.toThrow("NEXT_REDIRECT /login?next=%2Fmanage");
   });
 
   it.each([
