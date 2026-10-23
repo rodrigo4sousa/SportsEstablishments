@@ -19,8 +19,13 @@ internal sealed class AccountStore(
         nameof(IdentityErrorDescriber.DuplicateUserName),
     ];
 
-    public async Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken)
+    public async Task<AccountResponse?> CreateAsync(NewAccount account, string profile, CancellationToken cancellationToken)
     {
+        if (!Profiles.SelfRegistration.Contains(profile))
+        {
+            throw new ArgumentOutOfRangeException(nameof(profile), "Only the profiles in Profiles.SelfRegistration can be created by a registration.");
+        }
+
         var user = new AppUser(account.Email, account.Name) { PhoneNumber = account.Phone };
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
@@ -36,7 +41,7 @@ internal sealed class AccountStore(
                     : throw UnexpectedFailure(created);
             }
 
-            var profileAssigned = await userManager.AddToRoleAsync(user, Profiles.Player);
+            var profileAssigned = await userManager.AddToRoleAsync(user, profile);
             if (!profileAssigned.Succeeded)
             {
                 throw UnexpectedFailure(profileAssigned);
@@ -54,7 +59,7 @@ internal sealed class AccountStore(
             return null;
         }
 
-        return new AccountResponse(user.Id, user.Name, user.Email!, Profiles.Player);
+        return new AccountResponse(user.Id, user.Name, user.Email!, profile);
     }
 
     public async Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken)

@@ -4,10 +4,12 @@ namespace SportsBooking.Application.Accounts;
 public interface IAccountStore
 {
     /// <summary>
-    /// Creates an account with the Player profile and a hashed password. Returns null when the email is already used
-    /// by any account (compared case-insensitively), also when another request creates it at the same moment.
+    /// Creates an account with a hashed password and the given profile, which must be one of
+    /// <see cref="Domain.Accounts.Profiles.SelfRegistration"/> (any other is a programming error, never a request). Returns null
+    /// when the email is already used by any account (compared case-insensitively), also when another request
+    /// creates it at the same moment.
     /// </summary>
-    Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken);
+    Task<AccountResponse?> CreateAsync(NewAccount account, string profile, CancellationToken cancellationToken);
 
     /// <summary>
     /// US03: the account with this email (compared case-insensitively) and password. Returns null, after the same

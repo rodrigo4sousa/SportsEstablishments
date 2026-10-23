@@ -6,6 +6,7 @@ using SportsBooking.Api.ErrorHandling;
 using SportsBooking.Api.Security;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Common;
 using SportsBooking.Infrastructure.Auth;
 
 namespace SportsBooking.Api.Controllers;
@@ -30,9 +31,27 @@ public sealed class AuthController(
     [ProducesResponseType<AccountResponse>(StatusCodes.Status201Created, "application/json")]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
-    public async Task<IActionResult> Register(RegisterAccountRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register(RegisterAccountRequest request, CancellationToken cancellationToken) =>
+        await CreateAccountAsync(registration.RegisterPlayerAsync(request, cancellationToken));
+
+    /// <summary>
+    /// US02: creates an owner account and signs the owner in. Same body, validation, errors, cookies and rate limit as
+    /// player registration; the profile is fixed by this endpoint and is never read from the request.
+    /// </summary>
+    [HttpPost("register/owner")]
+    [Consumes("application/json")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthRateLimits.Register)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, "application/problem+json")]
+    [ProducesResponseType<AccountResponse>(StatusCodes.Status201Created, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> RegisterOwner(RegisterAccountRequest request, CancellationToken cancellationToken) =>
+        await CreateAccountAsync(registration.RegisterOwnerAsync(request, cancellationToken));
+
+    private async Task<IActionResult> CreateAccountAsync(Task<Result<RegisteredAccount>> registered)
     {
-        var result = await registration.RegisterAsync(request, cancellationToken);
+        var result = await registered;
         if (!result.IsSuccess)
         {
             return this.Problem(result.Error!);
