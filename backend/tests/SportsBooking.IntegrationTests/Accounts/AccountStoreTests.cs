@@ -1,6 +1,9 @@
+using System.Buffers.Binary;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Identity;
@@ -44,6 +47,43 @@ public sealed class AccountStoreTests(ApiFactory factory)
         Convert.FromBase64String(stored.PasswordHash)[0].ShouldBe((byte)0x01);
         (await userManager.CheckPasswordAsync(stored, password)).ShouldBeTrue();
         (await userManager.CheckPasswordAsync(stored, "outra-palavra-passe")).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task New_password_hashes_use_pbkdf2_hmac_sha512_with_210000_iterations()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var user = new AppUser(UniqueEmail("work-factor"));
+
+        (await userManager.CreateAsync(user, "palavra-passe-segura")).Succeeded.ShouldBeTrue();
+
+        // Identity v3 layout: format marker (1 byte), then PRF, iteration count and salt length (big-endian uint32 each).
+        var hash = Convert.FromBase64String(user.PasswordHash.ShouldNotBeNull());
+        hash[0].ShouldBe((byte)0x01);
+        BinaryPrimitives.ReadUInt32BigEndian(hash.AsSpan(1, 4)).ShouldBe((uint)KeyDerivationPrf.HMACSHA512);
+        BinaryPrimitives.ReadUInt32BigEndian(hash.AsSpan(5, 4)).ShouldBe(210_000u);
+        BinaryPrimitives.ReadUInt32BigEndian(hash.AsSpan(9, 4)).ShouldBe(16u);
+    }
+
+    [Fact]
+    public async Task Hashes_with_fewer_iterations_are_upgraded_on_the_next_successful_check()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        const string password = "palavra-passe-antiga";
+        var user = new AppUser(UniqueEmail("rehash"));
+        (await userManager.CreateAsync(user)).Succeeded.ShouldBeTrue();
+
+        // A hash made with the previous default work factor (100,000 iterations).
+        var legacyHasher = new PasswordHasher<AppUser>(Options.Create(new PasswordHasherOptions { IterationCount = 100_000 }));
+        user.PasswordHash = legacyHasher.HashPassword(user, password);
+        (await userManager.UpdateAsync(user)).Succeeded.ShouldBeTrue();
+
+        (await userManager.CheckPasswordAsync(user, password)).ShouldBeTrue();
+
+        var stored = (await userManager.FindByIdAsync(user.Id.ToString())).ShouldNotBeNull();
+        BinaryPrimitives.ReadUInt32BigEndian(Convert.FromBase64String(stored.PasswordHash!).AsSpan(5, 4)).ShouldBe(210_000u);
     }
 
     [Fact]

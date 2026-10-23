@@ -60,6 +60,14 @@ public static class DependencyInjection
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>();
+
+        // Identity v3 hashes are PBKDF2 with HMAC-SHA512; 210,000 iterations is the OWASP recommendation for it.
+        // Older hashes with fewer iterations still verify and are rehashed on the next successful password check.
+        services.Configure<PasswordHasherOptions>(options =>
+        {
+            options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;
+            options.IterationCount = 210_000;
+        });
     }
 
     /// <summary>Applies pending EF Core migrations. Development only; production uses a migration bundle.</summary>
