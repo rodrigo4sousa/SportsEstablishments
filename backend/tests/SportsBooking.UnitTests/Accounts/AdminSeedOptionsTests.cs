@@ -48,6 +48,33 @@ public sealed class AdminSeedOptionsTests
     }
 
     [Theory]
+    [InlineData(" admin@reservas.pt")]
+    [InlineData("admin@reservas.pt  ")]
+    [InlineData("\tadmin@reservas.pt\n")]
+    public void Whitespace_around_the_email_is_trimmed_before_validation(string email)
+    {
+        var options = Resolve(email, "palavra-passe");
+
+        options.Email.ShouldBe("admin@reservas.pt");
+    }
+
+    [Theory]
+    [InlineData("admin @reservas.pt")]
+    [InlineData("Admin <admin@reservas.pt>")]
+    public void Whitespace_inside_the_email_is_still_invalid(string email)
+    {
+        Should.Throw<OptionsValidationException>(() => Resolve(email, "palavra-passe"))
+            .Message.ShouldContain("not a valid email address");
+    }
+
+    [Fact]
+    public void Password_is_kept_exactly_as_configured()
+    {
+        // 8 characters only with the surrounding spaces: trimming would make it too short.
+        Resolve("admin@reservas.pt", "  1234  ").Password.ShouldBe("  1234  ");
+    }
+
+    [Theory]
     [InlineData("admin@reservas.pt", null, "must be set together")]
     [InlineData(null, "palavra-passe", "must be set together")]
     [InlineData("admin@", "palavra-passe", "not a valid email address")]

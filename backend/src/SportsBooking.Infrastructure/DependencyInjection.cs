@@ -39,6 +39,8 @@ public static class DependencyInjection
     {
         services.AddOptions<AdminSeedOptions>()
             .Bind(configuration.GetSection(AdminSeedOptions.SectionName))
+            // Whitespace around the email is a copy-paste slip, not a different address; the rest stays strict.
+            .PostConfigure(options => options.Email = options.Email?.Trim())
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<AdminSeedOptions>, AdminSeedOptionsValidator>();
         services.AddScoped<AdminAccountSeeder>();

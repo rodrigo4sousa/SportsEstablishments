@@ -87,6 +87,15 @@ public sealed class AdminSeedTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Whitespace_around_the_configured_email_is_trimmed()
+    {
+        var email = NewEmail();
+        await using var app = Start(NewDatabaseName(), $"  {email}\t", Password);
+
+        (await AdminsAsync(app)).ShouldHaveSingleItem().Email.ShouldBe(email);
+    }
+
+    [Fact]
     public async Task Existing_admin_is_left_unchanged_on_later_startups()
     {
         var databaseName = NewDatabaseName();

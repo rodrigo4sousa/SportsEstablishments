@@ -68,6 +68,7 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - O admin entra pelo login normal (US03) e vai para `/admin`.
 - Decisões de implementação (conservadoras, a confirmar):
   - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
+  - Os espaços à volta do email são removidos antes de o validar; o resto da validação é estrita (a palavra-passe é usada tal como está).
   - Se o email já pertence a outra conta, essa conta nunca é promovida a admin.
   - Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente não é alterado (mudar a variável da palavra-passe depois não tem efeito).
 ### US05 · Recuperar palavra-passe · D · 3 pontos
