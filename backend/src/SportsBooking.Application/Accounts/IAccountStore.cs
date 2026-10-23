@@ -1,0 +1,19 @@
+namespace SportsBooking.Application.Accounts;
+
+/// <summary>Account persistence, implemented on ASP.NET Core Identity in Infrastructure.</summary>
+public interface IAccountStore
+{
+    /// <summary>
+    /// Creates an account with the Player profile and a hashed password. Returns null when the email is already used
+    /// by any account (compared case-insensitively), also when another request creates it at the same moment.
+    /// </summary>
+    Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken);
+
+    Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken);
+}
+
+/// <summary>A validated, normalized registration.</summary>
+public sealed record NewAccount(string Name, string Email, string Password, string? Phone);
+
+/// <summary>The signed-in account, as returned by <c>GET /api/auth/me</c>. <see cref="Profile"/> is Player, Owner or Admin.</summary>
+public sealed record AccountResponse(Guid Id, string Name, string Email, string Profile);

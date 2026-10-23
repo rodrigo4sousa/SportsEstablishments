@@ -1,4 +1,6 @@
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using SportsBooking.Application.Accounts;
 
 namespace SportsBooking.Application;
 
@@ -6,7 +8,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // Application services and validators are registered here as stories add them.
+        services.AddSingleton<IValidator<RegisterPlayerRequest>, RegisterPlayerRequestValidator>();
+        services.AddScoped<PlayerRegistrationService>();
+
         return services;
     }
 }

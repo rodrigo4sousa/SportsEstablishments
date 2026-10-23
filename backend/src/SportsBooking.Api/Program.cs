@@ -1,6 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.Options;
+using SportsBooking.Api.Auth;
 using SportsBooking.Api.ErrorHandling;
+using SportsBooking.Api.Security;
 using SportsBooking.Application;
 using SportsBooking.Infrastructure;
 
@@ -10,27 +12,40 @@ var builder = WebApplication.CreateBuilder(args);
 var isOpenApiGeneration = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 if (isOpenApiGeneration)
 {
-    builder.Configuration.AddInMemoryCollection([new("ConnectionStrings:Default", "Host=unused-during-openapi-generation")]);
+    builder.Configuration.AddInMemoryCollection(
+    [
+        new("ConnectionStrings:Default", "Host=unused-during-openapi-generation"),
+        new("Security:AllowedOrigins:0", "https://unused-during-openapi-generation"),
+        new("Jwt:SigningKey", "unused-during-openapi-generation-0123456789"),
+    ]);
 }
 
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers();
+// Missing fields reach FluentValidation (pt-PT messages per field) instead of MVC's implicit [Required].
+builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddApiProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOriginCheck(builder.Configuration);
+builder.Services.AddCookieJwtAuthentication();
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer<ProblemDetailsSchemaTransformer>());
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseOriginCheck();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Swagger UI is middleware, not an endpoint: it must run before the fallback authorization policy.
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "SportsBooking API v1"));
+    app.MapOpenApi().AllowAnonymous();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (!isOpenApiGeneration)
 {
@@ -47,6 +62,6 @@ if (!isOpenApiGeneration)
 }
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
 
 await app.RunAsync();

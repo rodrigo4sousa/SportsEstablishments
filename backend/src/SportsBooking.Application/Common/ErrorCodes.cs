@@ -14,4 +14,16 @@ public static class ErrorCodes
     public const string Conflict = "conflict";
     public const string TooManyRequests = "too_many_requests";
     public const string InternalError = "internal_error";
+
+    /// <summary>400 with per-field messages in <c>errors</c>.</summary>
+    public const string ValidationFailed = "validation_failed";
+
+    /// <summary>403: a mutating request whose <c>Origin</c> is not the site's own (CSRF defence).</summary>
+    public const string OriginNotAllowed = "origin_not_allowed";
+
+    /// <summary>409 from registration: an account with this email already exists (any profile).</summary>
+    public const string EmailTaken = "email_taken";
+
+    /// <summary>401 from <c>POST /api/auth/refresh</c>: the session cannot be renewed; the user must sign in again.</summary>
+    public const string InvalidRefreshToken = "invalid_refresh_token";
 }

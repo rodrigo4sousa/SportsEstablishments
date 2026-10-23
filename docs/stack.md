@@ -78,7 +78,7 @@ O JavaScript do browser nunca toca nos tokens: ficam em cookies httpOnly, que um
 | Cookie | Conteúdo | Validade | Atributos |
 | --- | --- | --- | --- |
 | `access_token` | JWT com `sub` e `role`, sem dados pessoais | 15 minutos | HttpOnly, Secure, SameSite=Lax, Path=/ |
-| `refresh_token` | Valor aleatório opaco, guardado na BD só como hash | 7 dias | HttpOnly, Secure, SameSite=Strict, Path=/api/auth/refresh |
+| `refresh_token` | Valor aleatório opaco, guardado na BD só como hash | 7 dias | HttpOnly, Secure, SameSite=Strict, Path=/api/auth |
  
 **Fluxo**
  
@@ -239,9 +239,9 @@ Os testes de integração correm contra um PostgreSQL real, porque as regras mai
  
 Para ir marcando à medida que fica feito.
  
-- [ ] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita.
+- [x] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita. (US01)
 - [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
-- [ ] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE.
+- [x] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE. (US01)
 - [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
 - [ ] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação.
 - [ ] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe).

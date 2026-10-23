@@ -34,7 +34,7 @@ public sealed class AccountStoreTests(ApiFactory factory)
         await using var scope = factory.Services.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         const string password = "palavra-passe-segura";
-        var user = new AppUser(UniqueEmail("hash"));
+        var user = new AppUser(UniqueEmail("hash"), "Conta de teste");
 
         (await userManager.CreateAsync(user, password)).Succeeded.ShouldBeTrue();
 
@@ -54,7 +54,7 @@ public sealed class AccountStoreTests(ApiFactory factory)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        var user = new AppUser(UniqueEmail("work-factor"));
+        var user = new AppUser(UniqueEmail("work-factor"), "Conta de teste");
 
         (await userManager.CreateAsync(user, "palavra-passe-segura")).Succeeded.ShouldBeTrue();
 
@@ -72,7 +72,7 @@ public sealed class AccountStoreTests(ApiFactory factory)
         await using var scope = factory.Services.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         const string password = "palavra-passe-antiga";
-        var user = new AppUser(UniqueEmail("rehash"));
+        var user = new AppUser(UniqueEmail("rehash"), "Conta de teste");
         (await userManager.CreateAsync(user)).Succeeded.ShouldBeTrue();
 
         // A hash made with the previous default work factor (100,000 iterations).
@@ -93,8 +93,8 @@ public sealed class AccountStoreTests(ApiFactory factory)
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var email = UniqueEmail("dup");
 
-        (await userManager.CreateAsync(new AppUser(email), "palavra-passe-1")).Succeeded.ShouldBeTrue();
-        var duplicate = await userManager.CreateAsync(new AppUser(email.ToUpperInvariant()), "palavra-passe-2");
+        (await userManager.CreateAsync(new AppUser(email, "Conta de teste"), "palavra-passe-1")).Succeeded.ShouldBeTrue();
+        var duplicate = await userManager.CreateAsync(new AppUser(email.ToUpperInvariant(), "Conta de teste"), "palavra-passe-2");
 
         duplicate.Succeeded.ShouldBeFalse();
         duplicate.Errors.Select(error => error.Code).ShouldContain(nameof(IdentityErrorDescriber.DuplicateEmail));
@@ -120,7 +120,7 @@ public sealed class AccountStoreTests(ApiFactory factory)
         postgres.ConstraintName.ShouldBe("ix_users_normalized_email");
     }
 
-    private static AppUser NewUserRow(string email, string userName) => new(email)
+    private static AppUser NewUserRow(string email, string userName) => new(email, "Conta de teste")
     {
         UserName = userName,
         NormalizedUserName = userName.ToUpperInvariant(),
