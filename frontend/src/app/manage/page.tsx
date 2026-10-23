@@ -1,5 +1,6 @@
-import { AreaPlaceholder } from "@/components/area-placeholder";
+import { NoClubsYet } from "@/features/clubs/components/no-clubs-yet";
 
+// Placeholder until US06 (club creation) exists: there is no club list yet, so every owner sees the empty state.
 export default function Page() {
-  return <AreaPlaceholder title="Área do dono" description="Em breve: gere os teus clubes, campos e reservas." />;
+  return <NoClubsYet />;
 }
