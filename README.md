@@ -48,6 +48,17 @@ npm run dev
 
 Set `API_INTERNAL_URL` to point the frontend at a different API address.
 
+## Sessions and security settings
+
+Sign-in uses two httpOnly cookies (a 15-minute JWT and a rotating refresh token, see [docs/stack.md](docs/stack.md)). They are `Secure`: Chrome, Edge and Firefox treat `http://localhost` as secure and keep them; if your browser drops them over plain HTTP, use one of those for local development.
+
+| Setting | Development | Other environments |
+| --- | --- | --- |
+| `Jwt:SigningKey` (32+ bytes, secret) | local-only value in `appsettings.Development.json` | env `Jwt__SigningKey`, required |
+| `Security:AllowedOrigins` (sites allowed to send POST/PUT/PATCH/DELETE) | `http://localhost:3000` (app) and `http://localhost:5080` (Swagger) | env `Security__AllowedOrigins__0=https://<your site>`, required |
+
+The API refuses to start if either is missing or invalid. Mutating requests without the site's `Origin` header get 403, so for `curl` add `-H "Origin: http://localhost:3000"`.
+
 ## Admin account
 
 There is no public sign-up for the platform admin. The API creates the admin account at startup from two settings, if it does not exist yet:
@@ -139,14 +150,16 @@ To make a red CI block merges, protect `main` on GitHub: **Settings → Branches
 backend/
   src/SportsBooking.Domain/          entities and business rules, no dependencies
   src/SportsBooking.Application/     use cases, DTOs, validators, interfaces
-  src/SportsBooking.Infrastructure/  EF Core, migrations, (later) Identity, JWT, email, outbox
-  src/SportsBooking.Api/             controllers, ProblemDetails, DI composition
+  src/SportsBooking.Infrastructure/  EF Core, migrations, Identity, JWT sessions, (later) email, outbox
+  src/SportsBooking.Api/             controllers, auth cookies, Origin check, ProblemDetails, DI composition
   tests/SportsBooking.UnitTests/
   tests/SportsBooking.IntegrationTests/
 frontend/
   src/app/(player)/  manage/  admin/   the three areas
+  src/app/register/                    player registration (US01)
+  src/features/<feature>/              components, hooks, schemas per feature (e.g. auth)
   src/components/ui/                   shadcn/ui components
-  src/lib/api/                         generated API types
+  src/lib/api/                         generated API types and the browser API client
 docs/                                  backlog and stack documents
 docker-compose.yml
 ```

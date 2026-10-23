@@ -37,6 +37,18 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
 - Campos inválidos são rejeitados com mensagem por campo, no front end e na API.
 - Depois do registo, o jogador fica com sessão iniciada e vai para a página inicial.
 - A conta criada tem o perfil Jogador.
+- Decisões de implementação (provisórias, a confirmar):
+  - **Email já usado (compromisso aceite):** o critério pede uma mensagem a dizê-lo, por isso o registo revela que um email tem conta. A API responde 409 com o código `email_taken` e sempre a mesma mensagem («Já existe uma conta com este email.»), seja a conta de jogador, de dono ou de admin, sem mais nenhum dado. A comparação ignora maiúsculas e minúsculas e os espaços à volta; o índice único da base de dados decide registos simultâneos. A alternativa sem enumeração (responder sempre «verifica o teu email» e avisar por email) contraria este critério e o de sessão iniciada logo a seguir. O login (US03) e a recuperação (US05) continuam sem revelar se o email existe. O rate limiting das rotas `/api/auth/*` fica para a US03 (ver lá).
+  - Nome obrigatório, até 100 caracteres; os espaços à volta são removidos.
+  - Email: um endereço simples (sem nome de apresentação), com ponto no domínio e até 256 caracteres; os espaços à volta são removidos; é guardado como foi escrito.
+  - Telemóvel opcional: 9 a 15 algarismos, com `+` inicial opcional; os espaços são removidos. Aceita números estrangeiros.
+  - Palavra-passe: só o mínimo de 8 caracteres, sem máximo nem regras de composição; é usada tal como foi escrita (sem cortar espaços).
+  - Sessão: a validade de 7 dias do refresh token é absoluta (a rotação mantém a data de expiração), por isso é preciso entrar de novo, no máximo, 7 dias depois do registo ou do login. Um refresh token já usado que volte a aparecer termina todas as sessões da conta (docs/stack.md); dois separadores a renovar ao mesmo tempo podem por isso terminar a sessão.
+  - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
+  - Pedidos anónimos a rotas que não existem recebem 401 (política de fallback que exige sessão), e não 404.
+  - Pedidos POST, PUT, PATCH e DELETE sem cabeçalho `Origin` são rejeitados com 403 `origin_not_allowed`, tal como os de outra origem.
+  - A conta de admin criada pelo seed tem o nome «Administrador».
+  - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou a ligação «Criar conta» sem sessão. A ligação para o login aparece com a US03.
 ### US02 · Registo de dono · M · 2 pontos
  
 Como dono de um clube, quero criar a minha conta de dono, para registar e gerir o meu clube na plataforma.
@@ -53,6 +65,7 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
 - O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
+- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem. Falta o rate limiting das rotas `/api/auth/*` (que também trava a enumeração pelo registo), e para o fazer é preciso decidir em que proxies confiar para o IP do cliente (`X-Forwarded-For` do Caddy e do Next.js). O cookie `refresh_token` só vai para `/api/auth/refresh` (docs/stack.md), por isso o logout não o recebe: ou o caminho do cookie passa a `/api/auth`, ou o logout revoga as sessões pela conta do access token.
 - A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
 - O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
