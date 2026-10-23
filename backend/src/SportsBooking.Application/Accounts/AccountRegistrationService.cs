@@ -8,12 +8,12 @@ namespace SportsBooking.Application.Accounts;
 public sealed record RegisteredAccount(AccountResponse Account, SessionTokens Session);
 
 /// <summary>US01: creates a player account and starts its session, so the player is signed in right away.</summary>
-public sealed class PlayerRegistrationService(
-    IValidator<RegisterPlayerRequest> validator,
+public sealed class AccountRegistrationService(
+    IValidator<RegisterAccountRequest> validator,
     IAccountStore accounts,
     ISessionService sessions)
 {
-    public async Task<Result<RegisteredAccount>> RegisterAsync(RegisterPlayerRequest request, CancellationToken cancellationToken)
+    public async Task<Result<RegisteredAccount>> RegisterAsync(RegisterAccountRequest request, CancellationToken cancellationToken)
     {
         var normalized = request.Normalized();
         var validation = await validator.ValidateAsync(normalized, cancellationToken);
@@ -22,7 +22,7 @@ public sealed class PlayerRegistrationService(
             return ServiceError.Validation(validation.ToFieldErrors());
         }
 
-        var account = await accounts.CreatePlayerAsync(
+        var account = await accounts.CreateAsync(
             new NewAccount(normalized.Name, normalized.Email, normalized.Password, normalized.Phone),
             cancellationToken);
         if (account is null)

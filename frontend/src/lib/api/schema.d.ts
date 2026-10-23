@@ -22,8 +22,8 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["RegisterPlayerRequest"];
-                    "application/*+json": components["schemas"]["RegisterPlayerRequest"];
+                    "application/json": components["schemas"]["RegisterAccountRequest"];
+                    "application/*+json": components["schemas"]["RegisterAccountRequest"];
                 };
             };
             responses: {
@@ -293,7 +293,7 @@ export interface components {
             /** @description Identifies the request in the logs. */
             traceId: string;
         };
-        RegisterPlayerRequest: {
+        RegisterAccountRequest: {
             name: string;
             email: string;
             password: string;

@@ -14,12 +14,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterPlayerRequest"
+                "$ref": "#/components/schemas/RegisterAccountRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterPlayerRequest"
+                "$ref": "#/components/schemas/RegisterAccountRequest"
               }
             }
           },
@@ -298,7 +298,7 @@
           }
         }
       },
-      "RegisterPlayerRequest": {
+      "RegisterAccountRequest": {
         "required": [
           "name",
           "email",

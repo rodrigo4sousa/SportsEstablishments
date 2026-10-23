@@ -13,7 +13,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthController(
-    PlayerRegistrationService registration,
+    AccountRegistrationService registration,
     LoginService login,
     ISessionService sessions,
     IAccountStore accounts) : ControllerBase
@@ -30,7 +30,7 @@ public sealed class AuthController(
     [ProducesResponseType<AccountResponse>(StatusCodes.Status201Created, "application/json")]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
-    public async Task<IActionResult> Register(RegisterPlayerRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register(RegisterAccountRequest request, CancellationToken cancellationToken)
     {
         var result = await registration.RegisterAsync(request, cancellationToken);
         if (!result.IsSuccess)

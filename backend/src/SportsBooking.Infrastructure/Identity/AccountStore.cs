@@ -19,7 +19,7 @@ internal sealed class AccountStore(
         nameof(IdentityErrorDescriber.DuplicateUserName),
     ];
 
-    public async Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken)
+    public async Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken)
     {
         var user = new AppUser(account.Email, account.Name) { PhoneNumber = account.Phone };
 

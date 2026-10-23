@@ -3,7 +3,7 @@ import type { components } from "@/lib/api/schema";
 
 export type Account = components["schemas"]["AccountResponse"];
 export type LoginRequest = components["schemas"]["LoginRequest"];
-export type RegisterPlayerRequest = components["schemas"]["RegisterPlayerRequest"];
+export type RegisterAccountRequest = components["schemas"]["RegisterAccountRequest"];
 
 export const currentUserQueryKey = ["auth", "me"] as const;
 
@@ -30,6 +30,6 @@ export async function logout(): Promise<void> {
 }
 
 /** US01: creates the player account; the API answers with the session cookies already set. */
-export function registerPlayer(request: RegisterPlayerRequest): Promise<Account> {
+export function registerPlayer(request: RegisterAccountRequest): Promise<Account> {
   return apiJson<Account>("/api/auth/register", { method: "POST", body: JSON.stringify(request) });
 }

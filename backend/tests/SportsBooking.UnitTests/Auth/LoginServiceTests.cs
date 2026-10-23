@@ -88,7 +88,7 @@ public sealed class LoginServiceTests
             return Task.FromResult(Account);
         }
 
-        public Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken) =>
+        public Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken) => throw new NotSupportedException();

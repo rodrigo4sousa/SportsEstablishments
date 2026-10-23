@@ -9,8 +9,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddSingleton<IValidator<RegisterPlayerRequest>, RegisterPlayerRequestValidator>();
-        services.AddScoped<PlayerRegistrationService>();
+        services.AddSingleton<IValidator<RegisterAccountRequest>, RegisterAccountRequestValidator>();
+        services.AddScoped<AccountRegistrationService>();
         services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddScoped<LoginService>();
 

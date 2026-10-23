@@ -5,19 +5,19 @@ using SportsBooking.Domain.Accounts;
 
 namespace SportsBooking.UnitTests.Accounts;
 
-public sealed class PlayerRegistrationServiceTests
+public sealed class AccountRegistrationServiceTests
 {
     private readonly FakeAccountStore _accounts = new();
     private readonly FakeSessions _sessions = new();
 
-    private PlayerRegistrationService Service => new(new RegisterPlayerRequestValidator(), _accounts, _sessions);
+    private AccountRegistrationService Service => new(new RegisterAccountRequestValidator(), _accounts, _sessions);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Valid_request_creates_a_normalized_player_account_and_starts_its_session()
     {
-        var result = await Service.RegisterAsync(new RegisterPlayerRequest(" Ana ", " ana@exemplo.pt ", "palavra-passe", "912 345 678"), Ct);
+        var result = await Service.RegisterAsync(new RegisterAccountRequest(" Ana ", " ana@exemplo.pt ", "palavra-passe", "912 345 678"), Ct);
 
         result.IsSuccess.ShouldBeTrue();
         _accounts.Created.ShouldHaveSingleItem().ShouldBe(new NewAccount("Ana", "ana@exemplo.pt", "palavra-passe", "912345678"));
@@ -28,7 +28,7 @@ public sealed class PlayerRegistrationServiceTests
     [Fact]
     public async Task Invalid_request_returns_field_errors_and_touches_nothing()
     {
-        var result = await Service.RegisterAsync(new RegisterPlayerRequest("", "ana", "curta"), Ct);
+        var result = await Service.RegisterAsync(new RegisterAccountRequest("", "ana", "curta"), Ct);
 
         result.IsSuccess.ShouldBeFalse();
         result.Error.ShouldNotBeNull().Code.ShouldBe(ErrorCodes.ValidationFailed);
@@ -43,7 +43,7 @@ public sealed class PlayerRegistrationServiceTests
     {
         _accounts.EmailTaken = true;
 
-        var result = await Service.RegisterAsync(new RegisterPlayerRequest("Ana", "ana@exemplo.pt", "palavra-passe"), Ct);
+        var result = await Service.RegisterAsync(new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe"), Ct);
 
         result.Error.ShouldBe(AccountErrors.EmailTaken);
         result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
@@ -57,7 +57,7 @@ public sealed class PlayerRegistrationServiceTests
 
         public List<NewAccount> Created { get; } = [];
 
-        public Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken)
+        public Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken)
         {
             if (EmailTaken)
             {

@@ -7,7 +7,7 @@ public interface IAccountStore
     /// Creates an account with the Player profile and a hashed password. Returns null when the email is already used
     /// by any account (compared case-insensitively), also when another request creates it at the same moment.
     /// </summary>
-    Task<AccountResponse?> CreatePlayerAsync(NewAccount account, CancellationToken cancellationToken);
+    Task<AccountResponse?> CreateAsync(NewAccount account, CancellationToken cancellationToken);
 
     /// <summary>
     /// US03: the account with this email (compared case-insensitively) and password. Returns null, after the same
