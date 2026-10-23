@@ -16,6 +16,7 @@ internal static class ServiceErrorResults
         {
             ErrorKind.Validation => StatusCodes.Status400BadRequest,
             ErrorKind.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorKind.NotFound => StatusCodes.Status404NotFound,
             ErrorKind.Conflict => StatusCodes.Status409Conflict,
             _ => throw new ArgumentOutOfRangeException(nameof(error), error.Kind, "Unknown error kind."),
         };

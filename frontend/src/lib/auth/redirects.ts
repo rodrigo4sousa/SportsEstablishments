@@ -33,12 +33,19 @@ export function loginUrl(next: string): string {
 export type AreaDecision<T> = { allowed: true; account: T } | { allowed: false; redirectTo: string };
 
 /**
- * Guard of an area layout (`/manage`, `/admin`). No session goes to the login page, coming back to the area's home;
- * a session of another profile goes to that user's own area. A guard is a convenience: the API answers 401/403 itself.
+ * Guard of an area layout (`/manage`, `/admin`). No session goes to the login page, coming back to the page that was
+ * asked for (`requestedPath`: path and query, from the proxy's header) when it is inside the area, else to the
+ * area's home; a session of another profile goes to that user's own area. A guard is a convenience: the API
+ * answers 401/403 itself.
  */
-export function areaDecision<T extends { profile: string }>(area: Profile, account: T | null): AreaDecision<T> {
+export function areaDecision<T extends { profile: string }>(
+  area: Profile,
+  account: T | null,
+  requestedPath?: string | null,
+): AreaDecision<T> {
   if (account === null) {
-    return { allowed: false, redirectTo: loginUrl(PROFILE_HOME[area]) };
+    // safeNext is the one place that decides what is an acceptable return path, here and after login.
+    return { allowed: false, redirectTo: loginUrl(safeNext(requestedPath, area)) };
   }
   if (account.profile !== area) {
     return { allowed: false, redirectTo: profileHome(account.profile) };

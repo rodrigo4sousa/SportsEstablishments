@@ -39,17 +39,20 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
 - Depois do registo, o jogador fica com sessão iniciada e vai para a página inicial.
 - A conta criada tem o perfil Jogador.
 - Decidido: pedidos POST, PUT, PATCH e DELETE sem cabeçalho `Origin`, ou com um `Origin` de outro site, são rejeitados com 403 `origin_not_allowed`.
-- Decisões de implementação (provisórias, a confirmar):
-  - **Email já usado (compromisso aceite):** o critério pede uma mensagem a dizê-lo, por isso o registo revela que um email tem conta. A API responde 409 com o código `email_taken` e sempre a mesma mensagem («Já existe uma conta com este email.»), seja a conta de jogador, de dono ou de admin, sem mais nenhum dado. A comparação ignora maiúsculas e minúsculas e os espaços à volta; o índice único da base de dados decide registos simultâneos. A alternativa sem enumeração (responder sempre «verifica o teu email» e avisar por email) contraria este critério e o de sessão iniciada logo a seguir. O login (US03) e a recuperação (US05) continuam sem revelar se o email existe. O rate limiting das rotas `/api/auth/*` fica para a US03 (ver lá).
+- Decidido (confirmado):
+  - **Email já usado (compromisso aceite):** o critério pede uma mensagem a dizê-lo, por isso o registo revela que um email tem conta. A API responde 409 com o código `email_taken` e sempre a mesma mensagem («Já existe uma conta com este email.»), seja a conta de jogador, de dono ou de admin, sem mais nenhum dado. A comparação ignora maiúsculas e minúsculas e os espaços à volta; o índice único da base de dados decide registos simultâneos. A alternativa sem enumeração (responder sempre «verifica o teu email» e avisar por email) contraria este critério e o de sessão iniciada logo a seguir. O login (US03) e a recuperação (US05) continuam sem revelar se o email existe. O rate limiting das rotas `/api/auth/*` está feito na US03.
   - Nome obrigatório, até 100 caracteres; os espaços à volta são removidos.
   - Email: um endereço simples (sem nome de apresentação), com ponto no domínio e até 256 caracteres; os espaços à volta são removidos; é guardado como foi escrito.
   - Telemóvel opcional: 9 a 15 algarismos, com `+` inicial opcional; os espaços são removidos. Aceita números estrangeiros.
   - Palavra-passe: só o mínimo de 8 caracteres, sem máximo nem regras de composição; é usada tal como foi escrita (sem cortar espaços).
-  - Sessão: a validade de 7 dias do refresh token é absoluta (a rotação mantém a data de expiração), por isso é preciso entrar de novo, no máximo, 7 dias depois do registo ou do login. Um refresh token já usado que volte a aparecer termina todas as sessões da conta (docs/stack.md); dois separadores a renovar ao mesmo tempo podem por isso terminar a sessão.
-  - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
+  - Sessão: a validade de 7 dias do refresh token é absoluta (a rotação mantém a data de expiração), por isso é preciso entrar de novo, no máximo, 7 dias depois do registo ou do login. Um refresh token já usado que volte a aparecer termina todas as sessões da conta (docs/stack.md); os separadores renovam um de cada vez (Web Locks, US03), para não terminarem a sessão uns aos outros.
   - Pedidos anónimos a rotas que não existem recebem 401 (política de fallback que exige sessão), e não 404.
   - A conta de admin criada pelo seed tem o nome «Administrador».
-  - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou a ligação «Criar conta» sem sessão. A ligação para o login aparece com a US03.
+  - A chave de assinatura do JWT de desenvolvimento (`Jwt:SigningKey` em `appsettings.Development.json`) está no repositório e só serve para desenvolvimento; fora dele vem sempre de `Jwt__SigningKey`.
+  - As bibliotecas do front end usam versões publicadas há pelo menos duas semanas. Exceção decidida: o `zod` 4.6.7 (publicado a 2026-10-12) foi adotado de imediato porque corrige o aviso de segurança GHSA-mrhx-c7xc-m3w5 (gravidade alta), que fazia falhar o `npm audit` do CI; as versões anteriores têm o aviso. Todas as dependências do `package.json` têm versão exata (sem `^`); mudar uma versão é sempre um commit próprio.
+- Decisões de implementação (provisórias, a confirmar):
+  - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
+  - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou as ligações «Entrar» e «Criar conta» sem sessão (o «Entrar» veio com a US03).
 ### US02 · Registo de dono · M · 2 pontos
  
 Como dono de um clube, quero criar a minha conta de dono, para registar e gerir o meu clube na plataforma.
@@ -60,8 +63,8 @@ Como dono de um clube, quero criar a minha conta de dono, para registar e gerir 
 - A conta criada tem o perfil Dono.
 - Depois do registo, o dono entra em `/manage` e é convidado a criar o primeiro clube.
 - Estado: feita. A página é `/register/owner` e o endpoint é `POST /api/auth/register/owner`: o perfil Dono é fixo no endpoint e nunca vem do pedido, por isso nenhum pedido cria um admin. Mesmo corpo, mesmas validações, o mesmo 409 `email_taken` para qualquer perfil e os mesmos cookies que o registo de jogador. O registo de jogador e o de dono partilham o mesmo limite de pedidos por IP.
-- Provisório: o botão «Criar o primeiro clube» de `/manage` é um marcador desativado até existir a US06 (por agora todos os donos veem o estado vazio, porque ainda não há lista de clubes).
 - Decidido: um utilizador com sessão que abra `/login` ou `/register` (incluindo a página de registo de donos) é reencaminhado para a página inicial do seu perfil, com uma verificação no servidor.
+- Depois do registo, `/manage` mostra o estado vazio com o botão «Criar o primeiro clube», que abre o formulário de criação (US06).
 ### US03 · Login e logout · M · 5 pontos
  
 Como utilizador registado, quero entrar e sair da minha conta, para aceder à área do meu perfil.
@@ -79,17 +82,18 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
 - Uma conta de dono desativada (US29) não consegue entrar.
 - Estado: back end e front end feitos (página `/login`, redirecionamento por perfil, guardas das áreas, botão «Sair», refresh entre separadores).
 - Decidido (front end): o servidor nunca renova a sessão (o cookie `refresh_token` só vai para `/api/auth`). Os guardas vivem nos layouts de `/manage` e `/admin`; sem sessão → `/login?next=<caminho>`; perfil errado → a área desse utilizador. A página de login tenta primeiro um refresh silencioso no browser e, com sucesso, segue para `next`. `next` só é aceite se for um caminho relativo que começa por uma única `/` e pertence à área do utilizador; senão vai para a página inicial do perfil (jogador `/`, dono `/manage`, admin `/admin`). Só um separador de cada vez renova a sessão (Web Locks API).
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - **Falha genérica:** email desconhecido, palavra-passe errada, conta bloqueada e conta desativada dão todos o mesmo 401 `invalid_credentials` («Email ou palavra-passe incorretos.»), depois do mesmo trabalho de hash, para o tempo de resposta também não revelar se o email existe. Um email mal formado também dá este 401; só os campos vazios dão 400 `validation_failed`, por campo.
-  - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
   - **Bloqueio:** 5 palavras-passe erradas seguidas bloqueiam a conta durante 15 minutos (bloqueio do Identity). Tentativas durante o bloqueio não o prolongam. Um login certo recomeça a contagem. Tentativas erradas em paralelo na mesma conta podem não ser todas contadas (controlo de concorrência do Identity); o rate limiting cobre esse caso.
   - **Rate limiting:** janela fixa de 1 minuto, por IP do cliente e por rota: login 10, registo 5, refresh 30 pedidos (o refresh tem mais margem porque vários utilizadores podem partilhar um IP). Um cliente IPv6 conta por rede /64. Valores configuráveis em `RateLimiting:Auth`. Acima do limite: 429 `too_many_requests` com `Retry-After`.
   - **Proxies de confiança:** por omissão nenhum; o IP é o da ligação. Em produção só o Caddy, com um endereço fixo (`ForwardedHeaders:KnownProxies`), e não a rede inteira. O contentor do Next.js nunca é de confiança: o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em desenvolvimento todos os pedidos partilham um limite (o do contentor do Next.js), o que chega para um programador.
-  - **Páginas públicas (front end):** `/` e as páginas de pesquisa e de clube ficam públicas para todos os perfis; os guardas só existem em `/manage` e `/admin`. Um utilizador com sessão que abra `/login` só é reencaminhado se o refresh silencioso funcionar; o redireccionamento no servidor de `/login` e `/register` para a página inicial do perfil fica para a US02 (ver lá).
-  - **Caminho de regresso:** o guarda de um layout não conhece o caminho completo do pedido, por isso `next` é a página inicial da área (`/manage` ou `/admin`), não a subpágina onde o utilizador estava. Decidido: resolve-se quando existir a primeira subpágina (US06, páginas de clube em `/manage`), com um `proxy.ts` pequeno que só encaminha o caminho do pedido num cabeçalho, para o layout o ler. O `proxy.ts` continua a ser uma camada de conveniência: não renova tokens nem decide acessos.
+  - **Páginas públicas (front end):** `/` e as páginas de pesquisa e de clube ficam públicas para todos os perfis; os guardas só existem em `/manage` e `/admin`. Um utilizador com sessão que abra `/login`, `/register` ou `/register/owner` é reencaminhado no servidor para a página inicial do seu perfil (US02).
+  - **Caminho de regresso:** o guarda lê o caminho completo do pedido (cabeçalho `x-pathname`, posto pelo `proxy.ts` mínimo, que o reescreve sempre e não renova tokens nem decide acessos) e envia para `/login?next=<caminho completo>`; o `next` continua a ser validado por `safeNext`.
   - **`next` e a área do utilizador:** para o jogador, a sua área são as páginas públicas (tudo exceto `/manage`, `/admin`, `/login` e `/register`); um dono só aceita caminhos de `/manage` e um admin só de `/admin`.
   - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
-  - Os refreshes vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
+  - **Refreshes:** vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
+- Decisões de implementação (provisórias, a confirmar):
+  - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  
 Como dono da plataforma, quero que a conta de admin seja criada na instalação, para não haver forma pública de alguém se tornar admin.
@@ -126,8 +130,17 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
 - Campos obrigatórios em falta são rejeitados com mensagem por campo.
 - Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
-- Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Provisório: numa colisão acrescenta-se um sufixo numérico. A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
+- Decidido: a janela de cancelamento lê-se do clube no momento do cancelamento e nunca é copiada para as reservas. A US19 (e a US12) seguem esta regra.
+- Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Numa colisão acrescenta-se um sufixo numérico (`-2`, `-3`, …). A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
 - O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
+- Estado: feita. Back end (`/api/manage/clubs`: criar, listar, ver e editar, com o perfil Dono e a T02) e front end: `/manage` lista os clubes do dono (por nome, 20 por página) e, sem clubes, mostra o estado vazio com «Criar o primeiro clube»; `/manage/clubs/new` cria e `/manage/clubs/{id}` edita (formulário com uma mensagem por campo, erros da API nos campos certos). Um clube que não existe e o clube de outro dono mostram a mesma página «Clube não encontrado»; um id que não é um GUID nem chega à API.
+- Decisões de implementação (provisórias, a confirmar):
+  - Os cinco campos de texto são obrigatórios: nome (até 100 caracteres), morada (até 200), localidade (até 100), telefone e email de contacto (as mesmas regras da US01: 9 a 15 algarismos com `+` opcional; um endereço simples com ponto no domínio). Os espaços à volta são removidos, e os do telefone também.
+  - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
+  - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
+  - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
+  - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
+  - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
 ### US07 · Gerir campos · M · 5 pontos
  
 Como dono, quero adicionar, editar e desativar campos, para controlar o que está disponível para reserva.
@@ -247,6 +260,7 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
 - A lista separa «Próximas» e «Anteriores», ordenadas por data.
 - Cada reserva mostra clube, campo, data, hora, preço e estado.
 - O jogador pode cancelar uma reserva futura até à janela de cancelamento do clube; depois disso, o botão aparece desativado com a explicação.
+- A janela é a que o clube tem no momento do cancelamento (lida de `Club.CancellationWindowHours`), nunca uma cópia guardada na reserva (decidido na US06).
 - A API recusa cancelamentos fora da janela, mesmo que o pedido não venha do front end.
 - A reserva cancelada passa a «Cancelada pelo jogador» e o slot volta a ficar livre.
 ### US20 · Reserva semanal recorrente · D · 8 pontos
@@ -353,6 +367,7 @@ Como dono da plataforma, quero que cada utilizador só aceda ao que lhe pertence
 - Os recursos de um clube (clube, campos, bloqueios, reservas) verificam que o clube pertence ao dono autenticado.
 - Pedidos a recursos de outro dono devolvem 404, para não revelar que existem.
 - Testes de integração cobrem: o dono A não lê nem altera dados do dono B; um jogador não acede a `/manage` nem a `/admin`; um dono não acede a `/admin`.
+- Estado: feita para os clubes (US06). O mecanismo é o `OwnedClubs` (Application): todas as consultas da área do dono partem dos clubes do dono com sessão, e um clube de outro dono dá o mesmo 404 `club_not_found` que um clube que não existe. Um teste descobre sozinho todos os endpoints `/api/manage` (401 sem sessão, 403 para jogador e admin, 404 para o clube de outro dono nas rotas com `{clubId}`), por isso cobre também os endpoints que vierem a seguir (campos, bloqueios, reservas). Como usar: ver AGENTS.md.
 ### T03 · Sem reservas duplicadas · 5 pontos
  
 Como jogador, quero ter a certeza de que um slot reservado é só meu, para não chegar ao campo e encontrá-lo ocupado.

@@ -96,6 +96,7 @@ O front end e a API têm de estar no mesmo site: o Caddy (em produção) ou os r
 - Os Server Components leem o cookie com `cookies()` e passam o cabeçalho `Cookie` quando chamam a API.
 - Os Server Components não conseguem escrever cookies, e o servidor nunca renova a sessão. Decidido (US03): o cookie `refresh_token` tem `Path=/api/auth`, por isso os pedidos de páginas não o levam e o Next.js não tem como fazer refresh. Não há renovação de tokens no `proxy.ts`; os refreshes vêm sempre do browser.
 - Os guardas do servidor vivem nos layouts das áreas (`/manage` para o Dono, `/admin` para o Admin): um helper em `lib/server` (`import 'server-only'`) chama `GET /api/auth/me` no URL interno da API com o cabeçalho `Cookie` do utilizador e `cache: 'no-store'`. Sem sessão válida → `/login?next=<caminho da área>`; sessão de outro perfil → a área desse utilizador. Com `cacheComponents`, o guarda lê cookies, por isso fica dentro de um `<Suspense>`. As páginas públicas (`/`, pesquisa, páginas de clube) ficam abertas a todos.
+- O `proxy.ts` (`src/proxy.ts`) só põe o caminho pedido (com a query) no cabeçalho de pedido `x-pathname`, sempre por cima de qualquer valor enviado pelo cliente, e só para `/manage` e `/admin`. Os guardas leem-no para construir `next=<caminho completo>`, que passa por `safeNext`. Não renova tokens, não redireciona e não decide acessos.
 - Um access token expirado leva ao `/login?next=...`. A página de login tenta primeiro, no browser, um `POST /api/auth/refresh` silencioso: com 204 segue para `next` (se for um caminho relativo da área do utilizador; senão, a página inicial do perfil), caso contrário mostra o formulário.
 - Os guardas são só uma conveniência (redirecionamentos). Quem decide o acesso é sempre a API (401/403).
 **CSRF e força bruta**
@@ -242,7 +243,7 @@ Os testes de integração correm contra um PostgreSQL real, porque as regras mai
 Para ir marcando à medida que fica feito.
  
 - [x] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita. (US01)
-- [ ] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02).
+- [x] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02, `OwnedClubs`; o teste de acesso descobre os endpoints novos sozinho). (US06)
 - [x] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE. (US01)
 - [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
 - [x] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação (login, registo e refresh). (US03)

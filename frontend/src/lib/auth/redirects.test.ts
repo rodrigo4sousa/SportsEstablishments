@@ -25,6 +25,37 @@ describe("areaDecision", () => {
     expect(areaDecision("Admin", null)).toEqual({ allowed: false, redirectTo: "/login?next=%2Fadmin" });
   });
 
+  it("sends a visitor without a session back to the page they asked for, when it is inside the area", () => {
+    expect(areaDecision("Owner", null, "/manage/clubs/new")).toEqual({
+      allowed: false,
+      redirectTo: "/login?next=%2Fmanage%2Fclubs%2Fnew",
+    });
+    expect(areaDecision("Owner", null, "/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=a")).toEqual({
+      allowed: false,
+      redirectTo: "/login?next=%2Fmanage%2Fclubs%2F0199f7a0-0000-7000-8000-0000000000aa%3Ftab%3Da",
+    });
+    expect(areaDecision("Admin", null, "/admin/owners")).toEqual({ allowed: false, redirectTo: "/login?next=%2Fadmin%2Fowners" });
+  });
+
+  it.each([
+    ["Owner", "/admin/owners"],
+    ["Owner", "//evil.example"],
+    ["Owner", "https://evil.example/manage"],
+    ["Owner", "/manage/../admin"],
+    ["Owner", ""],
+    ["Owner", null],
+    ["Owner", undefined],
+    ["Admin", "/manage/clubs/new"],
+  ] as const)("falls back to the area's home when the %s area was asked for %j", (area, requested) => {
+    const home = area === "Owner" ? "/manage" : "/admin";
+
+    expect(areaDecision(area, null, requested)).toEqual({ allowed: false, redirectTo: `/login?next=${encodeURIComponent(home)}` });
+  });
+
+  it("ignores the requested path for a session of another profile", () => {
+    expect(areaDecision("Owner", { profile: "Player" }, "/manage/clubs/new")).toEqual({ allowed: false, redirectTo: "/" });
+  });
+
   it("lets the area's own profile in", () => {
     const owner = { profile: "Owner", name: "Rui" };
     const admin = { profile: "Admin", name: "Ana" };

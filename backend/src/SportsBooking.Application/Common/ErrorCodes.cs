@@ -32,4 +32,10 @@ public static class ErrorCodes
     /// deactivated account.
     /// </summary>
     public const string InvalidCredentials = "invalid_credentials";
+
+    /// <summary>
+    /// 404 from the owner area (T02): the club does not exist or belongs to another owner. The two cases are
+    /// indistinguishable on purpose, so no owner learns that another owner's club exists.
+    /// </summary>
+    public const string ClubNotFound = "club_not_found";
 }

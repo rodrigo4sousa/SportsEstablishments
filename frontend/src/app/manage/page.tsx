@@ -1,6 +1,10 @@
-import { NoClubsYet } from "@/features/clubs/components/no-clubs-yet";
+import { PageShell } from "@/components/page-shell";
+import { ClubList } from "@/features/clubs/components/club-list";
 
-// Placeholder until US06 (club creation) exists: there is no club list yet, so every owner sees the empty state.
 export default function Page() {
-  return <NoClubsYet />;
+  return (
+    <PageShell title="Os teus clubes">
+      <ClubList />
+    </PageShell>
+  );
 }

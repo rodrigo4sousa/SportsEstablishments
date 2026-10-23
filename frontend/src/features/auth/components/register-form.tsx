@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -8,9 +7,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/form-field";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { profileHome } from "@/lib/auth/redirects";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
 import {
@@ -66,21 +66,12 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
         form.setError("email", { message: errorMessage(error.code) }, { shouldFocus: true });
         return;
       }
-      if (error.code === "validation_failed" && showFieldErrors(error.fieldErrors)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
         return;
       }
       toast.error(errorMessage(error.code));
     },
   });
-
-  // Puts the API's per-field messages on their fields; false when none of them is a field of this form.
-  function showFieldErrors(fieldErrors: Readonly<Record<string, string[]>>): boolean {
-    const fields = FIELDS.filter((field) => fieldErrors[field]?.length);
-    fields.forEach((field, index) =>
-      form.setError(field, { message: fieldErrors[field].join(" ") }, { shouldFocus: index === 0 }),
-    );
-    return fields.length > 0;
-  }
 
   const describedBy = (field: FieldName, hint?: boolean) =>
     [hint ? `register-${field}-hint` : null, errors[field] ? `register-${field}-error` : null].filter(Boolean).join(" ") ||
@@ -93,7 +84,7 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => registration.mutate(values))}
     >
-      <Field id="register-name" label="Nome" error={errors.name?.message}>
+      <FormField id="register-name" label="Nome" error={errors.name?.message}>
         <Input
           id="register-name"
           autoComplete="name"
@@ -101,9 +92,9 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
           aria-describedby={describedBy("name")}
           {...form.register("name")}
         />
-      </Field>
+      </FormField>
 
-      <Field id="register-email" label="Email" error={errors.email?.message}>
+      <FormField id="register-email" label="Email" error={errors.email?.message}>
         <Input
           id="register-email"
           type="email"
@@ -113,9 +104,9 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
           aria-describedby={describedBy("email")}
           {...form.register("email")}
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         id="register-password"
         label="Palavra-passe"
         hint={`Pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`}
@@ -129,9 +120,9 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
           aria-describedby={describedBy("password", true)}
           {...form.register("password")}
         />
-      </Field>
+      </FormField>
 
-      <Field id="register-phone" label="Telemóvel (opcional)" error={errors.phone?.message}>
+      <FormField id="register-phone" label="Telemóvel (opcional)" error={errors.phone?.message}>
         <Input
           id="register-phone"
           type="tel"
@@ -141,38 +132,11 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
           aria-describedby={describedBy("phone")}
           {...form.register("phone")}
         />
-      </Field>
+      </FormField>
 
       <Button type="submit" disabled={registration.isPending}>
         {registration.isPending ? "A criar conta…" : "Criar conta"}
       </Button>
     </form>
-  );
-}
-
-type FieldProps = {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: string;
-  children: ReactNode;
-};
-
-function Field({ id, label, hint, error, children }: FieldProps) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint ? (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
   );
 }

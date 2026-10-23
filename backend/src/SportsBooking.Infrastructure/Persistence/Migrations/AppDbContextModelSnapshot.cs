@@ -207,6 +207,86 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Clubs.Club", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address");
+
+                    b.Property<int>("CancellationWindowHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("cancellation_window_hours");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("contact_email");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Locality")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("locality");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(91)
+                        .HasColumnType("character varying(91)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_clubs");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_clubs_slug");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .HasDatabaseName("ix_clubs_owner_id_name");
+
+                    b.ToTable("clubs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_clubs_cancellation_window_hours", "cancellation_window_hours BETWEEN 1 AND 168");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -397,6 +477,16 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("SportsBooking.Domain.Clubs.Club", b =>
+                {
+                    b.HasOne("SportsBooking.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_clubs_users_owner_id");
                 });
 
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>
