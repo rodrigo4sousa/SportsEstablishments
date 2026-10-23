@@ -52,6 +52,7 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
  
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
+- O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
 - A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
 - O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
@@ -65,12 +66,15 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - Não existe nenhum endpoint nem página que crie contas de admin ou promova outras contas a admin.
 - Sem as variáveis definidas, a aplicação arranca sem admin e regista um aviso no log.
 - Só uma das variáveis definida, email inválido ou palavra-passe com menos de 8 caracteres: a API não arranca e mostra um erro claro, que nunca inclui o email nem a palavra-passe.
-- O admin entra pelo login normal (US03) e vai para `/admin`.
-- Decisões de implementação (conservadoras, a confirmar):
+- Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente nunca é alterado (mudar a variável da palavra-passe depois não tem efeito).
+- Se o email já pertence a uma conta de jogador ou de dono, essa conta nunca é promovida a admin; fica um aviso no log, sem o email.
+- O seed corre em todos os ambientes, sempre depois das migrações. Em produção as migrações são aplicadas no deploy (T06), antes de a API arrancar.
+- Mudar a palavra-passe do admin é um procedimento manual, descrito no README: apagar a conta de admin e arrancar a API com as novas variáveis.
+- O critério «o admin entra pelo login normal e vai para `/admin`» passou para a US03.
+- Decisões de implementação:
   - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
   - Os espaços à volta do email são removidos antes de o validar; o resto da validação é estrita (a palavra-passe é usada tal como está).
-  - Se o email já pertence a outra conta, essa conta nunca é promovida a admin.
-  - Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente não é alterado (mudar a variável da palavra-passe depois não tem efeito).
+  - As palavras-passe de todas as contas são guardadas com PBKDF2-HMAC-SHA512 e 210 000 iterações (formato v3 do Identity); hashes antigos com menos iterações são atualizados no login seguinte.
 ### US05 · Recuperar palavra-passe · D · 3 pontos
  
 Como utilizador, quero redefinir a palavra-passe por email, para recuperar o acesso se a esquecer.
