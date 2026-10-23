@@ -49,7 +49,7 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
   - Pedidos anónimos a rotas que não existem recebem 401 (política de fallback que exige sessão), e não 404.
   - A conta de admin criada pelo seed tem o nome «Administrador».
   - A chave de assinatura do JWT de desenvolvimento (`Jwt:SigningKey` em `appsettings.Development.json`) está no repositório e só serve para desenvolvimento; fora dele vem sempre de `Jwt__SigningKey`.
-  - As bibliotecas do front end usam versões publicadas há pelo menos duas semanas.
+  - As bibliotecas do front end usam versões publicadas há pelo menos duas semanas. Exceção decidida: o `zod` 4.6.7 (publicado a 2026-10-12) foi adotado de imediato porque corrige o aviso de segurança GHSA-mrhx-c7xc-m3w5 (gravidade alta), que fazia falhar o `npm audit` do CI; as versões anteriores têm o aviso.
 - Decisões de implementação (provisórias, a confirmar):
   - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
   - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou as ligações «Entrar» e «Criar conta» sem sessão (o «Entrar» veio com a US03).
