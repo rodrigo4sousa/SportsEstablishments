@@ -97,7 +97,7 @@ public sealed partial class AdminAccountSeeder(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Admin account not seeded: an admin with a different email already exists.")]
     private static partial void LogOtherAdminExists(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Admin account not seeded: the configured email belongs to an existing non-admin account, which is never promoted.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Admin account not seeded: the configured email belongs to an existing non-admin account, which is never promoted.")]
     private static partial void LogEmailUsedByAnotherAccount(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Admin account not seeded: account creation failed ({ErrorCodes}).")]

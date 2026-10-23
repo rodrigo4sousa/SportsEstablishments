@@ -174,7 +174,7 @@ public sealed class AdminSeedTests(ApiFactory factory)
         var existing = (await users.FindByEmailAsync(email)).ShouldNotBeNull();
         (await users.GetRolesAsync(existing)).ShouldBe([Profiles.Player]);
         (await users.CheckPasswordAsync(existing, Password)).ShouldBeFalse();
-        SeederLogs(app).ShouldContain(record => record.Level == LogLevel.Error && record.Message.Contains("never promoted", StringComparison.Ordinal));
+        SeederLogs(app).ShouldContain(record => record.Level == LogLevel.Warning && record.Message.Contains("never promoted", StringComparison.Ordinal));
         LogsShouldNotContainSecrets(app, Password, email);
     }
 
