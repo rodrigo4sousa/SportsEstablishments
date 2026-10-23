@@ -55,6 +55,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
+        builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-0123456789");
     }
 
     public override async ValueTask DisposeAsync()

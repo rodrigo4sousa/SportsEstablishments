@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SportsBooking.Application.Accounts;
+using SportsBooking.Application.Auth;
 using SportsBooking.Domain.Accounts;
+using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Identity;
 using SportsBooking.Infrastructure.Persistence;
 
@@ -31,8 +34,18 @@ public static class DependencyInjection
             .AddDbContextCheck<AppDbContext>("database");
 
         services.AddAccounts(configuration);
+        services.AddSessions(configuration);
 
         return services;
+    }
+
+    private static void AddSessions(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
+        services.AddScoped<ISessionService, SessionService>();
     }
 
     private static void AddAccounts(this IServiceCollection services, IConfiguration configuration)
@@ -44,6 +57,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<AdminSeedOptions>, AdminSeedOptionsValidator>();
         services.AddScoped<AdminAccountSeeder>();
+        services.AddScoped<IAccountStore, AccountStore>();
 
         // Identity core only (no UI): PBKDF2 password hashing, user and role stores on EF Core.
         services

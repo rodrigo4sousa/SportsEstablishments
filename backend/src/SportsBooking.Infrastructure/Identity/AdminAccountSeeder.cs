@@ -19,6 +19,9 @@ public sealed partial class AdminAccountSeeder(
     IOptions<AdminSeedOptions> options,
     ILogger<AdminAccountSeeder> logger)
 {
+    /// <summary>Display name of the seeded admin account; there is no setting for it.</summary>
+    public const string AdminName = "Administrador";
+
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         // Partial or invalid settings never get here: AdminSeedOptionsValidator stops the API at startup.
@@ -58,7 +61,7 @@ public sealed partial class AdminAccountSeeder(
 
     private async Task CreateAdminAsync(string email, string password, CancellationToken cancellationToken)
     {
-        var admin = new AppUser(email) { EmailConfirmed = true };
+        var admin = new AppUser(email, AdminName) { EmailConfirmed = true };
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);

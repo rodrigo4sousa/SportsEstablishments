@@ -38,15 +38,33 @@ public sealed class SmokeTests(ApiFactory factory)
     [Fact]
     public async Task Unknown_api_route_returns_problem_details_with_stable_code()
     {
-        using var client = factory.CreateClient();
+        var (_, tokens) = await factory.CreateSignedInPlayerAsync();
+        using var client = factory.CreateSiteClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/does-not-exist")
+            .WithCookies((SessionCookies.AccessToken, tokens.AccessToken));
 
-        var response = await client.GetAsync("/api/does-not-exist", TestContext.Current.CancellationToken);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
         problem.GetProperty("code").GetString().ShouldBe(ErrorCodes.NotFound);
+        problem.GetProperty("traceId").GetString().ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Without_a_session_every_api_route_is_401_problem_details_unless_it_allows_anonymous_access()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/does-not-exist", TestContext.Current.CancellationToken);
+
+        // Fallback authorization policy: anonymous callers learn nothing about which routes exist.
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        problem.GetProperty("code").GetString().ShouldBe(ErrorCodes.Unauthorized);
         problem.GetProperty("traceId").GetString().ShouldNotBeNullOrWhiteSpace();
     }
 }

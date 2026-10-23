@@ -21,6 +21,8 @@ internal static class IdentityModelConfiguration
             user.ToTable("users");
             user.Property(u => u.Email).IsRequired();
             user.Property(u => u.NormalizedEmail).IsRequired();
+            user.Property(u => u.Name).HasMaxLength(AccountNamePolicy.MaximumLength).IsRequired();
+            user.Ignore(u => u.IsActive);
             // One email = one account, enforced by the database and not only by UserManager.
             user.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName("ix_users_normalized_email");
             user.HasIndex(u => u.NormalizedUserName).HasDatabaseName("ix_users_normalized_user_name");

@@ -10,7 +10,7 @@ namespace SportsBooking.IntegrationTests.Security;
 /// <summary>Mutating requests must come from the site's own origin (CSRF defence for cookie sessions).</summary>
 public sealed class OriginCheckTests(ApiFactory factory)
 {
-    // Any path works: the check runs before routing, so an unknown route shows whether the request got through.
+    // Any path works: the check runs before authorization, so a request that gets through is then a 401 (no session).
     private const string Path = "/api/origin-check-probe";
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string? origin)
@@ -61,7 +61,7 @@ public sealed class OriginCheckTests(ApiFactory factory)
     {
         using var response = await SendAsync(HttpMethod.Post, origin);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class OriginCheckTests(ApiFactory factory)
     {
         using var response = await SendAsync(HttpMethod.Get, origin: null);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
