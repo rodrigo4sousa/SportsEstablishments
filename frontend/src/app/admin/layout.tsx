@@ -1,3 +1,12 @@
+import { Suspense } from "react";
+import { AreaGuard } from "@/components/area-guard";
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <main className="flex flex-1 flex-col">{children}</main>;
+  return (
+    <Suspense fallback={null}>
+      <AreaGuard profile="Admin" title="Administração">
+        {children}
+      </AreaGuard>
+    </Suspense>
+  );
 }
