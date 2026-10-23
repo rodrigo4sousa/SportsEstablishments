@@ -75,7 +75,7 @@ public sealed class SessionTests(ApiFactory factory)
         var cookies = response.SetCookies();
         cookies[SessionCookies.AccessToken].Expires.ShouldNotBeNull().ShouldBeLessThan(DateTimeOffset.UtcNow);
         cookies[SessionCookies.RefreshToken].Expires.ShouldNotBeNull().ShouldBeLessThan(DateTimeOffset.UtcNow);
-        cookies[SessionCookies.RefreshToken].Path.ToString().ShouldBe("/api/auth/refresh");
+        cookies[SessionCookies.RefreshToken].Path.ToString().ShouldBe("/api/auth");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class SessionTests(ApiFactory factory)
         refresh.HttpOnly.ShouldBeTrue();
         refresh.Secure.ShouldBeTrue();
         refresh.SameSite.ShouldBe(SameSiteMode.Strict);
-        refresh.Path.ToString().ShouldBe("/api/auth/refresh");
+        refresh.Path.ToString().ShouldBe("/api/auth");
         refresh.Value.ToString().ShouldNotBe(tokens.RefreshToken);
 
         using var me = await MeAsync(access.Value.ToString());

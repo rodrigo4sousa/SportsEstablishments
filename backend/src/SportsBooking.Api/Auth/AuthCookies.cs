@@ -11,8 +11,8 @@ internal static class AuthCookies
     public const string AccessToken = "access_token";
     public const string RefreshToken = "refresh_token";
 
-    /// <summary>The refresh token only travels to the refresh endpoint.</summary>
-    public const string RefreshTokenPath = "/api/auth/refresh";
+    /// <summary>The refresh token only travels to the auth endpoints, so refresh and logout both receive it.</summary>
+    public const string RefreshTokenPath = "/api/auth";
 
     public static void Append(HttpResponse response, SessionTokens tokens)
     {

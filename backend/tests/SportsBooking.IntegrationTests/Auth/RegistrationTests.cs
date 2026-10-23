@@ -82,7 +82,7 @@ public sealed class RegistrationTests(ApiFactory factory)
         cookies[SessionCookies.AccessToken].HttpOnly.ShouldBeTrue();
         cookies[SessionCookies.AccessToken].Secure.ShouldBeTrue();
         cookies[SessionCookies.RefreshToken].HttpOnly.ShouldBeTrue();
-        cookies[SessionCookies.RefreshToken].Path.ToString().ShouldBe("/api/auth/refresh");
+        cookies[SessionCookies.RefreshToken].Path.ToString().ShouldBe("/api/auth");
 
         // The browser now has a session: /me answers from the cookie alone, and the session can be renewed.
         var me = await browser.GetFromJsonAsync<JsonElement>("/api/auth/me", Ct);

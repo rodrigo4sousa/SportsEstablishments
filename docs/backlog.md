@@ -65,11 +65,11 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
 - Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
 - Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
 - O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
-- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem. Falta o rate limiting das rotas `/api/auth/*` (que também trava a enumeração pelo registo), e para o fazer é preciso decidir em que proxies confiar para o IP do cliente (`X-Forwarded-For` do Caddy e do Next.js). O cookie `refresh_token` só vai para `/api/auth/refresh` (docs/stack.md), por isso o logout não o recebe: ou o caminho do cookie passa a `/api/auth`, ou o logout revoga as sessões pela conta do access token.
+- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem. Falta o rate limiting das rotas `/api/auth/*` (que também trava a enumeração pelo registo), e para o fazer é preciso decidir em que proxies confiar para o IP do cliente (`X-Forwarded-For` do Caddy e do Next.js).
 - A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
 - O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
 - Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
-- O logout termina a sessão no browser.
+- O logout termina a sessão no browser: recebe o cookie `refresh_token` (que vai para todo o `/api/auth`), revoga esse token na base de dados e apaga os dois cookies com os mesmos caminhos com que foram criados.
 - Uma conta de dono desativada (US29) não consegue entrar.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  

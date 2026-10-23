@@ -78,7 +78,7 @@ O JavaScript do browser nunca toca nos tokens: ficam em cookies httpOnly, que um
 | Cookie | Conteúdo | Validade | Atributos |
 | --- | --- | --- | --- |
 | `access_token` | JWT com `sub` e `role`, sem dados pessoais | 15 minutos | HttpOnly, Secure, SameSite=Lax, Path=/ |
-| `refresh_token` | Valor aleatório opaco, guardado na BD só como hash | 7 dias | HttpOnly, Secure, SameSite=Strict, Path=/api/auth/refresh |
+| `refresh_token` | Valor aleatório opaco, guardado na BD só como hash | 7 dias | HttpOnly, Secure, SameSite=Strict, Path=/api/auth |
  
 **Fluxo**
  
