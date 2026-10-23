@@ -9,6 +9,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# public/ is optional in Next.js and not in the repository yet; the runtime stage copies it.
+RUN mkdir -p public
 # Rewrites are resolved at build time, so the internal API URL is a build argument.
 ARG API_INTERNAL_URL=http://api:8080
 ENV API_INTERNAL_URL=$API_INTERNAL_URL \
