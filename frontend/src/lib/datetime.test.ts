@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  addDaysToDateKey,
+  isDateKey,
   formatLisbonDate,
   formatLisbonDateTime,
   formatLisbonLongDate,
@@ -115,5 +117,26 @@ describe("Lisbon formatting", () => {
   it("rejects strings without a time zone, which the browser would read as local time", () => {
     expect(() => formatLisbonTime("2026-07-15T10:00:00")).toThrow(/time zone/);
     expect(() => formatLisbonTime("2026-07-15")).toThrow(/time zone/);
+  });
+});
+
+describe("date keys", () => {
+  it("recognises real calendar dates only", () => {
+    expect(isDateKey("2026-10-25")).toBe(true);
+    expect(isDateKey("2028-02-29")).toBe(true);
+    expect(isDateKey("2026-02-29")).toBe(false);
+    expect(isDateKey("2026-2-9")).toBe(false);
+    expect(isDateKey("")).toBe(false);
+  });
+
+  it("adds days across months, years and the October clock change", () => {
+    expect(addDaysToDateKey("2026-10-25", 30)).toBe("2026-11-24");
+    expect(addDaysToDateKey("2026-12-20", 30)).toBe("2027-01-19");
+    expect(addDaysToDateKey("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDaysToDateKey("2026-10-24", 1)).toBe("2026-10-25");
+  });
+
+  it("refuses something that is not a date", () => {
+    expect(() => addDaysToDateKey("amanha", 1)).toThrow();
   });
 });

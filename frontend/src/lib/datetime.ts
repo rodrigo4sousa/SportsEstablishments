@@ -104,3 +104,25 @@ export function lisbonDateKey(instant: Instant): string {
 export function lisbonToday(now: Date = new Date()): string {
   return lisbonDateKey(now);
 }
+
+const DATE_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** True for a real calendar date written "YYYY-MM-DD" ("2026-02-30" is not). */
+export function isDateKey(value: string): boolean {
+  const match = DATE_KEY.exec(value);
+  if (!match) {
+    return false;
+  }
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+/** The calendar date `days` after (or before, if negative) a "YYYY-MM-DD" date. Pure calendar arithmetic, no time zone involved. */
+export function addDaysToDateKey(dateKey: string, days: number): string {
+  if (!isDateKey(dateKey)) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
+  }
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
