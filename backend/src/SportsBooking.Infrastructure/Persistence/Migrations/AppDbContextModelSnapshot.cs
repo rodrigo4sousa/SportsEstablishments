@@ -297,6 +297,12 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("locality");
 
+                    b.Property<string>("LocalityKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("locality_key");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -331,6 +337,9 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_clubs");
+
+                    b.HasIndex("LocalityKey")
+                        .HasDatabaseName("ix_clubs_locality_key");
 
                     b.HasIndex("Slug")
                         .IsUnique()

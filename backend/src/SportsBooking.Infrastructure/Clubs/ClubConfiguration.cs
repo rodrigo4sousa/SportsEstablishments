@@ -22,11 +22,14 @@ internal sealed class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.Property(club => club.Name).HasMaxLength(ClubRules.NameMaximumLength).IsRequired();
         builder.Property(club => club.Address).HasMaxLength(ClubRules.AddressMaximumLength).IsRequired();
         builder.Property(club => club.Locality).HasMaxLength(ClubRules.LocalityMaximumLength).IsRequired();
+        builder.Property(club => club.LocalityKey).HasMaxLength(ClubRules.LocalityMaximumLength).IsRequired();
         builder.Property(club => club.Phone).HasMaxLength(ClubRules.PhoneMaximumLength).IsRequired();
         builder.Property(club => club.ContactEmail).HasMaxLength(ClubRules.ContactEmailMaximumLength).IsRequired();
         builder.Property(club => club.TimeZoneId).HasColumnName("time_zone").HasMaxLength(64).IsRequired();
 
         builder.HasIndex(club => club.Slug).IsUnique().HasDatabaseName(SlugIndex);
+        // The public search by locality (US16).
+        builder.HasIndex(club => club.LocalityKey).HasDatabaseName("ix_clubs_locality_key");
         // The owner's list: filtered by owner, ordered by name.
         builder.HasIndex(club => new { club.OwnerId, club.Name }).HasDatabaseName("ix_clubs_owner_id_name");
 
