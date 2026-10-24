@@ -150,6 +150,13 @@ Como dono, quero adicionar, editar e desativar campos, para controlar o que est�
 - Um campo inativo não aparece na pesquisa nem aceita reservas.
 - Não é possível desativar um campo com reservas futuras confirmadas; a mensagem indica quantas são.
 - Os campos não se apagam, só se desativam, para manter o histórico.
+- Estado: back end feito (`/api/manage/clubs/{clubId}/pitches`: criar, listar, ver, editar, desativar e reativar, com o perfil Dono e a T02); falta o front end. Um campo pedido através de um clube que não é o seu dá 404 `pitch_not_found`; o clube de outro dono dá 404 `club_not_found`, como na US06. A recusa de desativar um campo com reservas futuras confirmadas fica para a história que criar a tabela de reservas (US18, ver lá), porque ainda não há reservas.
+- Decisões de implementação (provisórias, a confirmar):
+  - Códigos estáveis do desporto na API, guardados como texto: `futsal`, `football7`, `padel`, `tennis` (os nomes em português são só da interface). Um campo novo começa ativo.
+  - Nome: obrigatório, até 100 caracteres (espaços à volta removidos), único em cada clube sem distinguir maiúsculas de minúsculas (também contra campos inativos); o mesmo nome pode existir noutro clube. Um nome repetido é um erro de validação no campo `name` (400), não um 409.
+  - Preço por slot: maior que 0 € e até 500 €, com no máximo duas casas decimais (`numeric(10,2)`, com check constraint).
+  - O `PUT` substitui nome, desporto e preço; o estado só muda com `POST …/deactivate` e `POST …/reactivate`, que são idempotentes (repetir devolve 200).
+  - Lista do dono: campos ativos e inativos, 20 por página por omissão (no máximo 100), ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
 ### US08 · Horário e duração dos slots · M · 5 pontos
  
 Como dono, quero definir o horário de funcionamento e a duração dos slots de cada campo, para que os slots livres sejam gerados automaticamente.
@@ -230,7 +237,7 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
  
 - Filtros: desporto, localidade e data (hoje por omissão).
 - Cada resultado mostra nome, localidade, desportos e se há slots livres na data escolhida.
-- Clubes sem campos ativos, ou de donos desativados, não aparecem.
+- Clubes sem campos ativos, ou de donos desativados, não aparecem. Um campo inativo não conta para a pesquisa: nem o seu desporto aparece nos resultados nem é encontrado pelo filtro de desporto (US07).
 - Uma pesquisa sem resultados mostra uma mensagem clara.
 - Resultados paginados, 20 por página.
 - Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
@@ -242,6 +249,8 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Mostra os slots do dia com hora de início, hora de fim e preço.
 - Um slot não aparece como livre se tiver reserva confirmada, estiver bloqueado, estiver fora do horário ou já tiver começado.
 - Só se podem escolher datas de hoje até 30 dias à frente.
+- Um campo inativo não mostra slots nem aceita reservas (US07).
+- Decidido: um slot não está livre se se sobrepuser a qualquer reserva confirmada ou bloqueio, e não só se tiver o mesmo início. Mudar a duração dos slots de um campo (US08) não altera as reservas existentes, por isso uma reserva antiga pode ficar desalinhada com a nova grelha e ocupar parte de um slot novo; esse slot não aparece como livre.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
 - No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
 ### US18 · Reservar slot · M · 3 pontos
@@ -250,7 +259,9 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
  
 - Só jogadores com sessão iniciada podem reservar; sem sessão, é pedido o login e o jogador volta ao mesmo slot.
 - Antes de confirmar, aparece um resumo com clube, campo, data, hora e preço.
-- A reserva fica «Confirmada» e guarda o preço desse momento.
+- A reserva fica «Confirmada» e guarda o preço desse momento: o preço por slot do campo (US07) copiado para a reserva. Mudar depois o preço do campo nunca altera as reservas existentes.
+- Um campo inativo não aceita reservas (US07).
+- Desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07). Esta regra entra na história que criar a tabela de reservas (esta, a US18, ou a T03 se vier antes; a US13 também cria reservas, e se for ela a criar a tabela a regra passa para lá): a desativação de `POST …/pitches/{pitchId}/deactivate` passa a devolver 409 com o número de reservas.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
 - Não é possível reservar slots passados nem para lá dos 30 dias.
 ### US19 · Ver e cancelar as minhas reservas · M · 3 pontos
