@@ -436,6 +436,7 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - Cada merge na main que passe no CI faz deploy automático.
 - Os segredos (ligação à base de dados, chave JWT, SMTP, conta de admin) vêm de variáveis de ambiente, nunca do repositório.
 - As migrações são aplicadas no deploy de forma controlada.
+- A base de dados tem dois utilizadores. O migration bundle corre como o dono da base de dados, que cria a extensão `btree_gist` (extensão de confiança no PostgreSQL 13 ou superior) e o resto do esquema. A API liga-se com um utilizador de aplicação separado, só com direitos de leitura e escrita nos dados e sem DDL, por isso nunca altera o esquema nem cria extensões.
 - Existe um endpoint `/health` para verificar se a API está a responder.
 - O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.
 ## Resumo de pontos
