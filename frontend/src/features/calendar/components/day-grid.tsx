@@ -93,9 +93,9 @@ export function DayGrid({ layout, selectedId, onOpenBooking }: DayGridProps) {
               ) : null}
               {column.items.map((item) =>
                 item.kind === "booking" ? (
-                  <BookingBox key={item.id} item={item} layout={layout} selected={selectedId === item.id} onOpen={() => onOpenBooking(item.id)} />
+                  <BookingBox key={item.id} item={item} gridStartMinute={layout.gridStartMinute} selected={selectedId === item.id} onOpen={() => onOpenBooking(item.id)} />
                 ) : (
-                  <BlockBox key={item.id} item={item} layout={layout} />
+                  <BlockBox key={item.id} item={item} gridStartMinute={layout.gridStartMinute} />
                 ),
               )}
             </div>
@@ -106,18 +106,19 @@ export function DayGrid({ layout, selectedId, onOpenBooking }: DayGridProps) {
   );
 }
 
-function times(startsAt: string, endsAt: string): string {
+export function times(startsAt: string, endsAt: string): string {
   return `${formatLisbonSlotTime(startsAt)} – ${formatLisbonSlotTime(endsAt)}`;
 }
 
-function BookingBox({
+/** A booking in a column: a button that opens its details. Shared by the daily and the weekly view. */
+export function BookingBox({
   item,
-  layout,
+  gridStartMinute,
   selected,
   onOpen,
 }: {
   item: Extract<PlacedItem, { kind: "booking" }>;
-  layout: DayLayout;
+  gridStartMinute: number;
   selected: boolean;
   onOpen: () => void;
 }) {
@@ -133,7 +134,7 @@ function BookingBox({
       aria-pressed={selected}
       onClick={onOpen}
       className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${selected ? "ring-2 ring-foreground" : ""}`}
-      style={positionOf(item, layout.gridStartMinute)}
+      style={positionOf(item, gridStartMinute)}
     >
       <span className="truncate font-medium">{booking.playerName}</span>
       <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>
@@ -142,7 +143,8 @@ function BookingBox({
   );
 }
 
-function BlockBox({ item, layout }: { item: Extract<PlacedItem, { kind: "block" }>; layout: DayLayout }) {
+/** A block in a column: hatched, with its reason, and nothing to open. Shared by the daily and the weekly view. */
+export function BlockBox({ item, gridStartMinute }: { item: Extract<PlacedItem, { kind: "block" }>; gridStartMinute: number }) {
   const { block } = item;
   return (
     <div
@@ -152,7 +154,7 @@ function BlockBox({ item, layout }: { item: Extract<PlacedItem, { kind: "block" 
       data-minute-end={item.endMinute}
       aria-label={`Bloqueio, ${times(block.startsAt, block.endsAt)}${block.reason ? `, ${block.reason}` : ""}`}
       className={`absolute flex flex-col overflow-hidden rounded-md border border-dashed px-1.5 py-1 text-xs leading-tight ${BLOCK_STYLE}`}
-      style={positionOf(item, layout.gridStartMinute)}
+      style={positionOf(item, gridStartMinute)}
     >
       <span className="truncate font-medium">Bloqueio</span>
       <span className="truncate tabular-nums">{times(block.startsAt, block.endsAt)}</span>
