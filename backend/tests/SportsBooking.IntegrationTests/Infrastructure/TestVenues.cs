@@ -169,6 +169,24 @@ public static class TestVenues
         return booking;
     }
 
+    /// <summary>A confirmed booking the club made for a customer without an account (US13); the price is the test default of 20.</summary>
+    public static async Task<Booking> AddCustomerBookingAsync(
+        this WebApplicationFactory<Program> app,
+        Guid pitchId,
+        DateTime startsAtUtc,
+        DateTime endsAtUtc,
+        string name = "Cliente de Teste",
+        string phone = "912345678")
+    {
+        var booking = Booking.ForCustomer(pitchId, name, phone, startsAtUtc, endsAtUtc, 20m, CreatedAt);
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return booking;
+    }
+
     public static DateTime Utc(string instant) =>
         DateTime.Parse(instant, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
 

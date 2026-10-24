@@ -73,6 +73,7 @@ public sealed class BookingService(
     IAppDbContext dbContext,
     IPitchLock pitchLock,
     IBookingStore bookingStore,
+    BookingSlotCheck slotCheck,
     IAccountStore accounts,
     ICurrentUser currentUser,
     CreateBookingRequestValidator validator,
@@ -111,33 +112,14 @@ public sealed class BookingService(
 
         // Read under the lock: a deactivation, a price or a schedule change that got the lock first is seen here.
         var pitch = await dbContext.Pitches.AsNoTracking().SingleAsync(candidate => candidate.Id == request.PitchId, cancellationToken);
-        if (!pitch.IsActive)
-        {
-            return BookingErrors.PitchInactive;
-        }
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var localDate = DateOnly.FromDateTime(ClubTime.ToLocal(startsAt, timeZone));
-        if (!BookingWindow.Contains(localDate, ClubTime.Today(timeProvider, timeZone)))
+        var checkedSlot = await slotCheck.CheckAsync(pitch, timeZone, startsAt, now, cancellationToken);
+        if (!checkedSlot.IsSuccess)
         {
-            return BookingErrors.OutsideWindow;
+            return checkedSlot.Error!;
         }
 
-        if (pitch.SlotStartingAt(startsAt, timeZone) is not { } slot)
-        {
-            return BookingErrors.InvalidSlot;
-        }
-
-        if (slot.HasStartedBy(now))
-        {
-            return BookingErrors.SlotStarted;
-        }
-
-        var endsAt = slot.EndsAtUtc;
-        if (await dbContext.Blocks.AnyAsync(block => block.PitchId == pitch.Id && block.StartsAt < endsAt && startsAt < block.EndsAt, cancellationToken))
-        {
-            return BookingErrors.SlotBlocked;
-        }
+        var endsAt = checkedSlot.Value.EndsAtUtc;
 
         var booking = Booking.ForPlayer(pitch.Id, playerId, startsAt, endsAt, pitch.PricePerSlot, now);
         if (!await bookingStore.TryAddAsync(booking, cancellationToken))

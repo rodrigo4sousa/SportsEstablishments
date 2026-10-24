@@ -846,6 +846,91 @@
         }
       }
     },
+    "/api/manage/clubs/{clubId}/bookings": {
+      "post": {
+        "tags": [
+          "ManageBookings"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubBookingRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubBookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubBookingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manage/clubs/{clubId}/bookings/{bookingId}": {
       "get": {
         "tags": [
@@ -2011,7 +2096,8 @@
           "endsAt",
           "status",
           "price",
-          "playerName"
+          "playerName",
+          "createdByClub"
         ],
         "type": "object",
         "properties": {
@@ -2044,6 +2130,9 @@
           },
           "playerName": {
             "type": "string"
+          },
+          "createdByClub": {
+            "type": "boolean"
           }
         }
       },
@@ -2170,6 +2259,8 @@
           "price",
           "status",
           "playerName",
+          "createdByClub",
+          "customerPhone",
           "createdAt",
           "cancelledAt",
           "cancellationReason",
@@ -2212,6 +2303,15 @@
           },
           "playerName": {
             "type": "string"
+          },
+          "createdByClub": {
+            "type": "boolean"
+          },
+          "customerPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -2313,6 +2413,37 @@
             "format": "uuid"
           },
           "startsAt": {
+            "type": "string"
+          },
+          "startsAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateClubBookingRequest": {
+        "required": [
+          "pitchId",
+          "startsAt",
+          "customerName",
+          "customerPhone"
+        ],
+        "type": "object",
+        "properties": {
+          "pitchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
             "type": "string"
           },
           "startsAtUtc": {

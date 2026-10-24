@@ -17,7 +17,28 @@ namespace SportsBooking.Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
 public sealed class ManageBookingsController(ClubBookingService bookings) : ControllerBase
 {
-    /// <summary>One booking of the club: pitch, time, price, status, the player's name and, if cancelled, when and why.</summary>
+    /// <summary>
+    /// US13: books a slot for a customer without an account (<c>customerName</c>, <c>customerPhone</c>). The slot rules, the
+    /// pitch lock and the overlap constraint are the player's (US18): 409 <c>slot_taken</c> (never a 500) and
+    /// <c>slot_blocked</c>; 422 for an inactive pitch, a start that is not a slot, a slot that has started, or a date outside
+    /// today..+30 days in Lisbon. The booking is marked <c>createdByClub</c>, has the price of the moment, and sends no email.
+    /// </summary>
+    [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType<ClubBookingResponse>(StatusCodes.Status201Created, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> Create(Guid clubId, CreateClubBookingRequest request, CancellationToken cancellationToken)
+    {
+        var result = await bookings.CreateAsync(clubId, request, cancellationToken);
+        return result.IsSuccess
+            // Relative on purpose, like the other Location headers: behind the proxy the request host is the API's own name.
+            ? Created($"/api/manage/clubs/{clubId}/bookings/{result.Value.Id}", result.Value)
+            : this.Problem(result.Error!);
+    }
+
+    /// <summary>One booking of the club: pitch, time, price, status, who it is for (the player's name, or the customer's name and phone when the club made it) and, if cancelled, when and why.</summary>
     [HttpGet("{bookingId:guid}")]
     [ProducesResponseType<ClubBookingResponse>(StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> Get(Guid clubId, Guid bookingId, CancellationToken cancellationToken)

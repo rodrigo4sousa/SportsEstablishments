@@ -32,6 +32,7 @@ const booking = (patch: Partial<CalendarBooking> = {}): CalendarBooking => ({
   status: "confirmed",
   price: 18.5,
   playerName: "Rita Jogadora",
+  createdByClub: false,
   ...patch,
 });
 
@@ -54,6 +55,8 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   price: 18.5,
   status: "confirmed",
   playerName: "Rita Jogadora",
+  createdByClub: false,
+  customerPhone: null,
   createdAt: "2026-05-01T09:30:00Z",
   cancelledAt: null,
   cancellationReason: null,

@@ -82,8 +82,11 @@ public sealed record CalendarDay(string Date, string? Opens, string? Closes);
 /// <summary>A pitch of the calendar: the club's active pitches, and an inactive one that has bookings in the range.</summary>
 public sealed record CalendarPitch(Guid Id, string Name, string Sport, string Status, int SlotDurationMinutes, IReadOnlyList<CalendarDay> Days);
 
-/// <summary>A booking in the range, with the player's name. Instants are UTC; show them in the club's time zone.</summary>
-public sealed record CalendarBooking(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string Status, decimal Price, string PlayerName);
+/// <summary>
+/// A booking in the range, with the name of who it is for: the player's, or the customer's for a booking the club made
+/// (<paramref name="CreatedByClub"/>, US13). Instants are UTC; show them in the club's time zone.
+/// </summary>
+public sealed record CalendarBooking(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string Status, decimal Price, string PlayerName, bool CreatedByClub);
 
 public sealed record CalendarBlock(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string? Reason);
 
@@ -137,10 +140,13 @@ public sealed class ClubCalendarService(
             visible = visible.Where(booking => booking.Status == BookingStatus.Confirmed || booking.Status == BookingStatus.NoShow);
         }
 
-        var bookings = await visible
-            .Join(dbContext.AccountNames, booking => booking.PlayerId, account => (Guid?)account.Id, (booking, account) => new BookingRow { Booking = booking, PlayerName = account.Name })
-            .OrderBy(row => row.Booking.StartsAt)
-            .ThenBy(row => row.Booking.Id)
+        var bookings = await (
+                from booking in visible
+                // A booking the club made for a customer has no account to join (US13): the name is the customer's.
+                join account in dbContext.AccountNames on booking.PlayerId equals (Guid?)account.Id into accounts
+                from account in accounts.DefaultIfEmpty()
+                orderby booking.StartsAt, booking.Id
+                select new BookingRow { Booking = booking, PlayerName = booking.PlayerId == null ? booking.CustomerName! : account.Name })
             .ToListAsync(cancellationToken);
 
         var withBookings = bookings.Select(row => row.Booking.PitchId).ToHashSet();
@@ -169,7 +175,8 @@ public sealed class ClubCalendarService(
                 row.Booking.EndsAt,
                 BookingStatuses.ToCode(row.Booking.Status),
                 row.Booking.Price,
-                row.PlayerName)).ToList(),
+                row.PlayerName,
+                row.Booking.IsForCustomer)).ToList(),
             blocks.Select(block => new CalendarBlock(block.Id, block.PitchId, block.StartsAt, block.EndsAt, block.Reason)).ToList());
     }
 
