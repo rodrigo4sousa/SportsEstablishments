@@ -287,6 +287,45 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.Block", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<Guid>("PitchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pitch_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_blocks");
+
+                    b.HasIndex("PitchId", "StartsAt")
+                        .HasDatabaseName("ix_blocks_pitch_id_starts_at");
+
+                    b.ToTable("blocks", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_blocks_ends_after_starts", "ends_at > starts_at");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Domain.Pitches.Pitch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -557,6 +596,16 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_clubs_users_owner_id");
+                });
+
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.Block", b =>
+                {
+                    b.HasOne("SportsBooking.Domain.Pitches.Pitch", null)
+                        .WithMany()
+                        .HasForeignKey("PitchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_blocks_pitches_pitch_id");
                 });
 
             modelBuilder.Entity("SportsBooking.Domain.Pitches.Pitch", b =>
