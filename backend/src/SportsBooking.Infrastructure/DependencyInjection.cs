@@ -7,10 +7,12 @@ using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Clubs;
 using SportsBooking.Infrastructure.Identity;
+using SportsBooking.Infrastructure.Pitches;
 using SportsBooking.Infrastructure.Persistence;
 
 namespace SportsBooking.Infrastructure;
@@ -36,6 +38,7 @@ public static class DependencyInjection
         // The same scoped instance, seen by Application code through its interface.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IClubStore, ClubStore>();
+        services.AddScoped<IPitchStore, PitchStore>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");

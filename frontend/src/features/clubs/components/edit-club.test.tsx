@@ -33,11 +33,18 @@ describe("EditClub", () => {
       ),
     );
 
+    server.use(
+      http.get(`/api/manage/clubs/${id}/pitches`, () => HttpResponse.json({ items: [], page: 1, pageSize: 20, totalCount: 0 })),
+    );
+
     renderWithProviders(<EditClub clubId={id} />);
 
     expect(screen.getByRole("status")).toHaveTextContent("A carregar o clube");
     expect(await screen.findByLabelText(/^nome$/i)).toHaveValue("Clube de Ténis da Foz");
     expect(screen.getByLabelText(/janela de cancelamento/i)).toHaveValue("12");
+    // The club's pitches are managed right below its details.
+    expect(await screen.findByRole("heading", { name: "Campos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Adicionar campo" })).toBeInTheDocument();
   });
 
   it("shows the not-found page for a club the API answers 404 for (unknown, or another owner's)", async () => {
@@ -55,6 +62,7 @@ describe("EditClub", () => {
     expect(screen.getByText("Este clube não existe ou não é teu.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Voltar aos clubes" })).toHaveAttribute("href", "/manage");
     expect(screen.queryByLabelText(/^nome$/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Campos" })).not.toBeInTheDocument();
     expect(calls).toBe(1);
   });
 

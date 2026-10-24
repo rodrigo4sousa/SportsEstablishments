@@ -38,4 +38,7 @@ public static class ErrorCodes
     /// indistinguishable on purpose, so no owner learns that another owner's club exists.
     /// </summary>
     public const string ClubNotFound = "club_not_found";
+
+    /// <summary>404 from the owner area (US07): the club is the owner's, but it has no pitch with this id.</summary>
+    public const string PitchNotFound = "pitch_not_found";
 }

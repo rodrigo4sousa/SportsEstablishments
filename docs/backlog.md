@@ -50,7 +50,7 @@ Como jogador, quero criar conta com email e palavra-passe, para poder reservar c
   - A conta de admin criada pelo seed tem o nome «Administrador».
   - A chave de assinatura do JWT de desenvolvimento (`Jwt:SigningKey` em `appsettings.Development.json`) está no repositório e só serve para desenvolvimento; fora dele vem sempre de `Jwt__SigningKey`.
   - As bibliotecas do front end usam versões publicadas há pelo menos duas semanas. Exceção decidida: o `zod` 4.6.7 (publicado a 2026-10-12) foi adotado de imediato porque corrige o aviso de segurança GHSA-mrhx-c7xc-m3w5 (gravidade alta), que fazia falhar o `npm audit` do CI; as versões anteriores têm o aviso. Todas as dependências do `package.json` têm versão exata (sem `^`); mudar uma versão é sempre um commit próprio.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
   - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou as ligações «Entrar» e «Criar conta» sem sessão (o «Entrar» veio com a US03).
 ### US02 · Registo de dono · M · 2 pontos
@@ -92,7 +92,7 @@ Como utilizador registado, quero entrar e sair da minha conta, para aceder à á
   - **`next` e a área do utilizador:** para o jogador, a sua área são as páginas públicas (tudo exceto `/manage`, `/admin`, `/login` e `/register`); um dono só aceita caminhos de `/manage` e um admin só de `/admin`.
   - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
   - **Refreshes:** vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
 ### US04 · Conta de admin criada por seed · M · 2 pontos
  
@@ -134,11 +134,12 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
 - Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Numa colisão acrescenta-se um sufixo numérico (`-2`, `-3`, …). A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
 - O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
 - Estado: feita. Back end (`/api/manage/clubs`: criar, listar, ver e editar, com o perfil Dono e a T02) e front end: `/manage` lista os clubes do dono (por nome, 20 por página) e, sem clubes, mostra o estado vazio com «Criar o primeiro clube»; `/manage/clubs/new` cria e `/manage/clubs/{id}` edita (formulário com uma mensagem por campo, erros da API nos campos certos). Um clube que não existe e o clube de outro dono mostram a mesma página «Clube não encontrado»; um id que não é um GUID nem chega à API.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - Os cinco campos de texto são obrigatórios: nome (até 100 caracteres), morada (até 200), localidade (até 100), telefone e email de contacto (as mesmas regras da US01: 9 a 15 algarismos com `+` opcional; um endereço simples com ponto no domínio). Os espaços à volta são removidos, e os do telefone também.
   - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
   - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
   - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
+- Decisões de implementação (provisórias, a confirmar):
   - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
   - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
 ### US07 · Gerir campos · M · 5 pontos
@@ -150,6 +151,13 @@ Como dono, quero adicionar, editar e desativar campos, para controlar o que est�
 - Um campo inativo não aparece na pesquisa nem aceita reservas.
 - Não é possível desativar um campo com reservas futuras confirmadas; a mensagem indica quantas são.
 - Os campos não se apagam, só se desativam, para manter o histórico.
+- Estado: feita. Back end (`/api/manage/clubs/{clubId}/pitches`: criar, listar, ver, editar, desativar e reativar, com o perfil Dono e a T02) e front end: a página `/manage/clubs/{id}` mostra, por baixo dos dados do clube, a lista de campos (ativos e inativos, por nome, 20 por página) com «Adicionar campo», «Editar», «Desativar» e «Reativar». O desporto é uma lista com as etiquetas «Futsal», «Futebol 7», «Padel» e «Ténis»; o preço escreve-se e mostra-se à portuguesa («12,50 €»; aceita também «12.50») e vai para a API como número. Os campos inativos aparecem marcados com «Inativo». Um nome repetido aparece como erro no campo do nome. Um campo pedido através de um clube que não é o seu dá 404 `pitch_not_found`; o clube de outro dono dá 404 `club_not_found`, como na US06. A recusa de desativar um campo com reservas futuras confirmadas fica para a história que criar a tabela de reservas (US18, ver lá), porque ainda não há reservas.
+- Decisões de implementação (provisórias, a confirmar):
+  - Códigos estáveis do desporto na API, guardados como texto: `futsal`, `football7`, `padel`, `tennis` (os nomes em português são só da interface). Um campo novo começa ativo.
+  - Nome: obrigatório, até 100 caracteres (espaços à volta removidos), único em cada clube sem distinguir maiúsculas de minúsculas (também contra campos inativos); o mesmo nome pode existir noutro clube. Um nome repetido é um erro de validação no campo `name` (400), não um 409.
+  - Preço por slot: maior que 0 € e até 500 €, com no máximo duas casas decimais (`numeric(10,2)`, com check constraint).
+  - O `PUT` substitui nome, desporto e preço; o estado só muda com `POST …/deactivate` e `POST …/reactivate`, que são idempotentes (repetir devolve 200).
+  - Lista do dono: campos ativos e inativos, 20 por página por omissão (no máximo 100), ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
 ### US08 · Horário e duração dos slots · M · 5 pontos
  
 Como dono, quero definir o horário de funcionamento e a duração dos slots de cada campo, para que os slots livres sejam gerados automaticamente.
@@ -230,7 +238,7 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
  
 - Filtros: desporto, localidade e data (hoje por omissão).
 - Cada resultado mostra nome, localidade, desportos e se há slots livres na data escolhida.
-- Clubes sem campos ativos, ou de donos desativados, não aparecem.
+- Clubes sem campos ativos, ou de donos desativados, não aparecem. Um campo inativo não conta para a pesquisa: nem o seu desporto aparece nos resultados nem é encontrado pelo filtro de desporto (US07).
 - Uma pesquisa sem resultados mostra uma mensagem clara.
 - Resultados paginados, 20 por página.
 - Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
@@ -242,6 +250,8 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Mostra os slots do dia com hora de início, hora de fim e preço.
 - Um slot não aparece como livre se tiver reserva confirmada, estiver bloqueado, estiver fora do horário ou já tiver começado.
 - Só se podem escolher datas de hoje até 30 dias à frente.
+- Um campo inativo não mostra slots nem aceita reservas (US07).
+- Decidido: um slot não está livre se se sobrepuser a qualquer reserva confirmada ou bloqueio, e não só se tiver o mesmo início. Mudar a duração dos slots de um campo (US08) não altera as reservas existentes, por isso uma reserva antiga pode ficar desalinhada com a nova grelha e ocupar parte de um slot novo; esse slot não aparece como livre.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
 - No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
 ### US18 · Reservar slot · M · 3 pontos
@@ -250,7 +260,9 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
  
 - Só jogadores com sessão iniciada podem reservar; sem sessão, é pedido o login e o jogador volta ao mesmo slot.
 - Antes de confirmar, aparece um resumo com clube, campo, data, hora e preço.
-- A reserva fica «Confirmada» e guarda o preço desse momento.
+- A reserva fica «Confirmada» e guarda o preço desse momento: o preço por slot do campo (US07) copiado para a reserva. Mudar depois o preço do campo nunca altera as reservas existentes.
+- Um campo inativo não aceita reservas (US07).
+- Decidido: desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07). Esta regra entra na história que criar a tabela de reservas (esta, a US18, ou a T03 se vier antes; a US13 também cria reservas, e se for ela a criar a tabela a regra passa para lá): a desativação de `POST …/pitches/{pitchId}/deactivate` passa a devolver 409 com o número de reservas.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
 - Não é possível reservar slots passados nem para lá dos 30 dias.
 ### US19 · Ver e cancelar as minhas reservas · M · 3 pontos
