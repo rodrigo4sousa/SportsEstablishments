@@ -1,8 +1,6 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
-using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
 using SportsBooking.Domain.Scheduling;
 
@@ -47,11 +45,10 @@ public sealed class PitchScheduleService(
     OwnedPitches ownedPitches,
     OwnedClubs ownedClubs,
     IAppDbContext dbContext,
+    PitchDayCalendar calendar,
     PitchScheduleRequestValidator validator,
     TimeProvider timeProvider)
 {
-    private const string DateFormat = "yyyy-MM-dd";
-
     public async Task<Result<PitchScheduleResponse>> GetAsync(Guid clubId, Guid pitchId, CancellationToken cancellationToken)
     {
         var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: false, cancellationToken);
@@ -91,50 +88,23 @@ public sealed class PitchScheduleService(
             return found.Error!;
         }
 
-        if (!DateOnly.TryParseExact(date, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day))
-        {
-            return DateError("Indica a data no formato AAAA-MM-DD, por exemplo 2026-10-25.");
-        }
-
         var timeZoneId = await ownedClubs.All().AsNoTracking()
             .Where(club => club.Id == clubId)
             .Select(club => club.TimeZoneId)
             .SingleAsync(cancellationToken);
         var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        var today = ClubTime.Today(timeProvider, timeZone);
-        if (!BookingWindow.Contains(day, today))
+        var requested = BookingDateInput.Parse(date, ClubTime.Today(timeProvider, timeZone));
+        if (!requested.IsSuccess)
         {
-            return DateError($"Escolhe uma data de hoje até {BookingWindow.DaysAhead} dias à frente.");
+            return requested.Error!;
         }
 
+        var day = requested.Value;
         var pitch = found.Value;
-        var generated = pitch.SlotsOn(day, timeZone);
-        var blocks = generated.Count == 0
-            ? []
-            : await LoadBlocksAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
-        var bookings = generated.Count == 0
-            ? []
-            : await LoadBookingsAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
-        var slots = generated
-            .Select(slot => new SlotResponse(
-                slot.StartsAtUtc,
-                slot.EndsAtUtc,
-                blocks.Any(block => block.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc)),
-                bookings.Any(booking => booking.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc))))
+        var daySlots = await calendar.SlotsAsync([new PitchInZone(pitch, timeZone)], day, cancellationToken);
+        var slots = daySlots[pitch.Id]
+            .Select(slot => new SlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, slot.Blocked, slot.Booked))
             .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }
-
-    private async Task<List<Block>> LoadBlocksAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
-        await dbContext.Blocks.AsNoTracking()
-            .Where(block => block.PitchId == pitchId && block.StartsAt < to && from < block.EndsAt)
-            .ToListAsync(cancellationToken);
-
-    private async Task<List<Booking>> LoadBookingsAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
-        await dbContext.Bookings.AsNoTracking()
-            .Where(booking => booking.PitchId == pitchId && booking.Status == BookingStatus.Confirmed && booking.StartsAt < to && from < booking.EndsAt)
-            .ToListAsync(cancellationToken);
-
-    private static ServiceError DateError(string message) =>
-        ServiceError.Validation(new Dictionary<string, string[]> { ["date"] = [message] });
 }

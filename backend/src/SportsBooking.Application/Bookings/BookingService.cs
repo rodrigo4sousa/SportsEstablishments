@@ -103,7 +103,7 @@ public sealed class BookingService(
             return BookingErrors.InvalidSlot;
         }
 
-        if (slot.StartsAtUtc <= now)
+        if (slot.HasStartedBy(now))
         {
             return BookingErrors.SlotStarted;
         }

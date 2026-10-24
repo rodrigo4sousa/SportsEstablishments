@@ -409,6 +409,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clubs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sport?: string;
+                    locality?: string;
+                    date?: string;
+                    page?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResponseOfClubSearchItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clubs/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicClubResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clubs/{slug}/pitches/{pitchId}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                    pitchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicSlotsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/localities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manage/clubs/{clubId}/pitches/{pitchId}/blocks": {
         parameters: {
             query?: never;
@@ -1236,6 +1424,13 @@ export interface components {
             /** Format: int32 */
             cancellationWindowHours?: null | number | string;
         };
+        ClubSearchItem: {
+            slug: string;
+            name: string;
+            locality: string;
+            sports: string[];
+            hasFreeSlots: boolean;
+        };
         CreateBookingRequest: {
             /** Format: uuid */
             pitchId: string;
@@ -1267,6 +1462,15 @@ export interface components {
         };
         PagedResponseOfBlockResponse: {
             items: components["schemas"]["BlockResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfClubSearchItem: {
+            items: components["schemas"]["ClubSearchItem"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -1349,6 +1553,37 @@ export interface components {
             code: string;
             /** @description Identifies the request in the logs. */
             traceId: string;
+        };
+        PublicClubResponse: {
+            slug: string;
+            name: string;
+            address: string;
+            locality: string;
+            phone: string;
+            contactEmail: string;
+            pitches: components["schemas"]["PublicPitchResponse"][];
+        };
+        PublicPitchResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sport: string;
+            /** Format: double */
+            pricePerSlot: number | string;
+        };
+        PublicSlotResponse: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            available: boolean;
+        };
+        PublicSlotsResponse: {
+            /** Format: date */
+            date: string;
+            slots: components["schemas"]["PublicSlotResponse"][];
         };
         RegisterAccountRequest: {
             name: string;

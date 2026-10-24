@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { trySilentRefresh } from "@/lib/api/client";
-import { safeNext } from "@/lib/auth/redirects";
+import { registerUrl, safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, fetchCurrentUser, type Account } from "../api";
 import { LoginForm } from "./login-form";
 
@@ -50,7 +50,7 @@ export function LoginScreen() {
       <LoginForm next={next} />
       <p className="text-sm text-muted-foreground">
         Ainda não tens conta?{" "}
-        <Link href="/register" className="underline underline-offset-4">
+        <Link href={registerUrl(next)} className="underline underline-offset-4">
           Criar conta
         </Link>
       </p>

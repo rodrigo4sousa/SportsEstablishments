@@ -344,6 +344,190 @@
         }
       }
     },
+    "/api/clubs": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "parameters": [
+          {
+            "name": "sport",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locality",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfClubSearchItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{slug}": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicClubResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{slug}/pitches/{pitchId}/slots": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pitchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSlotsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/localities": {
+      "get": {
+        "tags": [
+          "Localities"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manage/clubs/{clubId}/pitches/{pitchId}/blocks": {
       "post": {
         "tags": [
@@ -1482,6 +1666,36 @@
           }
         }
       },
+      "ClubSearchItem": {
+        "required": [
+          "slug",
+          "name",
+          "locality",
+          "sports",
+          "hasFreeSlots"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "sports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasFreeSlots": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateBookingRequest": {
         "required": [
           "pitchId",
@@ -1607,6 +1821,47 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BlockResponse"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PagedResponseOfClubSearchItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClubSearchItem"
             }
           },
           "page": {
@@ -1945,6 +2200,122 @@
           }
         }
       },
+      "PublicClubResponse": {
+        "required": [
+          "slug",
+          "name",
+          "address",
+          "locality",
+          "phone",
+          "contactEmail",
+          "pitches"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "pitches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPitchResponse"
+            }
+          }
+        }
+      },
+      "PublicPitchResponse": {
+        "required": [
+          "id",
+          "name",
+          "sport",
+          "pricePerSlot"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "pricePerSlot": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "PublicSlotResponse": {
+        "required": [
+          "startsAt",
+          "endsAt",
+          "price",
+          "available"
+        ],
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicSlotsResponse": {
+        "required": [
+          "date",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSlotResponse"
+            }
+          }
+        }
+      },
       "RegisterAccountRequest": {
         "required": [
           "name",
@@ -2062,6 +2433,12 @@
     },
     {
       "name": "Bookings"
+    },
+    {
+      "name": "Clubs"
+    },
+    {
+      "name": "Localities"
     },
     {
       "name": "ManageBlocks"

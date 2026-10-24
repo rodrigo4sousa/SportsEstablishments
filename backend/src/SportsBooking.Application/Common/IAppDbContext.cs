@@ -26,5 +26,11 @@ public interface IAppDbContext
     /// <summary>Every booking of the platform. In the owner area, reach them only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
     DbSet<Booking> Bookings { get; }
 
+    /// <summary>
+    /// The ids of the accounts that are not deactivated (US29), as a query to use in a subquery. The only view of
+    /// accounts the Application needs: the public pages hide the clubs of a deactivated owner.
+    /// </summary>
+    IQueryable<Guid> ActiveAccountIds { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

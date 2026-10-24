@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
 using SportsBooking.Application.Bookings;
+using SportsBooking.Application.Catalog;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Application.Pitches;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<OwnedPitches>();
         services.AddScoped<PitchService>();
 
+        services.AddScoped<PitchDayCalendar>();
         services.AddSingleton<PitchScheduleRequestValidator>();
         services.AddScoped<PitchScheduleService>();
 
@@ -36,6 +38,11 @@ public static class DependencyInjection
 
         services.AddSingleton<CreateBookingRequestValidator>();
         services.AddScoped<BookingService>();
+
+        services.AddScoped<VisibleClubs>();
+        services.AddSingleton<ClubSearchRequestValidator>();
+        services.AddScoped<ClubSearchService>();
+        services.AddScoped<PublicClubService>();
 
         return services;
     }

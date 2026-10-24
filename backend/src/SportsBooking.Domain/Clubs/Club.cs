@@ -30,6 +30,9 @@ public sealed class Club
 
     public string Locality { get; private set; } = string.Empty;
 
+    /// <summary><see cref="ClubRules.LocalityKey"/> of the locality: what the public search matches (US16).</summary>
+    public string LocalityKey { get; private set; } = string.Empty;
+
     public string Phone { get; private set; } = string.Empty;
 
     public string ContactEmail { get; private set; } = string.Empty;
@@ -88,6 +91,7 @@ public sealed class Club
         Name = details.Name;
         Address = details.Address;
         Locality = details.Locality;
+        LocalityKey = ClubRules.LocalityKey(details.Locality);
         Phone = details.Phone;
         ContactEmail = details.ContactEmail;
     }

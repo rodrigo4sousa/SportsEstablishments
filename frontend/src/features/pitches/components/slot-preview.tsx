@@ -12,8 +12,9 @@ import { fetchSlots, slotsQueryKey } from "../api";
 import { DATE_OUT_OF_WINDOW, previewDateRange } from "../schedule";
 
 /**
- * US08: the slots a pitch's hours generate on a date, today to 30 days ahead, in Lisbon time. A preview only:
- * bookings and blocks are not taken out. The repeated October hour is labelled "(verão)" and "(inverno)".
+ * US08: the slots a pitch's hours generate on a date, today to 30 days ahead, in Lisbon time. A read-only preview:
+ * a slot taken by a confirmed booking is marked "Reservado" and one that overlaps a block "Bloqueado" (it can be both).
+ * The repeated October hour is labelled "(verão)" and "(inverno)".
  */
 export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: string }) {
   const [range] = useState(() => previewDateRange());
@@ -63,9 +64,16 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
             <li
               key={slot.startsAt}
               data-blocked={slot.blocked || undefined}
-              className={`rounded-md border px-3 py-1 text-sm tabular-nums ${slot.blocked ? "border-dashed bg-muted text-muted-foreground" : ""}`}
+              data-booked={slot.booked || undefined}
+              className={`rounded-md border px-3 py-1 text-sm tabular-nums ${slot.blocked || slot.booked ? "border-dashed bg-muted text-muted-foreground" : ""}`}
             >
               {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)}
+              {slot.booked ? (
+                <>
+                  {" "}
+                  <span className="ml-1 font-medium">Reservado</span>
+                </>
+              ) : null}
               {slot.blocked ? (
                 <>
                   {" "}
@@ -97,7 +105,7 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
         />
       </div>
       {result}
-      <p className="text-sm text-muted-foreground">Mostra os slots que o horário gera; os bloqueios aparecem marcados, as reservas ainda não são tidas em conta.</p>
+      <p className="text-sm text-muted-foreground">Mostra os slots que o horário gera; os bloqueios e as reservas aparecem marcados.</p>
     </section>
   );
 }

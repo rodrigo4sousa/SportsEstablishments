@@ -186,6 +186,63 @@ describe("RegisterForm", () => {
   });
 });
 
+describe("RegisterForm with a page to return to", () => {
+  const club = "/clubs/clube-da-foz?pitch=0199f7a0-0000-7000-8000-0000000000d1&date=2026-05-04&slot=2026-05-04T10%3A00%3A00Z";
+
+  beforeEach(() => {
+    replace.mockReset();
+    server.use(http.post("/api/auth/register", () => HttpResponse.json(account, { status: 201 })));
+  });
+
+  async function registerPlayer() {
+    const user = await fillIn({ name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe" });
+    await submit(user);
+  }
+
+  it("returns a new player to the club page, pitch, date and slot they came from", async () => {
+    renderWithProviders(<RegisterForm next={club} />);
+
+    await registerPlayer();
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith(club));
+  });
+
+  it.each([
+    ["another site", "https://evil.example/clubs/x"],
+    ["a protocol-relative address", "//evil.example/clubs/x"],
+    ["a backslash trick", "/\\evil.example/clubs/x"],
+    ["the owner area", "/manage"],
+    ["the admin area", "/admin"],
+    ["the login page", "/login"],
+    ["something that is not a path", "clubs/clube-da-foz"],
+    ["an empty value", ""],
+  ])("ignores %s and goes to the home page", async (_name, next) => {
+    renderWithProviders(<RegisterForm next={next} />);
+
+    await registerPlayer();
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+  });
+
+  it("goes to the home page when there is no next", async () => {
+    renderWithProviders(<RegisterForm next={null} />);
+
+    await registerPlayer();
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+  });
+
+  it("does not move to the page when the sign-up fails", async () => {
+    server.use(http.post("/api/auth/register", () => problem(409, "email_taken")));
+    renderWithProviders(<RegisterForm next={club} />);
+
+    await registerPlayer();
+
+    expectFieldError(/^email$/i, "Já existe uma conta com este email.");
+    expect(replace).not.toHaveBeenCalled();
+  });
+});
+
 describe("RegisterForm for owners", () => {
   const owner: Account = { ...account, id: "0199f7a0-0000-7000-8000-0000000000bb", name: "Rui Dono", email: "rui@exemplo.pt", profile: "Owner" };
 
@@ -250,5 +307,21 @@ describe("RegisterForm for owners", () => {
     await waitFor(() => expectFieldError(/^email$/i, "Já existe uma conta com este email."));
     expect(field(/^email$/i)).toHaveFocus();
     expect(replace).not.toHaveBeenCalled();
+  });
+});
+
+describe("RegisterForm for owners with a next", () => {
+  beforeEach(() => {
+    replace.mockReset();
+  });
+
+  it("never follows a club page: an owner goes to /manage", async () => {
+    server.use(http.post("/api/auth/register/owner", () => HttpResponse.json({ ...account, profile: "Owner" }, { status: 201 })));
+    renderWithProviders(<RegisterForm variant="owner" next="/clubs/clube-da-foz?slot=2026-05-04T10%3A00%3A00Z" />);
+    const user = await fillIn({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe" });
+
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/manage"));
   });
 });

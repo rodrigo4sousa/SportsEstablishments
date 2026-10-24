@@ -11,7 +11,7 @@ import { FormField } from "@/components/form-field";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
-import { profileHome } from "@/lib/auth/redirects";
+import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
 import {
   PASSWORD_MIN_LENGTH,
@@ -29,6 +29,8 @@ const EMPTY_FORM: RegisterFormValues = { name: "", email: "", password: "", phon
 type RegisterFormProps = {
   /** Player (US01) or owner (US02) sign-up: the same form, a different endpoint. Defaults to player. */
   variant?: RegistrationVariant;
+  /** The page to go to after signing up; only used if it belongs to the new account's area (see `safeNext`). */
+  next?: string | null;
 };
 
 const FORM_LABELS: Record<RegistrationVariant, string> = {
@@ -37,10 +39,11 @@ const FORM_LABELS: Record<RegistrationVariant, string> = {
 };
 
 /**
- * US01 and US02 registration. On success the user is signed in and goes to the home of their profile:
- * `/` for a player, `/manage` for an owner.
+ * US01 and US02 registration. On success the user is signed in and goes to `next` if it is a page of their area (a
+ * player who was sent from a club page returns to it), otherwise to the home of their profile: `/` for a player,
+ * `/manage` for an owner.
  */
-export function RegisterForm({ variant = "player" }: RegisterFormProps) {
+export function RegisterForm({ variant = "player", next = null }: RegisterFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const form = useForm<RegisterFormValues, unknown, RegisterFormData>({
@@ -55,7 +58,7 @@ export function RegisterForm({ variant = "player" }: RegisterFormProps) {
       queryClient.setQueryData(currentUserQueryKey, account);
       // Pages stay mounted across navigations (cacheComponents), so clear the form, password included.
       form.reset(EMPTY_FORM);
-      router.replace(profileHome(account.profile));
+      router.replace(safeNext(next, account.profile));
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) {

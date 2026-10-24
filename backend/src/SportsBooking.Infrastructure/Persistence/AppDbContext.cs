@@ -23,6 +23,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Booking> Bookings => Set<Booking>();
 
+    public IQueryable<Guid> ActiveAccountIds => Users.Where(user => user.DeactivatedAt == null).Select(user => user.Id);
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using SportsBooking.Domain.Accounts;
 
 namespace SportsBooking.Domain.Clubs;
@@ -29,4 +31,26 @@ public static class ClubRules
 
     public static bool IsValidCancellationWindow(int hours) =>
         hours is >= MinimumCancellationWindowHours and <= MaximumCancellationWindowHours;
+
+    /// <summary>
+    /// What the locality search compares (US16, provisional): the locality without accents, in lower case, with runs of
+    /// white space reduced to one space ("São  João" and "sao joao" are the same). Stored in <c>clubs.locality_key</c>,
+    /// like <c>pitches.name_key</c>, so the search is an indexed equality.
+    /// </summary>
+    public static string LocalityKey(string locality)
+    {
+        ArgumentNullException.ThrowIfNull(locality);
+        var withoutAccents = new StringBuilder(locality.Length);
+        foreach (var character in locality.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                withoutAccents.Append(character);
+            }
+        }
+
+        var words = withoutAccents.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant()
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', words);
+    }
 }

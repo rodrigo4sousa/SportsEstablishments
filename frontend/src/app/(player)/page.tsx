@@ -1,5 +1,15 @@
-import { AreaPlaceholder } from "@/components/area-placeholder";
+import { Suspense } from "react";
+import { PageShell } from "@/components/page-shell";
+import { RouteLoading } from "@/components/route-loading";
+import { ClubSearch } from "@/features/catalog/components/club-search";
 
 export default function Page() {
-  return <AreaPlaceholder title="Reservas de Campos" description="Em breve: pesquisa clubes e reserva o teu campo." />;
+  return (
+    <PageShell title="Encontra onde jogar">
+      {/* The search reads the URL in the browser (`useSearchParams`), which Cache Components wants inside a boundary. */}
+      <Suspense fallback={<RouteLoading />}>
+        <ClubSearch />
+      </Suspense>
+    </PageShell>
+  );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { GuestOnly } from "@/components/guest-only";
-import { RegisterForm } from "@/features/auth/components/register-form";
+import { RegisterScreen } from "@/features/auth/components/register-screen";
 
 export const metadata: Metadata = {
   title: "Criar conta · Reservas de Campos",
@@ -17,7 +17,8 @@ export default function Page() {
       </div>
       <Suspense fallback={null}>
         <GuestOnly>
-          <RegisterForm />
+          {/* The screen reads `next` in the browser (`useSearchParams`) and brings the visitor back to it. */}
+          <RegisterScreen />
           <p className="text-sm text-muted-foreground">
             Tens um clube?{" "}
             <Link href="/register/owner" className="underline underline-offset-4">
@@ -26,12 +27,6 @@ export default function Page() {
           </p>
         </GuestOnly>
       </Suspense>
-      <p className="text-sm text-muted-foreground">
-        Já tens conta?{" "}
-        <Link href="/login" className="underline underline-offset-4">
-          Entrar
-        </Link>
-      </p>
       <p className="text-sm text-muted-foreground">
         <Link href="/" className="underline underline-offset-4">
           Voltar ao início
