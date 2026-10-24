@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/features/pitches/price";
 import { formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
@@ -63,7 +64,10 @@ export function BookingConfirmation({ details, onDismiss, dismissLabel }: Bookin
         Reserva confirmada
       </h3>
       <BookingDetailList details={details} />
-      <div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <Link href="/bookings" className="text-sm font-medium underline underline-offset-4">
+          Ver as minhas reservas
+        </Link>
         <button type="button" onClick={onDismiss} className="text-sm underline underline-offset-4">
           {dismissLabel}
         </button>

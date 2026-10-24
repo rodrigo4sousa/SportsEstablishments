@@ -13,6 +13,7 @@ import { catalogQueryKey, clubSlotsQueryKey, fetchPublicSlots, publicSlotsQueryK
 import { publicErrorMessage } from "@/features/catalog/messages";
 import type { PublicClub } from "@/features/catalog/types";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { myBookingsQueryKey } from "@/features/my-bookings/api";
 import { formatPrice } from "@/features/pitches/price";
 import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
 import { sportLabel } from "@/features/pitches/sports";
@@ -72,6 +73,8 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       choose({ slot: null });
       // The slot is taken now, and so the search's "free slots" may have changed.
       void queryClient.invalidateQueries({ queryKey: catalogQueryKey });
+      // The new booking belongs in "As minhas reservas".
+      void queryClient.invalidateQueries({ queryKey: myBookingsQueryKey });
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) {

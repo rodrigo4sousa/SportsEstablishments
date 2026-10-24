@@ -52,7 +52,11 @@ describe("proxy", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("runs only for the areas that have guards", () => {
-    expect(config.matcher).toEqual(["/manage/:path*", "/admin/:path*"]);
+  it("forwards the tab and page of the player's bookings, so a visitor comes back to them after signing in", () => {
+    expect(forwardedHeader(proxy(requestFor("/bookings?tab=past&page=2")), "x-pathname")).toBe("/bookings?tab=past&page=2");
+  });
+
+  it("runs only for the areas and pages that have guards", () => {
+    expect(config.matcher).toEqual(["/manage/:path*", "/admin/:path*", "/bookings"]);
   });
 });

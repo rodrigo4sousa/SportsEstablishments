@@ -16,6 +16,11 @@ export function AccountStatus() {
   if (account) {
     return (
       <div className="flex items-center gap-3">
+        {account.profile === "Player" ? (
+          <Link href="/bookings" className="text-sm underline-offset-4 hover:underline">
+            As minhas reservas
+          </Link>
+        ) : null}
         <p className="text-sm">
           Olá, <span className="font-medium">{account.name}</span>
         </p>
