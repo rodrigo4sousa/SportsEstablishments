@@ -10,7 +10,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/bookings")]
 [Authorize(Policy = Profiles.Player)]
-public sealed class BookingsController(BookingService bookings, MyBookingsService myBookings) : ControllerBase
+public sealed class BookingsController(BookingService bookings, MyBookingsService myBookings, BookingCancellationService cancellation) : ControllerBase
 {
     /// <summary>
     /// Books one slot: the pitch and the slot's start as an instant with its zone (as the slot lists give it). The end
@@ -32,6 +32,23 @@ public sealed class BookingsController(BookingService bookings, MyBookingsServic
             // Relative on purpose, like the other Location headers: behind the proxy the request host is the API's own name.
             ? Created($"/api/bookings/{result.Value.Id}", result.Value)
             : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// Cancels one of the signed-in player's own bookings: allowed only while it is confirmed and now is strictly before
+    /// the start minus the club's current cancellation window. Another player's booking and an unknown id are 404
+    /// <c>booking_not_found</c>; a booking that is not confirmed is 422 <c>booking_not_confirmed</c>; after the deadline
+    /// it is 422 <c>outside_cancellation_window</c> with <c>cancellationDeadline</c> (UTC). The booking is kept as
+    /// cancelled by the player and its slot is free again.
+    /// </summary>
+    [HttpPost("{id:guid}/cancel")]
+    [ProducesResponseType<MyBookingResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await cancellation.CancelAsync(id, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 
     /// <summary>One of the signed-in player's own bookings. Another player's booking is a 404, like one that does not exist.</summary>
