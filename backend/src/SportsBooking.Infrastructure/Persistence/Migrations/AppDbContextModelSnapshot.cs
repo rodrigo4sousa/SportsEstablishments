@@ -247,11 +247,11 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bookings");
 
-                    b.HasIndex("PlayerId")
-                        .HasDatabaseName("ix_bookings_player_id");
-
                     b.HasIndex("PitchId", "StartsAt")
                         .HasDatabaseName("ix_bookings_pitch_id_starts_at");
+
+                    b.HasIndex("PlayerId", "StartsAt")
+                        .HasDatabaseName("ix_bookings_player_id_starts_at");
 
                     b.ToTable("bookings", null, t =>
                         {

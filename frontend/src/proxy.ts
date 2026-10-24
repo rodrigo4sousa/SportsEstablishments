@@ -14,5 +14,5 @@ export function proxy(request: NextRequest) {
 
 // Only the areas that have guards. Other pages never receive the header, and the guards ignore a missing one.
 export const config = {
-  matcher: ["/manage/:path*", "/admin/:path*"],
+  matcher: ["/manage/:path*", "/admin/:path*", "/bookings"],
 };

@@ -25,8 +25,22 @@ describe("AccountStatus", () => {
 
     expect(await screen.findByText("Ana Silva")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "As minhas reservas" })).toHaveAttribute("href", "/bookings");
     expect(screen.queryByRole("link", { name: "Criar conta" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Entrar" })).not.toBeInTheDocument();
+  });
+
+  it.each(["Owner", "Admin"])("does not offer the player's bookings to the %s profile", async (profile) => {
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({ id: "0199f7a0-0000-7000-8000-0000000000bb", name: "Rui Dono", email: "rui@exemplo.pt", profile }),
+      ),
+    );
+
+    renderWithProviders(<AccountStatus />);
+
+    expect(await screen.findByText("Rui Dono")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "As minhas reservas" })).not.toBeInTheDocument();
   });
 
   it("offers to sign in or create an account when there is no session, after trying to refresh it", async () => {

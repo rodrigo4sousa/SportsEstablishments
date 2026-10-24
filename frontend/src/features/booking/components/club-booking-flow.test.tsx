@@ -217,10 +217,14 @@ describe("ClubBooking: booking a slot", () => {
           return booked(body.startsAt);
         },
       });
-      renderWithProviders(<ClubBooking club={club} />);
+      const { queryClient } = renderWithProviders(<ClubBooking club={club} />);
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
 
       const confirmation = await screen.findByRole("status", { name: "Reserva confirmada" });
+      // US19: the confirmation leads to "As minhas reservas", and the new booking makes that list stale.
+      expect(within(confirmation).getByRole("link", { name: "Ver as minhas reservas" })).toHaveAttribute("href", "/bookings");
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["my-bookings"] });
       expect(bookings).toEqual([{ pitchId: padel, startsAt: FIRST }]);
       expect(Object.keys(bookings[0])).toEqual(["pitchId", "startsAt"]);
       expect(details(confirmation)).toEqual({

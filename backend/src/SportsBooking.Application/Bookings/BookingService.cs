@@ -33,6 +33,24 @@ public static class BookingErrors
     public static ServiceError PitchInactive { get; } = new(
         ErrorKind.Unprocessable, ErrorCodes.PitchInactive, "Campo indisponível", "Este campo não está a aceitar reservas.");
 
+    /// <summary>A booking that does not exist and a booking of another player give exactly this answer.</summary>
+    public static ServiceError NotFound { get; } = new(
+        ErrorKind.NotFound, ErrorCodes.BookingNotFound, "Reserva não encontrada", "Não encontrámos esta reserva.");
+
+    public static ServiceError NotConfirmed { get; } = new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.BookingNotConfirmed,
+        "Reserva não confirmada",
+        "Só é possível cancelar uma reserva confirmada.");
+
+    /// <summary>The window has closed. The deadline is a UTC instant in the <c>cancellationDeadline</c> extension.</summary>
+    public static ServiceError OutsideCancellationWindow(DateTime deadlineUtc, int windowHours) => new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.OutsideCancellationWindow,
+        "Prazo de cancelamento terminado",
+        $"Só é possível cancelar até {windowHours} {(windowHours == 1 ? "hora" : "horas")} antes do início, e esse prazo já passou.",
+        Extensions: new Dictionary<string, object?> { ["cancellationDeadline"] = deadlineUtc });
+
     public static ServiceError ClubUnavailable { get; } = new(
         ErrorKind.Unprocessable, ErrorCodes.ClubUnavailable, "Clube indisponível", "Este clube não está a aceitar reservas.");
 }

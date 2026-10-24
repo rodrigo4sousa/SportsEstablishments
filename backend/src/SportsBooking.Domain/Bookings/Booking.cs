@@ -9,6 +9,19 @@ public enum BookingStatus
     NoShow,
 }
 
+/// <summary>What happened when a player asked to cancel a booking (US19).</summary>
+public enum CancellationOutcome
+{
+    /// <summary>The booking is now <see cref="BookingStatus.CancelledByPlayer"/>.</summary>
+    Cancelled,
+
+    /// <summary>Only a confirmed booking can be cancelled: it was cancelled already, or it was marked as a no-show.</summary>
+    NotConfirmed,
+
+    /// <summary>The club's cancellation window has closed (or never left room): see <see cref="Booking.CancellationDeadline"/>.</summary>
+    OutsideWindow,
+}
+
 /// <summary>The stable codes of <see cref="BookingStatus"/> in the API (the UI shows the pt-PT labels).</summary>
 public static class BookingStatuses
 {
@@ -87,8 +100,52 @@ public sealed class Booking
         };
     }
 
+    /// <summary>
+    /// The last moment before which a player may cancel: the start minus the club's cancellation window. The window is
+    /// the club's value at the moment of cancelling and is never kept in the booking (US06, US19).
+    /// </summary>
+    public DateTime CancellationDeadline(TimeSpan window) => CancellationDeadline(StartsAt, window);
+
+    /// <summary>The same deadline for a booking that is not loaded as an entity (the list of my bookings).</summary>
+    public static DateTime CancellationDeadline(DateTime startsAt, TimeSpan window) => EnsureUtc(startsAt) - EnsureWindow(window);
+
+    /// <summary>
+    /// True while the booking is confirmed and <paramref name="now"/> is strictly before the deadline (provisional: at
+    /// the deadline itself it is already too late).
+    /// </summary>
+    public bool CanBeCancelledByPlayer(TimeSpan window, DateTime now) => CanBeCancelledByPlayer(Status, StartsAt, window, now);
+
+    /// <summary>The same rule for a booking that is not loaded as an entity; the entity method above uses it.</summary>
+    public static bool CanBeCancelledByPlayer(BookingStatus status, DateTime startsAt, TimeSpan window, DateTime now) =>
+        status == BookingStatus.Confirmed && EnsureUtc(now) < CancellationDeadline(startsAt, window);
+
+    /// <summary>
+    /// A player cancels their booking (US19). Only a confirmed booking can be cancelled, and only before the deadline
+    /// (<see cref="CanBeCancelledByPlayer"/>). The booking is kept as <see cref="BookingStatus.CancelledByPlayer"/>, never
+    /// deleted, and stops counting for the overlap constraint, so the slot is free again. Nothing changes unless the
+    /// outcome is <see cref="CancellationOutcome.Cancelled"/>.
+    /// </summary>
+    public CancellationOutcome CancelByPlayer(TimeSpan window, DateTime now)
+    {
+        if (!IsConfirmed)
+        {
+            return CancellationOutcome.NotConfirmed;
+        }
+
+        if (!CanBeCancelledByPlayer(window, now))
+        {
+            return CancellationOutcome.OutsideWindow;
+        }
+
+        Status = BookingStatus.CancelledByPlayer;
+        return CancellationOutcome.Cancelled;
+    }
+
     /// <summary>Half-open overlap, the same rule as blocks and as the database constraint (<c>tstzrange</c> is <c>[)</c>).</summary>
     public bool Overlaps(DateTime startsAt, DateTime endsAt) => StartsAt < endsAt && startsAt < EndsAt;
+
+    private static TimeSpan EnsureWindow(TimeSpan window) =>
+        window >= TimeSpan.Zero ? window : throw new ArgumentOutOfRangeException(nameof(window), window, "A cancellation window cannot be negative.");
 
     private static DateTime EnsureUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : throw new ArgumentException("Times must be UTC.", nameof(value));
