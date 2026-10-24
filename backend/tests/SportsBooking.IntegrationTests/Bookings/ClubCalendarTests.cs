@@ -198,7 +198,7 @@ public sealed class ClubCalendarTests(ApiFactory factory)
         booking.GetProperty("endsAt").GetDateTime().ToUniversalTime().ShouldBe(TestVenues.Utc("2026-05-04T09:00:00Z"));
         booking.GetProperty("status").GetString().ShouldBe("confirmed");
         booking.GetProperty("price").GetDecimal().ShouldBe(20m);
-        booking.GetProperty("playerName").GetString().ShouldBe("Rita Jogadora");
+        booking.GetProperty("bookerName").GetString().ShouldBe("Rita Jogadora");
 
         var block = calendar.GetProperty("blocks").EnumerateArray().Single();
         block.GetProperty("id").GetGuid().ShouldBe(blockId);
@@ -211,7 +211,7 @@ public sealed class ClubCalendarTests(ApiFactory factory)
         text.ShouldNotContain(rita.Email!);
         text.ShouldNotContain(rita.Id.ToString());
         text.ShouldNotContain(rita.PhoneNumber ?? "no-phone-number");
-        booking.EnumerateObject().Select(property => property.Name).ShouldBe(["id", "pitchId", "startsAt", "endsAt", "status", "price", "playerName", "createdByClub"]);
+        booking.EnumerateObject().Select(property => property.Name).ShouldBe(["id", "pitchId", "startsAt", "endsAt", "status", "price", "bookerName", "createdByClub"]);
     }
 
     private static string Hours(JsonElement day) =>

@@ -93,7 +93,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
   };
   const onCreated = (booking: ClubBooking) => {
     setNewBooking(null);
-    setCreated(`Reserva criada para ${booking.playerName}.`);
+    setCreated(`Reserva criada para ${booking.bookerName}.`);
     // Show it: its day (and its pitch, in the weekly view) with its details open.
     show({ date: lisbonDateKey(booking.startsAt), pitch: booking.pitchId, booking: booking.id });
   };

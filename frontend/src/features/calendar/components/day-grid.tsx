@@ -166,14 +166,14 @@ export function BookingBox({
       data-kind="booking"
       data-minute-start={item.startMinute}
       data-minute-end={item.endMinute}
-      aria-label={`${booking.playerName}, ${times(booking.startsAt, booking.endsAt)}, ${label}${origin ? `, ${origin.toLowerCase()}` : ""}`}
+      aria-label={`${booking.bookerName}, ${times(booking.startsAt, booking.endsAt)}, ${label}${origin ? `, ${origin.toLowerCase()}` : ""}`}
       data-created-by-club={booking.createdByClub || undefined}
       aria-pressed={selected}
       onClick={onOpen}
       className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${booking.createdByClub ? "border-l-4 border-l-sky-600" : ""} ${selected ? "ring-2 ring-foreground" : ""}`}
       style={positionOf(item, gridStartMinute)}
     >
-      <span className="truncate font-medium">{booking.playerName}</span>
+      <span className="truncate font-medium">{booking.bookerName}</span>
       <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>
       <span className="truncate">
         {label}

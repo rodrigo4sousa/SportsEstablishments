@@ -86,7 +86,7 @@ public sealed record CalendarPitch(Guid Id, string Name, string Sport, string St
 /// A booking in the range, with the name of who it is for: the player's, or the customer's for a booking the club made
 /// (<paramref name="CreatedByClub"/>, US13). Instants are UTC; show them in the club's time zone.
 /// </summary>
-public sealed record CalendarBooking(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string Status, decimal Price, string PlayerName, bool CreatedByClub);
+public sealed record CalendarBooking(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string Status, decimal Price, string BookerName, bool CreatedByClub);
 
 public sealed record CalendarBlock(Guid Id, Guid PitchId, DateTime StartsAt, DateTime EndsAt, string? Reason);
 
@@ -146,7 +146,7 @@ public sealed class ClubCalendarService(
                 join account in dbContext.AccountNames on booking.PlayerId equals (Guid?)account.Id into accounts
                 from account in accounts.DefaultIfEmpty()
                 orderby booking.StartsAt, booking.Id
-                select new BookingRow { Booking = booking, PlayerName = booking.PlayerId == null ? booking.CustomerName! : account.Name })
+                select new BookingRow { Booking = booking, BookerName = booking.PlayerId == null ? booking.CustomerName! : account.Name })
             .ToListAsync(cancellationToken);
 
         var withBookings = bookings.Select(row => row.Booking.PitchId).ToHashSet();
@@ -175,7 +175,7 @@ public sealed class ClubCalendarService(
                 row.Booking.EndsAt,
                 BookingStatuses.ToCode(row.Booking.Status),
                 row.Booking.Price,
-                row.PlayerName,
+                row.BookerName,
                 row.Booking.IsForCustomer)).ToList(),
             blocks.Select(block => new CalendarBlock(block.Id, block.PitchId, block.StartsAt, block.EndsAt, block.Reason)).ToList());
     }
@@ -184,7 +184,7 @@ public sealed class ClubCalendarService(
     {
         public required Booking Booking { get; init; }
 
-        public required string PlayerName { get; init; }
+        public required string BookerName { get; init; }
     }
 
     private static CalendarPitch ToCalendarPitch(Pitch pitch, DateOnly from, DateOnly to)
