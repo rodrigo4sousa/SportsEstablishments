@@ -409,6 +409,45 @@
         }
       }
     },
+    "/api/clubs/{slug}": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicClubResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/localities": {
       "get": {
         "tags": [
@@ -2100,6 +2139,73 @@
           "traceId": {
             "type": "string",
             "description": "Identifies the request in the logs."
+          }
+        }
+      },
+      "PublicClubResponse": {
+        "required": [
+          "slug",
+          "name",
+          "address",
+          "locality",
+          "phone",
+          "contactEmail",
+          "pitches"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "pitches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPitchResponse"
+            }
+          }
+        }
+      },
+      "PublicPitchResponse": {
+        "required": [
+          "id",
+          "name",
+          "sport",
+          "pricePerSlot"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "pricePerSlot": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },

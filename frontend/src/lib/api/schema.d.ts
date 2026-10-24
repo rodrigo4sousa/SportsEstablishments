@@ -458,6 +458,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clubs/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicClubResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/localities": {
         parameters: {
             query?: never;
@@ -1449,6 +1495,23 @@ export interface components {
             code: string;
             /** @description Identifies the request in the logs. */
             traceId: string;
+        };
+        PublicClubResponse: {
+            slug: string;
+            name: string;
+            address: string;
+            locality: string;
+            phone: string;
+            contactEmail: string;
+            pitches: components["schemas"]["PublicPitchResponse"][];
+        };
+        PublicPitchResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sport: string;
+            /** Format: double */
+            pricePerSlot: number | string;
         };
         RegisterAccountRequest: {
             name: string;

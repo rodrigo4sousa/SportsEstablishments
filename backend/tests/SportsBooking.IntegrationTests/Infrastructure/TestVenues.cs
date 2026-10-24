@@ -93,6 +93,16 @@ public static class TestVenues
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>US07: a new price per slot; bookings already made keep theirs.</summary>
+    public static async Task ChangePriceAsync(this WebApplicationFactory<Program> app, Guid pitchId, decimal price)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var pitch = await dbContext.Pitches.SingleAsync(candidate => candidate.Id == pitchId, TestContext.Current.CancellationToken);
+        pitch.UpdateDetails(new PitchDetails(pitch.Name, pitch.Sport, price), CreatedAt);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     public static async Task DeactivatePitchAsync(this WebApplicationFactory<Program> app, Guid pitchId)
     {
         await using var scope = app.Services.CreateAsyncScope();

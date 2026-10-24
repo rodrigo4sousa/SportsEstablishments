@@ -13,7 +13,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/clubs")]
 [AllowAnonymous]
-public sealed class ClubsController(ClubSearchService search) : ControllerBase
+public sealed class ClubsController(ClubSearchService search, PublicClubService clubs) : ControllerBase
 {
     /// <summary>
     /// Searches the clubs by sport (a stable code, e.g. <c>padel</c>), locality (ignoring case and accents) and date
@@ -31,6 +31,20 @@ public sealed class ClubsController(ClubSearchService search) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await search.SearchAsync(new ClubSearchRequest(sport, locality, date, page), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// The public page of a club, by its slug: name, address, locality, phone, contact email and its active pitches
+    /// with their current price. An unknown club, a club with no active pitch and a club of a deactivated owner are
+    /// all the same 404 <c>club_not_found</c>.
+    /// </summary>
+    [HttpGet("{slug}")]
+    [ProducesResponseType<PublicClubResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> Get(string slug, CancellationToken cancellationToken)
+    {
+        var result = await clubs.GetAsync(slug, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 }

@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<VisibleClubs>();
         services.AddSingleton<ClubSearchRequestValidator>();
         services.AddScoped<ClubSearchService>();
+        services.AddScoped<PublicClubService>();
 
         return services;
     }
