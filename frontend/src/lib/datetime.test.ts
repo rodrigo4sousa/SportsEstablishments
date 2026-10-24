@@ -12,6 +12,12 @@ import {
   lisbonRepeatedHourLabel,
   lisbonDateKey,
   lisbonToday,
+  lisbonInstant,
+  lisbonDayStart,
+  lisbonDayMinutes,
+  lisbonLocalMinutes,
+  lisbonInstantAtMinute,
+  minutesFromLisbonDayStart,
 } from "./datetime";
 
 const originalTimeZone = process.env.TZ;
@@ -167,5 +173,90 @@ describe("lisbonNowLocal", () => {
     expect(lisbonNowLocal(new Date("2026-10-24T23:30:00Z"))).toBe("2026-10-25T00:30");
     expect(lisbonNowLocal(new Date("2026-01-15T12:05:00Z"))).toBe("2026-01-15T12:05");
     expect(lisbonNowLocal(new Date("2026-10-25T00:30:00Z"))).toBe("2026-10-25T01:30");
+  });
+});
+
+describe.each(browserTimeZones)("the Lisbon day as real elapsed time, in a browser set to $zone", ({ zone, januaryOffsetMinutes }) => {
+  it("starts a summer day at 23:00 UTC the evening before and a winter day at midnight UTC", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonDayStart("2026-07-15").toISOString()).toBe("2026-07-14T23:00:00.000Z");
+    expect(lisbonDayStart("2026-01-15").toISOString()).toBe("2026-01-15T00:00:00.000Z");
+  });
+
+  it("lasts 25 hours when the clocks go back (2026-10-25) and 23 when they go forward (2026-03-29)", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonDayMinutes("2026-10-25")).toBe(25 * 60);
+    expect(lisbonDayMinutes("2026-03-29")).toBe(23 * 60);
+    expect(lisbonDayMinutes("2026-10-24")).toBe(24 * 60);
+    expect(lisbonDayMinutes("2026-10-26")).toBe(24 * 60);
+    expect(lisbonDayMinutes("2026-03-28")).toBe(24 * 60);
+    expect(lisbonDayMinutes("2026-03-30")).toBe(24 * 60);
+  });
+
+  it("starts the long day at 23:00 UTC and the short day at midnight UTC", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonDayStart("2026-10-25").toISOString()).toBe("2026-10-24T23:00:00.000Z");
+    expect(lisbonDayStart("2026-10-26").toISOString()).toBe("2026-10-26T00:00:00.000Z");
+    expect(lisbonDayStart("2026-03-29").toISOString()).toBe("2026-03-29T00:00:00.000Z");
+    expect(lisbonDayStart("2026-03-30").toISOString()).toBe("2026-03-29T23:00:00.000Z");
+  });
+
+  it("counts elapsed minutes across the repeated hour: both 01:30 are different moments", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(minutesFromLisbonDayStart("2026-10-25T00:30:00Z", "2026-10-25")).toBe(90); // 01:30 WEST
+    expect(minutesFromLisbonDayStart("2026-10-25T01:30:00Z", "2026-10-25")).toBe(150); // 01:30 WET
+    expect(minutesFromLisbonDayStart("2026-10-25T09:00:00Z", "2026-10-25")).toBe(10 * 60); // 09:00 WET, one hour more than the clock says
+  });
+
+  it("counts elapsed minutes across the missing hour: 02:00 is one hour into the short day", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(minutesFromLisbonDayStart("2026-03-29T01:00:00Z", "2026-03-29")).toBe(60); // 02:00 WEST
+    expect(minutesFromLisbonDayStart("2026-03-29T09:00:00Z", "2026-03-29")).toBe(9 * 60); // 10:00 WEST
+  });
+
+  it("is negative before the day and longer than it after the day", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(minutesFromLisbonDayStart("2026-10-24T22:00:00Z", "2026-10-25")).toBe(-60);
+    expect(minutesFromLisbonDayStart("2026-10-26T01:00:00Z", "2026-10-25")).toBe(25 * 60 + 60);
+  });
+
+  it("turns a wall-clock time into elapsed minutes, with the first occurrence of a repeated time", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonLocalMinutes("2026-10-25", "01:30")).toBe(90);
+    expect(lisbonLocalMinutes("2026-10-25", "02:00")).toBe(180); // after both 01:00-02:00 hours
+    expect(lisbonLocalMinutes("2026-10-25", "09:00")).toBe(600);
+    expect(lisbonLocalMinutes("2026-07-15", "09:30")).toBe(570);
+  });
+
+  it("moves a time that does not exist forward past the gap, as the API does: 01:30 becomes 02:30 WEST", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonInstant("2026-03-29", "01:30").toISOString()).toBe("2026-03-29T01:30:00.000Z");
+    expect(lisbonLocalMinutes("2026-03-29", "01:30")).toBe(90);
+    expect(lisbonLocalMinutes("2026-03-29", "03:00")).toBe(120);
+  });
+
+  it("gives the instant of a wall-clock time, and the instant of a number of elapsed minutes", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(lisbonInstant("2026-07-15", "09:30").toISOString()).toBe("2026-07-15T08:30:00.000Z");
+    expect(lisbonInstant("2026-01-15", "09:30").toISOString()).toBe("2026-01-15T09:30:00.000Z");
+    expect(lisbonInstantAtMinute("2026-10-25", 150).toISOString()).toBe("2026-10-25T01:30:00.000Z");
+    expect(lisbonInstantAtMinute("2026-10-25", 150).getTime() - lisbonDayStart("2026-10-25").getTime()).toBe(150 * 60_000);
+  });
+
+  it("rejects what is not a date or a time", () => {
+    useBrowserTimeZone(zone, januaryOffsetMinutes);
+
+    expect(() => lisbonInstant("2026-02-30")).toThrow();
+    expect(() => lisbonInstant("2026-02-20", "25:00")).toThrow();
+    expect(() => lisbonInstant("2026-02-20", "9:00")).toThrow();
   });
 });
