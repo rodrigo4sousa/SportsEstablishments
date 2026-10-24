@@ -209,3 +209,19 @@ export function lisbonLocalMinutes(dateKey: string, time: string): number {
 export function lisbonInstantAtMinute(dateKey: string, minutes: number): Date {
   return new Date(lisbonDayStart(dateKey).getTime() + minutes * MINUTE_MS);
 }
+
+// ---- Weeks (the owner's weekly calendar, US11): Monday first, as in Portugal
+
+/** The weekday of a "YYYY-MM-DD" date, Monday = 0 … Sunday = 6. Pure calendar arithmetic, no time zone involved. */
+export function weekdayIndex(dateKey: string): number {
+  if (!isDateKey(dateKey)) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
+  }
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
+}
+
+/** The Monday of the week a "YYYY-MM-DD" date is in. */
+export function startOfWeekDateKey(dateKey: string): string {
+  return addDaysToDateKey(dateKey, -weekdayIndex(dateKey));
+}

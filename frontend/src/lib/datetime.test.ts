@@ -18,6 +18,8 @@ import {
   lisbonLocalMinutes,
   lisbonInstantAtMinute,
   minutesFromLisbonDayStart,
+  weekdayIndex,
+  startOfWeekDateKey,
 } from "./datetime";
 
 const originalTimeZone = process.env.TZ;
@@ -258,5 +260,29 @@ describe.each(browserTimeZones)("the Lisbon day as real elapsed time, in a brows
     expect(() => lisbonInstant("2026-02-30")).toThrow();
     expect(() => lisbonInstant("2026-02-20", "25:00")).toThrow();
     expect(() => lisbonInstant("2026-02-20", "9:00")).toThrow();
+  });
+});
+
+describe("weeks, Monday first", () => {
+  it("numbers the weekday from Monday = 0", () => {
+    expect(weekdayIndex("2026-05-04")).toBe(0); // Monday
+    expect(weekdayIndex("2026-05-07")).toBe(3);
+    expect(weekdayIndex("2026-05-10")).toBe(6); // Sunday
+    expect(weekdayIndex("2026-10-25")).toBe(6);
+    expect(weekdayIndex("2026-03-29")).toBe(6);
+  });
+
+  it("finds the Monday of the week, across month and year ends and the clock changes", () => {
+    expect(startOfWeekDateKey("2026-05-04")).toBe("2026-05-04");
+    expect(startOfWeekDateKey("2026-05-10")).toBe("2026-05-04");
+    expect(startOfWeekDateKey("2026-05-11")).toBe("2026-05-11");
+    expect(startOfWeekDateKey("2026-10-25")).toBe("2026-10-19"); // the 25-hour Sunday closes its week
+    expect(startOfWeekDateKey("2026-03-29")).toBe("2026-03-23"); // the 23-hour Sunday too
+    expect(startOfWeekDateKey("2027-01-01")).toBe("2026-12-28");
+    expect(startOfWeekDateKey("2026-03-01")).toBe("2026-02-23");
+  });
+
+  it("rejects what is not a date", () => {
+    expect(() => weekdayIndex("2026-02-30")).toThrow();
   });
 });
