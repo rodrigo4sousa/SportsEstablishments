@@ -174,6 +174,7 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
   - Um campo novo fica fechado todos os dias e com slots de 60 minutos até o dono definir o horário. Os campos que já existiam antes desta migração ficam também com 60 minutos.
   - Formato de cada dia: `{ "closed": true }` ou `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (hora local, `HH:mm`). Os sete dias são obrigatórios no `PUT`, e um dia fechado com horas é rejeitado (em vez de as ignorar). Os erros vêm por campo com o caminho JSON (`monday.closes`).
   - A pré-visualização mostra os slots que o horário gera e marca como bloqueados (`blocked`) os que se sobrepõem a algum bloqueio (US09) e como reservados (`booked`) os que se sobrepõem a uma reserva confirmada (US18), mesmo que essa reserva tenha sido feita numa grelha antiga; ainda não tira os slots que já começaram. Funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
+  - Interface: a pré-visualização mostra «Reservado» nos slots com reserva confirmada e «Bloqueado» nos que se sobrepõem a um bloqueio (os dois, quando é o caso); os slots livres não levam marca. A nota por baixo diz que os bloqueios e as reservas aparecem marcados.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
@@ -258,7 +259,7 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
 - Resultados paginados, 20 por página.
 - Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
 - A pesquisa funciona sem sessão iniciada.
-- Estado: back end feito (`GET /api/clubs`, `GET /api/localities`, `GET /api/clubs/{slug}`, todos públicos e só de leitura, sem dados de jogadores nem do dono). A interface (formulário de pesquisa, resultados, página do clube) vem noutro ramo.
+- Estado: feita. Back end: `GET /api/clubs`, `GET /api/localities` e `GET /api/clubs/{slug}`, todos públicos e só de leitura, sem dados de jogadores nem do dono. Interface: a página inicial `/` é a pesquisa e `/clubs/{slug}` é a página do clube.
 - Decisões de implementação (provisórias, a confirmar):
   - Visível = o dono não está desativado (US29) e o clube tem pelo menos um campo ativo (US07). Tudo o que é público parte de `VisibleClubs`; o que não é visível não existe: um clube desconhecido, sem campos ativos ou de um dono desativado dão o mesmo 404 `club_not_found`.
   - `GET /api/clubs?sport=&locality=&date=&page=`: 20 por página (fixo), ordenado pelo nome sem distinguir maiúsculas e depois pelo id. `sport` é o código estável (`futsal`, `football7`, `padel`, `tennis`); um código desconhecido é 400 em `sport`. `date` é `AAAA-MM-DD`, hoje em Lisboa por omissão, de hoje até hoje + 30; fora disso ou mal escrita é 400 em `date`. `page` vai de 1 a 10000 (limite defensivo); outro valor, ou não numérico, é 400 em `page`. Filtros vazios contam como ausentes.
@@ -266,6 +267,10 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
   - Cada resultado traz só `slug`, `name`, `locality`, `sports` (os desportos de todos os campos ativos do clube, mesmo com o filtro de desporto) e `hasFreeSlots` (algum campo ativo tem um slot livre na data, pela mesma regra da US17). Não traz morada nem contactos. A disponibilidade só se calcula para os clubes da página.
   - `GET /api/localities`: as localidades dos clubes visíveis, uma por grafia (ignorando maiúsculas e acentos, mostrada numa das grafias em uso), ordenadas; devolve uma lista de textos, para um select.
   - `GET /api/clubs/{slug}`: nome, morada, localidade, telefone, email de contacto e os campos ativos (`id`, `name`, `sport`, `pricePerSlot` atual), ordenados pelo nome. O `slug` tem de coincidir exatamente. O id do clube não aparece (é da área do dono).
+- Decisões da interface (provisórias, a confirmar):
+  - A pesquisa (`/`) tem um select de desporto («Todos os desportos» e os quatro desportos), um select de localidade (as de `GET /api/localities`) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Pesquisa logo ao mudar um campo, sem botão; funciona sem sessão. A pesquisa fica no endereço (`?sport=&locality=&date=&page=`), por isso pode ser partilhada e o botão «voltar» funciona. Mudar um filtro volta à primeira página; um valor inválido no endereço é ignorado e uma data fora do período mostra o erro sem perguntar à API.
+  - Cada resultado mostra o nome (ligação para `/clubs/{slug}`, com `?date=` se se pesquisou uma data), a localidade, os desportos e «Há horários livres» ou «Sem horários livres». Páginas de 20 com «Anterior», «Seguinte» e «Página X de Y» (só se houver mais de uma). Sem resultados: «Não encontrámos clubes com estes filtros. Experimenta outra localidade, outro desporto ou outra data.» Uma página para lá do fim oferece «Voltar à primeira página».
+  - A página do clube é um Server Component que lê o clube na API interna, sem cookies e sem cache: contactos (telefone e email como ligações) e os campos ativos com o preço por slot em formato pt-PT («18,50 € por slot»). Um clube desconhecido, escondido, ou um slug que não pode existir mostra a página «Clube não encontrado», sem dizer porquê.
 ### US17 · Ver slots livres · M · 5 pontos
  
 Como jogador, quero ver os slots livres de um campo numa data, para escolher a hora.
@@ -277,13 +282,17 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Decidido: um slot não está livre se se sobrepuser a qualquer reserva confirmada ou bloqueio, e não só se tiver o mesmo início. Mudar a duração dos slots de um campo (US08) não altera as reservas existentes, por isso uma reserva antiga pode ficar desalinhada com a nova grelha e ocupar parte de um slot novo; esse slot não aparece como livre.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
 - No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
-- Estado: back end feito (`GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`, público e só de leitura). A interface (escolher a data e o slot) vem noutro ramo, com a etiqueta «(verão)/(inverno)» de `formatLisbonSlotTime`.
+- Estado: feita. Back end: `GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`, público e só de leitura. Interface: a secção «Horários» da página do clube.
 - Decisões de implementação (provisórias, a confirmar):
   - A data (`AAAA-MM-DD`) é obrigatória e vai de hoje até hoje + 30 em Lisboa; em falta, mal escrita ou fora do período é 400 em `date`.
   - Clube desconhecido ou escondido (sem campos ativos, dono desativado), e campo desconhecido, inativo, de outro clube ou com um id que não é um GUID, são 404 (`club_not_found` ou `pitch_not_found`), verificados antes da data.
   - A resposta é `date` e `slots`; cada slot traz `startsAt` e `endsAt` (instantes UTC com fuso), `price` (o preço atual do campo) e um só booleano `available`. Nunca diz porque não está livre, nem quem reservou, nem o id de uma reserva ou de um bloqueio. Um dia fechado devolve a lista vazia.
   - `available` = não se sobrepõe, nem em parte, a uma reserva confirmada ou a um bloqueio, está dentro do horário e ainda não começou (começar agora conta como começado, como na US18). É uma só conta (`PitchDayCalendar` e `DaySlot.IsFreeAt`), partilhada com a pré-visualização do dono e com o «há slots livres» da pesquisa, e um teste confirma que concordam.
   - Em 25 de outubro a API devolve os slots como instantes distintos (a hora das 01:00 às 02:00 aparece duas vezes, uma em cada fuso); a etiqueta «(verão)/(inverno)» é da interface.
+- Decisões da interface (provisórias, a confirmar):
+  - A secção «Horários» da página do clube tem um select de campo (o primeiro por omissão; mostra nome, desporto e preço) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Os slots do dia aparecem em hora de Lisboa, qualquer que seja o fuso do browser, com o preço, e a hora que se repete em outubro leva «(verão)» ou «(inverno)». O campo e a data ficam no endereço (`?pitch=&date=`).
+  - Um slot que não está livre aparece desativado (`disabled`), sem dizer porquê: nem «reservado», nem «bloqueado», nem «fechado». Um dia sem slots diz «Sem horários neste dia.» Uma data fora do período mostra o erro sem perguntar à API.
+  - Quem tem sessão de dono ou de admin vê os slots mas não os pode escolher (não são botões); ver a US18.
 ### US18 · Reservar slot · M · 3 pontos
  
 Como jogador, quero reservar um slot livre, para garantir o campo.
@@ -294,7 +303,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
 - Um campo inativo não aceita reservas (US07).
 - Decidido e feito (T03/US18): desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07): `POST …/pitches/{pitchId}/deactivate` devolve 422 `pitch_has_future_bookings` com `count` (regra de negócio, como na tabela de códigos da Stack; esta nota dizia antes 409).
 - Decidido e feito (T03/US18): um bloqueio que se sobreponha a reservas confirmadas é rejeitado (409 `block_overlaps_bookings`) e a mensagem lista essas reservas (US09); a verificação está em `BlockService.CreateAsync`, dentro do trinco da linha do campo, e a criação de uma reserva tranca a mesma linha antes de verificar os bloqueios.
-- Estado: back end feito com a T03 (`POST /api/bookings`, perfil Jogador). A interface (escolher o slot, o resumo antes de confirmar e o login com regresso ao slot) vem com a US17, que mostra os slots livres. Os emails (US22) e a lista das minhas reservas (US19) não fazem parte deste ramo.
+- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. Os emails (US22), a lista das minhas reservas (US19) e a hipótese de voltar ao slot depois de criar conta (ver abaixo) ainda não existem.
 - Decidido (confirmado):
   - O pedido traz o campo e o início do slot como instante com fuso (`2026-10-25T00:00:00Z`, como as listas de slots o dão), para a hora repetida de outubro nunca ser ambígua.
   - Códigos: 404 `pitch_not_found` (campo desconhecido); 422 `club_unavailable` (dono desativado), `pitch_inactive`, `outside_booking_window` (data local fora de hoje até 30 dias em Lisboa, incluindo dias passados), `invalid_slot` (um início que não seja um slot gerado: dia fechado, fora do horário, fora da grelha, segundos a mais), `slot_started`; 409 `slot_blocked` (um bloqueio sobrepõe-se, mesmo em parte) e `slot_taken` («Este horário acabou de ser reservado. Escolhe outro.»). Os 422 são verificados por esta ordem; os 409 só depois de trancar a linha do campo.
@@ -307,6 +316,14 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
   - A transação tranca a linha do campo, volta a ler o campo (estado, preço e horário como estão nesse momento), verifica os bloqueios e insere; a sobreposição com outra reserva fica só a cargo da exclusion constraint (23P01 → 409 `slot_taken`), que é a última defesa e a regra também para a US13.
   - A resposta 201 traz a reserva (`id`, `pitchId`, `clubId`, início e fim em UTC, `price`, `status` = `confirmed`).
   - Preparado para a US13: `player_id` pode ser nulo na tabela, mas uma check constraint (`ck_bookings_has_player`) obriga a tê-lo até a US13 a trocar por «um jogador, ou o nome e o telemóvel do cliente»; a regra de sobreposição não muda.
+- Decisões da interface (provisórias, a confirmar):
+  - O que o jogador escolhe (campo, data e slot) fica no endereço (`?pitch=&date=&slot=<instante com fuso>`), não numa store Zustand: é isso que permite voltar ao mesmo slot depois do login e partilhar a ligação. Escolher um slot livre abre, por baixo da lista, o «Resumo da reserva» (clube, campo, data, hora e preço); «Cancelar» fecha-o, e mudar de campo ou de data também.
+  - Sem sessão, o resumo oferece «Entrar para reservar», que vai para `/login?next=<este endereço com campo, data e slot>`; depois do login o jogador volta ao mesmo clube, campo, data e slot, com o resumo aberto. O `safeNext` não precisou de mudar: já aceita uma página pública com query para um jogador, e manda um dono ou um admin para a sua área, porque não podem reservar. Se o slot entretanto deixou de estar livre (ou já não existe), aparece «Este horário já não está disponível. Escolhe outro.» e não há resumo.
+  - Só um jogador vê «Confirmar reserva». Donos e admins veem os slots mas não os podem escolher, nem há botão de reservar, e uma nota diz «Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.»
+  - Confirmar envia só `pitchId` e `startsAt` (o instante com fuso, tal como a lista o deu); o botão fica desativado enquanto se reserva. Em 201 aparece «Reserva confirmada» com os mesmos dados, a lista de slots e a pesquisa recarregam-se e o slot passa a desativado.
+  - Em 409 (`slot_taken`, `slot_blocked`) ou 422 (`slot_started`, `invalid_slot`, `outside_booking_window`, `pitch_inactive`, `club_unavailable`) mostra-se a mensagem desse código («Este horário acabou de ser reservado. Escolhe outro.» para `slot_taken`), fecha-se o resumo e recarrega-se a lista de slots. Um 401 (sessão terminada) volta ao login, com regresso ao slot; sem ligação ao servidor mantém-se o resumo para tentar de novo.
+  - Para um visitante, `club_not_found` diz «Este clube já não está disponível.» (a mensagem geral fala a um dono).
+  - Limitação conhecida: quem cria conta a partir do ecrã de login (em vez de entrar) não volta ao slot, porque o registo ainda não conhece o `next`.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
 - Não é possível reservar slots passados nem para lá dos 30 dias.
 ### US19 · Ver e cancelar as minhas reservas · M · 3 pontos
