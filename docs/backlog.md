@@ -169,6 +169,12 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
 - As horas são introduzidas e mostradas em hora de Lisboa (T04).
 - O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
 - Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
+- Estado: back end feito; falta o front end. `GET` e `PUT /api/manage/clubs/{clubId}/pitches/{pitchId}/schedule` (duração e os sete dias; o `PUT` substitui a semana inteira) e `GET …/slots?date=AAAA-MM-DD` (pré-visualização, só de leitura, dos slots gerados nessa data local, com início e fim em UTC, pelo `SlotGenerator` da T04). Tudo com o perfil Dono e a T02: o clube de outro dono dá 404 `club_not_found` e um campo pedido através de outro clube dá 404 `pitch_not_found`, antes de qualquer validação. Os horários ficam na tabela `pitch_opening_hours` (uma linha por dia aberto, `time` sem fuso); o teste de armazenamento da T04 foi repetido com ela. Mudar o horário ou a duração não mexe nas reservas (a US17 já diz que um slot não está livre se algo se sobrepuser).
+- Decisões de implementação (provisórias, a confirmar):
+  - As horas vão de meia em meia hora (09:00, 09:30, …), sem segundos; a API e a base de dados rejeitam o resto (a base de dados verifica só a ordem: fecho depois da abertura ou 00:00).
+  - Um campo novo fica fechado todos os dias e com slots de 60 minutos até o dono definir o horário. Os campos que já existiam antes desta migração ficam também com 60 minutos.
+  - Formato de cada dia: `{ "closed": true }` ou `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (hora local, `HH:mm`). Os sete dias são obrigatórios no `PUT`, e um dia fechado com horas é rejeitado (em vez de as ignorar). Os erros vêm por campo com o caminho JSON (`monday.closes`).
+  - A pré-visualização mostra os slots que o horário gera: não tira reservas, bloqueios nem slots que já começaram, e funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
