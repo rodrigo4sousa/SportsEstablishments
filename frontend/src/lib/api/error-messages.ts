@@ -4,6 +4,7 @@ import { NETWORK_ERROR } from "./client";
 const MESSAGES: Record<string, string> = {
   invalid_credentials: "Email ou palavra-passe incorretos.",
   club_not_found: "Este clube não existe ou não é teu.",
+  pitch_not_found: "Este campo já não existe neste clube.",
   email_taken: "Já existe uma conta com este email.",
   validation_failed: "Há campos com erros. Corrige-os e tenta novamente.",
   origin_not_allowed: "O pedido foi recusado. Recarrega a página e tenta novamente.",

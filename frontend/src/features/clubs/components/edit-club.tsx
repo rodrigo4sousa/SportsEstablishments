@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { PitchSection } from "@/features/pitches/components/pitch-section";
 import { clubQueryKey, fetchClub } from "../api";
 import { ClubForm } from "./club-form";
 import { ClubNotFound } from "./club-not-found";
@@ -41,5 +42,10 @@ export function EditClub({ clubId }: { clubId: string }) {
     );
   }
 
-  return <ClubForm club={club.data} />;
+  return (
+    <div className="flex flex-col gap-10">
+      <ClubForm club={club.data} />
+      <PitchSection clubId={club.data.id} />
+    </div>
+  );
 }
