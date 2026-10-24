@@ -183,6 +183,15 @@ Como dono, quero bloquear períodos de um campo, para que ninguém o reserve dur
 - Um bloqueio que se sobreponha a reservas confirmadas é rejeitado, e a mensagem lista essas reservas para o dono decidir (cancelar pela US12).
 - O dono pode remover um bloqueio futuro, e os slots voltam a ficar livres.
 - Os bloqueios aparecem no calendário (US11).
+- Estado: back end feito; falta o front end. `POST`, `GET` e `DELETE /api/manage/clubs/{clubId}/pitches/{pitchId}/blocks[/{blockId}]`, com o perfil Dono e a T02 (clube de outro dono: 404 `club_not_found`; campo de outro clube: 404 `pitch_not_found`; bloqueio de outro campo: 404 `block_not_found`). Criar corre numa transação que começa por trancar a linha do campo (`SELECT … FOR UPDATE`, `IPitchLock`) e só depois verifica a sobreposição, para a T03 juntar nesse mesmo sítio a verificação das reservas. A pré-visualização de slots do dono (US08) marca como `blocked` os slots que se sobrepõem a algum bloqueio.
+- Decisões de implementação (provisórias, a confirmar):
+  - O início e o fim chegam como data e hora locais de Lisboa (`2026-10-25T09:00`), de meia em meia hora, e convertem-se com a `ClubTime` (as regras de mudança de hora da T04); a resposta traz instantes UTC. Os bloqueios podem passar da meia-noite (não são horários de funcionamento).
+  - O início não pode estar no passado (começar agora é aceite); o fim tem de ser depois do início e no máximo 90 dias à frente.
+  - Motivo opcional, até 200 caracteres.
+  - Dois bloqueios do mesmo campo não se podem sobrepor (409 `block_overlap`); bloqueios que se tocam (um acaba quando o outro começa) são aceites. A verificação é feita sob o trinco da linha do campo, sem constraint na base de dados.
+  - A lista traz os bloqueios em curso e futuros (os que ainda não acabaram) por ordem de início, 20 por página.
+  - Só se remove um bloqueio que ainda não começou; um que já começou ou acabou dá 422 `block_already_started` e fica no histórico. Remover é apagar a linha.
+  - Um bloqueio pode ser criado num campo inativo.
 ### US10 · Preços de ponta e vazio · D · 5 pontos
  
 Como dono, quero definir preços diferentes por faixa horária, para cobrar mais nas horas de maior procura.
@@ -203,6 +212,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
 - Navegação para o dia ou semana anterior e seguinte, e um botão «Hoje».
 - As reservas canceladas não aparecem por omissão.
 - Abrir uma reserva mostra os detalhes e a ação de cancelar.
+- Os bloqueios aparecem no calendário (US09): `GET …/pitches/{pitchId}/blocks` dá os bloqueios em curso e futuros de cada campo.
 - Candidata a dividir: vista diária (5) e vista semanal (3).
 ### US12 · Cancelar reserva como dono · M · 2 pontos
  
@@ -268,6 +278,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
 - A reserva fica «Confirmada» e guarda o preço desse momento: o preço por slot do campo (US07) copiado para a reserva. Mudar depois o preço do campo nunca altera as reservas existentes.
 - Um campo inativo não aceita reservas (US07).
 - Decidido: desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07). Esta regra entra na história que criar a tabela de reservas (esta, a US18, ou a T03 se vier antes; a US13 também cria reservas, e se for ela a criar a tabela a regra passa para lá): a desativação de `POST …/pitches/{pitchId}/deactivate` passa a devolver 409 com o número de reservas.
+- Decidido: um bloqueio que se sobreponha a reservas confirmadas é rejeitado e a mensagem lista essas reservas (US09). Entra na história que criar a tabela de reservas (esta, a T03 ou a US13, a primeira): em `BlockService.CreateAsync`, dentro do trinco da linha do campo e logo a seguir à verificação dos outros bloqueios; e a criação de uma reserva tem de trancar a mesma linha antes de verificar os bloqueios.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
 - Não é possível reservar slots passados nem para lá dos 30 dias.
 ### US19 · Ver e cancelar as minhas reservas · M · 3 pontos
