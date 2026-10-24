@@ -504,6 +504,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clubs/{slug}/pitches/{pitchId}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                    pitchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicSlotsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/localities": {
         parameters: {
             query?: never;
@@ -1512,6 +1570,20 @@ export interface components {
             sport: string;
             /** Format: double */
             pricePerSlot: number | string;
+        };
+        PublicSlotResponse: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            available: boolean;
+        };
+        PublicSlotsResponse: {
+            /** Format: date */
+            date: string;
+            slots: components["schemas"]["PublicSlotResponse"][];
         };
         RegisterAccountRequest: {
             name: string;

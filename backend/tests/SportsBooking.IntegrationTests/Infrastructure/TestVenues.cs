@@ -122,12 +122,23 @@ public static class TestVenues
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public static async Task AddBlockAsync(this WebApplicationFactory<Program> app, Guid pitchId, DateTime startsAtUtc, DateTime endsAtUtc)
+    /// <summary>A block with the reason "Manutenção"; returns its id.</summary>
+    public static async Task<Guid> AddBlockAsync(this WebApplicationFactory<Program> app, Guid pitchId, DateTime startsAtUtc, DateTime endsAtUtc)
+    {
+        var block = Block.Create(pitchId, startsAtUtc, endsAtUtc, "Manutenção", CreatedAt);
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Blocks.Add(block);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return block.Id;
+    }
+
+    /// <summary>Cancelling comes with US19 and US12; until then a test sets the status the way the database stores it.</summary>
+    public static async Task SetBookingStatusAsync(this WebApplicationFactory<Program> app, Guid bookingId, string status)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        dbContext.Blocks.Add(Block.Create(pitchId, startsAtUtc, endsAtUtc, "Manutenção", CreatedAt));
-        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await dbContext.Database.ExecuteSqlAsync($"UPDATE bookings SET status = {status} WHERE id = {bookingId}", TestContext.Current.CancellationToken);
     }
 
     /// <summary>A confirmed booking by a new player; times need not match the pitch's grid (an older grid, US17).</summary>

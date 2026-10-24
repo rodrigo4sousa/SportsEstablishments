@@ -51,4 +51,22 @@ public sealed class ClubsController(ClubSearchService search, PublicClubService 
         var result = await clubs.GetAsync(slug, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
+
+    /// <summary>
+    /// Every slot of one pitch on a date (<c>yyyy-MM-dd</c>, required, from today up to 30 days ahead in Lisbon): start,
+    /// end (UTC instants), price and whether it is available. A slot is not available if it overlaps a confirmed booking
+    /// or a block, is outside the opening hours or has started; the answer never says which, nor who booked it.
+    /// An unknown or hidden club, or a pitch that is unknown, inactive or from another club, is a 404.
+    /// </summary>
+    [HttpGet("{slug}/pitches/{pitchId}/slots")]
+    [ProducesResponseType<PublicSlotsResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> Slots(string slug, string pitchId, [FromQuery] string? date, CancellationToken cancellationToken)
+    {
+        // An id that is not a GUID is a pitch that does not exist; the empty GUID matches no pitch.
+        var id = Guid.TryParse(pitchId, out var parsed) ? parsed : Guid.Empty;
+        var result = await clubs.SlotsAsync(slug, id, date, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
 }
