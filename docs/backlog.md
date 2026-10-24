@@ -234,7 +234,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
   - Reservas: `id`, `pitchId`, `startsAt`, `endsAt`, `status`, `price` e `playerName`, por ordem de início. As canceladas (pelo jogador ou pelo clube) só vêm com `includeCancelled=true`; uma falta (`no_show`) não é um cancelamento e aparece sempre. Bloqueios: `id`, `pitchId`, `startsAt`, `endsAt`, `reason`, dos campos listados.
   - Só o dono do clube vê o nome do jogador (é o único dado pessoal; não há email, telefone nem id da conta, e há um teste que procura esses valores na resposta). Jogadores e admins recebem 403, sem sessão 401.
   - `GET /api/manage/clubs/{clubId}/bookings/{bookingId}`: os detalhes (campo, desporto, início, fim, preço, estado, `playerName`, `createdAt`, `cancelledAt`, `cancellationReason` e `canCancel`, verdadeiro para uma reserva confirmada que ainda não começou). Uma reserva de outro clube, mesmo do mesmo dono, e um id desconhecido são o mesmo 404 `booking_not_found`.
-  - A US13 vai ter de acrescentar o nome do cliente (sem conta) ao `playerName`: hoje a reserva tem sempre um jogador e o nome vem da conta.
+  - Feito na US13: para uma reserva que o dono fez para um cliente sem conta, `playerName` traz o nome do cliente e `createdByClub` é verdadeiro (a interface ainda não mostra a marca). O telemóvel só vem nos detalhes.
 ### US12 · Cancelar reserva como dono · M · 2 pontos
  
 Como dono, quero cancelar uma reserva, para resolver problemas como um campo avariado.
@@ -262,7 +262,17 @@ Como dono, quero criar uma reserva para um cliente que ligou ou apareceu, para q
 - Aplica-se a mesma regra contra reservas duplicadas da US18 e da T03.
 - A reserva aparece no calendário marcada como «criada pelo clube».
 - Não é enviado email, porque o cliente não tem conta.
-- Decisão para quando se fizer (provisória): o calendário e os detalhes (US11) mostram o nome do jogador com um acesso às contas só para reservas de um clube do dono (`IAppDbContext.AccountNames`, ligado às reservas); uma reserva de cliente sem conta (`player_id` vazio) tem de trazer aí o nome do cliente, e o `ck_bookings_has_player` muda para «um jogador, ou o nome e o telemóvel de um cliente».
+- Estado: back end feito (`POST /api/manage/clubs/{clubId}/bookings`). A interface (escolher campo e slot livre, pedir o nome e o telemóvel, a marca «criada pelo clube» no calendário) vem noutro ramo.
+- Decisões de implementação (provisórias, a confirmar):
+  - Uma reserva é de um jogador ou de um cliente (nome e telemóvel), nunca das duas coisas nem de nenhuma: a check constraint `ck_bookings_player_or_customer` substitui a `ck_bookings_has_player` (migração `AddCustomerBookings`, colunas `customer_name` e `customer_phone`). A exclusion constraint `bookings_no_overlap` não mudou, por isso um cliente e um jogador disputam os mesmos slots.
+  - `POST /api/manage/clubs/{clubId}/bookings` (perfil Dono, pela T02: o clube de outro dono é 404 `club_not_found`, antes de validar o corpo) com `{ pitchId, startsAt, customerName, customerPhone }`. `startsAt` é o instante do início do slot com fuso, como as listas de slots o dão; o fim e o preço vêm do campo, nunca do pedido. 201 com a reserva (a mesma resposta dos detalhes) e `Location: /api/manage/clubs/{clubId}/bookings/{id}`, que `GET …/bookings/{id}` resolve.
+  - Nome e telemóvel seguem as regras da US01: o nome é obrigatório e tem no máximo 100 caracteres; o telemóvel é aqui **obrigatório** (na US01 é opcional), com um «+» opcional e 9 a 15 algarismos, guardado sem espaços (400 em `customerName` e `customerPhone`, mensagens em português).
+  - As regras do slot são as da US18, pelo mesmo código (`BookingSlotCheck`, que a US18 também usa) e sob o mesmo trinco do campo: campo inativo 422 `pitch_inactive` → data fora de hoje..+30 em Lisboa 422 `outside_booking_window` → não é um slot 422 `invalid_slot` → já começou 422 `slot_started` → bloqueio 409 `slot_blocked`; outra reserva confirmada que se sobreponha é 409 `slot_taken` (a exclusion constraint, nunca um 500). Um campo que não é deste clube é 404 `pitch_not_found`, e um dono desativado com a sessão ainda válida recebe 422 `club_unavailable`. A ordem completa: clube (404) → validação (400) → campo (404) → dono ativo → trinco → regras do slot → inserção.
+  - A janela de 30 dias aplica-se também ao dono (provisório): uma reserva por telefone para daqui a mais de 30 dias é 422 `outside_booking_window`.
+  - O preço é o do campo no momento e fica guardado; mudar o preço depois não o altera. Não é enviado email (o cliente não tem conta), e a US22 diz isso.
+  - O calendário (`playerName` e `createdByClub`) e os detalhes (`playerName`, `createdByClub` e `customerPhone`) mostram estas reservas com o nome do cliente e a marca de criada pelo clube. O telemóvel que o dono escreveu só se mostra nos detalhes, nunca no calendário (provisório). O campo continua a chamar-se `playerName`, e é o nome de quem a reserva é, para não partir a interface existente.
+  - O dono cancela-as como na US12 (`…/bookings/{id}/cancel`, com motivo) e o slot volta a ficar livre.
+  - Nunca aparecem em lista nenhuma de um jogador (`GET /api/me/bookings` só lê reservas com o `player_id` de quem pede), um jogador que as peça ou cancele por id recebe 404 `booking_not_found`, as páginas públicas só mostram o slot como indisponível (sem nome, telemóvel nem id), e o admin não tem acesso aos endpoints do dono (403).
 ### US14 · Ocupação e receita · D · 5 pontos
  
 Como dono, quero ver a ocupação e a receita dos meus clubes por período, para perceber como está o negócio.
@@ -353,7 +363,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
   - O fim vem sempre do horário do campo e o preço é o preço por slot atual do campo.
   - A transação tranca a linha do campo, volta a ler o campo (estado, preço e horário como estão nesse momento), verifica os bloqueios e insere; a sobreposição com outra reserva fica só a cargo da exclusion constraint (23P01 → 409 `slot_taken`), que é a última defesa e a regra também para a US13.
   - A resposta 201 traz a reserva (`id`, `pitchId`, `clubId`, início e fim em UTC, `price`, `status` = `confirmed`).
-  - Preparado para a US13: `player_id` pode ser nulo na tabela, mas uma check constraint (`ck_bookings_has_player`) obriga a tê-lo até a US13 a trocar por «um jogador, ou o nome e o telemóvel do cliente»; a regra de sobreposição não muda.
+  - Preparado para a US13 e feito nela: `player_id` pode ser nulo na tabela, e a check constraint `ck_bookings_player_or_customer` exige «um jogador, ou o nome e o telemóvel de um cliente», nunca as duas coisas nem nenhuma (antes era a `ck_bookings_has_player`).
 - Decidido (confirmado): a interface da reserva
   - O que o jogador escolhe (campo, data e slot) fica no endereço (`?pitch=&date=&slot=<instante com fuso>`), não numa store Zustand: é isso que permite voltar ao mesmo slot depois do login e partilhar a ligação. Escolher um slot livre abre, por baixo da lista, o «Resumo da reserva» (clube, campo, data, hora e preço); «Cancelar» fecha-o, e mudar de campo ou de data também.
   - Sem sessão, o resumo oferece «Entrar para reservar», que vai para `/login?next=<este endereço com campo, data e slot>`; depois do login o jogador volta ao mesmo clube, campo, data e slot, com o resumo aberto. O `safeNext` não precisou de mudar: já aceita uma página pública com query para um jogador, e manda um dono ou um admin para a sua área, porque não podem reservar. Se o slot entretanto deixou de estar livre (ou já não existe), aparece «Este horário já não está disponível. Escolhe outro.» e não há resumo.
@@ -427,6 +437,7 @@ Como jogador, quero receber um email quando reservo e quando uma reserva minha �
 - O email de confirmação traz clube, morada, campo, data, hora e preço.
 - O email de cancelamento indica quem cancelou e, se foi o clube, o motivo.
   - O cancelamento feito pelo jogador (US19, `POST /api/bookings/{id}/cancel`) só muda o estado da reserva: o email a avisar vem aqui, em segundo plano, sem fazer falhar o cancelamento.
+  - Uma reserva que o dono cria para um cliente (US13) não gera email de confirmação, e o seu cancelamento pelo dono também não: o cliente não tem conta nem email, só um telemóvel.
   - O cancelamento feito pelo dono (US12, `POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) guarda o motivo e a hora (`cancellation_reason`, `cancelled_at`) e só muda o estado da reserva: o email com o motivo vem aqui, em segundo plano, sem fazer falhar o cancelamento.
 - O envio é feito em segundo plano; uma falha no envio não falha a reserva nem o cancelamento e fica registada no log.
 - Em desenvolvimento, os emails vão para um serviço de teste (por exemplo, Mailpit) e nunca para endereços reais.
