@@ -65,6 +65,17 @@ describe("LoginScreen (silent refresh)", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("keeps next on the link to the sign-up page, so creating an account returns to the same place", async () => {
+    const next = "/clubs/clube-da-foz?pitch=p1&date=2026-05-04&slot=2026-05-04T10%3A00%3A00Z";
+    search = `next=${encodeURIComponent(next)}`;
+    server.use(http.post("/api/auth/refresh", () => unauthorized()));
+
+    renderWithProviders(<LoginScreen />);
+
+    const link = await screen.findByRole("link", { name: "Criar conta" });
+    expect(link.getAttribute("href")).toBe(`/register?next=${encodeURIComponent(next)}`);
+  });
+
   it("shows the form when the server cannot be reached", async () => {
     server.use(http.post("/api/auth/refresh", () => HttpResponse.error()));
 

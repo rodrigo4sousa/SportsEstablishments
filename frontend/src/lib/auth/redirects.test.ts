@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaDecision, loginUrl, profileHome, safeNext } from "./redirects";
+import { areaDecision, loginUrl, profileHome, registerUrl, safeNext } from "./redirects";
 
 describe("profileHome", () => {
   it.each([
@@ -155,5 +155,29 @@ describe("safeNext", () => {
 
   it("falls back to the player home for an unknown profile", () => {
     expect(safeNext("/manage", "Mystery")).toBe("/");
+  });
+});
+
+describe("registerUrl", () => {
+  it("is the plain sign-up page without a next", () => {
+    for (const next of [null, undefined, ""]) {
+      expect(registerUrl(next)).toBe("/register");
+    }
+  });
+
+  it("carries next, encoded, and gives it back whole after the trip", () => {
+    const next = "/clubs/clube-da-foz?pitch=p1&date=2026-05-04&slot=2026-05-04T10%3A00%3A00Z";
+
+    const url = registerUrl(next);
+
+    expect(url).toMatch(/^\/register\?next=/);
+    expect(new URL(url, "http://localhost").searchParams.get("next")).toBe(next);
+  });
+
+  it("passes on what it is given without judging it: safeNext does that once the account exists", () => {
+    const url = registerUrl("//evil.example");
+
+    expect(new URL(url, "http://localhost").searchParams.get("next")).toBe("//evil.example");
+    expect(safeNext("//evil.example", "Player")).toBe("/");
   });
 });

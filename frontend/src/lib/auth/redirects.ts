@@ -30,6 +30,17 @@ export function loginUrl(next: string): string {
   return `${LOGIN_PATH}?next=${encodeURIComponent(next)}`;
 }
 
+export const REGISTER_PATH = "/register";
+
+/**
+ * The sign-up page, keeping where to go afterwards: someone who chooses "Criar conta" on the login page still comes
+ * back to the page they were sent from. `next` is passed on as it is; it is judged by `safeNext` when the account has
+ * been created, so a bad value is only ever dropped, never followed.
+ */
+export function registerUrl(next: string | null | undefined): string {
+  return typeof next === "string" && next !== "" ? `${REGISTER_PATH}?next=${encodeURIComponent(next)}` : REGISTER_PATH;
+}
+
 export type AreaDecision<T> = { allowed: true; account: T } | { allowed: false; redirectTo: string };
 
 /**

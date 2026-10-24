@@ -4,6 +4,8 @@ import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account } from "@/features/auth/api";
 import { LoginForm } from "@/features/auth/components/login-form";
+import { LoginScreen } from "@/features/auth/components/login-screen";
+import { RegisterScreen } from "@/features/auth/components/register-screen";
 import type { PublicClub } from "@/features/catalog/types";
 import { currentPath, replace, resetNavigation } from "@/test/navigation";
 import { server } from "@/test/msw";
@@ -41,6 +43,10 @@ function serve(profile: Account["profile"]) {
     http.post("/api/auth/login", () => {
       signedIn = true;
       return HttpResponse.json(account(profile));
+    }),
+    http.post("/api/auth/register", () => {
+      signedIn = true;
+      return HttpResponse.json(account(profile), { status: 201 });
     }),
     http.get("/api/clubs/clube-da-foz/pitches/:pitchId/slots", () => HttpResponse.json({ date: "2026-05-04", slots })),
   );
@@ -94,6 +100,35 @@ describe("choosing a slot without a session, signing in, and coming back to it",
     expect(summary).toHaveTextContent("11:00 – 12:00");
     expect(screen.getByLabelText("Campo")).toHaveValue(padel);
     expect(screen.getByLabelText("Data")).toHaveValue("2026-05-04");
+    expect(await screen.findByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
+  });
+
+  it("brings a visitor who creates an account instead back to the same slot too", async () => {
+    serve("Player");
+    const next = await pickSlotAsVisitor();
+
+    // On the login page the visitor chooses "Criar conta": the link keeps where they came from.
+    document.body.innerHTML = "";
+    resetNavigation(`/login?next=${encodeURIComponent(next)}`);
+    const login = renderWithProviders(<LoginScreen />);
+    const toSignUp = await screen.findByRole("link", { name: "Criar conta" });
+    const registerHref = toSignUp.getAttribute("href") ?? "";
+    expect(registerHref).toBe(`/register?next=${encodeURIComponent(next)}`);
+    login.unmount();
+
+    // The sign-up page reads it and the new account lands on the same club page, pitch, date and slot.
+    resetNavigation(registerHref);
+    const signUp = renderWithProviders(<RegisterScreen />);
+    await userEvent.type(screen.getByLabelText(/^nome$/i), "Rita Jogadora");
+    await userEvent.type(screen.getByLabelText(/^email$/i), "rita@exemplo.pt");
+    await userEvent.type(screen.getByLabelText(/palavra-passe/i), "palavra-passe");
+    await userEvent.click(screen.getByRole("button", { name: "Criar conta" }));
+
+    await waitFor(() => expect(currentPath()).toBe(next));
+    signUp.unmount();
+    renderWithProviders(<ClubBooking club={club} />);
+    const summary = await screen.findByRole("region", { name: "Resumo da reserva" });
+    expect(summary).toHaveTextContent("11:00 – 12:00");
     expect(await screen.findByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
   });
 
