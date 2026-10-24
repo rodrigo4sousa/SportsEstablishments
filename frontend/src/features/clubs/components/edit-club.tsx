@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
@@ -44,6 +45,11 @@ export function EditClub({ clubId }: { clubId: string }) {
 
   return (
     <div className="flex flex-col gap-10">
+      <p>
+        <Button asChild variant="outline">
+          <Link href={`/manage/clubs/${club.data.id}/calendar`}>Calendário de reservas</Link>
+        </Button>
+      </p>
       <ClubForm club={club.data} />
       <PitchSection clubId={club.data.id} />
     </div>
