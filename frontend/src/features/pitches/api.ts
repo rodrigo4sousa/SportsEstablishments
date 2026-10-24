@@ -78,8 +78,8 @@ export type PitchSchedule = {
   sunday: DayHours;
 };
 
-/** `blocked`: the slot overlaps a block (US09). */
-export type PreviewSlot = { startsAt: string; endsAt: string; blocked: boolean };
+/** `blocked`: the slot overlaps a block (US09). `booked`: it overlaps a confirmed booking, even one made on an older grid (US18). */
+export type PreviewSlot = { startsAt: string; endsAt: string; blocked: boolean; booked: boolean };
 
 export type PitchSlots = { date: string; slotDurationMinutes: number; slots: PreviewSlot[] };
 
@@ -106,7 +106,7 @@ export async function saveSchedule(clubId: string, pitchId: string, schedule: Pi
   );
 }
 
-/** The slots the schedule generates on a local date ("YYYY-MM-DD"), as UTC instants. Bookings are not taken out. */
+/** The slots the schedule generates on a local date ("YYYY-MM-DD"), as UTC instants, with the ones taken by a block or a booking marked. */
 export async function fetchSlots(clubId: string, pitchId: string, date: string): Promise<PitchSlots> {
   const response = await apiJson<components["schemas"]["PitchSlotsResponse"]>(
     `${pitchesPath(clubId)}/${pitchId}/slots?date=${encodeURIComponent(date)}`,

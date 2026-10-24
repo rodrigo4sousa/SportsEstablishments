@@ -135,6 +135,46 @@ describe("SlotPreview", () => {
     expect(texts()[0]).not.toContain("Bloqueado");
   });
 
+  it("marks the slots taken by a booking as Reservado, next to Bloqueado when a slot is both", async () => {
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json({
+          date: "2026-10-27",
+          slotDurationMinutes: 60,
+          slots: [
+            { startsAt: "2026-10-27T09:00:00Z", endsAt: "2026-10-27T10:00:00Z", blocked: false, booked: false },
+            { startsAt: "2026-10-27T10:00:00Z", endsAt: "2026-10-27T11:00:00Z", blocked: false, booked: true },
+            { startsAt: "2026-10-27T11:00:00Z", endsAt: "2026-10-27T12:00:00Z", blocked: true, booked: false },
+            { startsAt: "2026-10-27T12:00:00Z", endsAt: "2026-10-27T13:00:00Z", blocked: true, booked: true },
+          ],
+        }),
+      ),
+    );
+    renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
+    chosen("2026-10-27");
+
+    await screen.findByRole("list", { name: "Slots gerados" });
+
+    // 27 October is after the clocks went back: Lisbon is on UTC.
+    expect(texts()).toEqual(["09:00 – 10:00", "10:00 – 11:00 Reservado", "11:00 – 12:00 Bloqueado", "12:00 – 13:00 Reservado Bloqueado"]);
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((item) => item.hasAttribute("data-booked"))).toEqual([false, true, false, true]);
+    expect(items.map((item) => item.hasAttribute("data-blocked"))).toEqual([false, false, true, true]);
+    expect(screen.getAllByText("Reservado")).toHaveLength(2);
+    expect(screen.getAllByText("Bloqueado")).toHaveLength(2);
+  });
+
+  it("says that blocks and bookings are marked, no longer that bookings are ignored", async () => {
+    server.use(http.get(url, () => slots("2026-10-27", 60, ["2026-10-27T09:00:00Z", "2026-10-27T10:00:00Z"])));
+    renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
+    chosen("2026-10-27");
+    await screen.findByRole("list", { name: "Slots gerados" });
+
+    expect(screen.getByText(/os bloqueios e as reservas aparecem marcados/)).toBeInTheDocument();
+    expect(screen.queryByText(/as reservas ainda não são tidas em conta/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Reservado")).not.toBeInTheDocument();
+  });
+
   it("shows no Bloqueado marker when nothing is blocked", async () => {
     server.use(http.get(url, () => slots("2026-10-25", 60, ["2026-10-25T09:00:00Z", "2026-10-25T10:00:00Z"])));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
