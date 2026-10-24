@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ClubService>();
 
         services.AddSingleton<PitchRequestValidator>();
+        services.AddScoped<OwnedPitches>();
         services.AddScoped<PitchService>();
 
         return services;
