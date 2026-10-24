@@ -303,14 +303,14 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
 - Um campo inativo não aceita reservas (US07).
 - Decidido e feito (T03/US18): desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07): `POST …/pitches/{pitchId}/deactivate` devolve 422 `pitch_has_future_bookings` com `count` (regra de negócio, como na tabela de códigos da Stack; esta nota dizia antes 409).
 - Decidido e feito (T03/US18): um bloqueio que se sobreponha a reservas confirmadas é rejeitado (409 `block_overlaps_bookings`) e a mensagem lista essas reservas (US09); a verificação está em `BlockService.CreateAsync`, dentro do trinco da linha do campo, e a criação de uma reserva tranca a mesma linha antes de verificar os bloqueios.
-- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. Os emails (US22) e a lista das minhas reservas (US19) ainda não existem.
+- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. Os emails (US22) ainda não existem; ver as minhas reservas e cancelar é a US19.
 - Decidido (confirmado):
   - O pedido traz o campo e o início do slot como instante com fuso (`2026-10-25T00:00:00Z`, como as listas de slots o dão), para a hora repetida de outubro nunca ser ambígua.
   - Códigos: 404 `pitch_not_found` (campo desconhecido); 422 `club_unavailable` (dono desativado), `pitch_inactive`, `outside_booking_window` (data local fora de hoje até 30 dias em Lisboa, incluindo dias passados), `invalid_slot` (um início que não seja um slot gerado: dia fechado, fora do horário, fora da grelha, segundos a mais), `slot_started`; 409 `slot_blocked` (um bloqueio sobrepõe-se, mesmo em parte) e `slot_taken` («Este horário acabou de ser reservado. Escolhe outro.»). Os 422 são verificados por esta ordem; os 409 só depois de trancar a linha do campo.
   - Um slot que começa exatamente agora conta como começado (`slot_started`).
   - A desativação de um campo conta as reservas confirmadas que ainda não acabaram: as que estão a decorrer também impedem.
   - Os estados na API são `confirmed`, `cancelled_by_player`, `cancelled_by_club` e `no_show`; na base de dados ficam com o nome do enum (`Confirmed`, …), como pede a constraint.
-  - A resposta 201 não tem cabeçalho `Location` até a US19, porque ler uma reserva vem com a US19.
+  - A resposta 201 traz o cabeçalho `Location: /api/bookings/{id}` (relativo, como os outros), que `GET /api/bookings/{id}` resolve (US19).
 - Decisões de implementação (provisórias, a confirmar):
   - O fim vem sempre do horário do campo e o preço é o preço por slot atual do campo.
   - A transação tranca a linha do campo, volta a ler o campo (estado, preço e horário como estão nesse momento), verifica os bloqueios e insere; a sobreposição com outra reserva fica só a cargo da exclusion constraint (23P01 → 409 `slot_taken`), que é a última defesa e a regra também para a US13.
@@ -336,6 +336,17 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
 - A janela é a que o clube tem no momento do cancelamento (lida de `Club.CancellationWindowHours`), nunca uma cópia guardada na reserva (decidido na US06).
 - A API recusa cancelamentos fora da janela, mesmo que o pedido não venha do front end.
 - A reserva cancelada passa a «Cancelada pelo jogador» e o slot volta a ficar livre.
+- Estado: back end feito. A interface (as listas «Próximas» e «Anteriores», o botão de cancelar desativado com a explicação) vem noutro ramo. O email de cancelamento é da US22 (o email de cancelamento indica quem cancelou); a US19 não envia emails.
+- Decisões de implementação (provisórias, a confirmar):
+  - `GET /api/me/bookings?scope=upcoming|past&page=` (perfil Jogador, só as reservas de quem pede, 20 por página). `scope` é obrigatório: em falta ou desconhecido é 400 em `scope`; `page` de 1 a 10000, e não numérica também é 400 em `page` (mensagem em português).
+  - «Próximas»: reservas confirmadas que ainda não acabaram (uma que está a decorrer conta), da mais antiga para a mais recente. «Anteriores»: as que já acabaram e as canceladas (pelo jogador ou pelo clube) ou marcadas como falta, da mais recente para a mais antiga. Em ambas, a ordem é pelo início e depois pelo id.
+  - Cada reserva traz `id`, `clubName`, `clubSlug`, `pitchName`, `sport`, `startsAt`, `endsAt`, `price` (o que foi pago, não o preço atual do campo), `status`, `canCancel` e `cancellationDeadline` (instante UTC, só nas confirmadas; `null` nas outras). `canCancel` é verdadeiro se a reserva está confirmada e agora é estritamente antes do início menos a janela atual do clube. Uma reserva de um clube que entretanto ficou escondido continua na lista do jogador.
+  - `GET /api/bookings/{id}` lê uma reserva própria; a de outro jogador e um id desconhecido são o mesmo 404 `booking_not_found`.
+  - `POST /api/bookings/{id}/cancel` (perfil Jogador) responde 200 com a reserva já cancelada (`cancelled_by_player`). A reserva nunca é apagada e o slot volta a ficar livre, porque a exclusion constraint só olha para as confirmadas. Ordem das recusas: 404 `booking_not_found` → 422 `booking_not_confirmed` (já cancelada, cancelada pelo clube ou falta; vem antes da janela, por isso a resposta não depende do relógio) → 422 `outside_cancellation_window`, com `cancellationDeadline` (instante UTC) e a janela em horas na mensagem.
+  - A fronteira é «estritamente antes»: no instante exato do prazo já não se pode cancelar.
+  - A janela lê-se do clube no momento de cancelar, sob o trinco da linha do campo, nunca da reserva (US06). O mesmo trinco serializa dois cancelamentos simultâneos da mesma reserva: um tem sucesso e o outro recebe o 422 `booking_not_confirmed`, nunca um 500.
+  - Donos e admins recebem 403 nos três endpoints, e sem sessão 401.
+  - A tabela `bookings` ganha o índice por jogador e início que a Stack já pedia (`ix_bookings_player_id_starts_at`).
 ### US20 · Reserva semanal recorrente · D · 8 pontos
  
 Como jogador, quero reservar o mesmo slot todas as semanas durante algum tempo, para não ter de reservar à mão.
@@ -360,6 +371,7 @@ Como jogador, quero receber um email quando reservo e quando uma reserva minha �
  
 - O email de confirmação traz clube, morada, campo, data, hora e preço.
 - O email de cancelamento indica quem cancelou e, se foi o clube, o motivo.
+  - O cancelamento feito pelo jogador (US19, `POST /api/bookings/{id}/cancel`) só muda o estado da reserva: o email a avisar vem aqui, em segundo plano, sem fazer falhar o cancelamento.
 - O envio é feito em segundo plano; uma falha no envio não falha a reserva nem o cancelamento e fica registada no log.
 - Em desenvolvimento, os emails vão para um serviço de teste (por exemplo, Mailpit) e nunca para endereços reais.
 ### US23 · Email ao dono sobre nova reserva · D · 1 ponto
