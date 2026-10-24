@@ -34,6 +34,7 @@ const booking = (patch: Partial<CalendarBooking> = {}): CalendarBooking => ({
   status: "confirmed",
   price: 18.5,
   playerName: "Rita Jogadora",
+  createdByClub: false,
   ...patch,
 });
 
@@ -56,6 +57,8 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   price: 18.5,
   status: "confirmed",
   playerName: "Rita Jogadora",
+  createdByClub: false,
+  customerPhone: null,
   createdAt: "2026-05-01T09:30:00Z",
   cancelledAt: null,
   cancellationReason: null,
@@ -191,7 +194,7 @@ describe("ClubCalendar, weekly view", () => {
       expect(within(dayColumn(names[1])).getByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" })).toBeInTheDocument();
       expect(within(dayColumn(names[3])).getByRole("group", { name: "Bloqueio, 11:00 – 12:00, Manutenção da rede" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Bruno Jogador/ })).not.toBeInTheDocument();
-      expect(within(dayColumn(names[0])).queryByRole("button")).not.toBeInTheDocument();
+      expect(within(dayColumn(names[0])).queryByRole("button", { name: /Rita Jogadora/ })).not.toBeInTheDocument();
       expect(hourLabels()).toEqual(["09:00", "10:00", "11:00", "12:00"]);
     });
 

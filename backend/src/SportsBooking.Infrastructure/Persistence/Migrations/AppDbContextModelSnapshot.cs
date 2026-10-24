@@ -226,6 +226,16 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("customer_name");
+
+                    b.Property<string>("CustomerPhone")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("customer_phone");
+
                     b.Property<DateTime>("EndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ends_at");
@@ -266,7 +276,7 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_bookings_ends_after_starts", "ends_at > starts_at");
 
-                            t.HasCheckConstraint("ck_bookings_has_player", "player_id IS NOT NULL");
+                            t.HasCheckConstraint("ck_bookings_player_or_customer", "(player_id IS NOT NULL AND customer_name IS NULL AND customer_phone IS NULL) OR (player_id IS NULL AND customer_name IS NOT NULL AND customer_phone IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_bookings_price", "price > 0");
 

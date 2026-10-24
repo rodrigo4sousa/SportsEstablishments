@@ -211,7 +211,7 @@ public sealed class ClubCalendarTests(ApiFactory factory)
         text.ShouldNotContain(rita.Email!);
         text.ShouldNotContain(rita.Id.ToString());
         text.ShouldNotContain(rita.PhoneNumber ?? "no-phone-number");
-        booking.EnumerateObject().Select(property => property.Name).ShouldBe(["id", "pitchId", "startsAt", "endsAt", "status", "price", "playerName"]);
+        booking.EnumerateObject().Select(property => property.Name).ShouldBe(["id", "pitchId", "startsAt", "endsAt", "status", "price", "playerName", "createdByClub"]);
     }
 
     private static string Hours(JsonElement day) =>

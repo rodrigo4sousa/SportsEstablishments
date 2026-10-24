@@ -34,3 +34,20 @@ export async function cancelClubBooking(clubId: string, bookingId: string, reaso
     }),
   );
 }
+
+/** What the owner enters to book a slot for a customer who has no account (US13). */
+export type CreateClubBookingRequest = { pitchId: string; startsAt: string; customerName: string; customerPhone: string };
+
+/**
+ * US13: books a slot of the club for a customer. Same slot rules as a player's booking: 409 `slot_taken` and `slot_blocked`,
+ * 422 `invalid_slot`, `slot_started`, `outside_booking_window`, `pitch_inactive` and `club_unavailable`, 404 `pitch_not_found`,
+ * and 400 `validation_failed` on `customerName` and `customerPhone`.
+ */
+export async function createClubBooking(clubId: string, request: CreateClubBookingRequest): Promise<ClubBooking> {
+  return toClubBooking(
+    await apiJson<components["schemas"]["ClubBookingResponse"]>(`/api/manage/clubs/${clubId}/bookings`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+  );
+}

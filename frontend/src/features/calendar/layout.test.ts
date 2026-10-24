@@ -12,7 +12,7 @@ function pitch(id: string, date: string, opens: string | null, closes: string | 
 let counter = 0;
 function booking(pitchId: string, startsAt: string, endsAt: string, patch: Partial<CalendarBooking> = {}): CalendarBooking {
   counter += 1;
-  return { id: `0199f7a0-0000-7000-8000-${String(counter).padStart(12, "0")}`, pitchId, startsAt, endsAt, status: "confirmed", price: 20, playerName: "Rita Jogadora", ...patch };
+  return { id: `0199f7a0-0000-7000-8000-${String(counter).padStart(12, "0")}`, pitchId, startsAt, endsAt, status: "confirmed", price: 20, playerName: "Rita Jogadora", createdByClub: false, ...patch };
 }
 
 function block(pitchId: string, startsAt: string, endsAt: string, reason: string | null = "Manutenção"): CalendarBlock {

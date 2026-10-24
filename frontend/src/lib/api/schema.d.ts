@@ -866,6 +866,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/manage/clubs/{clubId}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clubId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateClubBookingRequest"];
+                    "application/*+json": components["schemas"]["CreateClubBookingRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClubBookingResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manage/clubs/{clubId}/bookings/{bookingId}": {
         parameters: {
             query?: never;
@@ -1763,6 +1841,7 @@ export interface components {
             /** Format: double */
             price: number | string;
             playerName: string;
+            createdByClub: boolean;
         };
         CalendarDay: {
             date: string;
@@ -1804,6 +1883,8 @@ export interface components {
             price: number | string;
             status: string;
             playerName: string;
+            createdByClub: boolean;
+            customerPhone: null | string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1831,6 +1912,15 @@ export interface components {
             /** Format: uuid */
             pitchId: string;
             startsAt: string;
+            /** Format: date-time */
+            startsAtUtc?: null | string;
+        };
+        CreateClubBookingRequest: {
+            /** Format: uuid */
+            pitchId: string;
+            startsAt: string;
+            customerName: string;
+            customerPhone: string;
             /** Format: date-time */
             startsAtUtc?: null | string;
         };

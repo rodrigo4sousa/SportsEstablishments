@@ -10,6 +10,17 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled_by_club: "border-dashed border-muted-foreground/50 bg-muted text-muted-foreground line-through",
 };
 
+/** The mark on a booking the club's owner made for a customer without an account (US13). */
+export const CREATED_BY_CLUB = "Criada pelo clube";
+
+/** What the grids need to offer a new booking where the owner clicks an empty time (US13). */
+export type NewBookingAction = {
+  /** Called with the pitch and the instant the clicked hour starts. */
+  onEmptyTimeClick: (pitchId: string, startsAt: string) => void;
+  /** Whether a new booking can be made in the hour starting at this instant (it is not over, and within the booking window). */
+  canBookAt: (startsAt: string) => boolean;
+};
+
 const BLOCK_STYLE =
   "border-slate-500/60 bg-slate-200 text-slate-900 bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,rgba(100,116,139,0.28)_6px,rgba(100,116,139,0.28)_12px)] dark:bg-slate-800 dark:text-slate-100";
 
@@ -18,6 +29,8 @@ type DayGridProps = {
   /** The booking whose details are open. */
   selectedId: string | null;
   onOpenBooking: (bookingId: string) => void;
+  /** Without it the grid is read-only. */
+  newBooking?: NewBookingAction;
 };
 
 /** The position of an item inside its column: by real elapsed minutes, and side by side with what overlaps it. */
@@ -35,7 +48,7 @@ function positionOf(item: PlacedItem, gridStartMinute: number) {
  * its reason. Times go through `formatLisbonSlotTime`, so the repeated hour of 25 October reads «01:00 (verão)» and
  * «01:00 (inverno)».
  */
-export function DayGrid({ layout, selectedId, onOpenBooking }: DayGridProps) {
+export function DayGrid({ layout, selectedId, onOpenBooking, newBooking }: DayGridProps) {
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
 
   return (
@@ -79,11 +92,11 @@ export function DayGrid({ layout, selectedId, onOpenBooking }: DayGridProps) {
                 />
               ) : null}
               {layout.rows.map((row) => (
-                <div
+                <HourCell
                   key={row.minute}
-                  aria-hidden="true"
-                  className="absolute inset-x-0 border-b"
-                  style={{ top: heightOf(row.minute - layout.gridStartMinute), height: HOUR_HEIGHT_PX }}
+                  top={heightOf(row.minute - layout.gridStartMinute)}
+                  label={newBooking && column.pitch.status === "active" && column.open && row.minute < column.open.toMinute && row.minute + 60 > column.open.fromMinute && newBooking.canBookAt(row.startsAt) ? `Nova reserva: ${column.pitch.name}, ${formatLisbonSlotTime(row.startsAt)}` : null}
+                  onClick={() => newBooking?.onEmptyTimeClick(column.pitch.id, row.startsAt)}
                 />
               ))}
               {!column.open ? (
@@ -106,6 +119,27 @@ export function DayGrid({ layout, selectedId, onOpenBooking }: DayGridProps) {
   );
 }
 
+/**
+ * One hour of a column: a line, and, where the owner can book (US13), a button that starts a new booking at that time.
+ * The buttons sit under the bookings and are left out of the tab order (the "Nova reserva" button is the keyboard way in).
+ */
+export function HourCell({ top, label, onClick }: { top: number; label: string | null; onClick: () => void }) {
+  if (label === null) {
+    return <div aria-hidden="true" className="absolute inset-x-0 border-b" style={{ top, height: HOUR_HEIGHT_PX }} />;
+  }
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      data-new-booking=""
+      onClick={onClick}
+      className="absolute inset-x-0 border-b outline-none hover:bg-sky-100/60 dark:hover:bg-sky-950/40"
+      style={{ top, height: HOUR_HEIGHT_PX }}
+    />
+  );
+}
+
 export function times(startsAt: string, endsAt: string): string {
   return `${formatLisbonSlotTime(startsAt)} – ${formatLisbonSlotTime(endsAt)}`;
 }
@@ -124,21 +158,27 @@ export function BookingBox({
 }) {
   const { booking } = item;
   const label = statusLabel(booking.status);
+  // US13: a booking the club made for a customer says so, in the box and for screen readers.
+  const origin = booking.createdByClub ? CREATED_BY_CLUB : null;
   return (
     <button
       type="button"
       data-kind="booking"
       data-minute-start={item.startMinute}
       data-minute-end={item.endMinute}
-      aria-label={`${booking.playerName}, ${times(booking.startsAt, booking.endsAt)}, ${label}`}
+      aria-label={`${booking.playerName}, ${times(booking.startsAt, booking.endsAt)}, ${label}${origin ? `, ${origin.toLowerCase()}` : ""}`}
+      data-created-by-club={booking.createdByClub || undefined}
       aria-pressed={selected}
       onClick={onOpen}
-      className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${selected ? "ring-2 ring-foreground" : ""}`}
+      className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${booking.createdByClub ? "border-l-4 border-l-sky-600" : ""} ${selected ? "ring-2 ring-foreground" : ""}`}
       style={positionOf(item, gridStartMinute)}
     >
       <span className="truncate font-medium">{booking.playerName}</span>
       <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>
-      <span className="truncate">{label}</span>
+      <span className="truncate">
+        {label}
+        {origin ? ` · ${origin}` : ""}
+      </span>
     </button>
   );
 }

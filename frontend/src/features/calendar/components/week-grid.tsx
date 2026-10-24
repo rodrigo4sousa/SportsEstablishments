@@ -1,13 +1,15 @@
 import { WEEKDAYS } from "@/features/pitches/schedule";
-import { formatLisbonDate, formatLisbonSlotTime, weekdayIndex } from "@/lib/datetime";
+import { formatLisbonDate, formatLisbonSlotTime, lisbonInstantAtMinute, weekdayIndex } from "@/lib/datetime";
 import { HOUR_HEIGHT_PX, heightOf, type WeekLayout } from "../layout";
-import { BlockBox, BookingBox } from "./day-grid";
+import { BlockBox, BookingBox, HourCell, type NewBookingAction } from "./day-grid";
 
 type WeekGridProps = {
   layout: WeekLayout;
   /** The booking whose details are open. */
   selectedId: string | null;
   onOpenBooking: (bookingId: string) => void;
+  /** Without it the grid is read-only. */
+  newBooking?: NewBookingAction;
 };
 
 /** "Segunda-feira" for a "YYYY-MM-DD" date, Monday first. */
@@ -21,7 +23,7 @@ export function weekdayName(date: string): string {
  * of its own Lisbon day. The hours on the left are the clock of an ordinary day, so on a day the clocks change the boxes
  * after the change sit an hour off that scale; each box says its own time, and the page says so (see `ClockChangeNote`).
  */
-export function WeekGrid({ layout, selectedId, onOpenBooking }: WeekGridProps) {
+export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: WeekGridProps) {
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
 
   return (
@@ -67,14 +69,26 @@ export function WeekGrid({ layout, selectedId, onOpenBooking }: WeekGridProps) {
                     }}
                   />
                 ) : null}
-                {layout.rows.map((row) => (
-                  <div
-                    key={row.minute}
-                    aria-hidden="true"
-                    className="absolute inset-x-0 border-b"
-                    style={{ top: heightOf(row.minute - layout.gridStartMinute), height: HOUR_HEIGHT_PX }}
-                  />
-                ))}
+                {layout.rows.map((row) => {
+                  // The hour of this day that starts `row.minute` minutes after its start; a 23-hour day has no such hour at its end.
+                  const startsAt = row.minute < day.dayMinutes ? lisbonInstantAtMinute(day.date, row.minute).toISOString() : null;
+                  const bookable =
+                    newBooking &&
+                    startsAt !== null &&
+                    layout.pitch.status === "active" &&
+                    day.open &&
+                    row.minute < day.open.toMinute &&
+                    row.minute + 60 > day.open.fromMinute &&
+                    newBooking.canBookAt(startsAt);
+                  return (
+                    <HourCell
+                      key={row.minute}
+                      top={heightOf(row.minute - layout.gridStartMinute)}
+                      label={bookable && startsAt ? `Nova reserva: ${name}, ${dateText}, ${formatLisbonSlotTime(startsAt)}` : null}
+                      onClick={() => startsAt && newBooking?.onEmptyTimeClick(layout.pitch.id, startsAt)}
+                    />
+                  );
+                })}
                 {!day.open ? (
                   <p className="absolute inset-x-0 top-2 text-center text-xs text-muted-foreground" aria-label={`${name}: fechado`}>
                     Fechado
