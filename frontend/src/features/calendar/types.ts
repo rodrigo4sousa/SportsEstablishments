@@ -11,7 +11,8 @@ export type CalendarDay = Schemas["CalendarDay"];
 
 export type CalendarPitch = Omit<Schemas["CalendarPitch"], "slotDurationMinutes"> & { slotDurationMinutes: number };
 
-export type DayCalendar = {
+/** What the calendar API answers for a range of up to seven days (one day for the daily view, a week for the weekly one). */
+export type CalendarRange = {
   from: string;
   to: string;
   pitches: CalendarPitch[];
@@ -22,7 +23,7 @@ export type DayCalendar = {
 /** A booking as the owner sees it when opening it: the player's name is the only personal data. */
 export type ClubBooking = Omit<Schemas["ClubBookingResponse"], "price"> & { price: number };
 
-export function toDayCalendar(response: Schemas["CalendarResponse"]): DayCalendar {
+export function toCalendarRange(response: Schemas["CalendarResponse"]): CalendarRange {
   return {
     ...response,
     pitches: response.pitches.map((pitch) => ({ ...pitch, slotDurationMinutes: Number(pitch.slotDurationMinutes) })),

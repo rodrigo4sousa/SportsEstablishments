@@ -1,5 +1,5 @@
-import { lisbonDayMinutes, lisbonInstantAtMinute, lisbonLocalMinutes, minutesFromLisbonDayStart } from "@/lib/datetime";
-import type { CalendarBlock, CalendarBooking, CalendarPitch, DayCalendar } from "./types";
+import { addDaysToDateKey, lisbonDayMinutes, lisbonInstantAtMinute, lisbonLocalMinutes, minutesFromLisbonDayStart } from "@/lib/datetime";
+import type { CalendarBlock, CalendarBooking, CalendarPitch, CalendarRange } from "./types";
 
 /** How tall one hour of the daily view is, in pixels: every position is minutes times this over 60. */
 export const HOUR_HEIGHT_PX = 64;
@@ -99,7 +99,7 @@ function assignLanes(items: Array<Omit<PlacedItem, "lane" | "lanes">>): PlacedIt
  * 01:30 WEST and one at 01:30 WET land on different rows. Returns null when nothing is open and nothing is booked or
  * blocked that day.
  */
-export function layoutDay(date: string, calendar: DayCalendar): DayLayout | null {
+export function layoutDay(date: string, calendar: CalendarRange): DayLayout | null {
   const dayMinutes = lisbonDayMinutes(date);
   const clamp = (minute: number) => Math.min(Math.max(minute, 0), dayMinutes);
 
@@ -138,4 +138,75 @@ export function layoutDay(date: string, calendar: DayCalendar): DayLayout | null
   });
 
   return { date, gridStartMinute, gridEndMinute, rows, columns };
+}
+
+export type WeekDay = {
+  date: string;
+  /** How long the Lisbon day lasts, in minutes: 1440, except on the days the clocks change. */
+  dayMinutes: number;
+  /** When the pitch is open that day, in minutes from the start of that day; null when it is closed. */
+  open: OpenRange | null;
+  items: PlacedItem[];
+};
+
+export type WeekLayout = {
+  pitch: CalendarPitch;
+  /** Seven days from the Monday given, in order. */
+  days: WeekDay[];
+  /** The grid is shared by the seven columns: whole hours of elapsed time, from the earliest to the latest of the week. */
+  gridStartMinute: number;
+  gridEndMinute: number;
+  /** The shared hour scale, labelled with the clock of the first ordinary (24-hour) day of the week. */
+  rows: GridRow[];
+  /** The days of this week on which the clocks change: their items are placed by elapsed time, so they sit an hour off the scale after the change. */
+  clockChangeDays: string[];
+};
+
+/**
+ * The weekly view of one pitch: seven columns, Monday first, with the same rules as the daily view. Each day is laid out by
+ * `layoutDay` (so by real elapsed minutes from the start of its own Lisbon day), and the seven share one vertical scale from
+ * the earliest to the latest hour of the week. Returns null when the pitch is not in the calendar, or when nothing is open
+ * and nothing is booked or blocked all week.
+ */
+export function layoutWeek(monday: string, calendar: CalendarRange, pitchId: string): WeekLayout | null {
+  const pitch = calendar.pitches.find((candidate) => candidate.id === pitchId);
+  if (!pitch) {
+    return null;
+  }
+
+  const dates = Array.from({ length: 7 }, (_, index) => addDaysToDateKey(monday, index));
+  const bookings = calendar.bookings.filter((booking) => booking.pitchId === pitchId);
+  const blocks = calendar.blocks.filter((block) => block.pitchId === pitchId);
+  const perDay = dates.map((date) => ({
+    date,
+    dayMinutes: lisbonDayMinutes(date),
+    layout: layoutDay(date, { from: date, to: date, pitches: [pitch], bookings, blocks }),
+  }));
+
+  const layouts = perDay.flatMap((day) => (day.layout ? [day.layout] : []));
+  if (layouts.length === 0) {
+    return null;
+  }
+  const gridStartMinute = Math.min(...layouts.map((layout) => layout.gridStartMinute));
+  const gridEndMinute = Math.max(...layouts.map((layout) => layout.gridEndMinute));
+
+  const referenceDay = (perDay.find((day) => day.dayMinutes === 1440) ?? perDay[0]).date;
+  const rows: GridRow[] = [];
+  for (let minute = gridStartMinute; minute < gridEndMinute; minute += MINUTES_PER_HOUR) {
+    rows.push({ minute, startsAt: lisbonInstantAtMinute(referenceDay, minute).toISOString() });
+  }
+
+  return {
+    pitch,
+    days: perDay.map(({ date, dayMinutes, layout }) => ({
+      date,
+      dayMinutes,
+      open: layout?.columns[0].open ?? null,
+      items: layout?.columns[0].items ?? [],
+    })),
+    gridStartMinute,
+    gridEndMinute,
+    rows,
+    clockChangeDays: perDay.filter((day) => day.dayMinutes !== 1440).map((day) => day.date),
+  };
 }
