@@ -2,7 +2,6 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
-using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
 using SportsBooking.Domain.Scheduling;
 
@@ -47,6 +46,7 @@ public sealed class PitchScheduleService(
     OwnedPitches ownedPitches,
     OwnedClubs ownedClubs,
     IAppDbContext dbContext,
+    PitchDayCalendar calendar,
     PitchScheduleRequestValidator validator,
     TimeProvider timeProvider)
 {
@@ -108,32 +108,12 @@ public sealed class PitchScheduleService(
         }
 
         var pitch = found.Value;
-        var generated = pitch.SlotsOn(day, timeZone);
-        var blocks = generated.Count == 0
-            ? []
-            : await LoadBlocksAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
-        var bookings = generated.Count == 0
-            ? []
-            : await LoadBookingsAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
-        var slots = generated
-            .Select(slot => new SlotResponse(
-                slot.StartsAtUtc,
-                slot.EndsAtUtc,
-                blocks.Any(block => block.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc)),
-                bookings.Any(booking => booking.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc))))
+        var daySlots = await calendar.SlotsAsync([new PitchInZone(pitch, timeZone)], day, cancellationToken);
+        var slots = daySlots[pitch.Id]
+            .Select(slot => new SlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, slot.Blocked, slot.Booked))
             .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }
-
-    private async Task<List<Block>> LoadBlocksAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
-        await dbContext.Blocks.AsNoTracking()
-            .Where(block => block.PitchId == pitchId && block.StartsAt < to && from < block.EndsAt)
-            .ToListAsync(cancellationToken);
-
-    private async Task<List<Booking>> LoadBookingsAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
-        await dbContext.Bookings.AsNoTracking()
-            .Where(booking => booking.PitchId == pitchId && booking.Status == BookingStatus.Confirmed && booking.StartsAt < to && from < booking.EndsAt)
-            .ToListAsync(cancellationToken);
 
     private static ServiceError DateError(string message) =>
         ServiceError.Validation(new Dictionary<string, string[]> { ["date"] = [message] });

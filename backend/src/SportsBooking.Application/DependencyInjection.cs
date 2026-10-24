@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<OwnedPitches>();
         services.AddScoped<PitchService>();
 
+        services.AddScoped<PitchDayCalendar>();
         services.AddSingleton<PitchScheduleRequestValidator>();
         services.AddScoped<PitchScheduleService>();
 
