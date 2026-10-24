@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SportsBooking.Domain.Accounts;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
 using SportsBooking.Infrastructure.Identity;
@@ -14,6 +15,9 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
     /// </summary>
     public const string NoOverlapConstraint = "bookings_no_overlap";
 
+    /// <summary>An optional "+" and up to 15 digits (<c>PhoneNumberPolicy</c>).</summary>
+    private const int CustomerPhoneMaximumLength = 16;
+
     public void Configure(EntityTypeBuilder<Booking> builder)
     {
         builder.ToTable("bookings", table =>
@@ -23,8 +27,11 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
             table.HasCheckConstraint(
                 "ck_bookings_status",
                 $"status IN ({string.Join(", ", Enum.GetNames<BookingStatus>().Select(name => $"'{name}'"))})");
-            // US13 replaces this with "a player, or a customer name and phone".
-            table.HasCheckConstraint("ck_bookings_has_player", "player_id IS NOT NULL");
+            // US13: a booking is a player's, or a customer's (name and phone), never both and never neither.
+            table.HasCheckConstraint(
+                "ck_bookings_player_or_customer",
+                "(player_id IS NOT NULL AND customer_name IS NULL AND customer_phone IS NULL) "
+                + "OR (player_id IS NULL AND customer_name IS NOT NULL AND customer_phone IS NOT NULL)");
         });
 
         builder.HasKey(booking => booking.Id);
@@ -32,8 +39,11 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(booking => booking.Price).HasPrecision(10, 2);
         // As text, so the constraint's WHERE (status = 'Confirmed') works (docs/stack.md).
         builder.Property(booking => booking.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(booking => booking.CustomerName).HasMaxLength(AccountNamePolicy.MaximumLength);
+        builder.Property(booking => booking.CustomerPhone).HasMaxLength(CustomerPhoneMaximumLength);
         builder.Property(booking => booking.CancellationReason).HasMaxLength(BookingRules.CancellationReasonMaximumLength);
         builder.Ignore(booking => booking.IsConfirmed);
+        builder.Ignore(booking => booking.IsForCustomer);
 
         // A pitch's bookings in time order: overlap checks, counts and, later, the calendar.
         builder.HasIndex(booking => new { booking.PitchId, booking.StartsAt }).HasDatabaseName("ix_bookings_pitch_id_starts_at");

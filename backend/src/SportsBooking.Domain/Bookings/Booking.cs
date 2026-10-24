@@ -58,9 +58,9 @@ public static class BookingStatuses
 /// <summary>
 /// A booking of one slot of a pitch (US18), UTC instants [StartsAt, EndsAt). It keeps the price of the moment it was
 /// made. No two confirmed bookings of a pitch overlap: the database refuses it (T03, exclusion constraint).
-/// Today a booking always belongs to a player; US13 adds bookings an owner makes for a customer without an account
-/// (another factory, customer name and phone) without touching the overlap rule, which only looks at the pitch,
-/// the period and the status.
+/// A booking belongs either to a player (US18) or to a customer without an account whom the club's owner booked for
+/// (US13, a name and a phone), never to both and never to neither (<c>ck_bookings_player_or_customer</c>). The overlap
+/// rule only looks at the pitch, the period and the status, so both kinds compete for the same slots.
 /// </summary>
 public sealed class Booking
 {
@@ -73,8 +73,17 @@ public sealed class Booking
 
     public Guid PitchId { get; private set; }
 
-    /// <summary>The player's account. Nullable for US13 (customer without an account); always set for now.</summary>
+    /// <summary>The player's account; null for a booking the club made for a customer (US13).</summary>
     public Guid? PlayerId { get; private set; }
+
+    /// <summary>The customer's name (US13); null for a player's booking.</summary>
+    public string? CustomerName { get; private set; }
+
+    /// <summary>The customer's phone as the owner typed it, spaces removed (US13); null for a player's booking.</summary>
+    public string? CustomerPhone { get; private set; }
+
+    /// <summary>True for a booking the club made for a customer without an account (US13): it is in no player's list.</summary>
+    public bool IsForCustomer => PlayerId is null;
 
     public DateTime StartsAt { get; private set; }
 
@@ -118,6 +127,38 @@ public sealed class Booking
             Id = Guid.CreateVersion7(),
             PitchId = pitchId,
             PlayerId = playerId,
+            StartsAt = startsAt,
+            EndsAt = endsAt,
+            Price = price,
+            Status = BookingStatus.Confirmed,
+            CreatedAt = EnsureUtc(now),
+        };
+    }
+
+    /// <summary>A confirmed booking the club's owner makes for a customer who has no account (US13).</summary>
+    public static Booking ForCustomer(Guid pitchId, string customerName, string customerPhone, DateTime startsAt, DateTime endsAt, decimal price, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(customerName) || string.IsNullOrWhiteSpace(customerPhone))
+        {
+            throw new ArgumentException("A customer booking needs the customer's name and phone.", nameof(customerName));
+        }
+
+        if (EnsureUtc(endsAt) <= EnsureUtc(startsAt))
+        {
+            throw new ArgumentException("A booking must end after it starts.", nameof(endsAt));
+        }
+
+        if (price <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(price), price, "A booking has a price above zero.");
+        }
+
+        return new Booking
+        {
+            Id = Guid.CreateVersion7(),
+            PitchId = pitchId,
+            CustomerName = customerName.Trim(),
+            CustomerPhone = customerPhone.Trim(),
             StartsAt = startsAt,
             EndsAt = endsAt,
             Price = price,
