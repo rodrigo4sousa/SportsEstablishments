@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Net.Http.Headers;
 
 namespace SportsBooking.IntegrationTests.Infrastructure;
@@ -21,7 +22,7 @@ public static class SessionCookies
     }
 
     /// <summary>A client on the site's HTTPS origin that sends the site's Origin but keeps no cookie jar.</summary>
-    public static HttpClient CreateSiteClient(this ApiFactory factory)
+    public static HttpClient CreateSiteClient(this WebApplicationFactory<Program> factory)
     {
         var client = factory.CreateClient(new() { BaseAddress = new Uri(ApiFactory.SiteOrigin), HandleCookies = false });
         client.DefaultRequestHeaders.Add(HeaderNames.Origin, ApiFactory.SiteOrigin);

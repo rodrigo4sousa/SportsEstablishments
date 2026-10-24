@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<OwnedPitches>();
         services.AddScoped<PitchService>();
 
+        services.AddSingleton<PitchScheduleRequestValidator>();
+        services.AddScoped<PitchScheduleService>();
+
         return services;
     }
 }
