@@ -54,6 +54,17 @@ export function formatLisbonTime(instant: Instant): string {
   return timeFormatter.format(toDate(instant));
 }
 
+/**
+ * "sábado, 1 de agosto" for a calendar date written "YYYY-MM-DD" (a date key, with no time of day). Noon UTC is the
+ * same calendar day in Lisbon all year round, so the formatter cannot land on the day before or after.
+ */
+export function formatDateKeyLong(dateKey: string): string {
+  if (!isDateKey(dateKey)) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
+  }
+  return formatLisbonLongDate(`${dateKey}T12:00:00Z`);
+}
+
 /** "01/08/2026" */
 export function formatLisbonDate(instant: Instant): string {
   return dateFormatter.format(toDate(instant));
