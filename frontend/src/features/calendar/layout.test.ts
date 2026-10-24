@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HOUR_HEIGHT_PX, heightOf, layoutDay } from "./layout";
-import type { CalendarBlock, CalendarBooking, CalendarPitch, DayCalendar } from "./types";
+import type { CalendarBlock, CalendarBooking, CalendarPitch, CalendarRange } from "./types";
 
 const PADEL = "0199f7a0-0000-7000-8000-0000000000d1";
 const TENNIS = "0199f7a0-0000-7000-8000-0000000000d2";
@@ -20,7 +20,7 @@ function block(pitchId: string, startsAt: string, endsAt: string, reason: string
   return { id: `0199f7a0-0000-7000-9000-${String(counter).padStart(12, "0")}`, pitchId, startsAt, endsAt, reason };
 }
 
-function calendar(date: string, pitches: CalendarPitch[], bookings: CalendarBooking[] = [], blocks: CalendarBlock[] = []): DayCalendar {
+function calendar(date: string, pitches: CalendarPitch[], bookings: CalendarBooking[] = [], blocks: CalendarBlock[] = []): CalendarRange {
   return { from: date, to: date, pitches, bookings, blocks };
 }
 
