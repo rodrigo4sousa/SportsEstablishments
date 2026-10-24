@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  lisbonNowLocal,
   addDaysToDateKey,
   isDateKey,
   formatLisbonDate,
@@ -138,5 +139,13 @@ describe("date keys", () => {
 
   it("refuses something that is not a date", () => {
     expect(() => addDaysToDateKey("amanha", 1)).toThrow();
+  });
+});
+
+describe("lisbonNowLocal", () => {
+  it("is the Lisbon date and time, not the UTC or browser ones", () => {
+    expect(lisbonNowLocal(new Date("2026-10-24T23:30:00Z"))).toBe("2026-10-25T00:30");
+    expect(lisbonNowLocal(new Date("2026-01-15T12:05:00Z"))).toBe("2026-01-15T12:05");
+    expect(lisbonNowLocal(new Date("2026-10-25T00:30:00Z"))).toBe("2026-10-25T01:30");
   });
 });

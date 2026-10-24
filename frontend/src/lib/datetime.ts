@@ -126,3 +126,8 @@ export function addDaysToDateKey(dateKey: string, days: number): string {
   const [year, month, day] = dateKey.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
+
+/** Now in Lisbon as "YYYY-MM-DDTHH:mm" (the format of the owner's date-time fields), to compare with what was typed. */
+export function lisbonNowLocal(now: Date = new Date()): string {
+  return `${lisbonDateKey(now)}T${formatLisbonTime(now)}`;
+}
