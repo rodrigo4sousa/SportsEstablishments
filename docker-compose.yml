@@ -37,6 +37,10 @@ services:
       # Admin account created at startup (US04); empty means no admin. Set them in .env, never in this file.
       AdminSeed__Email: ${ADMIN_SEED_EMAIL:-}
       AdminSeed__Password: ${ADMIN_SEED_PASSWORD:-}
+      # US22: emails go to Mailpit (web UI on :8025), never to real addresses.
+      Email__Host: mailpit
+      Email__Port: "1025"
+      Email__Security: None
     ports:
       - "5080:8080"
     depends_on:

@@ -17,6 +17,9 @@ if (isOpenApiGeneration)
         new("ConnectionStrings:Default", "Host=unused-during-openapi-generation"),
         new("Security:AllowedOrigins:0", "https://unused-during-openapi-generation"),
         new("Jwt:SigningKey", "unused-during-openapi-generation-0123456789"),
+        new("Email:Host", "unused-during-openapi-generation"),
+        new("Email:FromAddress", "unused@openapi.invalid"),
+        new("Outbox:Enabled", "false"),
     ]);
 }
 

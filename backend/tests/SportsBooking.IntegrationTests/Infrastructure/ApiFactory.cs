@@ -60,6 +60,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Security:AllowedOrigins:0", SiteOrigin);
         builder.UseSetting("Jwt:SigningKey", SigningKey);
+        // US22: no SMTP server in tests. The worker is off; the tests that need it run it themselves.
+        builder.UseSetting("Email:Host", "localhost");
+        builder.UseSetting("Email:Port", "2525");
+        builder.UseSetting("Email:Security", "None");
+        builder.UseSetting("Email:FromAddress", "reservas@testes.invalid");
+        builder.UseSetting("Outbox:Enabled", "false");
         // Every test request shares one address; rate limiting is tested on its own app (RateLimitingTests).
         builder.UseSetting("RateLimiting:Auth:LoginPermitLimit", "100000");
         builder.UseSetting("RateLimiting:Auth:RegisterPermitLimit", "100000");

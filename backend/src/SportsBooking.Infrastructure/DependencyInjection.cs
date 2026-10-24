@@ -10,12 +10,14 @@ using SportsBooking.Application.Auth;
 using SportsBooking.Application.Bookings;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Bookings;
 using SportsBooking.Infrastructure.Clubs;
 using SportsBooking.Infrastructure.Identity;
+using SportsBooking.Infrastructure.Notifications;
 using SportsBooking.Infrastructure.Pitches;
 using SportsBooking.Infrastructure.Persistence;
 
@@ -60,8 +62,27 @@ public static class DependencyInjection
 
         services.AddAccounts(configuration);
         services.AddSessions(configuration);
+        services.AddEmail(configuration);
 
         return services;
+    }
+
+    /// <summary>US22: SMTP sending and the outbox worker that drives it.</summary>
+    private static void AddEmail(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<EmailOptions>, EmailOptionsValidator>();
+        services.AddOptions<OutboxOptions>()
+            .Bind(configuration.GetSection(OutboxOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<OutboxOptions>, OutboxOptionsValidator>();
+
+        // Stateless: a new SMTP connection per message.
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<OutboxProcessor>();
+        services.AddHostedService<OutboxDispatcher>();
     }
 
     private static void AddSessions(this IServiceCollection services, IConfiguration configuration)
