@@ -476,6 +476,7 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - As migrações são aplicadas no deploy de forma controlada.
 - A base de dados tem dois utilizadores. O migration bundle corre como o dono da base de dados, que cria a extensão `btree_gist` (extensão de confiança no PostgreSQL 13 ou superior) e o resto do esquema. A API liga-se com um utilizador de aplicação separado, só com direitos de leitura e escrita nos dados e sem DDL, por isso nunca altera o esquema nem cria extensões.
 - Existe um endpoint `/health` para verificar se a API está a responder.
+- Os endpoints públicos de leitura (`/api/clubs`, `/api/localities`, a página do clube e os slots) têm um limite de pedidos por IP, folgado o suficiente para uma navegação normal (pesquisar, abrir clubes, mudar de data e de campo), para que ninguém os possa usar para extrair todos os dados ou sobrecarregar a API. Responde 429 `too_many_requests` com `Retry-After`, como nas rotas de autenticação, e usa o mesmo IP do cliente (ver o critério de `ForwardedHeaders` abaixo).
 - O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.
 ## Resumo de pontos
  
