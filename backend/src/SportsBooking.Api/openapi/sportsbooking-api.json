@@ -270,6 +270,80 @@
         }
       }
     },
+    "/api/bookings": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manage/clubs/{clubId}/pitches/{pitchId}/blocks": {
       "post": {
         "tags": [
@@ -1327,6 +1401,51 @@
           }
         }
       },
+      "BookingResponse": {
+        "required": [
+          "id",
+          "pitchId",
+          "clubId",
+          "startsAt",
+          "endsAt",
+          "price",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pitchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "ClubRequest": {
         "required": [
           "name",
@@ -1360,6 +1479,29 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "CreateBookingRequest": {
+        "required": [
+          "pitchId",
+          "startsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "pitchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "startsAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -1832,7 +1974,8 @@
         "required": [
           "startsAt",
           "endsAt",
-          "blocked"
+          "blocked",
+          "booked"
         ],
         "type": "object",
         "properties": {
@@ -1845,6 +1988,9 @@
             "format": "date-time"
           },
           "blocked": {
+            "type": "boolean"
+          },
+          "booked": {
             "type": "boolean"
           }
         }
@@ -1913,6 +2059,9 @@
   "tags": [
     {
       "name": "Auth"
+    },
+    {
+      "name": "Bookings"
     },
     {
       "name": "ManageBlocks"

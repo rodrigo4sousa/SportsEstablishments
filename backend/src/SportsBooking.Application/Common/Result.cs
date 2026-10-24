@@ -14,14 +14,16 @@ public enum ErrorKind
 
 /// <summary>
 /// An expected failure returned by a service (never thrown). <see cref="Code"/> is the stable ProblemDetails code;
-/// <see cref="FieldErrors"/> holds per-field messages, keyed by the JSON property name.
+/// <see cref="FieldErrors"/> holds per-field messages, keyed by the JSON property name. <see cref="Extensions"/> are
+/// extra ProblemDetails members for the front end (e.g. the bookings a block would overlap), keyed by their JSON name.
 /// </summary>
 public sealed record ServiceError(
     ErrorKind Kind,
     string Code,
     string Title,
     string Detail,
-    IReadOnlyDictionary<string, string[]>? FieldErrors = null)
+    IReadOnlyDictionary<string, string[]>? FieldErrors = null,
+    IReadOnlyDictionary<string, object?>? Extensions = null)
 {
     public static ServiceError Validation(IReadOnlyDictionary<string, string[]> fieldErrors) => new(
         ErrorKind.Validation,

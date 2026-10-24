@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
 using SportsBooking.Domain.Scheduling;
 
@@ -30,8 +31,9 @@ public sealed record PitchScheduleResponse(
 }
 
 /// <summary>One generated slot, as UTC instants.</summary>
-/// <param name="Blocked">True when the slot overlaps a block of the pitch (US09). Bookings are not taken into account yet.</param>
-public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt, bool Blocked);
+/// <param name="Blocked">True when the slot overlaps a block of the pitch (US09).</param>
+/// <param name="Booked">True when the slot overlaps a confirmed booking (US18), even one made on an older grid.</param>
+public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt, bool Blocked, bool Booked);
 
 /// <summary>The slots a pitch's schedule generates on one local date; slots that overlap a block are marked (US09).</summary>
 public sealed record PitchSlotsResponse(DateOnly Date, int SlotDurationMinutes, IReadOnlyList<SlotResponse> Slots);
@@ -110,8 +112,15 @@ public sealed class PitchScheduleService(
         var blocks = generated.Count == 0
             ? []
             : await LoadBlocksAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
+        var bookings = generated.Count == 0
+            ? []
+            : await LoadBookingsAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
         var slots = generated
-            .Select(slot => new SlotResponse(slot.StartsAtUtc, slot.EndsAtUtc, blocks.Any(block => block.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc))))
+            .Select(slot => new SlotResponse(
+                slot.StartsAtUtc,
+                slot.EndsAtUtc,
+                blocks.Any(block => block.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc)),
+                bookings.Any(booking => booking.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc))))
             .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }
@@ -119,6 +128,11 @@ public sealed class PitchScheduleService(
     private async Task<List<Block>> LoadBlocksAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
         await dbContext.Blocks.AsNoTracking()
             .Where(block => block.PitchId == pitchId && block.StartsAt < to && from < block.EndsAt)
+            .ToListAsync(cancellationToken);
+
+    private async Task<List<Booking>> LoadBookingsAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
+        await dbContext.Bookings.AsNoTracking()
+            .Where(booking => booking.PitchId == pitchId && booking.Status == BookingStatus.Confirmed && booking.StartsAt < to && from < booking.EndsAt)
             .ToListAsync(cancellationToken);
 
     private static ServiceError DateError(string message) =>

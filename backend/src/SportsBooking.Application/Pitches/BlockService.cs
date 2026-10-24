@@ -1,7 +1,9 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Common;
+using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
+using SportsBooking.Domain.Scheduling;
 
 namespace SportsBooking.Application.Pitches;
 
@@ -15,6 +17,9 @@ public sealed record BlockResponse(Guid Id, Guid PitchId, DateTime StartsAt, Dat
 
     public static BlockResponse From(Block block) => FromBlock(block);
 }
+
+/// <summary>A confirmed booking that stands in the way of a block (US09).</summary>
+public sealed record OverlappingBooking(Guid Id, DateTime StartsAt, DateTime EndsAt);
 
 public static class BlockErrors
 {
@@ -30,6 +35,25 @@ public static class BlockErrors
         ErrorCodes.BlockOverlap,
         "Bloqueio sobreposto",
         "Este período sobrepõe-se a outro bloqueio deste campo.");
+
+    /// <summary>
+    /// US09: confirmed bookings overlap the block. The detail lists their times in the club's local time; the
+    /// <c>bookings</c> extension has their ids and UTC instants, so the owner can cancel them (US12) and try again.
+    /// </summary>
+    public static ServiceError OverlapsBookings(IReadOnlyList<OverlappingBooking> bookings, TimeZoneInfo timeZone)
+    {
+        ArgumentNullException.ThrowIfNull(bookings);
+        var times = string.Join(", ", bookings.Select(booking => $"{Local(booking.StartsAt, timeZone)}–{Local(booking.EndsAt, timeZone)[11..]}"));
+        return new ServiceError(
+            ErrorKind.Conflict,
+            ErrorCodes.BlockOverlapsBookings,
+            "Bloqueio sobre reservas",
+            $"Há reservas confirmadas neste período: {times}. Cancela-as primeiro ou escolhe outro período.",
+            Extensions: new Dictionary<string, object?> { ["bookings"] = bookings });
+    }
+
+    private static string Local(DateTime utc, TimeZoneInfo timeZone) =>
+        ClubTime.ToLocal(utc, timeZone).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
     public static ServiceError AlreadyStarted { get; } = new(
         ErrorKind.Unprocessable,
@@ -86,8 +110,19 @@ public sealed class BlockService(
             return BlockErrors.Overlap;
         }
 
-        // T03 / US18: here, under the same lock, load the confirmed bookings of this pitch that overlap
-        // [startsAt, endsAt) and refuse the block with a message that lists them (US09).
+        // US09 and T03: under the same lock, confirmed bookings of the pitch that overlap the period refuse it.
+        var bookings = await dbContext.Bookings.AsNoTracking()
+            .Where(booking => booking.PitchId == pitchId
+                && booking.Status == BookingStatus.Confirmed
+                && booking.StartsAt < endsAt
+                && startsAt < booking.EndsAt)
+            .OrderBy(booking => booking.StartsAt)
+            .Select(booking => new OverlappingBooking(booking.Id, booking.StartsAt, booking.EndsAt))
+            .ToListAsync(cancellationToken);
+        if (bookings.Count > 0)
+        {
+            return BlockErrors.OverlapsBookings(bookings, timeZone);
+        }
 
         var block = Block.Create(pitchId, startsAt, endsAt, check.Request.Reason, now);
         dbContext.Blocks.Add(block);

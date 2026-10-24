@@ -43,6 +43,10 @@ internal static class ServiceErrorResults
         }
 
         problem.Extensions["code"] = error.Code;
+        foreach (var (name, value) in error.Extensions ?? new Dictionary<string, object?>())
+        {
+            problem.Extensions[name] = value;
+        }
 
         return new ObjectResult(problem)
         {
