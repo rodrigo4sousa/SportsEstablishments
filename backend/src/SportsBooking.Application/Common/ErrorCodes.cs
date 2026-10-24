@@ -41,4 +41,13 @@ public static class ErrorCodes
 
     /// <summary>404 from the owner area (US07): the club is the owner's, but it has no pitch with this id.</summary>
     public const string PitchNotFound = "pitch_not_found";
+
+    /// <summary>404 from the owner area (US09): the pitch is the owner's, but it has no block with this id.</summary>
+    public const string BlockNotFound = "block_not_found";
+
+    /// <summary>409 from creating a block (US09): it overlaps another block of the same pitch.</summary>
+    public const string BlockOverlap = "block_overlap";
+
+    /// <summary>422 from removing a block (US09): it has already started, so it stays as history.</summary>
+    public const string BlockAlreadyStarted = "block_already_started";
 }

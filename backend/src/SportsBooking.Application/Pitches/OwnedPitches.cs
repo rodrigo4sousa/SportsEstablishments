@@ -15,6 +15,13 @@ public sealed class OwnedPitches(OwnedClubs ownedClubs, IAppDbContext dbContext)
     public Task<bool> ClubIsOwnedAsync(Guid clubId, CancellationToken cancellationToken) =>
         ownedClubs.All().AnyAsync(club => club.Id == clubId, cancellationToken);
 
+    /// <summary>The club's time zone, for a club the signed-in owner owns (check <see cref="ClubIsOwnedAsync"/> first).</summary>
+    public async Task<TimeZoneInfo> TimeZoneOfAsync(Guid clubId, CancellationToken cancellationToken)
+    {
+        var id = await ownedClubs.All().AsNoTracking().Where(club => club.Id == clubId).Select(club => club.TimeZoneId).SingleAsync(cancellationToken);
+        return TimeZoneInfo.FindSystemTimeZoneById(id);
+    }
+
     /// <summary>The pitches of one club, and only if that club is the signed-in owner's.</summary>
     public IQueryable<Pitch> Of(Guid clubId)
     {

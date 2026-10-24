@@ -30,6 +30,9 @@ public static class DependencyInjection
         services.AddSingleton<PitchScheduleRequestValidator>();
         services.AddScoped<PitchScheduleService>();
 
+        services.AddSingleton<BlockCheckValidator>();
+        services.AddScoped<BlockService>();
+
         return services;
     }
 }

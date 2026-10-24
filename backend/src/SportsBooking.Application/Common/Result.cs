@@ -7,6 +7,9 @@ public enum ErrorKind
     Unauthorized,
     NotFound,
     Conflict,
+
+    /// <summary>The request is fine but a business rule refuses it (422), e.g. removing a block that has started.</summary>
+    Unprocessable,
 }
 
 /// <summary>

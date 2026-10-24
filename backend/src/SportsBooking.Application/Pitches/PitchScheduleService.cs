@@ -30,9 +30,10 @@ public sealed record PitchScheduleResponse(
 }
 
 /// <summary>One generated slot, as UTC instants.</summary>
-public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt);
+/// <param name="Blocked">True when the slot overlaps a block of the pitch (US09). Bookings are not taken into account yet.</param>
+public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt, bool Blocked);
 
-/// <summary>The slots a pitch's schedule generates on one local date (no bookings or blocks taken into account).</summary>
+/// <summary>The slots a pitch's schedule generates on one local date; slots that overlap a block are marked (US09).</summary>
 public sealed record PitchSlotsResponse(DateOnly Date, int SlotDurationMinutes, IReadOnlyList<SlotResponse> Slots);
 
 /// <summary>
@@ -105,9 +106,20 @@ public sealed class PitchScheduleService(
         }
 
         var pitch = found.Value;
-        var slots = pitch.SlotsOn(day, timeZone).Select(slot => new SlotResponse(slot.StartsAtUtc, slot.EndsAtUtc)).ToList();
+        var generated = pitch.SlotsOn(day, timeZone);
+        var blocks = generated.Count == 0
+            ? []
+            : await LoadBlocksAsync(pitchId, generated[0].StartsAtUtc, generated[^1].EndsAtUtc, cancellationToken);
+        var slots = generated
+            .Select(slot => new SlotResponse(slot.StartsAtUtc, slot.EndsAtUtc, blocks.Any(block => block.Overlaps(slot.StartsAtUtc, slot.EndsAtUtc))))
+            .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }
+
+    private async Task<List<Block>> LoadBlocksAsync(Guid pitchId, DateTime from, DateTime to, CancellationToken cancellationToken) =>
+        await dbContext.Blocks.AsNoTracking()
+            .Where(block => block.PitchId == pitchId && block.StartsAt < to && from < block.EndsAt)
+            .ToListAsync(cancellationToken);
 
     private static ServiceError DateError(string message) =>
         ServiceError.Validation(new Dictionary<string, string[]> { ["date"] = [message] });
