@@ -32,6 +32,7 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(booking => booking.Price).HasPrecision(10, 2);
         // As text, so the constraint's WHERE (status = 'Confirmed') works (docs/stack.md).
         builder.Property(booking => booking.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(booking => booking.CancellationReason).HasMaxLength(BookingRules.CancellationReasonMaximumLength);
         builder.Ignore(booking => booking.IsConfirmed);
 
         // A pitch's bookings in time order: overlap checks, counts and, later, the calendar.
