@@ -60,8 +60,18 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
         </p>
         <ul aria-label="Slots gerados" className="flex flex-wrap gap-2">
           {slots.data.slots.map((slot) => (
-            <li key={slot.startsAt} className="rounded-md border px-3 py-1 text-sm tabular-nums">
+            <li
+              key={slot.startsAt}
+              data-blocked={slot.blocked || undefined}
+              className={`rounded-md border px-3 py-1 text-sm tabular-nums ${slot.blocked ? "border-dashed bg-muted text-muted-foreground" : ""}`}
+            >
               {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)}
+              {slot.blocked ? (
+                <>
+                  {" "}
+                  <span className="ml-1 font-medium">Bloqueado</span>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -87,7 +97,7 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
         />
       </div>
       {result}
-      <p className="text-sm text-muted-foreground">Mostra os slots que o horário gera; as reservas e os bloqueios não são tirados.</p>
+      <p className="text-sm text-muted-foreground">Mostra os slots que o horário gera; os bloqueios aparecem marcados, as reservas ainda não são tidas em conta.</p>
     </section>
   );
 }

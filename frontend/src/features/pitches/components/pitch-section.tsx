@@ -9,6 +9,7 @@ import { errorMessage } from "@/lib/api/error-messages";
 import { PITCHES_PAGE_SIZE, deactivatePitch, fetchPitches, pitchListQueryKey, pitchesQueryKey, reactivatePitch, type Pitch } from "../api";
 import { formatPrice } from "../price";
 import { sportLabel } from "../sports";
+import { BlocksSection } from "./blocks-section";
 import { PitchForm } from "./pitch-form";
 import { ScheduleEditor } from "./schedule-editor";
 import { SlotPreview } from "./slot-preview";
@@ -24,8 +25,10 @@ export function PitchSection({ clubId }: { clubId: string }) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(null);
-  // The pitch whose hours are open below its row (one at a time).
-  const [scheduleOf, setScheduleOf] = useState<string | null>(null);
+  // The pitch whose hours or blocks are open below its row (one panel at a time).
+  const [panel, setPanel] = useState<{ pitchId: string; kind: "schedule" | "blocks" } | null>(null);
+  const togglePanel = (pitchId: string, kind: "schedule" | "blocks") =>
+    setPanel(panel?.pitchId === pitchId && panel.kind === kind ? null : { pitchId, kind });
   const pitches = useQuery({
     queryKey: pitchListQueryKey(clubId, page),
     queryFn: () => fetchPitches(clubId, page),
@@ -44,13 +47,13 @@ export function PitchSection({ clubId }: { clubId: string }) {
       if (error instanceof ApiError && error.code === "pitch_not_found") {
         // It is gone: close its form, if open, and show the list as it is now.
         setEditing(null);
-        setScheduleOf(null);
+        setPanel(null);
         await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
       }
     },
   });
 
-  const closeSchedule = useCallback(() => setScheduleOf(null), []);
+  const closePanel = useCallback(() => setPanel(null), []);
 
   const heading = (
     <div className="flex items-center justify-between gap-4">
@@ -109,11 +112,21 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  aria-expanded={scheduleOf === pitch.id}
+                  aria-expanded={panel?.pitchId === pitch.id && panel.kind === "schedule"}
                   aria-label={`Horário de ${pitch.name}`}
-                  onClick={() => setScheduleOf(scheduleOf === pitch.id ? null : pitch.id)}
+                  onClick={() => togglePanel(pitch.id, "schedule")}
                 >
                   Horário
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={panel?.pitchId === pitch.id && panel.kind === "blocks"}
+                  aria-label={`Bloqueios de ${pitch.name}`}
+                  onClick={() => togglePanel(pitch.id, "blocks")}
+                >
+                  Bloqueios
                 </Button>
                 <Button
                   type="button"
@@ -136,11 +149,17 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 </Button>
               </div>
               </div>
-              {scheduleOf === pitch.id ? (
+              {panel?.pitchId === pitch.id && panel.kind === "schedule" ? (
                 <div className="flex flex-col gap-6 border-t pt-4">
                   <h3 className="font-medium">Horário de {pitch.name}</h3>
-                  <ScheduleEditor clubId={clubId} pitchId={pitch.id} onGone={closeSchedule} />
+                  <ScheduleEditor clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                   <SlotPreview clubId={clubId} pitchId={pitch.id} />
+                </div>
+              ) : null}
+              {panel?.pitchId === pitch.id && panel.kind === "blocks" ? (
+                <div className="flex flex-col gap-6 border-t pt-4">
+                  <h3 className="font-medium">Bloqueios de {pitch.name}</h3>
+                  <BlocksSection clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                 </div>
               ) : null}
             </li>
