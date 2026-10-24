@@ -344,6 +344,93 @@
         }
       }
     },
+    "/api/clubs": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "parameters": [
+          {
+            "name": "sport",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locality",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfClubSearchItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/localities": {
+      "get": {
+        "tags": [
+          "Localities"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manage/clubs/{clubId}/pitches/{pitchId}/blocks": {
       "post": {
         "tags": [
@@ -1482,6 +1569,36 @@
           }
         }
       },
+      "ClubSearchItem": {
+        "required": [
+          "slug",
+          "name",
+          "locality",
+          "sports",
+          "hasFreeSlots"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "sports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasFreeSlots": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateBookingRequest": {
         "required": [
           "pitchId",
@@ -1607,6 +1724,47 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BlockResponse"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PagedResponseOfClubSearchItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClubSearchItem"
             }
           },
           "page": {
@@ -2062,6 +2220,12 @@
     },
     {
       "name": "Bookings"
+    },
+    {
+      "name": "Clubs"
+    },
+    {
+      "name": "Localities"
     },
     {
       "name": "ManageBlocks"

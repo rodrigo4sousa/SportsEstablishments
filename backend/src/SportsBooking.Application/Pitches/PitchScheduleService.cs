@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
@@ -50,8 +49,6 @@ public sealed class PitchScheduleService(
     PitchScheduleRequestValidator validator,
     TimeProvider timeProvider)
 {
-    private const string DateFormat = "yyyy-MM-dd";
-
     public async Task<Result<PitchScheduleResponse>> GetAsync(Guid clubId, Guid pitchId, CancellationToken cancellationToken)
     {
         var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: false, cancellationToken);
@@ -91,22 +88,18 @@ public sealed class PitchScheduleService(
             return found.Error!;
         }
 
-        if (!DateOnly.TryParseExact(date, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day))
-        {
-            return DateError("Indica a data no formato AAAA-MM-DD, por exemplo 2026-10-25.");
-        }
-
         var timeZoneId = await ownedClubs.All().AsNoTracking()
             .Where(club => club.Id == clubId)
             .Select(club => club.TimeZoneId)
             .SingleAsync(cancellationToken);
         var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        var today = ClubTime.Today(timeProvider, timeZone);
-        if (!BookingWindow.Contains(day, today))
+        var requested = BookingDateInput.Parse(date, ClubTime.Today(timeProvider, timeZone));
+        if (!requested.IsSuccess)
         {
-            return DateError($"Escolhe uma data de hoje até {BookingWindow.DaysAhead} dias à frente.");
+            return requested.Error!;
         }
 
+        var day = requested.Value;
         var pitch = found.Value;
         var daySlots = await calendar.SlotsAsync([new PitchInZone(pitch, timeZone)], day, cancellationToken);
         var slots = daySlots[pitch.Id]
@@ -114,7 +107,4 @@ public sealed class PitchScheduleService(
             .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }
-
-    private static ServiceError DateError(string message) =>
-        ServiceError.Validation(new Dictionary<string, string[]> { ["date"] = [message] });
 }
