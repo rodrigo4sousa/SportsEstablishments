@@ -829,6 +829,193 @@
           }
         }
       }
+    },
+    "/api/manage/clubs/{clubId}/pitches/{pitchId}/schedule": {
+      "get": {
+        "tags": [
+          "ManagePitchSchedule"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pitchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PitchScheduleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ManagePitchSchedule"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pitchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PitchScheduleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PitchScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PitchScheduleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/manage/clubs/{clubId}/pitches/{pitchId}/slots": {
+      "get": {
+        "tags": [
+          "ManagePitchSchedule"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pitchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PitchSlotsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -890,6 +1077,31 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "DayHours": {
+        "required": [
+          "closed",
+          "opens",
+          "closes"
+        ],
+        "type": "object",
+        "properties": {
+          "closed": {
+            "type": "boolean"
+          },
+          "opens": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "closes": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1101,6 +1313,122 @@
           }
         }
       },
+      "PitchScheduleRequest": {
+        "required": [
+          "slotDurationMinutes",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ],
+        "type": "object",
+        "properties": {
+          "slotDurationMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "monday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "tuesday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "wednesday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "thursday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "friday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "saturday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "sunday": {
+            "$ref": "#/components/schemas/DayHours"
+          }
+        }
+      },
+      "PitchScheduleResponse": {
+        "required": [
+          "slotDurationMinutes",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ],
+        "type": "object",
+        "properties": {
+          "slotDurationMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "monday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "tuesday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "wednesday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "thursday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "friday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "saturday": {
+            "$ref": "#/components/schemas/DayHours"
+          },
+          "sunday": {
+            "$ref": "#/components/schemas/DayHours"
+          }
+        }
+      },
+      "PitchSlotsResponse": {
+        "required": [
+          "date",
+          "slotDurationMinutes",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "slotDurationMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlotResponse"
+            }
+          }
+        }
+      },
       "ProblemDetails": {
         "required": [
           "code",
@@ -1176,6 +1504,23 @@
           }
         }
       },
+      "SlotResponse": {
+        "required": [
+          "startsAt",
+          "endsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ValidationProblemDetails": {
         "required": [
           "code",
@@ -1246,6 +1591,9 @@
     },
     {
       "name": "ManagePitches"
+    },
+    {
+      "name": "ManagePitchSchedule"
     }
   ]
 }

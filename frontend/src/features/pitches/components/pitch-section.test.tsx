@@ -59,7 +59,7 @@ describe("PitchSection", () => {
     renderWithProviders(<PitchSection clubId={clubId} />);
 
     const items = await findPitchItems();
-    expect(items.map((item) => text(item).replace(/Editar.*$/, "").trim())).toEqual([
+    expect(items.map((item) => text(item).replace(/Horário.*$/, "").trim())).toEqual([
       "Campo 1Futsal · 12,50 € por slot",
       "Campo 2Futebol 7 · 8,00 € por slot",
       "Campo 3Ténis · 0,50 € por slot",
@@ -245,6 +245,36 @@ describe("PitchSection", () => {
 
     expect(await screen.findByText("Campo 21")).toBeInTheDocument();
     expect(asked).toEqual(["1", "2"]);
+  });
+
+  it("opens a pitch's schedule and preview below its row, one pitch at a time", async () => {
+    const closedDay = { closed: true, opens: null, closes: null };
+    server.use(
+      http.get(listUrl, () => page([pitch(1), pitch(2)])),
+      http.get(`${listUrl}/${pitch(1).id}/schedule`, () =>
+        HttpResponse.json({ slotDurationMinutes: 60, monday: closedDay, tuesday: closedDay, wednesday: closedDay, thursday: closedDay, friday: closedDay, saturday: closedDay, sunday: closedDay }),
+      ),
+      http.get(`${listUrl}/${pitch(2).id}/schedule`, () =>
+        HttpResponse.json({ slotDurationMinutes: 90, monday: closedDay, tuesday: closedDay, wednesday: closedDay, thursday: closedDay, friday: closedDay, saturday: closedDay, sunday: closedDay }),
+      ),
+      http.get(`${listUrl}/${pitch(1).id}/slots`, () => HttpResponse.json({ date: "2026-10-25", slotDurationMinutes: 60, slots: [] })),
+      http.get(`${listUrl}/${pitch(2).id}/slots`, () => HttpResponse.json({ date: "2026-10-25", slotDurationMinutes: 90, slots: [] })),
+    );
+    renderWithProviders(<PitchSection clubId={clubId} />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Horário de Campo 1" }));
+    expect(await screen.findByRole("heading", { name: "Horário de Campo 1" })).toBeInTheDocument();
+    expect(await screen.findByRole("form", { name: "Horário do campo" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pré-visualização dos slots" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Horário de Campo 1" })).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("button", { name: "Horário de Campo 2" }));
+    expect(await screen.findByRole("heading", { name: "Horário de Campo 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Horário de Campo 1" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Horário de Campo 2" }));
+    expect(screen.queryByRole("form", { name: "Horário do campo" })).not.toBeInTheDocument();
   });
 
   it("shows an error with a way to try again when the list cannot be loaded", async () => {

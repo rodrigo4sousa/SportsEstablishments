@@ -139,7 +139,6 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
   - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
   - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
   - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
-- Decisões de implementação (provisórias, a confirmar):
   - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
   - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
 ### US07 · Gerir campos · M · 5 pontos
@@ -152,7 +151,7 @@ Como dono, quero adicionar, editar e desativar campos, para controlar o que est�
 - Não é possível desativar um campo com reservas futuras confirmadas; a mensagem indica quantas são.
 - Os campos não se apagam, só se desativam, para manter o histórico.
 - Estado: feita. Back end (`/api/manage/clubs/{clubId}/pitches`: criar, listar, ver, editar, desativar e reativar, com o perfil Dono e a T02) e front end: a página `/manage/clubs/{id}` mostra, por baixo dos dados do clube, a lista de campos (ativos e inativos, por nome, 20 por página) com «Adicionar campo», «Editar», «Desativar» e «Reativar». O desporto é uma lista com as etiquetas «Futsal», «Futebol 7», «Padel» e «Ténis»; o preço escreve-se e mostra-se à portuguesa («12,50 €»; aceita também «12.50») e vai para a API como número. Os campos inativos aparecem marcados com «Inativo». Um nome repetido aparece como erro no campo do nome. Um campo pedido através de um clube que não é o seu dá 404 `pitch_not_found`; o clube de outro dono dá 404 `club_not_found`, como na US06. A recusa de desativar um campo com reservas futuras confirmadas fica para a história que criar a tabela de reservas (US18, ver lá), porque ainda não há reservas.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - Códigos estáveis do desporto na API, guardados como texto: `futsal`, `football7`, `padel`, `tennis` (os nomes em português são só da interface). Um campo novo começa ativo.
   - Nome: obrigatório, até 100 caracteres (espaços à volta removidos), único em cada clube sem distinguir maiúsculas de minúsculas (também contra campos inativos); o mesmo nome pode existir noutro clube. Um nome repetido é um erro de validação no campo `name` (400), não um 409.
   - Preço por slot: maior que 0 € e até 500 €, com no máximo duas casas decimais (`numeric(10,2)`, com check constraint).
@@ -169,6 +168,12 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
 - As horas são introduzidas e mostradas em hora de Lisboa (T04).
 - O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
 - Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
+- Estado: feita. Front end: em cada campo de `/manage/clubs/{id}` o botão «Horário» abre, por baixo do campo, o editor da semana (sete linhas, segunda-feira primeiro, cada uma com «Fechado» ou hora de abertura e de fecho, mais a duração do slot de 30, 60 ou 90 minutos; guarda a semana toda e os erros da API aparecem na linha e no campo certos) e a pré-visualização dos slots (data de hoje até 30 dias à frente, em hora de Lisboa, com «(verão)» e «(inverno)» na hora repetida de outubro). Back end: `GET` e `PUT /api/manage/clubs/{clubId}/pitches/{pitchId}/schedule` (duração e os sete dias; o `PUT` substitui a semana inteira) e `GET …/slots?date=AAAA-MM-DD` (pré-visualização, só de leitura, dos slots gerados nessa data local, com início e fim em UTC, pelo `SlotGenerator` da T04). Tudo com o perfil Dono e a T02: o clube de outro dono dá 404 `club_not_found` e um campo pedido através de outro clube dá 404 `pitch_not_found`, antes de qualquer validação. Os horários ficam na tabela `pitch_opening_hours` (uma linha por dia aberto, `time` sem fuso); o teste de armazenamento da T04 foi repetido com ela. Mudar o horário ou a duração não mexe nas reservas (a US17 já diz que um slot não está livre se algo se sobrepuser).
+- Decisões de implementação (provisórias, a confirmar):
+  - As horas vão de meia em meia hora (09:00, 09:30, …), sem segundos; a API e a base de dados rejeitam o resto (a base de dados verifica só a ordem: fecho depois da abertura ou 00:00).
+  - Um campo novo fica fechado todos os dias e com slots de 60 minutos até o dono definir o horário. Os campos que já existiam antes desta migração ficam também com 60 minutos.
+  - Formato de cada dia: `{ "closed": true }` ou `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (hora local, `HH:mm`). Os sete dias são obrigatórios no `PUT`, e um dia fechado com horas é rejeitado (em vez de as ignorar). Os erros vêm por campo com o caminho JSON (`monday.closes`).
+  - A pré-visualização mostra os slots que o horário gera: não tira reservas, bloqueios nem slots que já começaram, e funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.

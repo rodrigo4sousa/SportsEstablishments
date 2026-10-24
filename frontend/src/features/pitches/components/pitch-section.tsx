@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { PITCHES_PAGE_SIZE, deactivatePitch, fetchPitches, pitchListQueryKey, pi
 import { formatPrice } from "../price";
 import { sportLabel } from "../sports";
 import { PitchForm } from "./pitch-form";
+import { ScheduleEditor } from "./schedule-editor";
+import { SlotPreview } from "./slot-preview";
 
 /** What the form below the list is doing: nothing, adding a pitch, or editing this one. */
 type Editing = { kind: "new" } | { kind: "edit"; pitch: Pitch } | null;
@@ -22,6 +24,8 @@ export function PitchSection({ clubId }: { clubId: string }) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(null);
+  // The pitch whose hours are open below its row (one at a time).
+  const [scheduleOf, setScheduleOf] = useState<string | null>(null);
   const pitches = useQuery({
     queryKey: pitchListQueryKey(clubId, page),
     queryFn: () => fetchPitches(clubId, page),
@@ -40,10 +44,13 @@ export function PitchSection({ clubId }: { clubId: string }) {
       if (error instanceof ApiError && error.code === "pitch_not_found") {
         // It is gone: close its form, if open, and show the list as it is now.
         setEditing(null);
+        setScheduleOf(null);
         await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
       }
     },
   });
+
+  const closeSchedule = useCallback(() => setScheduleOf(null), []);
 
   const heading = (
     <div className="flex items-center justify-between gap-4">
@@ -84,7 +91,8 @@ export function PitchSection({ clubId }: { clubId: string }) {
       <>
         <ul aria-labelledby="pitches-heading" className="flex flex-col divide-y rounded-md border">
           {items.map((pitch) => (
-            <li key={pitch.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-status={pitch.status}>
+            <li key={pitch.id} className="flex flex-col gap-4 px-4 py-3" data-status={pitch.status}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className={pitch.status === "inactive" ? "flex flex-col gap-1 text-muted-foreground" : "flex flex-col gap-1"}>
                 <span className="flex items-center gap-2 font-medium">
                   {pitch.name}
@@ -97,6 +105,16 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 </span>
               </div>
               <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={scheduleOf === pitch.id}
+                  aria-label={`Horário de ${pitch.name}`}
+                  onClick={() => setScheduleOf(scheduleOf === pitch.id ? null : pitch.id)}
+                >
+                  Horário
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -117,6 +135,14 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   {pitch.status === "active" ? "Desativar" : "Reativar"}
                 </Button>
               </div>
+              </div>
+              {scheduleOf === pitch.id ? (
+                <div className="flex flex-col gap-6 border-t pt-4">
+                  <h3 className="font-medium">Horário de {pitch.name}</h3>
+                  <ScheduleEditor clubId={clubId} pitchId={pitch.id} onGone={closeSchedule} />
+                  <SlotPreview clubId={clubId} pitchId={pitch.id} />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

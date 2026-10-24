@@ -791,6 +791,156 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/manage/clubs/{clubId}/pitches/{pitchId}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clubId: string;
+                    pitchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PitchScheduleResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clubId: string;
+                    pitchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PitchScheduleRequest"];
+                    "application/*+json": components["schemas"]["PitchScheduleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PitchScheduleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manage/clubs/{clubId}/pitches/{pitchId}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path: {
+                    clubId: string;
+                    pitchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PitchSlotsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -810,6 +960,11 @@ export interface components {
             contactEmail: string;
             /** Format: int32 */
             cancellationWindowHours?: null | number | string;
+        };
+        DayHours: {
+            closed: boolean;
+            opens: null | string;
+            closes: null | string;
         };
         LoginRequest: {
             email: string;
@@ -863,6 +1018,35 @@ export interface components {
             pricePerSlot: number | string;
             status: string;
         };
+        PitchScheduleRequest: {
+            /** Format: int32 */
+            slotDurationMinutes: number | string;
+            monday: components["schemas"]["DayHours"];
+            tuesday: components["schemas"]["DayHours"];
+            wednesday: components["schemas"]["DayHours"];
+            thursday: components["schemas"]["DayHours"];
+            friday: components["schemas"]["DayHours"];
+            saturday: components["schemas"]["DayHours"];
+            sunday: components["schemas"]["DayHours"];
+        };
+        PitchScheduleResponse: {
+            /** Format: int32 */
+            slotDurationMinutes: number | string;
+            monday: components["schemas"]["DayHours"];
+            tuesday: components["schemas"]["DayHours"];
+            wednesday: components["schemas"]["DayHours"];
+            thursday: components["schemas"]["DayHours"];
+            friday: components["schemas"]["DayHours"];
+            saturday: components["schemas"]["DayHours"];
+            sunday: components["schemas"]["DayHours"];
+        };
+        PitchSlotsResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            slotDurationMinutes: number | string;
+            slots: components["schemas"]["SlotResponse"][];
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -880,6 +1064,12 @@ export interface components {
             email: string;
             password: string;
             phone?: null | string;
+        };
+        SlotResponse: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
         };
         ValidationProblemDetails: {
             type?: null | string;

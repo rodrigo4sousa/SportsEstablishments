@@ -35,11 +35,11 @@ public static class PitchErrors
 
 /// <summary>
 /// US07: an owner adds, lists, reads, edits, deactivates and reactivates the pitches of their clubs. The club is
-/// resolved through <see cref="OwnedClubs"/> first (T02), so another owner's club is a 404 <c>club_not_found</c>
+/// reached through <see cref="OwnedPitches"/> (T02), so another owner's club is a 404 <c>club_not_found</c>
 /// whatever the request holds; a pitch asked for through a club that is not its own is a 404 <c>pitch_not_found</c>.
 /// </summary>
 public sealed class PitchService(
-    OwnedClubs ownedClubs,
+    OwnedPitches ownedPitches,
     IPitchStore pitchStore,
     IAppDbContext dbContext,
     PitchRequestValidator requestValidator,
@@ -48,7 +48,7 @@ public sealed class PitchService(
 {
     public async Task<Result<PitchResponse>> CreateAsync(Guid clubId, PitchRequest request, CancellationToken cancellationToken)
     {
-        if (!await ClubIsOwnedAsync(clubId, cancellationToken))
+        if (!await ownedPitches.ClubIsOwnedAsync(clubId, cancellationToken))
         {
             return ClubErrors.NotFound;
         }
@@ -68,7 +68,7 @@ public sealed class PitchService(
     /// <summary>The club's pitches, active and inactive, by name ignoring case (then name and id), one page at a time.</summary>
     public async Task<Result<PagedResponse<PitchResponse>>> ListAsync(Guid clubId, PageRequest page, CancellationToken cancellationToken)
     {
-        if (!await ClubIsOwnedAsync(clubId, cancellationToken))
+        if (!await ownedPitches.ClubIsOwnedAsync(clubId, cancellationToken))
         {
             return ClubErrors.NotFound;
         }
@@ -79,7 +79,7 @@ public sealed class PitchService(
             return ServiceError.Validation(validation.ToFieldErrors());
         }
 
-        var pitches = OwnedPitches(clubId).AsNoTracking();
+        var pitches = ownedPitches.Of(clubId).AsNoTracking();
         var total = await pitches.CountAsync(cancellationToken);
         var items = await pitches
             .OrderBy(pitch => pitch.NameKey)
@@ -93,14 +93,14 @@ public sealed class PitchService(
 
     public async Task<Result<PitchResponse>> GetAsync(Guid clubId, Guid pitchId, CancellationToken cancellationToken)
     {
-        var found = await FindAsync(clubId, pitchId, tracked: false, cancellationToken);
+        var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: false, cancellationToken);
         return found.IsSuccess ? PitchResponse.From(found.Value) : found.Error!;
     }
 
     /// <summary>Replaces name, sport and price. A new price applies to bookings made from now on, never to existing ones.</summary>
     public async Task<Result<PitchResponse>> UpdateAsync(Guid clubId, Guid pitchId, PitchRequest request, CancellationToken cancellationToken)
     {
-        var found = await FindAsync(clubId, pitchId, tracked: true, cancellationToken);
+        var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: true, cancellationToken);
         if (!found.IsSuccess)
         {
             return found.Error!;
@@ -124,7 +124,7 @@ public sealed class PitchService(
     /// </summary>
     public async Task<Result<PitchResponse>> DeactivateAsync(Guid clubId, Guid pitchId, CancellationToken cancellationToken)
     {
-        var found = await FindAsync(clubId, pitchId, tracked: true, cancellationToken);
+        var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: true, cancellationToken);
         if (!found.IsSuccess)
         {
             return found.Error!;
@@ -137,7 +137,7 @@ public sealed class PitchService(
 
     public async Task<Result<PitchResponse>> ReactivateAsync(Guid clubId, Guid pitchId, CancellationToken cancellationToken)
     {
-        var found = await FindAsync(clubId, pitchId, tracked: true, cancellationToken);
+        var found = await ownedPitches.FindAsync(clubId, pitchId, tracked: true, cancellationToken);
         if (!found.IsSuccess)
         {
             return found.Error!;
@@ -149,33 +149,6 @@ public sealed class PitchService(
     }
 
     private DateTime Now() => timeProvider.GetUtcNow().UtcDateTime;
-
-    private Task<bool> ClubIsOwnedAsync(Guid clubId, CancellationToken cancellationToken) =>
-        ownedClubs.All().AnyAsync(club => club.Id == clubId, cancellationToken);
-
-    /// <summary>The pitches of one club, and only if that club is the signed-in owner's (T02).</summary>
-    private IQueryable<Pitch> OwnedPitches(Guid clubId)
-    {
-        var owned = ownedClubs.All();
-        return dbContext.Pitches.Where(pitch => pitch.ClubId == clubId && owned.Any(club => club.Id == pitch.ClubId));
-    }
-
-    private async Task<Result<Pitch>> FindAsync(Guid clubId, Guid pitchId, bool tracked, CancellationToken cancellationToken)
-    {
-        if (!await ClubIsOwnedAsync(clubId, cancellationToken))
-        {
-            return ClubErrors.NotFound;
-        }
-
-        var pitches = OwnedPitches(clubId);
-        if (!tracked)
-        {
-            pitches = pitches.AsNoTracking();
-        }
-
-        var pitch = await pitches.SingleOrDefaultAsync(candidate => candidate.Id == pitchId, cancellationToken);
-        return pitch is null ? PitchErrors.NotFound : pitch;
-    }
 
     /// <summary>Field rules plus "no other pitch of this club has this name, ignoring case".</summary>
     private async Task<ServiceError?> ValidateAsync(Guid clubId, Guid? pitchId, PitchRequest normalized, CancellationToken cancellationToken)
