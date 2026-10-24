@@ -258,6 +258,14 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
 - Resultados paginados, 20 por página.
 - Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
 - A pesquisa funciona sem sessão iniciada.
+- Estado: back end feito (`GET /api/clubs`, `GET /api/localities`, `GET /api/clubs/{slug}`, todos públicos e só de leitura, sem dados de jogadores nem do dono). A interface (formulário de pesquisa, resultados, página do clube) vem noutro ramo.
+- Decisões de implementação (provisórias, a confirmar):
+  - Visível = o dono não está desativado (US29) e o clube tem pelo menos um campo ativo (US07). Tudo o que é público parte de `VisibleClubs`; o que não é visível não existe: um clube desconhecido, sem campos ativos ou de um dono desativado dão o mesmo 404 `club_not_found`.
+  - `GET /api/clubs?sport=&locality=&date=&page=`: 20 por página (fixo), ordenado pelo nome sem distinguir maiúsculas e depois pelo id. `sport` é o código estável (`futsal`, `football7`, `padel`, `tennis`); um código desconhecido é 400 em `sport`. `date` é `AAAA-MM-DD`, hoje em Lisboa por omissão, de hoje até hoje + 30; fora disso ou mal escrita é 400 em `date`. `page` vai de 1 a 10000 (limite defensivo); outro valor, ou não numérico, é 400 em `page`. Filtros vazios contam como ausentes.
+  - Localidade: igualdade, sem distinguir maiúsculas, acentos nem espaços a mais (`clubs.locality_key`, com índice, calculada por `ClubRules.LocalityKey`); não é uma pesquisa por parte do nome («Port» não encontra «Porto»).
+  - Cada resultado traz só `slug`, `name`, `locality`, `sports` (os desportos de todos os campos ativos do clube, mesmo com o filtro de desporto) e `hasFreeSlots` (algum campo ativo tem um slot livre na data, pela mesma regra da US17). Não traz morada nem contactos. A disponibilidade só se calcula para os clubes da página.
+  - `GET /api/localities`: as localidades dos clubes visíveis, uma por grafia (ignorando maiúsculas e acentos, mostrada numa das grafias em uso), ordenadas; devolve uma lista de textos, para um select.
+  - `GET /api/clubs/{slug}`: nome, morada, localidade, telefone, email de contacto e os campos ativos (`id`, `name`, `sport`, `pricePerSlot` atual), ordenados pelo nome. O `slug` tem de coincidir exatamente. O id do clube não aparece (é da área do dono).
 ### US17 · Ver slots livres · M · 5 pontos
  
 Como jogador, quero ver os slots livres de um campo numa data, para escolher a hora.
@@ -269,6 +277,13 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
 - Decidido: um slot não está livre se se sobrepuser a qualquer reserva confirmada ou bloqueio, e não só se tiver o mesmo início. Mudar a duração dos slots de um campo (US08) não altera as reservas existentes, por isso uma reserva antiga pode ficar desalinhada com a nova grelha e ocupar parte de um slot novo; esse slot não aparece como livre.
 - As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
 - No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
+- Estado: back end feito (`GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`, público e só de leitura). A interface (escolher a data e o slot) vem noutro ramo, com a etiqueta «(verão)/(inverno)» de `formatLisbonSlotTime`.
+- Decisões de implementação (provisórias, a confirmar):
+  - A data (`AAAA-MM-DD`) é obrigatória e vai de hoje até hoje + 30 em Lisboa; em falta, mal escrita ou fora do período é 400 em `date`.
+  - Clube desconhecido ou escondido (sem campos ativos, dono desativado), e campo desconhecido, inativo, de outro clube ou com um id que não é um GUID, são 404 (`club_not_found` ou `pitch_not_found`), verificados antes da data.
+  - A resposta é `date` e `slots`; cada slot traz `startsAt` e `endsAt` (instantes UTC com fuso), `price` (o preço atual do campo) e um só booleano `available`. Nunca diz porque não está livre, nem quem reservou, nem o id de uma reserva ou de um bloqueio. Um dia fechado devolve a lista vazia.
+  - `available` = não se sobrepõe, nem em parte, a uma reserva confirmada ou a um bloqueio, está dentro do horário e ainda não começou (começar agora conta como começado, como na US18). É uma só conta (`PitchDayCalendar` e `DaySlot.IsFreeAt`), partilhada com a pré-visualização do dono e com o «há slots livres» da pesquisa, e um teste confirma que concordam.
+  - Em 25 de outubro a API devolve os slots como instantes distintos (a hora das 01:00 às 02:00 aparece duas vezes, uma em cada fuso); a etiqueta «(verão)/(inverno)» é da interface.
 ### US18 · Reservar slot · M · 3 pontos
  
 Como jogador, quero reservar um slot livre, para garantir o campo.
@@ -414,6 +429,8 @@ Como jogador, quero ter a certeza de que um slot reservado é só meu, para não
 - Teste de integração: vários pedidos simultâneos para o mesmo slot resultam em exatamente um 201 e os restantes 409.
 - A API devolve 409 com uma mensagem clara, nunca um 500.
 - Estado: feita (com a US18). A exclusion constraint `bookings_no_overlap` é a da Stack (`btree_gist`, `pitch_id WITH =`, `tstzrange(starts_at, ends_at) WITH &&`, `WHERE (status = 'Confirmed')`), criada na migração `AddBookings`; o erro 23P01 é 409 `slot_taken`. Reservas e bloqueios trancam a mesma linha do campo (`SELECT … FOR UPDATE`) antes de verificar a sobreposição entre si. Testes: 20 pedidos simultâneos para o mesmo slot dão exatamente um 201 e 19 × 409, nunca 500; uma reserva e um bloqueio ao mesmo tempo nunca ganham os dois; uma reserva cancelada deixa o slot livre para a constraint.
+- Registos (logs) do conflito: perder a corrida por um slot é esperado, por isso o `BookingStore` regista-o ao nível Information (campo e slot, nunca o jogador) e o evento `SaveChangesFailed` do EF desce para Debug (sem filtrar a categoria do EF). Uma falha de base de dados que ninguém trate continua a chegar ao tratador global de exceções, que a regista ao nível Error e responde 500 (há testes para as duas situações).
+- Decisão pendente: o EF regista também `CommandError` («Failed executing DbCommand», categoria `Microsoft.EntityFrameworkCore.Database.Command`) ao nível Error por cada conflito. Baixá-lo como o `SaveChangesFailed` atingiria todos os comandos falhados da aplicação, também as leituras, e não só este conflito (os outros conflitos esperados que o código trata, como nome de campo repetido, slug e email, fazem hoje o mesmo ruído); por isso ficou como estava até haver decisão.
 ### T04 · Datas e fusos horários · 3 pontos
  
 Como jogador, quero ver sempre as horas certas, para não aparecer à hora errada.
