@@ -139,7 +139,6 @@ Como dono, quero criar e editar os meus clubes, para que os jogadores os encontr
   - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
   - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
   - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
-- Decisões de implementação (provisórias, a confirmar):
   - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
   - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
 ### US07 · Gerir campos · M · 5 pontos
@@ -152,7 +151,7 @@ Como dono, quero adicionar, editar e desativar campos, para controlar o que est�
 - Não é possível desativar um campo com reservas futuras confirmadas; a mensagem indica quantas são.
 - Os campos não se apagam, só se desativam, para manter o histórico.
 - Estado: feita. Back end (`/api/manage/clubs/{clubId}/pitches`: criar, listar, ver, editar, desativar e reativar, com o perfil Dono e a T02) e front end: a página `/manage/clubs/{id}` mostra, por baixo dos dados do clube, a lista de campos (ativos e inativos, por nome, 20 por página) com «Adicionar campo», «Editar», «Desativar» e «Reativar». O desporto é uma lista com as etiquetas «Futsal», «Futebol 7», «Padel» e «Ténis»; o preço escreve-se e mostra-se à portuguesa («12,50 €»; aceita também «12.50») e vai para a API como número. Os campos inativos aparecem marcados com «Inativo». Um nome repetido aparece como erro no campo do nome. Um campo pedido através de um clube que não é o seu dá 404 `pitch_not_found`; o clube de outro dono dá 404 `club_not_found`, como na US06. A recusa de desativar um campo com reservas futuras confirmadas fica para a história que criar a tabela de reservas (US18, ver lá), porque ainda não há reservas.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - Códigos estáveis do desporto na API, guardados como texto: `futsal`, `football7`, `padel`, `tennis` (os nomes em português são só da interface). Um campo novo começa ativo.
   - Nome: obrigatório, até 100 caracteres (espaços à volta removidos), único em cada clube sem distinguir maiúsculas de minúsculas (também contra campos inativos); o mesmo nome pode existir noutro clube. Um nome repetido é um erro de validação no campo `name` (400), não um 409.
   - Preço por slot: maior que 0 € e até 500 €, com no máximo duas casas decimais (`numeric(10,2)`, com check constraint).
