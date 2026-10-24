@@ -318,6 +318,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price_per_slot");
 
+                    b.Property<int>("SlotDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("slot_duration_minutes");
+
                     b.Property<string>("Sport")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -344,6 +348,8 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("pitches", null, t =>
                         {
                             t.HasCheckConstraint("ck_pitches_price_per_slot", "price_per_slot > 0 AND price_per_slot <= 500");
+
+                            t.HasCheckConstraint("ck_pitches_slot_duration_minutes", "slot_duration_minutes IN (30, 60, 90)");
 
                             t.HasCheckConstraint("ck_pitches_sport", "sport IN ('futsal', 'football7', 'padel', 'tennis')");
 
@@ -561,6 +567,41 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_pitches_clubs_club_id");
+
+                    b.OwnsMany("SportsBooking.Domain.Pitches.PitchOpeningDay", "OpeningDays", b1 =>
+                        {
+                            b1.Property<Guid>("PitchId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("pitch_id");
+
+                            b1.Property<int>("Day")
+                                .HasColumnType("integer")
+                                .HasColumnName("day_of_week");
+
+                            b1.Property<TimeOnly>("Closes")
+                                .HasColumnType("time without time zone")
+                                .HasColumnName("closes");
+
+                            b1.Property<TimeOnly>("Opens")
+                                .HasColumnType("time without time zone")
+                                .HasColumnName("opens");
+
+                            b1.HasKey("PitchId", "Day")
+                                .HasName("pk_pitch_opening_hours");
+
+                            b1.ToTable("pitch_opening_hours", null, t =>
+                                {
+                                    t.HasCheckConstraint("ck_pitch_opening_hours_closes_after_opens", "closes = TIME '00:00' OR closes > opens");
+
+                                    t.HasCheckConstraint("ck_pitch_opening_hours_day_of_week", "day_of_week BETWEEN 0 AND 6");
+                                });
+
+                            b1.WithOwner()
+                                .HasForeignKey("PitchId")
+                                .HasConstraintName("fk_pitch_opening_hours_pitches_pitch_id");
+                        });
+
+                    b.Navigation("OpeningDays");
                 });
 
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>

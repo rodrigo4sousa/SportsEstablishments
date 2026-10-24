@@ -20,6 +20,7 @@ internal sealed class PitchConfiguration : IEntityTypeConfiguration<Pitch>
             table.HasCheckConstraint("ck_pitches_price_per_slot", FormattableString.Invariant($"price_per_slot > 0 AND price_per_slot <= {PitchRules.MaximumPrice}"));
             table.HasCheckConstraint("ck_pitches_sport", $"sport IN ({string.Join(", ", Sports.Codes.Select(code => $"'{code}'"))})");
             table.HasCheckConstraint("ck_pitches_status", $"status IN ('{ActiveCode}', '{InactiveCode}')");
+            table.HasCheckConstraint("ck_pitches_slot_duration_minutes", "slot_duration_minutes IN (30, 60, 90)");
         });
 
         builder.HasKey(pitch => pitch.Id);
@@ -36,6 +37,24 @@ internal sealed class PitchConfiguration : IEntityTypeConfiguration<Pitch>
             .HasMaxLength(16)
             .IsRequired();
         builder.Ignore(pitch => pitch.IsActive);
+        builder.Ignore(pitch => pitch.SlotDuration);
+
+        // US08: one row per open weekday, local times without a zone (T04); a weekday without a row is closed.
+        builder.OwnsMany(pitch => pitch.OpeningDays, day =>
+        {
+            day.ToTable("pitch_opening_hours", table =>
+            {
+                table.HasCheckConstraint("ck_pitch_opening_hours_day_of_week", "day_of_week BETWEEN 0 AND 6");
+                // 00:00 as closing is midnight; hours past midnight are not supported (T04).
+                table.HasCheckConstraint("ck_pitch_opening_hours_closes_after_opens", "closes = TIME '00:00' OR closes > opens");
+            });
+            day.WithOwner().HasForeignKey("PitchId");
+            day.Property<Guid>("PitchId");
+            day.Property(openingDay => openingDay.Day).HasColumnName("day_of_week");
+            day.HasKey("PitchId", nameof(PitchOpeningDay.Day));
+            day.Ignore(openingDay => openingDay.Hours);
+        });
+        builder.Navigation(pitch => pitch.OpeningDays).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(pitch => new { pitch.ClubId, pitch.NameKey }).IsUnique().HasDatabaseName(NameIndex);
 
