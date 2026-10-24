@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ClubNotFound } from "@/features/clubs/components/club-not-found";
 import { sportLabel } from "@/features/pitches/sports";
+import { previewDateRange } from "@/features/pitches/schedule";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
-import { formatDateKeyLong, formatLisbonDate, lisbonToday, startOfWeekDateKey } from "@/lib/datetime";
+import { formatDateKeyLong, formatLisbonDate, lisbonDateKey, lisbonToday, startOfWeekDateKey } from "@/lib/datetime";
 import { calendarRangeQueryKey, fetchCalendarRange } from "../api";
 import {
   CALENDAR_MAX_DATE,
@@ -25,9 +26,11 @@ import {
   type CalendarMode,
   type CalendarView,
 } from "../calendar-url";
+import type { ClubBooking } from "../types";
 import { layoutDay, layoutWeek } from "../layout";
 import { BookingDetails } from "./booking-details";
-import { DayGrid } from "./day-grid";
+import { DayGrid, type NewBookingAction } from "./day-grid";
+import { NewBookingForm, type NewBookingPrefill } from "./new-booking-form";
 import { ClockChangeNote, WeekGrid } from "./week-grid";
 
 const MODES: { mode: CalendarMode; label: string }[] = [
@@ -48,6 +51,12 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const [today] = useState(() => lisbonToday());
+  // When the page was opened: enough to not offer an hour that is over; the API decides in the end.
+  const [openedAt] = useState(() => Date.now());
+  const [bookingWindow] = useState(() => previewDateRange());
+  // US13: the form to book a slot for a customer. Ephemeral, so it is not in the address; the key restarts it for another click.
+  const [newBooking, setNewBooking] = useState<{ key: number; prefill: NewBookingPrefill } | null>(null);
+  const [created, setCreated] = useState<string | null>(null);
   const view = viewFromParams(params, today);
   const weekly = view.mode === "week";
   const range = rangeOf(view);
@@ -69,6 +78,25 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
     if (date !== null && isCalendarDate(date)) show({ date, booking: null });
   };
   const step = weekly ? 7 : 1;
+
+  const activePitches = data ? data.pitches.filter((pitch) => pitch.status === "active") : [];
+  const openNewBooking = (prefill: NewBookingPrefill) => {
+    setCreated(null);
+    setNewBooking((current) => ({ key: (current?.key ?? 0) + 1, prefill }));
+    if (view.booking) show({ booking: null });
+  };
+  const newBookingAction: NewBookingAction = {
+    // The hour of the cell the owner clicked: the date is the Lisbon day it is in.
+    onEmptyTimeClick: (pitchId, startsAt) => openNewBooking({ pitchId, date: lisbonDateKey(startsAt), startsAt }),
+    // Not over yet, and not past the last day a booking can be made.
+    canBookAt: (startsAt) => Date.parse(startsAt) + 3_600_000 > openedAt && lisbonDateKey(startsAt) >= bookingWindow.min && lisbonDateKey(startsAt) <= bookingWindow.max,
+  };
+  const onCreated = (booking: ClubBooking) => {
+    setNewBooking(null);
+    setCreated(`Reserva criada para ${booking.playerName}.`);
+    // Show it: its day (and its pitch, in the weekly view) with its details open.
+    show({ date: lisbonDateKey(booking.startsAt), pitch: booking.pitchId, booking: booking.id });
+  };
 
   if (calendar.isError && calendar.error instanceof ApiError && calendar.error.status === 404) {
     return <ClubNotFound />;
@@ -137,6 +165,14 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
           </div>
         ) : null}
 
+        <Button
+          type="button"
+          disabled={activePitches.length === 0}
+          onClick={() => openNewBooking({ pitchId: weekly ? selectedPitch?.id : undefined, date: view.date })}
+        >
+          Nova reserva
+        </Button>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -153,6 +189,23 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
           ? `${formatDateKeyLong(monday)} – ${formatDateKeyLong(range.to)} (${formatLisbonDate(`${monday}T12:00:00Z`)} – ${formatLisbonDate(`${range.to}T12:00:00Z`)})`
           : `${formatDateKeyLong(view.date)} (${formatLisbonDate(`${view.date}T12:00:00Z`)})`}
       </h2>
+
+      {created ? (
+        <p role="status" className="rounded-md border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30">
+          {created}
+        </p>
+      ) : null}
+
+      {newBooking && activePitches.length > 0 ? (
+        <NewBookingForm
+          key={newBooking.key}
+          clubId={clubId}
+          pitches={activePitches}
+          prefill={newBooking.prefill}
+          onClose={() => setNewBooking(null)}
+          onCreated={onCreated}
+        />
+      ) : null}
 
       {calendar.isPending ? (
         <p role="status" className="text-muted-foreground">
@@ -177,7 +230,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
         ) : (
           <>
             <ClockChangeNote layout={weekLayout} />
-            <WeekGrid layout={weekLayout} selectedId={view.booking} onOpenBooking={(booking) => show({ booking })} />
+            <WeekGrid layout={weekLayout} selectedId={view.booking} onOpenBooking={(booking) => show({ booking })} newBooking={newBookingAction} />
           </>
         )
       ) : dayLayout === null ? (
@@ -185,7 +238,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
           Nenhum campo abre neste dia e não há reservas nem bloqueios.
         </p>
       ) : (
-        <DayGrid layout={dayLayout} selectedId={view.booking} onOpenBooking={(booking) => show({ booking })} />
+        <DayGrid layout={dayLayout} selectedId={view.booking} onOpenBooking={(booking) => show({ booking })} newBooking={newBookingAction} />
       )}
 
       {view.booking ? <BookingDetails key={view.booking} clubId={clubId} bookingId={view.booking} onClose={() => show({ booking: null })} /> : null}

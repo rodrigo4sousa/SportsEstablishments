@@ -11,6 +11,7 @@ import { errorMessage } from "@/lib/api/error-messages";
 import { formatLisbonDate, formatLisbonDateTime, formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
 import { calendarBookingQueryKey, fetchClubBooking } from "../api";
 import { CancelBookingForm } from "./cancel-booking-form";
+import { CREATED_BY_CLUB } from "./day-grid";
 
 type BookingDetailsProps = {
   clubId: string;
@@ -71,8 +72,16 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
       ) : (
         <>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
-            <dt className="text-muted-foreground">Jogador</dt>
+            <dt className="text-muted-foreground">{booking.data.createdByClub ? "Cliente" : "Jogador"}</dt>
             <dd className="font-medium">{booking.data.playerName}</dd>
+            {booking.data.createdByClub ? (
+              <>
+                <dt className="text-muted-foreground">Telemóvel</dt>
+                <dd className="tabular-nums">{booking.data.customerPhone}</dd>
+                <dt className="text-muted-foreground">Origem</dt>
+                <dd>{CREATED_BY_CLUB}</dd>
+              </>
+            ) : null}
             <dt className="text-muted-foreground">Campo</dt>
             <dd>
               {booking.data.pitchName} · {sportLabel(booking.data.sport)}
