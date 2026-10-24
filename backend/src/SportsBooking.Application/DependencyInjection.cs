@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Bookings;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Application.Pitches;
@@ -32,6 +33,9 @@ public static class DependencyInjection
 
         services.AddSingleton<BlockCheckValidator>();
         services.AddScoped<BlockService>();
+
+        services.AddSingleton<CreateBookingRequestValidator>();
+        services.AddScoped<BookingService>();
 
         return services;
     }

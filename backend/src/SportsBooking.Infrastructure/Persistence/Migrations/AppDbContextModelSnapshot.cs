@@ -207,6 +207,64 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Bookings.Booking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<Guid>("PitchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pitch_id");
+
+                    b.Property<Guid?>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bookings");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_bookings_player_id");
+
+                    b.HasIndex("PitchId", "StartsAt")
+                        .HasDatabaseName("ix_bookings_pitch_id_starts_at");
+
+                    b.ToTable("bookings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_bookings_ends_after_starts", "ends_at > starts_at");
+
+                            t.HasCheckConstraint("ck_bookings_has_player", "player_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_bookings_price", "price > 0");
+
+                            t.HasCheckConstraint("ck_bookings_status", "status IN ('Confirmed', 'CancelledByPlayer', 'CancelledByClub', 'NoShow')");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Domain.Clubs.Club", b =>
                 {
                     b.Property<Guid>("Id")
@@ -586,6 +644,22 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("SportsBooking.Domain.Bookings.Booking", b =>
+                {
+                    b.HasOne("SportsBooking.Domain.Pitches.Pitch", null)
+                        .WithMany()
+                        .HasForeignKey("PitchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_bookings_pitches_pitch_id");
+
+                    b.HasOne("SportsBooking.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_bookings_users_player_id");
                 });
 
             modelBuilder.Entity("SportsBooking.Domain.Clubs.Club", b =>

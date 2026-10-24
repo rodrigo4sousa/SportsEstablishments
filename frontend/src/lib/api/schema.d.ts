@@ -333,6 +333,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateBookingRequest"];
+                    "application/*+json": components["schemas"]["CreateBookingRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BookingResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manage/clubs/{clubId}/pitches/{pitchId}/blocks": {
         parameters: {
             query?: never;
@@ -1136,6 +1212,21 @@ export interface components {
             endsAt: string;
             reason: null | string;
         };
+        BookingResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pitchId: string;
+            /** Format: uuid */
+            clubId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            status: string;
+        };
         ClubRequest: {
             name: string;
             address: string;
@@ -1144,6 +1235,13 @@ export interface components {
             contactEmail: string;
             /** Format: int32 */
             cancellationWindowHours?: null | number | string;
+        };
+        CreateBookingRequest: {
+            /** Format: uuid */
+            pitchId: string;
+            startsAt: string;
+            /** Format: date-time */
+            startsAtUtc?: null | string;
         };
         DayHours: {
             closed: boolean;
@@ -1264,6 +1362,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             blocked: boolean;
+            booked: boolean;
         };
         ValidationProblemDetails: {
             type?: null | string;

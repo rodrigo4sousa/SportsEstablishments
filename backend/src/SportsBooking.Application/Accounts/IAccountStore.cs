@@ -19,6 +19,9 @@ public interface IAccountStore
     Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken);
 
     Task<AccountResponse?> FindAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>True when the account exists and is not deactivated (<c>users.deactivated_at</c> empty).</summary>
+    Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken);
 }
 
 /// <summary>A validated, normalized registration.</summary>

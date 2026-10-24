@@ -50,4 +50,31 @@ public static class ErrorCodes
 
     /// <summary>422 from removing a block (US09): it has already started, so it stays as history.</summary>
     public const string BlockAlreadyStarted = "block_already_started";
+
+    /// <summary>409 from creating a block (US09): confirmed bookings overlap it; <c>bookings</c> lists their times.</summary>
+    public const string BlockOverlapsBookings = "block_overlaps_bookings";
+
+    /// <summary>422 from deactivating a pitch (US07): it has future confirmed bookings; <c>count</c> says how many.</summary>
+    public const string PitchHasFutureBookings = "pitch_has_future_bookings";
+
+    /// <summary>409 from booking (US18, T03): a confirmed booking of the pitch overlaps the slot.</summary>
+    public const string SlotTaken = "slot_taken";
+
+    /// <summary>409 from booking (US18): a block of the pitch overlaps the slot.</summary>
+    public const string SlotBlocked = "slot_blocked";
+
+    /// <summary>422 from booking (US18): the start is not a slot the pitch's schedule generates (closed day, outside the hours, off the grid).</summary>
+    public const string InvalidSlot = "invalid_slot";
+
+    /// <summary>422 from booking (US18): the slot has already started.</summary>
+    public const string SlotStarted = "slot_started";
+
+    /// <summary>422 from booking (US18): the slot's date is not between today and 30 days ahead in the club's time zone.</summary>
+    public const string OutsideBookingWindow = "outside_booking_window";
+
+    /// <summary>422 from booking (US18, US07): the pitch is inactive.</summary>
+    public const string PitchInactive = "pitch_inactive";
+
+    /// <summary>422 from booking (US18, US29): the club's owner is deactivated, so the club takes no bookings.</summary>
+    public const string ClubUnavailable = "club_unavailable";
 }

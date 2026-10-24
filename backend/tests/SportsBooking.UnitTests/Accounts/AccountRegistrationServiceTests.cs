@@ -79,6 +79,8 @@ public sealed class AccountRegistrationServiceTests
 
     private sealed class FakeAccountStore : IAccountStore
     {
+        public Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(true);
+
         public bool EmailTaken { get; set; }
 
         public List<(NewAccount Account, string Profile)> Created { get; } = [];

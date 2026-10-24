@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Pitches;
 
 namespace SportsBooking.Application.Pitches;
@@ -31,6 +32,16 @@ public static class PitchErrors
         new Dictionary<string, string[]> { ["name"] = [NameTakenMessage] });
 
     public const string NameTakenMessage = "Já existe um campo com este nome neste clube.";
+
+    /// <summary>US07: the pitch has confirmed bookings that have not ended; <c>count</c> says how many.</summary>
+    public static ServiceError HasFutureBookings(int count) => new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.PitchHasFutureBookings,
+        "Campo com reservas",
+        count == 1
+            ? "Este campo tem 1 reserva futura confirmada. Cancela-a antes de o desativar."
+            : $"Este campo tem {count} reservas futuras confirmadas. Cancela-as antes de o desativar.",
+        Extensions: new Dictionary<string, object?> { ["count"] = count });
 }
 
 /// <summary>
@@ -41,6 +52,7 @@ public static class PitchErrors
 public sealed class PitchService(
     OwnedPitches ownedPitches,
     IPitchStore pitchStore,
+    IPitchLock pitchLock,
     IAppDbContext dbContext,
     PitchRequestValidator requestValidator,
     IValidator<PageRequest> pageValidator,
@@ -130,8 +142,20 @@ public sealed class PitchService(
             return found.Error!;
         }
 
-        found.Value.Deactivate(Now());
+        // Under the pitch lock, so a booking cannot slip in between the count and the deactivation.
+        await using var scope = await pitchLock.LockAsync(pitchId, cancellationToken);
+        var now = Now();
+        var future = await dbContext.Bookings.CountAsync(
+            booking => booking.PitchId == pitchId && booking.Status == BookingStatus.Confirmed && booking.EndsAt > now,
+            cancellationToken);
+        if (future > 0)
+        {
+            return PitchErrors.HasFutureBookings(future);
+        }
+
+        found.Value.Deactivate(now);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await scope.CommitAsync(cancellationToken);
         return PitchResponse.From(found.Value);
     }
 

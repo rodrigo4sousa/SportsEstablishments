@@ -146,6 +146,17 @@ public sealed class Pitch
     public IReadOnlyList<TimeSlot> SlotsOn(DateOnly date, TimeZoneInfo timeZone) =>
         HoursOn(date.DayOfWeek) is { } hours ? SlotGenerator.Generate(date, hours, SlotDuration, timeZone) : [];
 
+    /// <summary>
+    /// The generated slot that starts exactly at <paramref name="startsAtUtc"/>, or null (US18): a closed day, a time
+    /// outside the hours or a time off the grid is not a slot. The slot belongs to the local date of its start, so
+    /// the end always comes from the schedule, never from the request.
+    /// </summary>
+    public TimeSlot? SlotStartingAt(DateTime startsAtUtc, TimeZoneInfo timeZone)
+    {
+        var localDate = DateOnly.FromDateTime(ClubTime.ToLocal(startsAtUtc, timeZone));
+        return SlotsOn(localDate, timeZone).SingleOrDefault(slot => slot.StartsAtUtc == startsAtUtc);
+    }
+
     private void Apply(PitchDetails details)
     {
         ArgumentNullException.ThrowIfNull(details);
