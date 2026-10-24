@@ -32,5 +32,19 @@ public interface IAppDbContext
     /// </summary>
     IQueryable<Guid> ActiveAccountIds { get; }
 
+    /// <summary>
+    /// The display name of every account. Names of players are personal data: read them only for bookings reached
+    /// through an owned club (US11, US12), never to list accounts. Joined to bookings, not queried alone.
+    /// </summary>
+    IQueryable<AccountName> AccountNames { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>An account id and its display name (US11). A class with <c>init</c> properties, so EF can filter and order after joining it.</summary>
+public sealed class AccountName
+{
+    public required Guid Id { get; init; }
+
+    public required string Name { get; init; }
 }
