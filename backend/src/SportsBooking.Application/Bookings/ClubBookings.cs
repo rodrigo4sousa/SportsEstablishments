@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Domain.Accounts;
@@ -130,6 +131,7 @@ public sealed class ClubBookingService(
     IPitchLock pitchLock,
     IBookingStore bookingStore,
     BookingSlotCheck slotCheck,
+    BookingEmailOutbox emails,
     IAccountStore accounts,
     CancelClubBookingRequestValidator validator,
     CreateClubBookingRequestValidator createValidator,
@@ -283,6 +285,8 @@ public sealed class ClubBookingService(
                     return BookingErrors.AlreadyStarted;
             }
 
+            // US22: the player is told, with the reason, in the same SaveChanges; a customer booking (US13) queues nothing.
+            await emails.EnqueueClubCancellationAsync(booking, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
             await scope.CommitAsync(cancellationToken);
         }

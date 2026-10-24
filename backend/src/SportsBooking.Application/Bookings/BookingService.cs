@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Scheduling;
@@ -74,6 +75,7 @@ public sealed class BookingService(
     IPitchLock pitchLock,
     IBookingStore bookingStore,
     BookingSlotCheck slotCheck,
+    BookingEmailOutbox emails,
     IAccountStore accounts,
     ICurrentUser currentUser,
     CreateBookingRequestValidator validator,
@@ -122,6 +124,9 @@ public sealed class BookingService(
         var endsAt = checkedSlot.Value.EndsAtUtc;
 
         var booking = Booking.ForPlayer(pitch.Id, playerId, startsAt, endsAt, pitch.PricePerSlot, now);
+        // US22: the confirmation email is queued now and written by the same SaveChanges as the booking, so a booking
+        // that loses the race (23P01, rolled back) leaves no email behind.
+        await emails.EnqueueConfirmationAsync(booking, cancellationToken);
         if (!await bookingStore.TryAddAsync(booking, cancellationToken))
         {
             return BookingErrors.SlotTaken;
