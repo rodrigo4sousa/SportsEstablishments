@@ -5,11 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
+using SportsBooking.Application.Bookings;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
+using SportsBooking.Infrastructure.Bookings;
 using SportsBooking.Infrastructure.Clubs;
 using SportsBooking.Infrastructure.Identity;
 using SportsBooking.Infrastructure.Pitches;
@@ -40,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IClubStore, ClubStore>();
         services.AddScoped<IPitchStore, PitchStore>();
         services.AddScoped<IPitchLock, PitchLock>();
+        services.AddScoped<IBookingStore, BookingStore>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");

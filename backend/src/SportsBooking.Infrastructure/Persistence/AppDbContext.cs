@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Common;
+using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Clubs;
 using SportsBooking.Domain.Pitches;
 using SportsBooking.Infrastructure.Auth;
@@ -19,6 +20,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Pitch> Pitches => Set<Pitch>();
 
     public DbSet<Block> Blocks => Set<Block>();
+
+    public DbSet<Booking> Bookings => Set<Booking>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
