@@ -215,6 +215,15 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
 - Abrir uma reserva mostra os detalhes e a ação de cancelar.
 - Os bloqueios aparecem no calendário (US09): `GET …/pitches/{pitchId}/blocks` dá os bloqueios em curso e futuros de cada campo.
 - Candidata a dividir: vista diária (5) e vista semanal (3).
+- Estado: back end feito (`GET /api/manage/clubs/{clubId}/calendar` e `GET …/bookings/{bookingId}`). A interface (vista diária e semanal, navegação, abrir uma reserva) vem noutro ramo.
+- Decisões de implementação (provisórias, a confirmar):
+  - `GET /api/manage/clubs/{clubId}/calendar?from=AAAA-MM-DD&to=AAAA-MM-DD&includeCancelled=false` (perfil Dono, pela T02: o clube de outro dono, ou inexistente, é 404 `club_not_found`, antes de se olhar para a query). `from` e `to` são datas locais do clube, ambas incluídas; `from` não pode ser depois de `to` e o intervalo tem no máximo 7 dias (400 em `from`/`to`/`includeCancelled`, mensagens em português). O dono pode ver o passado e o futuro, sem a janela de 30 dias dos jogadores; só se exige que as datas estejam entre 2000 e 2100 (limite defensivo).
+  - A resposta tem `from`, `to`, `pitches`, `bookings` e `blocks`. Os campos do clube: os ativos e os inativos que tenham reservas visíveis no intervalo (o mesmo critério que decide que reservas se veem), ordenados pelo nome; cada um com `id`, `name`, `sport`, `status`, `slotDurationMinutes` e `days` (uma entrada por data do intervalo, com `opens` e `closes` locais «HH:mm», ou `null` num dia fechado; fecho «00:00» é meia-noite). Os instantes das reservas e dos bloqueios vão em UTC; a interface mostra-os em hora de Lisboa.
+  - Uma reserva pertence ao intervalo se se sobrepuser a ele (meio-aberto), e um dia é o dia local: a 25 de outubro de 2026 (25 horas) o intervalo é [2026-10-24T23:00Z, 2026-10-26T00:00Z), e as duas 01:30 contam. Uma reserva que atravessa a meia-noite local aparece nos dois dias.
+  - Reservas: `id`, `pitchId`, `startsAt`, `endsAt`, `status`, `price` e `playerName`, por ordem de início. As canceladas (pelo jogador ou pelo clube) só vêm com `includeCancelled=true`; uma falta (`no_show`) não é um cancelamento e aparece sempre. Bloqueios: `id`, `pitchId`, `startsAt`, `endsAt`, `reason`, dos campos listados.
+  - Só o dono do clube vê o nome do jogador (é o único dado pessoal; não há email, telefone nem id da conta, e há um teste que procura esses valores na resposta). Jogadores e admins recebem 403, sem sessão 401.
+  - `GET /api/manage/clubs/{clubId}/bookings/{bookingId}`: os detalhes (campo, desporto, início, fim, preço, estado, `playerName`, `createdAt`, `cancelledAt`, `cancellationReason` e `canCancel`, verdadeiro para uma reserva confirmada que ainda não começou). Uma reserva de outro clube, mesmo do mesmo dono, e um id desconhecido são o mesmo 404 `booking_not_found`.
+  - A US13 vai ter de acrescentar o nome do cliente (sem conta) ao `playerName`: hoje a reserva tem sempre um jogador e o nome vem da conta.
 ### US12 · Cancelar reserva como dono · M · 2 pontos
  
 Como dono, quero cancelar uma reserva, para resolver problemas como um campo avariado.
@@ -223,6 +232,13 @@ Como dono, quero cancelar uma reserva, para resolver problemas como um campo ava
 - É obrigatório indicar um motivo.
 - A reserva passa a «Cancelada pelo clube» (não é apagada) e o slot volta a ficar livre.
 - O jogador recebe um email com o motivo (US22).
+- Estado: back end feito (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`). A ação na interface (no detalhe da reserva do calendário) vem noutro ramo.
+- Decisões de implementação (provisórias, a confirmar):
+  - Corpo `{ "reason": "…" }`: o motivo é obrigatório, sem espaços nas pontas, com no máximo 200 caracteres (400 em `reason`).
+  - Ordem das respostas: clube de outro dono 404 `club_not_found` → reserva que não é deste clube 404 `booking_not_found` (as duas antes de validar o corpo) → 400 → 422 `booking_not_confirmed` (já cancelada, pelo jogador ou pelo clube, ou falta) → 422 `booking_already_started` (já começou; começar agora conta como começada).
+  - Não há janela de cancelamento para o clube: pode cancelar até ao instante em que a reserva começa.
+  - Corre sob o trinco do campo (o mesmo das reservas, dos bloqueios e do cancelamento do jogador) e lê a reserva outra vez lá dentro; por isso, se o dono e o jogador cancelam ao mesmo tempo, só um tem sucesso e o outro recebe 422 `booking_not_confirmed`, nunca um 500. A regra está na entidade (`Booking.CancelByClub`).
+  - A reserva passa a `cancelled_by_club` e guarda o motivo (`cancellation_reason`) e o instante (`cancelled_at`, que passou também a ser guardado quando é o jogador a cancelar); nunca é apagada e o slot volta a ficar livre. A resposta é a reserva, como nos detalhes.
 ### US13 · Reserva em nome de um cliente · M · 3 pontos
  
 Como dono, quero criar uma reserva para um cliente que ligou ou apareceu, para que todas as reservas fiquem no sistema.
@@ -231,6 +247,7 @@ Como dono, quero criar uma reserva para um cliente que ligou ou apareceu, para q
 - Aplica-se a mesma regra contra reservas duplicadas da US18 e da T03.
 - A reserva aparece no calendário marcada como «criada pelo clube».
 - Não é enviado email, porque o cliente não tem conta.
+- Decisão para quando se fizer (provisória): o calendário e os detalhes (US11) mostram o nome do jogador com um acesso às contas só para reservas de um clube do dono (`IAppDbContext.AccountNames`, ligado às reservas); uma reserva de cliente sem conta (`player_id` vazio) tem de trazer aí o nome do cliente, e o `ck_bookings_has_player` muda para «um jogador, ou o nome e o telemóvel de um cliente».
 ### US14 · Ocupação e receita · D · 5 pontos
  
 Como dono, quero ver a ocupação e a receita dos meus clubes por período, para perceber como está o negócio.
@@ -387,6 +404,7 @@ Como jogador, quero receber um email quando reservo e quando uma reserva minha �
 - O email de confirmação traz clube, morada, campo, data, hora e preço.
 - O email de cancelamento indica quem cancelou e, se foi o clube, o motivo.
   - O cancelamento feito pelo jogador (US19, `POST /api/bookings/{id}/cancel`) só muda o estado da reserva: o email a avisar vem aqui, em segundo plano, sem fazer falhar o cancelamento.
+  - O cancelamento feito pelo dono (US12, `POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) guarda o motivo e a hora (`cancellation_reason`, `cancelled_at`) e só muda o estado da reserva: o email com o motivo vem aqui, em segundo plano, sem fazer falhar o cancelamento.
 - O envio é feito em segundo plano; uma falha no envio não falha a reserva nem o cancelamento e fica registada no log.
 - Em desenvolvimento, os emails vão para um serviço de teste (por exemplo, Mailpit) e nunca para endereços reais.
 ### US23 · Email ao dono sobre nova reserva · D · 1 ponto
