@@ -86,4 +86,7 @@ public static class ErrorCodes
 
     /// <summary>422 from cancelling (US19): only a confirmed booking can be cancelled (it is cancelled already, or a no-show).</summary>
     public const string BookingNotConfirmed = "booking_not_confirmed";
+
+    /// <summary>422 from cancelling a booking as the club's owner (US12): the booking has started, so it stays as history.</summary>
+    public const string BookingAlreadyStarted = "booking_already_started";
 }

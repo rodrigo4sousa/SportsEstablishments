@@ -142,3 +142,86 @@ export function addDaysToDateKey(dateKey: string, days: number): string {
 export function lisbonNowLocal(now: Date = new Date()): string {
   return `${lisbonDateKey(now)}T${formatLisbonTime(now)}`;
 }
+
+// ---- The Lisbon day as a stretch of real elapsed time (the owner's calendar, US11)
+
+const offsetFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: LISBON_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const MINUTE_MS = 60_000;
+const LOCAL_TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** How many minutes Lisbon is ahead of UTC at an instant (0 in winter, 60 in summer). */
+function lisbonOffsetMinutes(instantMs: number): number {
+  const parts: Record<string, string> = {};
+  for (const part of offsetFormatter.formatToParts(instantMs)) {
+    parts[part.type] = part.value;
+  }
+  const wallClockAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+  return Math.round((wallClockAsUtc - Math.floor(instantMs / MINUTE_MS) * MINUTE_MS) / MINUTE_MS);
+}
+
+/**
+ * The instant of a Lisbon wall-clock time ("HH:mm", midnight by default) on a date ("YYYY-MM-DD"), by the same decided
+ * rules as the API's `ClubTime`: a time that does not exist (clocks go forward) moves forward past the gap (01:30 →
+ * 02:30 WEST), and a time that happens twice (clocks go back) is its first occurrence (WEST).
+ */
+export function lisbonInstant(dateKey: string, time = "00:00"): Date {
+  const clock = LOCAL_TIME.exec(time);
+  if (!isDateKey(dateKey) || !clock) {
+    throw new Error(`Expected a date as YYYY-MM-DD and a time as HH:mm, got "${dateKey}" and "${time}".`);
+  }
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const wallClockAsUtc = Date.UTC(year, month - 1, day, Number(clock[1]), Number(clock[2]));
+  // Lisbon is on UTC+1 or UTC+0: try both, keep the offsets that really apply at the instant they give, earliest first.
+  const matching = [60, 0].map((offset) => ({ offset, ms: wallClockAsUtc - offset * MINUTE_MS })).filter(({ offset, ms }) => lisbonOffsetMinutes(ms) === offset);
+  return new Date(matching.length > 0 ? Math.min(...matching.map(({ ms }) => ms)) : wallClockAsUtc);
+}
+
+/** The instant a Lisbon day starts: local midnight. */
+export function lisbonDayStart(dateKey: string): Date {
+  return lisbonInstant(dateKey);
+}
+
+/** How many minutes the Lisbon day lasts: 1440, but 1500 when the clocks go back (25 October 2026) and 1380 when they go forward (29 March 2026). */
+export function lisbonDayMinutes(dateKey: string): number {
+  return (lisbonDayStart(addDaysToDateKey(dateKey, 1)).getTime() - lisbonDayStart(dateKey).getTime()) / MINUTE_MS;
+}
+
+/** Real elapsed minutes from the start of a Lisbon day to an instant (negative before the day, past its length after it). */
+export function minutesFromLisbonDayStart(instant: Instant, dateKey: string): number {
+  return (toDate(instant).getTime() - lisbonDayStart(dateKey).getTime()) / MINUTE_MS;
+}
+
+/** Real elapsed minutes from the start of a Lisbon day to a wall-clock time of that day ("HH:mm"). */
+export function lisbonLocalMinutes(dateKey: string, time: string): number {
+  return minutesFromLisbonDayStart(lisbonInstant(dateKey, time), dateKey);
+}
+
+/** The instant that is `minutes` of real elapsed time after the start of a Lisbon day. */
+export function lisbonInstantAtMinute(dateKey: string, minutes: number): Date {
+  return new Date(lisbonDayStart(dateKey).getTime() + minutes * MINUTE_MS);
+}
+
+// ---- Weeks (the owner's weekly calendar, US11): Monday first, as in Portugal
+
+/** The weekday of a "YYYY-MM-DD" date, Monday = 0 … Sunday = 6. Pure calendar arithmetic, no time zone involved. */
+export function weekdayIndex(dateKey: string): number {
+  if (!isDateKey(dateKey)) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
+  }
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
+}
+
+/** The Monday of the week a "YYYY-MM-DD" date is in. */
+export function startOfWeekDateKey(dateKey: string): string {
+  return addDaysToDateKey(dateKey, -weekdayIndex(dateKey));
+}

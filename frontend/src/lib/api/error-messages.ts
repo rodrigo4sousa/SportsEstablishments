@@ -16,6 +16,7 @@ const MESSAGES: Record<string, string> = {
   pitch_inactive: "Este campo já não está a aceitar reservas.",
   club_unavailable: "Este clube já não está a aceitar reservas.",
   booking_not_found: "Esta reserva já não existe.",
+  booking_already_started: "Esta reserva já começou, por isso já não pode ser cancelada.",
   booking_not_confirmed: "Esta reserva já não está confirmada, por isso não pode ser cancelada.",
   outside_cancellation_window: "O prazo para cancelar esta reserva já terminou.",
   forbidden: "Não tens permissão para fazer esta ação.",

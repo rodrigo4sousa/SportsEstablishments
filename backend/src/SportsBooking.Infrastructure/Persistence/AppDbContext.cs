@@ -25,6 +25,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public IQueryable<Guid> ActiveAccountIds => Users.Where(user => user.DeactivatedAt == null).Select(user => user.Id);
 
+    public IQueryable<AccountName> AccountNames => Users.Select(user => new AccountName { Id = user.Id, Name = user.Name });
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

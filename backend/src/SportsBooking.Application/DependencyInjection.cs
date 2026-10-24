@@ -42,6 +42,12 @@ public static class DependencyInjection
         services.AddScoped<MyBookingsService>();
         services.AddScoped<BookingCancellationService>();
 
+        services.AddScoped<OwnedBookings>();
+        services.AddSingleton<CancelClubBookingRequestValidator>();
+        services.AddScoped<ClubBookingService>();
+        services.AddSingleton<CalendarRequestValidator>();
+        services.AddScoped<ClubCalendarService>();
+
         services.AddScoped<VisibleClubs>();
         services.AddSingleton<ClubSearchRequestValidator>();
         services.AddScoped<ClubSearchService>();

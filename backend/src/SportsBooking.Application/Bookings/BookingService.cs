@@ -43,6 +43,13 @@ public static class BookingErrors
         "Reserva não confirmada",
         "Só é possível cancelar uma reserva confirmada.");
 
+    /// <summary>The club's owner cancels a booking that has started (US12): it stays as history.</summary>
+    public static ServiceError AlreadyStarted { get; } = new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.BookingAlreadyStarted,
+        "Reserva já começou",
+        "Esta reserva já começou, por isso já não pode ser cancelada.");
+
     /// <summary>The window has closed. The deadline is a UTC instant in the <c>cancellationDeadline</c> extension.</summary>
     public static ServiceError OutsideCancellationWindow(DateTime deadlineUtc, int windowHours) => new(
         ErrorKind.Unprocessable,

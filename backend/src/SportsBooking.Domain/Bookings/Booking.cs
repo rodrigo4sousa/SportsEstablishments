@@ -22,6 +22,26 @@ public enum CancellationOutcome
     OutsideWindow,
 }
 
+/// <summary>What happened when the club's owner asked to cancel a booking (US12).</summary>
+public enum ClubCancellationOutcome
+{
+    /// <summary>The booking is now <see cref="BookingStatus.CancelledByClub"/>.</summary>
+    Cancelled,
+
+    /// <summary>Only a confirmed booking can be cancelled: it was cancelled already, or it was marked as a no-show.</summary>
+    NotConfirmed,
+
+    /// <summary>The booking has started: it is history now, and stays as it is.</summary>
+    AlreadyStarted,
+}
+
+/// <summary>Limits of what is stored with a booking.</summary>
+public static class BookingRules
+{
+    /// <summary>The longest reason an owner gives for cancelling a booking (provisional, as for a block's reason).</summary>
+    public const int CancellationReasonMaximumLength = 200;
+}
+
 /// <summary>The stable codes of <see cref="BookingStatus"/> in the API (the UI shows the pt-PT labels).</summary>
 public static class BookingStatuses
 {
@@ -66,6 +86,12 @@ public sealed class Booking
     public BookingStatus Status { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
+
+    /// <summary>When the booking was cancelled (by the player or by the club); null while it is not cancelled.</summary>
+    public DateTime? CancelledAt { get; private set; }
+
+    /// <summary>Why the club cancelled it (US12); null unless <see cref="BookingStatus.CancelledByClub"/>.</summary>
+    public string? CancellationReason { get; private set; }
 
     public bool IsConfirmed => Status == BookingStatus.Confirmed;
 
@@ -138,7 +164,41 @@ public sealed class Booking
         }
 
         Status = BookingStatus.CancelledByPlayer;
+        CancelledAt = EnsureUtc(now);
         return CancellationOutcome.Cancelled;
+    }
+
+    /// <summary>True from the instant the booking starts: it is no longer "in the future".</summary>
+    public bool HasStarted(DateTime now) => StartsAt <= EnsureUtc(now);
+
+    /// <summary>
+    /// The club's owner cancels a booking that has not started (US12), with the reason they give. There is no
+    /// cancellation window for the club. The booking is kept as <see cref="BookingStatus.CancelledByClub"/>, with the
+    /// reason (trimmed) and the moment, and stops counting for the overlap constraint, so the slot is free again.
+    /// Nothing changes unless the outcome is <see cref="ClubCancellationOutcome.Cancelled"/>; a missing reason is a
+    /// programming error (the service validates it first).
+    /// </summary>
+    public ClubCancellationOutcome CancelByClub(string reason, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("A booking cancelled by the club needs a reason.", nameof(reason));
+        }
+
+        if (!IsConfirmed)
+        {
+            return ClubCancellationOutcome.NotConfirmed;
+        }
+
+        if (HasStarted(now))
+        {
+            return ClubCancellationOutcome.AlreadyStarted;
+        }
+
+        Status = BookingStatus.CancelledByClub;
+        CancelledAt = EnsureUtc(now);
+        CancellationReason = reason.Trim();
+        return ClubCancellationOutcome.Cancelled;
     }
 
     /// <summary>Half-open overlap, the same rule as blocks and as the database constraint (<c>tstzrange</c> is <c>[)</c>).</summary>

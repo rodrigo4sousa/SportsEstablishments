@@ -866,6 +866,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/manage/clubs/{clubId}/bookings/{bookingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clubId: string;
+                    bookingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClubBookingResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manage/clubs/{clubId}/bookings/{bookingId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clubId: string;
+                    bookingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CancelClubBookingRequest"];
+                    "application/*+json": components["schemas"]["CancelClubBookingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClubBookingResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manage/clubs/{clubId}/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    includeCancelled?: string;
+                };
+                header?: never;
+                path: {
+                    clubId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manage/clubs": {
         parameters: {
             query?: never;
@@ -1562,6 +1738,78 @@ export interface components {
             /** Format: double */
             price: number | string;
             status: string;
+        };
+        CalendarBlock: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pitchId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason: null | string;
+        };
+        CalendarBooking: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pitchId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            status: string;
+            /** Format: double */
+            price: number | string;
+            playerName: string;
+        };
+        CalendarDay: {
+            date: string;
+            opens: null | string;
+            closes: null | string;
+        };
+        CalendarPitch: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sport: string;
+            status: string;
+            /** Format: int32 */
+            slotDurationMinutes: number | string;
+            days: components["schemas"]["CalendarDay"][];
+        };
+        CalendarResponse: {
+            from: string;
+            to: string;
+            pitches: components["schemas"]["CalendarPitch"][];
+            bookings: components["schemas"]["CalendarBooking"][];
+            blocks: components["schemas"]["CalendarBlock"][];
+        };
+        CancelClubBookingRequest: {
+            reason: string;
+        };
+        ClubBookingResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pitchId: string;
+            pitchName: string;
+            sport: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            status: string;
+            playerName: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            cancellationReason: null | string;
+            canCancel: boolean;
         };
         ClubRequest: {
             name: string;
