@@ -4,6 +4,7 @@ using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Pitches;
 
 namespace SportsBooking.Application;
 
@@ -21,6 +22,9 @@ public static class DependencyInjection
         services.AddSingleton<UpdateClubRequestValidator>();
         services.AddScoped<OwnedClubs>();
         services.AddScoped<ClubService>();
+
+        services.AddSingleton<PitchRequestValidator>();
+        services.AddScoped<PitchService>();
 
         return services;
     }

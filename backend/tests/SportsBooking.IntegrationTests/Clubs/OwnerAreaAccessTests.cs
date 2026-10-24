@@ -86,6 +86,12 @@ public sealed class OwnerAreaAccessTests(ApiFactory factory)
         endpoints.ShouldContain("GET /api/manage/clubs");
         endpoints.ShouldContain("GET /api/manage/clubs/{clubId:guid}");
         endpoints.ShouldContain("PUT /api/manage/clubs/{clubId:guid}");
+        endpoints.ShouldContain("POST /api/manage/clubs/{clubId:guid}/pitches");
+        endpoints.ShouldContain("GET /api/manage/clubs/{clubId:guid}/pitches");
+        endpoints.ShouldContain("GET /api/manage/clubs/{clubId:guid}/pitches/{pitchId:guid}");
+        endpoints.ShouldContain("PUT /api/manage/clubs/{clubId:guid}/pitches/{pitchId:guid}");
+        endpoints.ShouldContain("POST /api/manage/clubs/{clubId:guid}/pitches/{pitchId:guid}/deactivate");
+        endpoints.ShouldContain("POST /api/manage/clubs/{clubId:guid}/pitches/{pitchId:guid}/reactivate");
     }
 
     [Fact]
