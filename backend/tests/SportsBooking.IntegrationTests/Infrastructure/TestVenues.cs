@@ -112,6 +112,16 @@ public static class TestVenues
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>US06: the owner changes the club's cancellation window; it applies to cancellations made from now on.</summary>
+    public static async Task ChangeCancellationWindowAsync(this WebApplicationFactory<Program> app, Guid clubId, int hours)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var club = await dbContext.Clubs.SingleAsync(candidate => candidate.Id == clubId, TestContext.Current.CancellationToken);
+        club.ChangeCancellationWindow(hours, CreatedAt);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>US29: a deactivated owner's clubs disappear from the public pages.</summary>
     public static async Task DeactivateAccountAsync(this WebApplicationFactory<Program> app, Guid userId)
     {

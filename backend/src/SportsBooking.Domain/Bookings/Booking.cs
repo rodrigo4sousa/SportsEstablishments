@@ -104,13 +104,20 @@ public sealed class Booking
     /// The last moment before which a player may cancel: the start minus the club's cancellation window. The window is
     /// the club's value at the moment of cancelling and is never kept in the booking (US06, US19).
     /// </summary>
-    public DateTime CancellationDeadline(TimeSpan window) => StartsAt - EnsureWindow(window);
+    public DateTime CancellationDeadline(TimeSpan window) => CancellationDeadline(StartsAt, window);
+
+    /// <summary>The same deadline for a booking that is not loaded as an entity (the list of my bookings).</summary>
+    public static DateTime CancellationDeadline(DateTime startsAt, TimeSpan window) => EnsureUtc(startsAt) - EnsureWindow(window);
 
     /// <summary>
     /// True while the booking is confirmed and <paramref name="now"/> is strictly before the deadline (provisional: at
     /// the deadline itself it is already too late).
     /// </summary>
-    public bool CanBeCancelledByPlayer(TimeSpan window, DateTime now) => IsConfirmed && EnsureUtc(now) < CancellationDeadline(window);
+    public bool CanBeCancelledByPlayer(TimeSpan window, DateTime now) => CanBeCancelledByPlayer(Status, StartsAt, window, now);
+
+    /// <summary>The same rule for a booking that is not loaded as an entity; the entity method above uses it.</summary>
+    public static bool CanBeCancelledByPlayer(BookingStatus status, DateTime startsAt, TimeSpan window, DateTime now) =>
+        status == BookingStatus.Confirmed && EnsureUtc(now) < CancellationDeadline(startsAt, window);
 
     /// <summary>
     /// A player cancels their booking (US19). Only a confirmed booking can be cancelled, and only before the deadline

@@ -77,4 +77,13 @@ public static class ErrorCodes
 
     /// <summary>422 from booking (US18, US29): the club's owner is deactivated, so the club takes no bookings.</summary>
     public const string ClubUnavailable = "club_unavailable";
+
+    /// <summary>404 from the player's booking endpoints (US19): no such booking, or it belongs to another player.</summary>
+    public const string BookingNotFound = "booking_not_found";
+
+    /// <summary>422 from cancelling (US19): the club's cancellation window has closed; <c>cancellationDeadline</c> says when.</summary>
+    public const string OutsideCancellationWindow = "outside_cancellation_window";
+
+    /// <summary>422 from cancelling (US19): only a confirmed booking can be cancelled (it is cancelled already, or a no-show).</summary>
+    public const string BookingNotConfirmed = "booking_not_confirmed";
 }

@@ -10,7 +10,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/bookings")]
 [Authorize(Policy = Profiles.Player)]
-public sealed class BookingsController(BookingService bookings) : ControllerBase
+public sealed class BookingsController(BookingService bookings, MyBookingsService myBookings) : ControllerBase
 {
     /// <summary>
     /// Books one slot: the pitch and the slot's start as an instant with its zone (as the slot lists give it). The end
@@ -28,7 +28,19 @@ public sealed class BookingsController(BookingService bookings) : ControllerBase
     public async Task<IActionResult> Create(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var result = await bookings.CreateAsync(request, cancellationToken);
-        // No Location: reading a booking comes with US19.
-        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : this.Problem(result.Error!);
+        return result.IsSuccess
+            // Relative on purpose, like the other Location headers: behind the proxy the request host is the API's own name.
+            ? Created($"/api/bookings/{result.Value.Id}", result.Value)
+            : this.Problem(result.Error!);
+    }
+
+    /// <summary>One of the signed-in player's own bookings. Another player's booking is a 404, like one that does not exist.</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<MyBookingResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await myBookings.GetAsync(id, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 }
