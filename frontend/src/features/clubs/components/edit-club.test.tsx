@@ -45,6 +45,8 @@ describe("EditClub", () => {
     // The club's pitches are managed right below its details.
     expect(await screen.findByRole("heading", { name: "Campos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar campo" })).toBeInTheDocument();
+    // US11: the club's calendar is one click away.
+    expect(screen.getByRole("link", { name: "Calendário de reservas" })).toHaveAttribute("href", `/manage/clubs/${id}/calendar`);
   });
 
   it("shows the not-found page for a club the API answers 404 for (unknown, or another owner's)", async () => {
