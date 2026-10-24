@@ -277,6 +277,33 @@ describe("PitchSection", () => {
     expect(screen.queryByRole("form", { name: "Horário do campo" })).not.toBeInTheDocument();
   });
 
+  it("opens a pitch's blocks below its row and swaps panels with the schedule", async () => {
+    const closedDay = { closed: true, opens: null, closes: null };
+    server.use(
+      http.get(listUrl, () => page([pitch(1)])),
+      http.get(`${listUrl}/${pitch(1).id}/blocks`, () => HttpResponse.json({ items: [], page: 1, pageSize: 20, totalCount: 0 })),
+      http.get(`${listUrl}/${pitch(1).id}/schedule`, () =>
+        HttpResponse.json({ slotDurationMinutes: 60, monday: closedDay, tuesday: closedDay, wednesday: closedDay, thursday: closedDay, friday: closedDay, saturday: closedDay, sunday: closedDay }),
+      ),
+      http.get(`${listUrl}/${pitch(1).id}/slots`, () => HttpResponse.json({ date: "2026-10-25", slotDurationMinutes: 60, slots: [] })),
+    );
+    renderWithProviders(<PitchSection clubId={clubId} />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Bloqueios de Campo 1" }));
+    expect(await screen.findByRole("heading", { name: "Bloqueios de Campo 1" })).toBeInTheDocument();
+    expect(await screen.findByText("Sem bloqueios em curso nem futuros.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bloqueios de Campo 1" })).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("button", { name: "Horário de Campo 1" }));
+    expect(await screen.findByRole("heading", { name: "Horário de Campo 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Bloqueios de Campo 1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bloqueios de Campo 1" })).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(screen.getByRole("button", { name: "Horário de Campo 1" }));
+    expect(screen.queryByRole("heading", { name: "Horário de Campo 1" })).not.toBeInTheDocument();
+  });
+
   it("shows an error with a way to try again when the list cannot be loaded", async () => {
     let calls = 0;
     server.use(

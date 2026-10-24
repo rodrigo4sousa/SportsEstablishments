@@ -107,6 +107,43 @@ describe("SlotPreview", () => {
     expect(texts()[0]).toContain("01:00 (verão)");
   });
 
+  it("marks the slots that overlap a block as Bloqueado, partial overlaps included, and leaves the others alone", async () => {
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json({
+          date: "2026-10-25",
+          slotDurationMinutes: 60,
+          slots: [
+            { startsAt: "2026-10-24T23:00:00Z", endsAt: "2026-10-25T00:00:00Z", blocked: false },
+            // The block 01:30 (verão) to 02:30 cuts into these three.
+            { startsAt: "2026-10-25T00:00:00Z", endsAt: "2026-10-25T01:00:00Z", blocked: true },
+            { startsAt: "2026-10-25T01:00:00Z", endsAt: "2026-10-25T02:00:00Z", blocked: true },
+            { startsAt: "2026-10-25T02:00:00Z", endsAt: "2026-10-25T03:00:00Z", blocked: true },
+            { startsAt: "2026-10-25T03:00:00Z", endsAt: "2026-10-25T04:00:00Z", blocked: false },
+          ],
+        }),
+      ),
+    );
+    renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
+
+    await screen.findByRole("list", { name: "Slots gerados" });
+
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((item) => item.hasAttribute("data-blocked"))).toEqual([false, true, true, true, false]);
+    expect(screen.getAllByText("Bloqueado")).toHaveLength(3);
+    expect(texts()[1]).toBe("01:00 (verão) – 01:00 (inverno) Bloqueado");
+    expect(texts()[0]).not.toContain("Bloqueado");
+  });
+
+  it("shows no Bloqueado marker when nothing is blocked", async () => {
+    server.use(http.get(url, () => slots("2026-10-25", 60, ["2026-10-25T09:00:00Z", "2026-10-25T10:00:00Z"])));
+    renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
+
+    await screen.findByRole("list", { name: "Slots gerados" });
+
+    expect(screen.queryByText("Bloqueado")).not.toBeInTheDocument();
+  });
+
   it("says so when a day has no slots (closed day)", async () => {
     server.use(http.get(url, () => HttpResponse.json({ date: "2026-10-26", slotDurationMinutes: 60, slots: [] })));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);

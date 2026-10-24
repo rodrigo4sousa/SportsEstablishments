@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IClubStore, ClubStore>();
         services.AddScoped<IPitchStore, PitchStore>();
+        services.AddScoped<IPitchLock, PitchLock>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");

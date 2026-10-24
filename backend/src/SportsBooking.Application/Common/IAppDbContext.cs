@@ -19,5 +19,8 @@ public interface IAppDbContext
     /// <summary>Every pitch of the platform. In the owner area, reach pitches only through a club resolved with <see cref="Clubs.OwnedClubs"/> (T02).</summary>
     DbSet<Pitch> Pitches { get; }
 
+    /// <summary>Every block of the platform. Reach blocks only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
+    DbSet<Block> Blocks { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,4 @@
-import { apiJson } from "@/lib/api/client";
+import { apiJson, apiRequest } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
 export type PitchStatus = "active" | "inactive";
@@ -78,7 +78,8 @@ export type PitchSchedule = {
   sunday: DayHours;
 };
 
-export type PreviewSlot = { startsAt: string; endsAt: string };
+/** `blocked`: the slot overlaps a block (US09). */
+export type PreviewSlot = { startsAt: string; endsAt: string; blocked: boolean };
 
 export type PitchSlots = { date: string; slotDurationMinutes: number; slots: PreviewSlot[] };
 
@@ -111,4 +112,42 @@ export async function fetchSlots(clubId: string, pitchId: string, date: string):
     `${pitchesPath(clubId)}/${pitchId}/slots?date=${encodeURIComponent(date)}`,
   );
   return { ...response, slotDurationMinutes: Number(response.slotDurationMinutes) };
+}
+
+// ---- US09: blocks
+
+export type Block = components["schemas"]["BlockResponse"];
+
+export type BlockPage = { items: Block[]; page: number; pageSize: number; totalCount: number };
+
+export const BLOCKS_PAGE_SIZE = 20;
+
+/** Start and end are Lisbon local date-times "YYYY-MM-DDTHH:mm"; the answer has UTC instants. */
+export type BlockRequest = { start: string; end: string; reason?: string | null };
+
+export const blocksQueryKey = (clubId: string, pitchId: string) => [...pitchKey(clubId, pitchId), "blocks"] as const;
+export const blockListQueryKey = (clubId: string, pitchId: string, page: number) => [...blocksQueryKey(clubId, pitchId), "list", page] as const;
+
+const blocksPath = (clubId: string, pitchId: string) => `${pitchesPath(clubId)}/${pitchId}/blocks`;
+
+/** The pitch's ongoing and future blocks, by start, one page at a time. */
+export async function fetchBlocks(clubId: string, pitchId: string, page: number): Promise<BlockPage> {
+  const response = await apiJson<components["schemas"]["PagedResponseOfBlockResponse"]>(
+    `${blocksPath(clubId, pitchId)}?page=${page}&pageSize=${BLOCKS_PAGE_SIZE}`,
+  );
+  return {
+    items: response.items,
+    page: Number(response.page),
+    pageSize: Number(response.pageSize),
+    totalCount: Number(response.totalCount),
+  };
+}
+
+export async function createBlock(clubId: string, pitchId: string, request: BlockRequest): Promise<Block> {
+  return apiJson<Block>(blocksPath(clubId, pitchId), { method: "POST", body: JSON.stringify(request) });
+}
+
+/** Only a block that has not started; the API refuses the rest with 422 `block_already_started`. */
+export async function deleteBlock(clubId: string, pitchId: string, blockId: string): Promise<void> {
+  await apiRequest(`${blocksPath(clubId, pitchId)}/${blockId}`, { method: "DELETE" });
 }

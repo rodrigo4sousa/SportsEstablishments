@@ -169,11 +169,11 @@ Como dono, quero definir o horário de funcionamento e a duração dos slots de 
 - O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
 - Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
 - Estado: feita. Front end: em cada campo de `/manage/clubs/{id}` o botão «Horário» abre, por baixo do campo, o editor da semana (sete linhas, segunda-feira primeiro, cada uma com «Fechado» ou hora de abertura e de fecho, mais a duração do slot de 30, 60 ou 90 minutos; guarda a semana toda e os erros da API aparecem na linha e no campo certos) e a pré-visualização dos slots (data de hoje até 30 dias à frente, em hora de Lisboa, com «(verão)» e «(inverno)» na hora repetida de outubro). Back end: `GET` e `PUT /api/manage/clubs/{clubId}/pitches/{pitchId}/schedule` (duração e os sete dias; o `PUT` substitui a semana inteira) e `GET …/slots?date=AAAA-MM-DD` (pré-visualização, só de leitura, dos slots gerados nessa data local, com início e fim em UTC, pelo `SlotGenerator` da T04). Tudo com o perfil Dono e a T02: o clube de outro dono dá 404 `club_not_found` e um campo pedido através de outro clube dá 404 `pitch_not_found`, antes de qualquer validação. Os horários ficam na tabela `pitch_opening_hours` (uma linha por dia aberto, `time` sem fuso); o teste de armazenamento da T04 foi repetido com ela. Mudar o horário ou a duração não mexe nas reservas (a US17 já diz que um slot não está livre se algo se sobrepuser).
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado):
   - As horas vão de meia em meia hora (09:00, 09:30, …), sem segundos; a API e a base de dados rejeitam o resto (a base de dados verifica só a ordem: fecho depois da abertura ou 00:00).
   - Um campo novo fica fechado todos os dias e com slots de 60 minutos até o dono definir o horário. Os campos que já existiam antes desta migração ficam também com 60 minutos.
   - Formato de cada dia: `{ "closed": true }` ou `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (hora local, `HH:mm`). Os sete dias são obrigatórios no `PUT`, e um dia fechado com horas é rejeitado (em vez de as ignorar). Os erros vêm por campo com o caminho JSON (`monday.closes`).
-  - A pré-visualização mostra os slots que o horário gera: não tira reservas, bloqueios nem slots que já começaram, e funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
+  - A pré-visualização mostra os slots que o horário gera e marca como bloqueados (`blocked`) os que se sobrepõem a algum bloqueio (US09); até haver reservas, ainda não tem em conta reservas nem slots que já começaram. Funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
 ### US09 · Bloquear slots · M · 3 pontos
  
 Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
@@ -183,6 +183,15 @@ Como dono, quero bloquear períodos de um campo, para que ninguém o reserve dur
 - Um bloqueio que se sobreponha a reservas confirmadas é rejeitado, e a mensagem lista essas reservas para o dono decidir (cancelar pela US12).
 - O dono pode remover um bloqueio futuro, e os slots voltam a ficar livres.
 - Os bloqueios aparecem no calendário (US11).
+- Estado: feita. Front end: o botão «Bloqueios» em cada campo de `/manage/clubs/{id}` abre a lista dos bloqueios em curso e futuros (hora de Lisboa, motivo se houver, «Em curso» nos que já começaram), o formulário para criar um (data e hora de início e de fim, que podem ser de dias diferentes, e motivo opcional) e a remoção, com confirmação, dos que ainda não começaram; os erros da API (sobreposição, início no passado, bloqueio já começado) aparecem no sítio certo, e a pré-visualização dos slots mostra «Bloqueado» nos slots afetados. Back end: `POST`, `GET` e `DELETE /api/manage/clubs/{clubId}/pitches/{pitchId}/blocks[/{blockId}]`, com o perfil Dono e a T02 (clube de outro dono: 404 `club_not_found`; campo de outro clube: 404 `pitch_not_found`; bloqueio de outro campo: 404 `block_not_found`). Criar corre numa transação que começa por trancar a linha do campo (`SELECT … FOR UPDATE`, `IPitchLock`) e só depois verifica a sobreposição, para a T03 juntar nesse mesmo sítio a verificação das reservas. A pré-visualização de slots do dono (US08) marca como `blocked` os slots que se sobrepõem a algum bloqueio.
+- Decisões de implementação (provisórias, a confirmar):
+  - O início e o fim chegam como data e hora locais de Lisboa (`2026-10-25T09:00`), de meia em meia hora, e convertem-se com a `ClubTime` (as regras de mudança de hora da T04); a resposta traz instantes UTC. Os bloqueios podem passar da meia-noite (não são horários de funcionamento).
+  - O início não pode estar no passado (começar agora é aceite); o fim tem de ser depois do início e no máximo 90 dias à frente.
+  - Motivo opcional, até 200 caracteres.
+  - Dois bloqueios do mesmo campo não se podem sobrepor (409 `block_overlap`); bloqueios que se tocam (um acaba quando o outro começa) são aceites. A verificação é feita sob o trinco da linha do campo, sem constraint na base de dados.
+  - A lista traz os bloqueios em curso e futuros (os que ainda não acabaram) por ordem de início, 20 por página.
+  - Só se remove um bloqueio que ainda não começou; um que já começou ou acabou dá 422 `block_already_started` e fica no histórico. Remover é apagar a linha.
+  - Um bloqueio pode ser criado num campo inativo.
 ### US10 · Preços de ponta e vazio · D · 5 pontos
  
 Como dono, quero definir preços diferentes por faixa horária, para cobrar mais nas horas de maior procura.
@@ -203,6 +212,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
 - Navegação para o dia ou semana anterior e seguinte, e um botão «Hoje».
 - As reservas canceladas não aparecem por omissão.
 - Abrir uma reserva mostra os detalhes e a ação de cancelar.
+- Os bloqueios aparecem no calendário (US09): `GET …/pitches/{pitchId}/blocks` dá os bloqueios em curso e futuros de cada campo.
 - Candidata a dividir: vista diária (5) e vista semanal (3).
 ### US12 · Cancelar reserva como dono · M · 2 pontos
  
@@ -268,6 +278,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
 - A reserva fica «Confirmada» e guarda o preço desse momento: o preço por slot do campo (US07) copiado para a reserva. Mudar depois o preço do campo nunca altera as reservas existentes.
 - Um campo inativo não aceita reservas (US07).
 - Decidido: desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07). Esta regra entra na história que criar a tabela de reservas (esta, a US18, ou a T03 se vier antes; a US13 também cria reservas, e se for ela a criar a tabela a regra passa para lá): a desativação de `POST …/pitches/{pitchId}/deactivate` passa a devolver 409 com o número de reservas.
+- Decidido: um bloqueio que se sobreponha a reservas confirmadas é rejeitado e a mensagem lista essas reservas (US09). Entra na história que criar a tabela de reservas (esta, a T03 ou a US13, a primeira): em `BlockService.CreateAsync`, dentro do trinco da linha do campo e logo a seguir à verificação dos outros bloqueios; e a criação de uma reserva tem de trancar a mesma linha antes de verificar os bloqueios.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
 - Não é possível reservar slots passados nem para lá dos 30 dias.
 ### US19 · Ver e cancelar as minhas reservas · M · 3 pontos

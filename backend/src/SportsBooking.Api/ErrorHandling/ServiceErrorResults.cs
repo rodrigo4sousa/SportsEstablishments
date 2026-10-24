@@ -18,6 +18,7 @@ internal static class ServiceErrorResults
             ErrorKind.Unauthorized => StatusCodes.Status401Unauthorized,
             ErrorKind.NotFound => StatusCodes.Status404NotFound,
             ErrorKind.Conflict => StatusCodes.Status409Conflict,
+            ErrorKind.Unprocessable => StatusCodes.Status422UnprocessableEntity,
             _ => throw new ArgumentOutOfRangeException(nameof(error), error.Kind, "Unknown error kind."),
         };
 
