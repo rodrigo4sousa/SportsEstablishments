@@ -35,13 +35,18 @@ public static class DependencyInjection
                 $"ConnectionStrings:{DatabaseOptions.ConnectionStringName} is required.")
             .ValidateOnStart();
 
+        services.AddSingleton<FailedCommandLogger>();
         services.AddDbContext<AppDbContext>((serviceProvider, options) => options
             .UseNpgsql(serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString)
             .UseSnakeCaseNamingConvention()
-            // EF logs every failed SaveChanges at Error, including the booking conflict (T03) that the store turns into
-            // 409 and logs itself. Lowering this one event, instead of filtering the EF category, keeps the other EF
-            // errors; a failure nobody handles still reaches the global exception handler and is logged there.
-            .ConfigureWarnings(warnings => warnings.Log((CoreEventId.SaveChangesFailed, LogLevel.Debug))));
+            .AddInterceptors(serviceProvider.GetRequiredService<FailedCommandLogger>())
+            // The booking conflict (T03) is expected: BookingStore turns it into a 409 and logs it at Information. EF would
+            // log it twice at Error, as a failed command and as a failed SaveChanges. Lower those two events instead of
+            // filtering the EF categories: FailedCommandLogger puts the Error back for every other failed command, and a
+            // failure nobody handles still reaches the global exception handler, so no real failure goes quiet.
+            .ConfigureWarnings(warnings => warnings.Log(
+                (CoreEventId.SaveChangesFailed, LogLevel.Debug),
+                (RelationalEventId.CommandError, LogLevel.Debug))));
 
         // The same scoped instance, seen by Application code through its interface.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
