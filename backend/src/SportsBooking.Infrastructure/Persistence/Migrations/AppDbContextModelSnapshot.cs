@@ -287,6 +287,70 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.Pitch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("club_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NameKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name_key");
+
+                    b.Property<decimal>("PricePerSlot")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price_per_slot");
+
+                    b.Property<string>("Sport")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("sport");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pitches");
+
+                    b.HasIndex("ClubId", "NameKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_pitches_club_id_name_key");
+
+                    b.ToTable("pitches", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_pitches_price_per_slot", "price_per_slot > 0 AND price_per_slot <= 500");
+
+                            t.HasCheckConstraint("ck_pitches_sport", "sport IN ('futsal', 'football7', 'padel', 'tennis')");
+
+                            t.HasCheckConstraint("ck_pitches_status", "status IN ('active', 'inactive')");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -487,6 +551,16 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_clubs_users_owner_id");
+                });
+
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.Pitch", b =>
+                {
+                    b.HasOne("SportsBooking.Domain.Clubs.Club", null)
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_pitches_clubs_club_id");
                 });
 
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>
