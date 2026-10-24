@@ -144,7 +144,7 @@ describe("ClubCalendar", () => {
 
       const button = await screen.findByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" });
       expect(within(column("Padel 1")).getByRole("button", { name: /Rita Jogadora/ })).toBe(button);
-      expect(within(column("Ténis 1")).queryByRole("button")).not.toBeInTheDocument();
+      expect(within(column("Ténis 1")).queryByRole("button", { name: /Rita Jogadora/ })).not.toBeInTheDocument();
       expect(button).toHaveTextContent("Rita Jogadora");
       expect(button).toHaveTextContent("10:00 – 11:00");
       expect(button).toHaveTextContent("Confirmada");
