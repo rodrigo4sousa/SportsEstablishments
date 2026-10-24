@@ -389,10 +389,21 @@ public sealed class ClubSearchTests(ApiFactory factory)
         ShouldBeFieldError(problem, field);
     }
 
-    [Fact]
-    public async Task A_page_that_is_not_a_number_and_a_very_long_locality_are_400s_never_500s()
+    [Theory]
+    [InlineData("page=abc")]
+    [InlineData("page=1.5")]
+    [InlineData("page=99999999999")]
+    public async Task A_page_that_is_not_a_whole_number_is_a_portuguese_field_error_on_page(string query)
     {
-        (await GetAsync(factory, "/api/clubs?page=abc", HttpStatusCode.BadRequest)).GetProperty("traceId").GetString().ShouldNotBeNullOrWhiteSpace();
+        var problem = await GetAsync(factory, $"/api/clubs?{query}", HttpStatusCode.BadRequest);
+
+        ShouldBeFieldError(problem, "page");
+        problem.GetProperty("errors").GetProperty("page")[0].GetString().ShouldBe("A página tem de estar entre 1 e 10000.");
+    }
+
+    [Fact]
+    public async Task A_very_long_locality_is_a_400_never_a_500()
+    {
         ShouldBeFieldError(await SearchAsync(factory, new string('x', ClubRules.LocalityMaximumLength + 1), status: HttpStatusCode.BadRequest), "locality");
     }
 

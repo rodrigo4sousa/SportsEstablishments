@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportsBooking.Api.ErrorHandling;
@@ -27,10 +28,13 @@ public sealed class ClubsController(ClubSearchService search, PublicClubService 
         [FromQuery] string? sport,
         [FromQuery] string? locality,
         [FromQuery] string? date,
-        [FromQuery] int page = 1,
+        [FromQuery] string? page,
         CancellationToken cancellationToken = default)
     {
-        var result = await search.SearchAsync(new ClubSearchRequest(sport, locality, date, page), cancellationToken);
+        // Read as text so that "abc" gets the same Portuguese field error as "0", not MVC's English binding message.
+        var pageNumber = string.IsNullOrWhiteSpace(page) ? 1
+            : int.TryParse(page, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
+        var result = await search.SearchAsync(new ClubSearchRequest(sport, locality, date, pageNumber), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 

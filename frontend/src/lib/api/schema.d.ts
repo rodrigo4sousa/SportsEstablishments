@@ -422,7 +422,7 @@ export interface paths {
                     sport?: string;
                     locality?: string;
                     date?: string;
-                    page?: number | string;
+                    page?: string;
                 };
                 header?: never;
                 path?: never;
