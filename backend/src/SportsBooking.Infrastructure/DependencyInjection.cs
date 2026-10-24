@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Auth;
@@ -35,7 +37,11 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>((serviceProvider, options) => options
             .UseNpgsql(serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString)
-            .UseSnakeCaseNamingConvention());
+            .UseSnakeCaseNamingConvention()
+            // EF logs every failed SaveChanges at Error, including the booking conflict (T03) that the store turns into
+            // 409 and logs itself. Lowering this one event, instead of filtering the EF category, keeps the other EF
+            // errors; a failure nobody handles still reaches the global exception handler and is logged there.
+            .ConfigureWarnings(warnings => warnings.Log((CoreEventId.SaveChangesFailed, LogLevel.Debug))));
 
         // The same scoped instance, seen by Application code through its interface.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
