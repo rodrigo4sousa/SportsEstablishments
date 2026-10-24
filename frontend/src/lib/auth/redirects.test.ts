@@ -118,6 +118,35 @@ describe("safeNext", () => {
     expect(safeNext(next, "Owner")).toBe("/manage");
   });
 
+  describe("returning to a slot on a club page after signing in (US18)", () => {
+    const pitch = "0199f7a0-0000-7000-8000-0000000000d1";
+    // As ClubBooking writes it (colons percent-encoded) and as a hand-made link might (raw colons).
+    const encoded = `/clubs/clube-da-foz?pitch=${pitch}&date=2026-05-04&slot=2026-05-04T10%3A00%3A00Z`;
+    const raw = `/clubs/clube-da-foz?pitch=${pitch}&date=2026-05-04&slot=2026-05-04T10:00:00Z`;
+
+    it.each([encoded, raw, "/clubs/clube-da-foz", "/clubs/clube-da-foz?date=2026-05-04"])("a player is sent back to %s unchanged", (next) => {
+      expect(safeNext(next, "Player")).toBe(next);
+    });
+
+    it("survives the trip through the login address", () => {
+      const next = new URL(loginUrl(encoded), "http://localhost").searchParams.get("next");
+
+      expect(next).toBe(encoded);
+      expect(safeNext(next, "Player")).toBe(encoded);
+    });
+
+    it("sends an owner or an admin to their own area instead, since they cannot book", () => {
+      expect(safeNext(encoded, "Owner")).toBe("/manage");
+      expect(safeNext(encoded, "Admin")).toBe("/admin");
+    });
+
+    it("still refuses a way out of the site written into a club address", () => {
+      for (const next of ["//evil.example/clubs/x", "/\\evil.example/clubs/x", "https://evil.example/clubs/x"]) {
+        expect(safeNext(next, "Player"), next).toBe("/");
+      }
+    });
+  });
+
   it("uses the profile's home when there is no next", () => {
     expect(safeNext(null, "Admin")).toBe("/admin");
     expect(safeNext(undefined, "Owner")).toBe("/manage");

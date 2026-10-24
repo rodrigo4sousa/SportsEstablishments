@@ -6,10 +6,9 @@ import { toPublicSlots, type ClubSearchPage, type PublicSlots, type SearchFilter
 export const catalogQueryKey = ["catalog"] as const;
 export const searchQueryKey = (filters: SearchFilters) => [...catalogQueryKey, "search", filters] as const;
 export const localitiesQueryKey = [...catalogQueryKey, "localities"] as const;
-export const publicSlotsQueryKey = (slug: string, pitchId: string, date?: string) =>
-  date === undefined
-    ? ([...catalogQueryKey, "slots", slug] as const)
-    : ([...catalogQueryKey, "slots", slug, pitchId, date] as const);
+/** Every slot list of one club, whatever the pitch and date: what a booking makes stale. */
+export const clubSlotsQueryKey = (slug: string) => [...catalogQueryKey, "slots", slug] as const;
+export const publicSlotsQueryKey = (slug: string, pitchId: string, date: string) => [...clubSlotsQueryKey(slug), pitchId, date] as const;
 
 /** The query string of the search: only the filters that are set. */
 export function searchQuery(filters: SearchFilters): string {
