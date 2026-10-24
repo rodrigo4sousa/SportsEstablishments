@@ -5,6 +5,7 @@ import {
   isDateKey,
   formatLisbonDate,
   formatLisbonDateTime,
+  formatDateKeyLong,
   formatLisbonLongDate,
   formatLisbonSlotTime,
   formatLisbonTime,
@@ -118,6 +119,25 @@ describe("Lisbon formatting", () => {
   it("rejects strings without a time zone, which the browser would read as local time", () => {
     expect(() => formatLisbonTime("2026-07-15T10:00:00")).toThrow(/time zone/);
     expect(() => formatLisbonTime("2026-07-15")).toThrow(/time zone/);
+  });
+});
+
+describe("formatDateKeyLong", () => {
+  it.each([
+    ["2026-08-01", "sábado, 1 de agosto"],
+    ["2026-10-25", "domingo, 25 de outubro"], // the day clocks go back
+    ["2026-03-29", "domingo, 29 de março"], // the day clocks go forward
+    ["2026-12-31", "quinta-feira, 31 de dezembro"],
+  ])("writes %s as %s, whatever the browser's time zone", (dateKey, expected) => {
+    for (const zone of ["UTC", "America/New_York", "Pacific/Kiritimati"]) {
+      process.env.TZ = zone;
+      expect(formatDateKeyLong(dateKey)).toBe(expected);
+    }
+  });
+
+  it("rejects what is not a real date", () => {
+    expect(() => formatDateKeyLong("2026-02-30")).toThrow(/YYYY-MM-DD/);
+    expect(() => formatDateKeyLong("amanha")).toThrow(/YYYY-MM-DD/);
   });
 });
 

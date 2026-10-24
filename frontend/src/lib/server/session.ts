@@ -1,11 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import type { Account } from "@/features/auth/api";
-
-// Base URL of the ASP.NET Core API as seen from the Next.js server (also used by the rewrites in next.config.ts).
-function apiInternalUrl(): string {
-  return process.env.API_INTERNAL_URL ?? "http://localhost:5080";
-}
+import { apiInternalUrl } from "./api-url";
 
 /**
  * The signed-in account, read on the server from `GET /api/auth/me` with the user's own cookies; null when there is
