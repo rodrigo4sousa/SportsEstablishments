@@ -6,6 +6,7 @@ using SportsBooking.Application.Bookings;
 using SportsBooking.Application.Catalog;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 
 namespace SportsBooking.Application;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<BlockService>();
 
         services.AddSingleton<CreateBookingRequestValidator>();
+        services.AddScoped<BookingEmailOutbox>();
         services.AddScoped<BookingSlotCheck>();
         services.AddScoped<BookingService>();
         services.AddSingleton<MyBookingsRequestValidator>();

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Clubs;
 using SportsBooking.Domain.Pitches;
@@ -25,6 +26,12 @@ public interface IAppDbContext
 
     /// <summary>Every booking of the platform. In the owner area, reach them only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
     DbSet<Booking> Bookings { get; }
+
+    /// <summary>
+    /// The emails waiting to be sent (US22). Add to it on the same context as the change it is about, before that
+    /// change's <c>SaveChangesAsync</c>; only the outbox worker reads and updates it.
+    /// </summary>
+    DbSet<OutboxMessage> OutboxMessages { get; }
 
     /// <summary>
     /// The ids of the accounts that are not deactivated (US29), as a query to use in a subquery. The only view of
