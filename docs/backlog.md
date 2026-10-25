@@ -120,7 +120,7 @@ Como utilizador, quero redefinir a palavra-passe por email, para recuperar o ace
 - Uma ligação usada ou expirada mostra erro e permite pedir outra.
 - A nova palavra-passe segue as regras da US01.
 - Estado: feita no back end (`POST /api/auth/password-reset/request` e `POST /api/auth/password-reset/confirm`, os dois emails); a página da ligação e o formulário de pedido vêm a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - O pedido responde sempre 202 com a mesma mensagem, exista ou não a conta; só um email vazio ou mal escrito é um 400 no campo `email` (isso não revela nada). Só se pesquisa a conta e se põe trabalho na fila: não há email nem hash a calcular no pedido.
   - Só um jogador ou dono **ativo** recebe o email. Contas desconhecidas, donos e jogadores desativados e o admin não recebem nada (o admin muda a palavra-passe com `set-admin-password`, US04).
   - No máximo **um email de recuperação por conta a cada 5 minutos**; os pedidos a mais recebem a mesma resposta e não fazem nada. Rate limiting por IP como nas outras rotas de autenticação: **5** pedidos por minuto no pedido e **10** na confirmação (`RateLimiting:Auth:PasswordResetRequestPermitLimit` e `…ConfirmPermitLimit`).
