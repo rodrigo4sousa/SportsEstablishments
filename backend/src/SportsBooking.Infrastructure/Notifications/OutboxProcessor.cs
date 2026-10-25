@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Notifications;
+using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Persistence;
 
 namespace SportsBooking.Infrastructure.Notifications;
@@ -17,6 +18,7 @@ namespace SportsBooking.Infrastructure.Notifications;
 public sealed partial class OutboxProcessor(
     AppDbContext dbContext,
     IEmailSender sender,
+    AccountEmailBuilder accountEmails,
     IOptions<OutboxOptions> options,
     TimeProvider timeProvider,
     ILogger<OutboxProcessor> logger)
@@ -58,20 +60,14 @@ public sealed partial class OutboxProcessor(
         EmailMessage email;
         try
         {
-            var payload = BookingEmailPayload.Deserialize(message.Payload);
-            var recipient = await dbContext.Users.AsNoTracking()
-                .Where(user => user.Id == payload.PlayerId)
-                .Select(user => new { user.Email, user.Name })
-                .SingleOrDefaultAsync(cancellationToken);
-            if (recipient?.Email is not { Length: > 0 } address)
+            if (await BuildAsync(message, cancellationToken) is not { } built)
             {
                 message.GiveUp(RecipientNotFound, Now());
                 LogGivenUp(logger, message.Id, message.Type, message.Attempts, RecipientNotFound);
                 return;
             }
 
-            var content = BookingEmailComposer.Compose(message.Type, payload, recipient.Name);
-            email = new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody);
+            email = built;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -100,6 +96,29 @@ public sealed partial class OutboxProcessor(
                 LogRetry(logger, message.Id, message.Type, message.Attempts, error, message.NextAttemptAt);
             }
         }
+    }
+
+    /// <summary>The email of a message, or null when there is nobody to send it to (the account is gone, or may no longer get it).</summary>
+    private async Task<EmailMessage?> BuildAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        if (message.Type is OutboxMessageTypes.PasswordReset or OutboxMessageTypes.PasswordChanged)
+        {
+            // US05: the reset token is made now, by Identity, and goes only into the email: never into a log or the outbox.
+            return await accountEmails.BuildAsync(message.Type, AccountEmailPayload.Deserialize(message.Payload), message.CreatedAt);
+        }
+
+        var payload = BookingEmailPayload.Deserialize(message.Payload);
+        var recipient = await dbContext.Users.AsNoTracking()
+            .Where(user => user.Id == payload.PlayerId)
+            .Select(user => new { user.Email, user.Name })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (recipient?.Email is not { Length: > 0 } address)
+        {
+            return null;
+        }
+
+        var content = BookingEmailComposer.Compose(message.Type, payload, recipient.Name);
+        return new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody);
     }
 
     private DateTime Now() => timeProvider.GetUtcNow().UtcDateTime;

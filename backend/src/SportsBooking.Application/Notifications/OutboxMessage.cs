@@ -8,6 +8,12 @@ public static class OutboxMessageTypes
     public const string BookingCancelledByPlayer = "booking_cancelled_by_player";
 
     public const string BookingCancelledByClub = "booking_cancelled_by_club";
+
+    /// <summary>US05: the link to set a new password; the token is made when it is sent.</summary>
+    public const string PasswordReset = "password_reset";
+
+    /// <summary>US05: the notice that the password was changed.</summary>
+    public const string PasswordChanged = "password_changed";
 }
 
 /// <summary>

@@ -17,7 +17,8 @@ public sealed class AuthController(
     AccountRegistrationService registration,
     LoginService login,
     ISessionService sessions,
-    IAccountStore accounts) : ControllerBase
+    IAccountStore accounts,
+    PasswordResetService passwordReset) : ControllerBase
 {
     /// <summary>
     /// US01: creates a player account and signs the player in (session cookies set). A taken email is a 409
@@ -119,6 +120,41 @@ public sealed class AuthController(
         await sessions.EndAsync(Request.Cookies[AuthCookies.RefreshToken], cancellationToken);
         AuthCookies.Delete(Response);
         return NoContent();
+    }
+
+    /// <summary>
+    /// US05: asks for an email with a link to set a new password. Always the same 202 and body, whether or not the email has an
+    /// account; only an active player or owner gets an email, at most one every few minutes. A malformed email is a 400.
+    /// </summary>
+    [HttpPost("password-reset/request")]
+    [Consumes("application/json")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthRateLimits.PasswordResetRequest)]
+    [ProducesResponseType<PasswordResetRequested>(StatusCodes.Status202Accepted, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, "application/problem+json")]
+    public async Task<IActionResult> RequestPasswordReset(PasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await passwordReset.RequestAsync(request, cancellationToken);
+        return result.IsSuccess ? Accepted(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US05: sets the new password with the email and token of the link. A new password that breaks the rules of US01 is a 400
+    /// on <c>newPassword</c>; any bad link (unknown email, wrong, expired or used token) is the one 400
+    /// <c>invalid_or_expired_reset_link</c>. Success is 204: every session of the account is ended and nobody is signed in.
+    /// </summary>
+    [HttpPost("password-reset/confirm")]
+    [Consumes("application/json")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthRateLimits.PasswordResetConfirm)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, "application/problem+json")]
+    public async Task<IActionResult> ConfirmPasswordReset(PasswordResetConfirmRequest request, CancellationToken cancellationToken)
+    {
+        var error = await passwordReset.ConfirmAsync(request, cancellationToken);
+        return error is null ? NoContent() : this.Problem(error);
     }
 
     /// <summary>The signed-in account. The front end learns who is signed in only from here.</summary>

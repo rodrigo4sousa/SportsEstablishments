@@ -18,6 +18,12 @@ internal sealed class AuthRateLimitOptions
 
     /// <summary>Higher: one shared address (a club's Wi-Fi) can hold many sessions that renew every 15 minutes.</summary>
     public int RefreshPermitLimit { get; set; } = 30;
+
+    /// <summary>US05: asking for a reset email (provisional). The per-account limit is separate (PasswordResetRules.ThrottleInterval).</summary>
+    public int PasswordResetRequestPermitLimit { get; set; } = 5;
+
+    /// <summary>US05: setting a new password with a link (provisional): low, since each try is a guess at a token.</summary>
+    public int PasswordResetConfirmPermitLimit { get; set; } = 10;
 }
 
 internal sealed class AuthRateLimitOptionsValidator : IValidateOptions<AuthRateLimitOptions>
@@ -35,6 +41,8 @@ internal sealed class AuthRateLimitOptionsValidator : IValidateOptions<AuthRateL
             (nameof(options.LoginPermitLimit), options.LoginPermitLimit),
             (nameof(options.RegisterPermitLimit), options.RegisterPermitLimit),
             (nameof(options.RefreshPermitLimit), options.RefreshPermitLimit),
+            (nameof(options.PasswordResetRequestPermitLimit), options.PasswordResetRequestPermitLimit),
+            (nameof(options.PasswordResetConfirmPermitLimit), options.PasswordResetConfirmPermitLimit),
         })
         {
             if (limit < 1)
