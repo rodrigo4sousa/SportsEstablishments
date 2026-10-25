@@ -5,6 +5,7 @@ using SportsBooking.Api.ErrorHandling;
 using SportsBooking.Api.Security;
 using SportsBooking.Application;
 using SportsBooking.Infrastructure;
+using SportsBooking.Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,9 +67,16 @@ if (!isOpenApiGeneration)
     }
 
     await app.Services.SeedAdminAccountAsync();
+
+    // T05: `dotnet run -- seed-demo` creates the demo data and exits, without starting the server (so no email is ever sent).
+    if (DemoDataCommand.IsRequested(args))
+    {
+        return await DemoDataCommand.RunAsync(app.Services, Console.Out, Console.Error, CancellationToken.None);
+    }
 }
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
 
 await app.RunAsync();
+return 0;
