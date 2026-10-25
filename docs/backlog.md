@@ -498,6 +498,11 @@ Como admin, quero ver os totais da plataforma, para saber o tamanho dela.
 - Mostra o número de donos, clubes, campos ativos, jogadores e reservas confirmadas.
 - Contas e clubes desativados aparecem separados dos ativos.
 - Os valores vêm de queries agregadas na base de dados, sem carregar listas para memória.
+- Estado: API feita (`GET /api/admin/stats`); o ecrã vem numa história seguinte.
+- Decisões de implementação (provisórias, a confirmar):
+  - A resposta tem donos e jogadores como `{ active, deactivated }`, clubes como `{ total, visible, ofDeactivatedOwners, withoutActivePitches }` (os três últimos somam o total: visível = dono ativo e pelo menos um campo ativo, como nas páginas públicas), `activePitches` e `confirmedBookings`. Admins não contam como donos nem jogadores.
+  - Os campos ativos são todos os ativos, também os de donos desativados; as reservas confirmadas são todas as confirmadas, passadas e futuras, de jogadores e de clientes (US13).
+  - São sete contagens e um `GROUP BY` sobre as contas (perfil e estado): nada é carregado para memória. O DTO das contas só tem perfil, data de registo e estado, por construção sem nome nem email.
 ### US25 · Reservas por período · M · 3 pontos
  
 Como admin, quero ver as reservas ao longo do tempo num gráfico, para perceber se a plataforma está a crescer.
@@ -506,6 +511,14 @@ Como admin, quero ver as reservas ao longo do tempo num gráfico, para perceber 
 - Intervalo de datas configurável, por omissão os últimos 30 dias.
 - Períodos sem reservas aparecem com zero, em vez de desaparecerem do gráfico.
 - As reservas canceladas ficam de fora por omissão, com opção de as incluir.
+- Estado: API feita (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`); o gráfico vem numa história seguinte.
+- Decisões de implementação (provisórias, a confirmar):
+  - Uma reserva conta no período em que foi **criada** (não naquele em que se joga), pela data de Lisboa: `date_trunc(unidade, created_at AT TIME ZONE 'Europe/Lisbon')`. Assim 00:30 de 25 de outubro de 2026 (23:30 UTC do dia 24 já é dia 25 em Lisboa) cai no dia 25. Índice novo `ix_bookings_created_at`.
+  - Semanas de segunda a domingo (ISO), meses civis. O intervalo é alargado a períodos inteiros (a resposta diz o `from`/`to` efetivos), por isso nunca há um período parcial.
+  - Por omissão: por dia, os últimos 30 dias de Lisboa (hoje e os 29 anteriores). `from <= to`, datas entre 2000 e 2100, formato `AAAA-MM-DD`; erros 400 com mensagens em pt-PT.
+  - Máximos por pedido: 366 dias, 104 semanas ou 60 meses.
+  - Todos os períodos do intervalo aparecem, com 0 onde não há reservas (preenchidos no serviço, depois de a base contar).
+  - Canceladas (pelo jogador ou pelo clube) ficam de fora; uma falta (`no_show`) conta, porque não é um cancelamento. As reservas feitas pelo clube para um cliente (US13) contam, são reservas da plataforma.
 ### US26 · Lista de donos · M · 3 pontos
  
 Como admin, quero ver a lista de donos com os números de cada um, para saber quem usa a plataforma e quanto.
@@ -513,6 +526,12 @@ Como admin, quero ver a lista de donos com os números de cada um, para saber qu
 - Cada linha mostra nome do dono, email, data de registo, número de clubes, de campos, de reservas e de jogadores distintos que reservaram nos seus clubes.
 - Ordenável por qualquer coluna, com pesquisa por nome ou email do dono.
 - Paginada.
+- Estado: API feita (`GET /api/admin/owners?search=&sort=&direction=&page=`); o ecrã vem numa história seguinte.
+- Decisões de implementação (provisórias, a confirmar):
+  - Colunas: nome, email, data de registo, desativado, clubes, campos, reservas e jogadores. Ordena-se por `name`, `email`, `registeredAt`, `status`, `clubs`, `pitches`, `bookings` ou `players`, em `asc`/`desc`; nome e email ordenam sem distinguir maiúsculas; o desempate é sempre o id do dono, por isso a ordem é estável. Por omissão, nome ascendente.
+  - A pesquisa procura um pedaço do nome ou do email, sem distinguir maiúsculas (e nunca encontra jogadores). 20 por página.
+  - Campos: todos os campos do dono, ativos ou não. Reservas: as não canceladas (a falta conta), incluindo as feitas para clientes. Jogadores: jogadores distintos (`COUNT(DISTINCT player_id)`) com reservas não canceladas nos clubes do dono; as reservas de clientes não têm jogador e não contam.
+  - Tudo é calculado pela base de dados, só para os donos da página. Os donos desativados aparecem, com o sinal de desativado.
 ### US27 · Clubes com maior ocupação · D · 3 pontos
  
 Como admin, quero ver os clubes com mais ocupação num período, para saber quais funcionam melhor.
