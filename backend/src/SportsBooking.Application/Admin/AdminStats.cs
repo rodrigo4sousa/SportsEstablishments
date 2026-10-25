@@ -21,7 +21,7 @@ public sealed record AdminStatsResponse(AccountCounts Owners, ClubCounts Clubs, 
 
 /// <summary>
 /// US24: the totals of the platform, each worked out by the database (<c>COUNT</c>, <c>GROUP BY</c>): nothing is loaded into
-/// memory but the numbers. Active pitches are all the active pitches, whoever owns them; confirmed bookings are all the
+/// memory but the numbers. Active pitches are the active pitches of active owners (those of a deactivated owner are not on offer); confirmed bookings are all the
 /// confirmed ones, past and future, a player's and a customer's (provisional).
 /// </summary>
 public sealed class AdminStatsService(IAppDbContext dbContext)
@@ -47,7 +47,7 @@ public sealed class AdminStatsService(IAppDbContext dbContext)
         return new AdminStatsResponse(
             Of(Profiles.Owner),
             new ClubCounts(totalClubs, visible, ofDeactivatedOwners, totalClubs - visible - ofDeactivatedOwners),
-            await activePitches.CountAsync(cancellationToken),
+            await activePitches.CountAsync(pitch => dbContext.Clubs.Any(club => club.Id == pitch.ClubId && activeAccounts.Contains(club.OwnerId)), cancellationToken),
             Of(Profiles.Player),
             await dbContext.Bookings.CountAsync(booking => booking.Status == BookingStatus.Confirmed, cancellationToken));
     }

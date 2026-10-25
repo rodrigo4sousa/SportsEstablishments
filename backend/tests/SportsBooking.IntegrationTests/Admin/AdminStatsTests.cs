@@ -74,8 +74,8 @@ public sealed class AdminStatsTests(ApiFactory factory)
         // An active owner's club with nothing to book: A's empty club and B's club with only an inactive pitch.
         clubs.GetProperty("withoutActivePitches").GetInt32().ShouldBe(2);
 
-        // The active pitches of everyone, the deactivated owner's included.
-        stats.GetProperty("activePitches").GetInt32().ShouldBe(3);
+        // The active pitches of active owners: the deactivated owner's is not on offer.
+        stats.GetProperty("activePitches").GetInt32().ShouldBe(2);
 
         var players = stats.GetProperty("players");
         players.GetProperty("active").GetInt32().ShouldBe(2);

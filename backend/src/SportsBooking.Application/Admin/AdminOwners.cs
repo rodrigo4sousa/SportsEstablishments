@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Common;
 using SportsBooking.Domain.Bookings;
+using SportsBooking.Domain.Pitches;
 
 namespace SportsBooking.Application.Admin;
 
@@ -57,7 +58,7 @@ public sealed class AdminOwnersRequestValidator : AbstractValidator<AdminOwnersR
 
 /// <summary>
 /// US26: the list of owners with their numbers, 20 to a page. Every number is worked out by the database for the owners of the
-/// list: clubs, pitches (all of them, active or not), bookings (not cancelled, a no-show is not a cancellation, customer
+/// list: clubs, active pitches, bookings (not cancelled, a no-show is not a cancellation, customer
 /// bookings included) and the distinct players who booked at their clubs (<c>COUNT(DISTINCT player_id)</c> over those same
 /// bookings, so a customer booking, which has no player, counts for nobody). All provisional. Sortable by every column, with
 /// the owner's id as the last tie-break so the order is always the same; the search finds a part of the name or the email,
@@ -112,7 +113,7 @@ public sealed class AdminOwnersService(IAppDbContext dbContext, AdminOwnersReque
             RegisteredAt = owner.RegisteredAt,
             Deactivated = owner.IsDeactivated,
             Clubs = dbContext.Clubs.Count(club => club.OwnerId == owner.Id),
-            Pitches = dbContext.Pitches.Count(pitch => dbContext.Clubs.Any(club => club.Id == pitch.ClubId && club.OwnerId == owner.Id)),
+            Pitches = dbContext.Pitches.Count(pitch => pitch.Status == PitchStatus.Active && dbContext.Clubs.Any(club => club.Id == pitch.ClubId && club.OwnerId == owner.Id)),
             Bookings = dbContext.Bookings.Count(booking =>
                 booking.Status != BookingStatus.CancelledByPlayer && booking.Status != BookingStatus.CancelledByClub
                 && dbContext.Pitches.Any(pitch => pitch.Id == booking.PitchId && dbContext.Clubs.Any(club => club.Id == pitch.ClubId && club.OwnerId == owner.Id))),

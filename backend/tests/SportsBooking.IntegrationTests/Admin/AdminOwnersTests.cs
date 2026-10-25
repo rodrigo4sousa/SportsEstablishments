@@ -19,7 +19,7 @@ public sealed class AdminOwnersTests(ApiFactory factory)
     private static readonly Expected[] All = [Ana, Bruno, Carla, Diogo];
 
     /// <summary>
-    /// Ana: a club with two pitches; her bookings are two by the first player, one by the second, one for a customer (4 bookings, 2
+    /// Ana: a club with two active pitches and an inactive one; her bookings are two by the first player, one by the second, one for a customer (4 bookings, 2
     /// players), and a cancellation by the first and one by a third player that count for nothing. Bruno: two clubs, one pitch;
     /// two bookings by the first player (2 bookings, 1 player). Carla: deactivated, nothing. Diogo: a club and a pitch, no bookings.
     /// </summary>
@@ -39,6 +39,8 @@ public sealed class AdminOwnersTests(ApiFactory factory)
         var anaClub = await app.CreateClubAsync(Ana.Id);
         var anaPitch1 = await app.CreatePitchAsync(anaClub.Id, "Campo 1");
         var anaPitch2 = await app.CreatePitchAsync(anaClub.Id, "Campo 2");
+        // An inactive pitch is not counted.
+        await app.DeactivatePitchAsync((await app.CreatePitchAsync(anaClub.Id, "Campo 3")).Id);
         const string created = "2026-10-01T10:00:00Z";
         await admin.AddBookingAsync(anaPitch1.Id, created, player1);
         await admin.AddBookingAsync(anaPitch1.Id, created, player1, "NoShow");
