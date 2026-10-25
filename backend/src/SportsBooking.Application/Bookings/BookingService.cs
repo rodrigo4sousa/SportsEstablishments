@@ -59,6 +59,27 @@ public static class BookingErrors
         $"Só é possível cancelar até {windowHours} {(windowHours == 1 ? "hora" : "horas")} antes do início, e esse prazo já passou.",
         Extensions: new Dictionary<string, object?> { ["cancellationDeadline"] = deadlineUtc });
 
+    /// <summary>US15: marking a no-show needs a confirmed booking (same code as for a cancellation, wording for this action).</summary>
+    public static ServiceError NoShowNotConfirmed { get; } = new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.BookingNotConfirmed,
+        "Reserva não confirmada",
+        "Só é possível marcar falta numa reserva confirmada.");
+
+    /// <summary>US15: the booking has not ended yet, so nobody can have failed to come.</summary>
+    public static ServiceError NotEnded { get; } = new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.BookingNotEnded,
+        "Reserva ainda não terminou",
+        "Só é possível marcar falta depois de a reserva terminar.");
+
+    /// <summary>US15: only a no-show can be taken back.</summary>
+    public static ServiceError NotNoShow { get; } = new(
+        ErrorKind.Unprocessable,
+        ErrorCodes.BookingNotNoShow,
+        "Reserva sem falta",
+        "Esta reserva não está marcada como falta.");
+
     public static ServiceError ClubUnavailable { get; } = new(
         ErrorKind.Unprocessable, ErrorCodes.ClubUnavailable, "Clube indisponível", "Este clube não está a aceitar reservas.");
 }

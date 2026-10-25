@@ -32,7 +32,9 @@ public sealed class OwnedBookings(OwnedPitches ownedPitches, IAppDbContext dbCon
 /// booking that is the player's name and nothing else about the player (no email, no phone: provisional). For a booking the
 /// club made for a customer (<see cref="CreatedByClub"/>) it is the customer's name, and <see cref="CustomerPhone"/> is the
 /// number the owner entered (provisional); it is null for a player's booking. <see cref="CanCancel"/> is true for a
-/// confirmed booking that has not started.
+/// confirmed booking that has not started. US15: <see cref="CanMarkNoShow"/> is true for a confirmed booking that has ended,
+/// <see cref="CanUndoNoShow"/> for a no-show; <see cref="PlayerNoShows"/> is how many no-shows the player has in all of this
+/// owner's clubs (this one included), and null for a customer's booking (provisional: customers are not counted per person).
 /// </summary>
 public sealed record ClubBookingResponse(
     Guid Id,
@@ -49,7 +51,10 @@ public sealed record ClubBookingResponse(
     DateTime CreatedAt,
     DateTime? CancelledAt,
     string? CancellationReason,
-    bool CanCancel);
+    bool CanCancel,
+    bool CanMarkNoShow,
+    bool CanUndoNoShow,
+    int? PlayerNoShows);
 
 /// <summary>
 /// US13: the owner books a slot for a customer who has no account. <see cref="StartsAt"/> is the slot's start as an instant
@@ -167,6 +172,8 @@ public sealed class ClubBookingService(
         public required DateTime? CancelledAt { get; init; }
 
         public required string? CancellationReason { get; init; }
+
+        public required Guid? PlayerId { get; init; }
     }
 
     /// <summary>
@@ -238,7 +245,91 @@ public sealed class ClubBookingService(
         }
 
         var row = await Rows(clubId).Where(candidate => candidate.Id == bookingId).SingleOrDefaultAsync(cancellationToken);
-        return row is null ? BookingErrors.NotFound : ToResponse(row, Now());
+        return row is null ? BookingErrors.NotFound : ToResponse(row, Now(), await NoShowsOfAsync(row.PlayerId, cancellationToken));
+    }
+
+    /// <summary>
+    /// US15: how many no-shows the player has in the signed-in owner's clubs, all of them (through <see cref="OwnedClubs"/>, so only
+    /// this owner's bookings are counted, never another owner's). A customer's booking has no player, so no count.
+    /// </summary>
+    private async Task<int?> NoShowsOfAsync(Guid? playerId, CancellationToken cancellationToken)
+    {
+        if (playerId is not { } id)
+        {
+            return null;
+        }
+
+        var pitches = dbContext.Pitches.Where(pitch => ownedClubs.All().Any(club => club.Id == pitch.ClubId));
+        return await dbContext.Bookings.CountAsync(
+            booking => booking.PlayerId == id && booking.Status == BookingStatus.NoShow && pitches.Any(pitch => pitch.Id == booking.PitchId),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// US15: marks a confirmed booking whose end has passed as a no-show (a player's or a customer's). Club → booking (404) →
+    /// pitch lock → read again → <see cref="Booking.RecordNoShow"/>: 422 <c>booking_not_confirmed</c> first, then 422
+    /// <c>booking_not_ended</c>. The same lock as the cancellations, so a player's cancel and this never both win.
+    /// </summary>
+    public Task<Result<ClubBookingResponse>> MarkNoShowAsync(Guid clubId, Guid bookingId, CancellationToken cancellationToken) =>
+        ChangeNoShowAsync(clubId, bookingId, undo: false, cancellationToken);
+
+    /// <summary>
+    /// US15: takes a no-show back: the booking is confirmed again (422 <c>booking_not_no_show</c> if it is not a no-show). If another
+    /// confirmed booking took the slot meanwhile, the database refuses (23P01) and the answer is 409 <c>slot_taken</c>, never a 500.
+    /// </summary>
+    public Task<Result<ClubBookingResponse>> UndoNoShowAsync(Guid clubId, Guid bookingId, CancellationToken cancellationToken) =>
+        ChangeNoShowAsync(clubId, bookingId, undo: true, cancellationToken);
+
+    private async Task<Result<ClubBookingResponse>> ChangeNoShowAsync(Guid clubId, Guid bookingId, bool undo, CancellationToken cancellationToken)
+    {
+        if (!await ownedPitches.ClubIsOwnedAsync(clubId, cancellationToken))
+        {
+            return ClubErrors.NotFound;
+        }
+
+        // Which pitch to lock; only a booking of this club is found.
+        var pitchId = await ownedBookings.Of(clubId).AsNoTracking()
+            .Where(booking => booking.Id == bookingId)
+            .Select(booking => (Guid?)booking.PitchId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (pitchId is null)
+        {
+            return BookingErrors.NotFound;
+        }
+
+        await using (var scope = await pitchLock.LockAsync(pitchId.Value, cancellationToken))
+        {
+            // Read under the lock, so a cancel or another change that got here first is seen.
+            var booking = await dbContext.Bookings.SingleAsync(candidate => candidate.Id == bookingId, cancellationToken);
+            if (undo)
+            {
+                if (!booking.UndoNoShow())
+                {
+                    return BookingErrors.NotNoShow;
+                }
+
+                if (!await bookingStore.TrySaveChangesAsync(cancellationToken))
+                {
+                    return BookingErrors.SlotTaken;
+                }
+            }
+            else
+            {
+                switch (booking.RecordNoShow(Now()))
+                {
+                    case NoShowOutcome.NotConfirmed:
+                        return BookingErrors.NoShowNotConfirmed;
+                    case NoShowOutcome.NotEnded:
+                        return BookingErrors.NotEnded;
+                }
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            await scope.CommitAsync(cancellationToken);
+        }
+
+        return await GetAsync(clubId, bookingId, cancellationToken);
     }
 
     /// <summary>
@@ -318,9 +409,10 @@ public sealed class ClubBookingService(
             CreatedAt = booking.CreatedAt,
             CancelledAt = booking.CancelledAt,
             CancellationReason = booking.CancellationReason,
+            PlayerId = booking.PlayerId,
         };
 
-    private static ClubBookingResponse ToResponse(Row row, DateTime now) => new(
+    private static ClubBookingResponse ToResponse(Row row, DateTime now, int? playerNoShows) => new(
         row.Id,
         row.PitchId,
         row.PitchName,
@@ -335,5 +427,8 @@ public sealed class ClubBookingService(
         row.CreatedAt,
         row.CancelledAt,
         row.CancellationReason,
-        row.Status == BookingStatus.Confirmed && row.StartsAt > now);
+        row.Status == BookingStatus.Confirmed && row.StartsAt > now,
+        row.Status == BookingStatus.Confirmed && row.EndsAt <= now,
+        row.Status == BookingStatus.NoShow,
+        playerNoShows);
 }
