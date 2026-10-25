@@ -112,6 +112,33 @@ There is no endpoint for it, and the seed never touches an existing admin. To ch
 
 This works while nothing else references the admin account. Revisit it when admin actions start being recorded (US29).
 
+## Demo data
+
+`seed-demo` fills an **empty** development database with realistic demo data, so there is something to show and the
+admin's numbers (US24 to US28) mean something: 5 owners and 10 clubs around Porto and Lisboa (all four sports), 60
+players, and about 7,000 bookings from the last 60 days and the next 14 (busier in the evening and at weekends, with
+cancellations, no-shows and customer bookings), a few blocks. It is deterministic: the same day gives the same data.
+
+```
+# the API on its own (needs the database: docker compose up -d postgres)
+dotnet run --project backend/src/SportsBooking.Api -- seed-demo
+
+# with docker compose running (the API container applies the migrations first)
+docker compose run --rm api seed-demo
+```
+
+It runs only with exactly that argument, exits when it is done (it never starts the web server and sends no email), and
+refuses (exit code 1) in the Production environment and when any owner or player already exists. To start over, drop the
+database (`docker compose down -v`) and run it again.
+
+Every account has the same **development-only** password, `demo-password-1` (never use it anywhere real). The
+addresses are on the reserved domain `example.test`:
+
+| Who | Email |
+| --- | --- |
+| Owners | `dono01@example.test` … `dono05@example.test` |
+| Players | `jogador01@example.test` … `jogador60@example.test` |
+
 ## Emails
 
 Booking confirmations and cancellations (US22) are written to the `outbox_messages` table in the same transaction as
