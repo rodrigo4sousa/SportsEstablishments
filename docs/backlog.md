@@ -327,7 +327,7 @@ Como dono, quero marcar uma reserva passada como falta, para saber que jogadores
 - O estado passa a «Falta» e a marcação pode ser revertida.
 - O dono vê quantas faltas um jogador tem nos seus clubes.
 - Estado: feita no back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/no-show` e `…/no-show/undo`); os botões e o número no ecrã vêm a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - Marcar: só uma reserva **confirmada** cuja hora de fim já passou (a hora de fim conta como passada). Primeiro 422 `booking_not_confirmed` (cancelada, ou já é uma falta), depois 422 `booking_not_ended`. Reverter: a falta volta a `confirmed`; uma reserva que não é falta é 422 `booking_not_no_show`. Dono de outro clube, ou reserva de outro clube: 404 (T02); jogador e admin: 403.
   - Tudo corre sob o `IPitchLock` do campo, como os cancelamentos, e lê a reserva outra vez lá dentro. Se ao reverter outra reserva confirmada já ocupou o horário (uma falta não o ocupa), a constraint `bookings_no_overlap` recusa e a resposta é **409 `slot_taken`**, nunca 500; o pedido não deixa nada a meio.
   - Pode marcar-se uma reserva de cliente (US13), mas não conta por pessoa: `playerNoShows` é `null` nessas reservas.
@@ -473,9 +473,10 @@ Como jogador, quero receber um lembrete antes da reserva, para não me esquecer.
 - Reservas canceladas, ou feitas a menos de 3 horas do início, não geram lembrete.
 - Cada reserva gera no máximo um lembrete, mesmo que o serviço reinicie.
 - Estado: feita no back end (outbox e worker, sem interface nova).
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - O lembrete entra na fila na mesma transação da reserva (a de um jogador), com a hora de envio `início − 3 h` (um instante: a mudança da hora de 25 de outubro não o desloca; um teste cobre o 01:00 de inverno desse dia). Só se esse momento ainda estiver no futuro: uma reserva feita a **menos de 3 horas, ou a exatamente 3 horas**, do início não gera lembrete (o caso exato é provisório). Reservas de cliente não geram.
   - A mensagem só guarda o id da reserva; o conteúdo (clube, morada, campo, data, hora de Lisboa, «(verão)»/«(inverno)») lê-se no momento do envio, para o email dizer o que é verdade nessa altura. O destinatário é o email atual do jogador.
+  - Uma reserva feita a menos de 3 horas do início não recebe lembrete **atrasado**: simplesmente não tem lembrete.
   - Quando chega a hora, o worker só envia se a reserva **ainda está confirmada** e ainda não começou; senão marca a mensagem como **ignorada** (`skipped_at`, com o motivo `booking_not_confirmed` ou `booking_started`, sem contar como falha nem envio) e não envia nada.
   - Um máximo de um lembrete por reserva é garantido por um índice único (`ux_outbox_messages_booking_notification`, por tipo e id da reserva), por isso nem um bug nem um reinício o duplicam; uma mensagem enviada nunca volta a ser reclamada.
 ## Épico 5 — Notificações
@@ -511,10 +512,11 @@ Como dono, quero receber um email quando entra uma reserva nova num dos meus clu
 - O dono pode desligar estes emails nas definições do clube.
 - As reservas criadas pelo próprio dono (US13) não geram email.
 - Estado: feita no back end; o interruptor nas definições do clube vem a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - Definição por clube `notifyOnNewBooking`, **ligada por omissão** (também nos clubes que já existiam, pela migração). Edita-se no `PUT /api/manage/clubs/{id}` (e pode vir no `POST`); é opcional nos dois: se um pedido não a traz, fica como estava, para que um formulário que não a conhece não desligue os emails.
   - Quando um jogador reserva, e a definição está ligada, o email do dono entra na fila na mesma transação (uma reserva que perde a corrida não deixa email). O email traz clube, campo, data, hora de Lisboa e o nome do jogador, e nada mais sobre ele.
   - O destinatário é o email atual do dono do clube, lido no momento do envio. As reservas que o dono faz (US13) não enviam nada, nem ao dono nem a ninguém. A mensagem só guarda o id da reserva.
+  - Se o dono foi **desativado** (US29) antes de o email ser enviado, a mensagem é marcada como ignorada (`skipped_at`, motivo `owner_deactivated`), sem enviar, como um lembrete de uma reserva cancelada; o email nunca vai para os logs.
 ## Épico 6 — Administração
  
 Todas as páginas e endpoints deste épico só respondem ao perfil Admin (403 para os outros) e mostram contagens, nunca nomes ou emails de jogadores.
