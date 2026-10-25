@@ -330,6 +330,15 @@ describe("AdminDashboard", () => {
       expect(screen.getByText("2 donos")).toBeInTheDocument();
     });
 
+    it("links each owner's name to the owner's page", async () => {
+      serve();
+      renderWithProviders(<AdminDashboard initialStats={STATS} />);
+
+      const link = await within(await screen.findByRole("table", { name: "Donos e os seus números" })).findByRole("link", { name: "Ana Dona" });
+
+      expect(link).toHaveAttribute("href", "/admin/owners/0199f7a0-0000-7000-8000-000000000001");
+    });
+
     it("sorts by a header, reverses on the second click, and marks the column", async () => {
       const asked = serve();
       const user = userEvent.setup();

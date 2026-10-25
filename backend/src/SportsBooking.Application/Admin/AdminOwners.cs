@@ -19,6 +19,22 @@ public sealed record AdminOwnerResponse(
     int Bookings,
     int Players);
 
+/// <summary>
+/// One owner (US29): the row of the list and how many confirmed bookings in their clubs have not ended yet (a customer's
+/// included), the number the admin reads before deactivating: those bookings are not cancelled by the deactivation.
+/// </summary>
+public sealed record AdminOwnerDetailResponse(
+    Guid Id,
+    string Name,
+    string Email,
+    DateTime RegisteredAt,
+    bool Deactivated,
+    int Clubs,
+    int Pitches,
+    int Bookings,
+    int Players,
+    int FutureBookings);
+
 /// <summary>The query string of <c>GET /api/admin/owners</c>.</summary>
 public sealed record AdminOwnersRequest(string? Search, string? Sort, string? Direction, int Page = 1)
 {
@@ -64,7 +80,7 @@ public sealed class AdminOwnersRequestValidator : AbstractValidator<AdminOwnersR
 /// the owner's id as the last tie-break so the order is always the same; the search finds a part of the name or the email,
 /// ignoring case.
 /// </summary>
-public sealed class AdminOwnersService(IAppDbContext dbContext, AdminOwnersRequestValidator validator)
+public sealed class AdminOwnersService(IAppDbContext dbContext, AdminOwnersRequestValidator validator, TimeProvider timeProvider)
 {
     private sealed class Row
     {
@@ -105,7 +121,35 @@ public sealed class AdminOwnersService(IAppDbContext dbContext, AdminOwnersReque
 #pragma warning restore CA1304, CA1311, CA1862
         }
 
-        var rows = owners.Select(owner => new Row
+        var rows = Rows(owners);
+
+        var total = await rows.CountAsync(cancellationToken);
+        var items = await Sorted(rows, normalized.Sort!, descending: normalized.Direction == "desc")
+            .Skip((normalized.Page - 1) * AdminOwnersRequest.PageSize)
+            .Take(AdminOwnersRequest.PageSize)
+            .Select(row => new AdminOwnerResponse(row.Id, row.Name, row.Email, row.RegisteredAt, row.Deactivated, row.Clubs, row.Pitches, row.Bookings, row.Players))
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<AdminOwnerResponse>(items, normalized.Page, AdminOwnersRequest.PageSize, total);
+    }
+
+    /// <summary>US29: one owner, as in the list, plus the future confirmed bookings of their clubs. An id that is not an owner's is 404.</summary>
+    public async Task<Result<AdminOwnerDetailResponse>> GetAsync(Guid ownerId, CancellationToken cancellationToken)
+    {
+        var row = await Rows(dbContext.OwnerAccounts.AsNoTracking().Where(owner => owner.Id == ownerId)).SingleOrDefaultAsync(cancellationToken);
+        if (row is null)
+        {
+            return OwnerErrors.NotFound;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var future = await dbContext.Bookings.CountAsync(
+            booking => booking.Status == BookingStatus.Confirmed && booking.EndsAt > now
+                && dbContext.Pitches.Any(pitch => pitch.Id == booking.PitchId && dbContext.Clubs.Any(club => club.Id == pitch.ClubId && club.OwnerId == ownerId)),
+            cancellationToken);
+        return new AdminOwnerDetailResponse(row.Id, row.Name, row.Email, row.RegisteredAt, row.Deactivated, row.Clubs, row.Pitches, row.Bookings, row.Players, future);
+    }
+
+    private IQueryable<Row> Rows(IQueryable<OwnerAccount> owners) => owners.Select(owner => new Row
         {
             Id = owner.Id,
             Name = owner.Name,
@@ -124,15 +168,6 @@ public sealed class AdminOwnersService(IAppDbContext dbContext, AdminOwnersReque
                 .Distinct()
                 .Count(),
         });
-
-        var total = await rows.CountAsync(cancellationToken);
-        var items = await Sorted(rows, normalized.Sort!, descending: normalized.Direction == "desc")
-            .Skip((normalized.Page - 1) * AdminOwnersRequest.PageSize)
-            .Take(AdminOwnersRequest.PageSize)
-            .Select(row => new AdminOwnerResponse(row.Id, row.Name, row.Email, row.RegisteredAt, row.Deactivated, row.Clubs, row.Pitches, row.Bookings, row.Players))
-            .ToListAsync(cancellationToken);
-        return new PagedResponse<AdminOwnerResponse>(items, normalized.Page, AdminOwnersRequest.PageSize, total);
-    }
 
     /// <summary>The chosen column, then the owner's id: two owners with the same value always come in the same order.</summary>
     private static IQueryable<Row> Sorted(IQueryable<Row> rows, string sort, bool descending)

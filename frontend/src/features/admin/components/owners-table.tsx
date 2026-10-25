@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,7 +145,9 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
                 {data!.items.map((owner) => (
                   <tr key={owner.id} className="border-b last:border-b-0">
                     <th scope="row" className="px-3 py-2 text-left font-medium">
-                      {owner.name}
+                      <Link href={`/admin/owners/${owner.id}`} className="underline-offset-4 hover:underline">
+                        {owner.name}
+                      </Link>
                     </th>
                     <td className="px-3 py-2">{owner.email}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatLisbonDate(owner.registeredAt)}</td>

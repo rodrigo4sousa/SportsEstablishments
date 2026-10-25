@@ -92,25 +92,34 @@ dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Passw
 
 - **Both settings missing:** the API starts without an admin and logs a warning.
 - **Only one set, a malformed email or a password under 8 characters:** the API refuses to start. The error names the setting, never its value. Whitespace around the email is trimmed first.
-- The seed never changes an existing admin (changing the password setting later has no effect), never creates a second admin and never promotes an existing player or owner account (it logs a warning instead).
+- The `AdminSeed` values only matter while the database has **no admin**: they create the first one and are ignored from then on. The seed never changes an existing admin (changing the password setting later has no effect; use `set-admin-password`, below), never creates a second admin and never promotes an existing player or owner account (it logs a warning instead).
 
 The seed runs in **every environment**, right after migrations, so the database schema must be up to date before the API starts. Development (and `docker compose`) applies migrations on startup; production applies them at deploy time with a migration bundle, before starting the API.
 
 ### Changing the admin password
 
-There is no endpoint for it, and the seed never touches an existing admin. To change the admin password (or email) by hand:
+There is no endpoint for it, and the seed never touches an existing admin. The API has a command for it, `set-admin-password`
+(like `seed-demo`): it changes the admin's password, ends all of the admin's sessions, and exits without starting the server.
 
-1. Stop the API.
-2. Delete the admin account. Its profile link (`user_roles`) is deleted with it:
+The new password is read from the environment variable `ADMIN_NEW_PASSWORD`, **never from the command line** (an argument
+shows in the process list and the shell history, and the command refuses any argument). It follows the same rule as every password
+(at least 8 characters). The command never prints or logs the password, nor the admin's email. Exit code 0 means it changed, 1 that
+it refused (no variable, a password that is too short, no admin account) and changed nothing.
 
-   ```bash
-   docker compose exec postgres psql -U sportsbooking -d sportsbooking -c \
-     "DELETE FROM users WHERE id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.normalized_name = 'ADMIN');"
-   ```
+```bash
+# with docker compose (the container gets the variable from your shell; type it without echo, so it stays out of the history)
+read -rs ADMIN_NEW_PASSWORD && export ADMIN_NEW_PASSWORD
+docker compose run --rm -e ADMIN_NEW_PASSWORD api set-admin-password
+unset ADMIN_NEW_PASSWORD
 
-3. Set the new `AdminSeed` values and start the API. The seed creates the admin again, with a new id.
+# the API on its own
+dotnet run --project backend/src/SportsBooking.Api -- set-admin-password
+```
 
-This works while nothing else references the admin account. Revisit it when admin actions start being recorded (US29).
+In PowerShell: `$env:ADMIN_NEW_PASSWORD = Read-Host -MaskInput "New password"`, then the same command, then
+`Remove-Item Env:ADMIN_NEW_PASSWORD`. After it, the admin signs in again with the new password (a lockout caused by the old
+one is cleared too). The `AdminSeed` settings do not change the password of an existing admin, so update them if you keep them
+in `.env`, or the next fresh installation will use the old value.
 
 ## Demo data
 

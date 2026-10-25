@@ -54,6 +54,15 @@ public static class ErrorCodes
     /// <summary>409 from creating a block (US09): confirmed bookings overlap it; <c>bookings</c> lists their times.</summary>
     public const string BlockOverlapsBookings = "block_overlaps_bookings";
 
+    /// <summary>404 from the admin's owner endpoints (US29): no such account, or it is not an owner's (a player's or the admin's id gives the same answer).</summary>
+    public const string OwnerNotFound = "owner_not_found";
+
+    /// <summary>422 from deactivating an owner (US29): already deactivated.</summary>
+    public const string OwnerAlreadyDeactivated = "owner_already_deactivated";
+
+    /// <summary>422 from reactivating an owner (US29): not deactivated.</summary>
+    public const string OwnerNotDeactivated = "owner_not_deactivated";
+
     /// <summary>422 from deactivating a pitch (US07): it has future confirmed bookings; <c>count</c> says how many.</summary>
     public const string PitchHasFutureBookings = "pitch_has_future_bookings";
 

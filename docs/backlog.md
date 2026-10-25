@@ -105,7 +105,7 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente nunca é alterado (mudar a variável da palavra-passe depois não tem efeito).
 - Se o email já pertence a uma conta de jogador ou de dono, essa conta nunca é promovida a admin; fica um aviso no log, sem o email.
 - O seed corre em todos os ambientes, sempre depois das migrações. Em produção as migrações são aplicadas no deploy (T06), antes de a API arrancar.
-- Mudar a palavra-passe do admin é um procedimento manual, descrito no README: apagar a conta de admin e arrancar a API com as novas variáveis.
+- Mudar a palavra-passe do admin faz-se com o comando `set-admin-password` da API (ver o README, «Changing the admin password»): lê a nova palavra-passe da variável de ambiente `ADMIN_NEW_PASSWORD`, nunca da linha de comandos, valida-a com as regras da US01, atualiza a palavra-passe do admin, termina as sessões dele e nunca escreve o valor em lado nenhum. O procedimento antigo (apagar a conta de admin) já não existe.
 - O critério «o admin entra pelo login normal e vai para `/admin`» passou para a US03.
 - Decisões de implementação:
   - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
@@ -555,6 +555,16 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
 - As reservas futuras não são canceladas automaticamente; o admin vê quantas há antes de confirmar.
 - O admin pode reativar a conta.
 - Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.
+- Estado: feita no back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`); o ecrã do admin vem numa história seguinte.
+- Decisões de implementação (decididas):
+  - `GET /api/admin/owners/{id}` devolve a linha da lista (US26) e `futureBookings`: as reservas confirmadas dos clubes do dono que ainda não terminaram (a que está a decorrer conta; as de clientes também), o número que o admin lê antes de desativar. Um id desconhecido ou de um jogador ou do admin é sempre 404 `owner_not_found`, antes de se ler o corpo.
+  - `deactivate` e `reactivate` levam `{ reason }`: obrigatório, sem espaços nas pontas, no máximo **500** caracteres (400 no campo `reason`). Respondem 200 com o dono como o `GET` o dá. Já desativado: 422 `owner_already_deactivated`; não desativado: 422 `owner_not_deactivated`.
+  - Desativar põe `deactivated_at`, revoga todos os refresh tokens do dono e escreve a linha de registo, tudo na mesma transação; a decisão é um `UPDATE … WHERE deactivated_at IS NULL`, por isso dois admins ao mesmo tempo dão uma mudança e um 422. Não cancela nenhuma reserva. Reativar limpa `deactivated_at` e não restaura sessões: o dono volta a entrar.
+  - Registo em `owner_status_changes` (dono, ação `Deactivated`/`Reactivated`, motivo, admin da sessão, quando). Não há código de alteração nem de remoção, e um trigger da base de dados recusa `UPDATE`, `DELETE` e `TRUNCATE` (SQLSTATE 23001); as chaves para as contas são `RESTRICT`, por isso uma conta com registo não pode ser apagada.
+  - `GET …/history` lista as mudanças, as mais recentes primeiro, com ação (`deactivated`/`reactivated`), motivo, `adminId`, `adminName` e `at`.
+  - Os efeitos já existiam e têm teste: não entra (401 genérico) nem renova a sessão; os clubes saem da pesquisa e da página (404 `club_not_found`) e recusam reservas (422 `club_unavailable`); as reservas futuras ficam confirmadas; reativar repõe tudo.
+  - Um jogador continua a poder cancelar uma reserva num clube de um dono desativado, com a janela de cancelamento normal do clube (tem teste).
+  - O dono desativado não vê as reservas nem os clubes até ser reativado; o jogador vê as suas reservas como sempre.
 ## Histórias técnicas
  
 Não são visíveis para o utilizador, mas sem elas as estimativas das outras histórias ficam erradas. Todas são MVP.

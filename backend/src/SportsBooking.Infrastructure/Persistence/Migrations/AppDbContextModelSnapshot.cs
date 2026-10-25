@@ -542,6 +542,52 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsBooking.Infrastructure.Admin.OwnerStatusChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("admin_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.HasKey("Id")
+                        .HasName("pk_owner_status_changes");
+
+                    b.HasIndex("AdminId")
+                        .HasDatabaseName("ix_owner_status_changes_admin_id");
+
+                    b.HasIndex("OwnerId", "CreatedAt")
+                        .HasDatabaseName("ix_owner_status_changes_owner_id_created_at");
+
+                    b.ToTable("owner_status_changes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_owner_status_changes_action", "action IN ('Deactivated', 'Reactivated')");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -817,6 +863,23 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("OpeningDays");
+                });
+
+            modelBuilder.Entity("SportsBooking.Infrastructure.Admin.OwnerStatusChange", b =>
+                {
+                    b.HasOne("SportsBooking.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_owner_status_changes_users_admin_id");
+
+                    b.HasOne("SportsBooking.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_owner_status_changes_users_owner_id");
                 });
 
             modelBuilder.Entity("SportsBooking.Infrastructure.Auth.RefreshToken", b =>

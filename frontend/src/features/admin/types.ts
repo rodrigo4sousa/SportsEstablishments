@@ -43,6 +43,21 @@ export type AdminOwner = {
   players: number;
 };
 
+/** US29: one owner, with how many confirmed bookings in their clubs have not ended yet (a deactivation cancels none of them). */
+export type AdminOwnerDetail = AdminOwner & { futureBookings: number };
+
+export type OwnerStatusAction = "deactivated" | "reactivated";
+
+/** US29: one entry of an owner's history: what happened, why, which admin did it and when (an instant). */
+export type OwnerStatusChange = {
+  id: string;
+  action: OwnerStatusAction;
+  reason: string;
+  adminId: string;
+  adminName: string;
+  at: string;
+};
+
 export type AdminOwnersPage = { items: AdminOwner[]; page: number; pageSize: number; totalCount: number };
 
 const counts = (value: Schemas["AccountCounts"]): AccountCounts => ({ active: Number(value.active), deactivated: Number(value.deactivated) });
@@ -70,6 +85,32 @@ export function toBookingsOverTime(response: Schemas["BookingsOverTimeResponse"]
     includeCancelled: response.includeCancelled,
     total: Number(response.total),
     buckets: response.buckets.map((bucket) => ({ start: bucket.start, end: bucket.end, count: Number(bucket.count) })),
+  };
+}
+
+export function toAdminOwnerDetail(response: Schemas["AdminOwnerDetailResponse"]): AdminOwnerDetail {
+  return {
+    id: response.id,
+    name: response.name,
+    email: response.email,
+    registeredAt: response.registeredAt,
+    deactivated: response.deactivated,
+    clubs: Number(response.clubs),
+    pitches: Number(response.pitches),
+    bookings: Number(response.bookings),
+    players: Number(response.players),
+    futureBookings: Number(response.futureBookings),
+  };
+}
+
+export function toOwnerStatusChange(response: Schemas["OwnerStatusChangeResponse"]): OwnerStatusChange {
+  return {
+    id: response.id,
+    action: response.action === "reactivated" ? "reactivated" : "deactivated",
+    reason: response.reason,
+    adminId: response.adminId,
+    adminName: response.adminName,
+    at: response.at,
   };
 }
 
