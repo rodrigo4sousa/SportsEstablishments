@@ -88,6 +88,38 @@ public sealed class BookingCancellationTests(ApiFactory factory)
         return (club, pitch, signedIn.User, signedIn.Tokens.AccessToken, booking.Id);
     }
 
+    // ---- A deactivated owner's club (US29)
+
+    [Fact]
+    public async Task A_player_can_still_cancel_at_a_deactivated_owners_club_inside_the_normal_window_and_not_after_it()
+    {
+        var (club, pitch, _, token, bookingId) = await BookedAsync();
+        var (_, lateToken, lateBookingId) = await BookedAtAsync(pitch.Id, "2026-05-07T10:00:00Z");
+        await factory.DeactivateAccountAsync(club.OwnerId);
+
+        // Deadline 5 May 10:00 UTC: just before it the cancel works, whoever the owner is now.
+        await using (var before = AppAt("2026-05-05T09:59:59Z"))
+        {
+            var cancelled = await JsonAsync(await CancelAsync(before, bookingId, token), HttpStatusCode.OK);
+            cancelled.GetProperty("status").GetString().ShouldBe("cancelled_by_player");
+        }
+
+        (await StatusOfAsync(bookingId)).ShouldBe("CancelledByPlayer");
+
+        // The window is the club's normal one: the second booking (deadline 6 May 10:00 UTC) is refused after it, as at any club.
+        await using var after = AppAt("2026-05-06T10:00:00Z");
+        var problem = await ProblemAsync(await CancelAsync(after, lateBookingId, lateToken), HttpStatusCode.UnprocessableEntity, "outside_cancellation_window");
+        problem.GetProperty("cancellationDeadline").GetDateTime().ShouldBe(TestVenues.Utc("2026-05-06T10:00:00Z"));
+        (await StatusOfAsync(lateBookingId)).ShouldBe("Confirmed");
+    }
+
+    private async Task<(AppUser Player, string Token, Guid BookingId)> BookedAtAsync(Guid pitchId, string start)
+    {
+        var signedIn = await factory.CreateSignedInPlayerAsync();
+        var booking = await factory.AddBookingAsync(pitchId, TestVenues.Utc(start), TestVenues.Utc(start).AddHours(1), signedIn.User);
+        return (signedIn.User, signedIn.Tokens.AccessToken, booking.Id);
+    }
+
     // ---- The deadline
 
     [Fact]
