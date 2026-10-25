@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using SportsBooking.Application.Accounts;
+using SportsBooking.Application.Admin;
 using SportsBooking.Application.Auth;
 using SportsBooking.Application.Bookings;
 using SportsBooking.Application.Catalog;
@@ -51,6 +52,12 @@ public static class DependencyInjection
         services.AddScoped<ClubBookingService>();
         services.AddSingleton<CalendarRequestValidator>();
         services.AddScoped<ClubCalendarService>();
+
+        services.AddScoped<AdminStatsService>();
+        services.AddSingleton<BookingsOverTimeRequestValidator>();
+        services.AddScoped<AdminBookingsOverTimeService>();
+        services.AddSingleton<AdminOwnersRequestValidator>();
+        services.AddScoped<AdminOwnersService>();
 
         services.AddScoped<VisibleClubs>();
         services.AddSingleton<ClubSearchRequestValidator>();

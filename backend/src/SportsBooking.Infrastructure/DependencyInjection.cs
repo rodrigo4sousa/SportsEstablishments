@@ -13,6 +13,8 @@ using SportsBooking.Application.Common;
 using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Accounts;
+using SportsBooking.Application.Admin;
+using SportsBooking.Infrastructure.Admin;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Bookings;
 using SportsBooking.Infrastructure.Clubs;
@@ -57,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IPitchStore, PitchStore>();
         services.AddScoped<IPitchLock, PitchLock>();
         services.AddScoped<IBookingStore, BookingStore>();
+        services.AddScoped<IBookingStatistics, BookingStatistics>();
         // T05: only the `seed-demo` command ever asks for it.
         services.AddScoped<DemoDataSeeder>();
 

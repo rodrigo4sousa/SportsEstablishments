@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SportsBooking.Application.Admin;
 using SportsBooking.Application.Notifications;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Clubs;
@@ -26,6 +27,15 @@ public interface IAppDbContext
 
     /// <summary>Every booking of the platform. In the owner area, reach them only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
     DbSet<Booking> Bookings { get; }
+
+    /// <summary>
+    /// Every account with its profile, registration date and whether it is deactivated, and nothing else (no name, email or
+    /// phone): what the admin's counts read (US24, US28). Never add a personal field to it.
+    /// </summary>
+    IQueryable<AccountProfile> AccountProfiles { get; }
+
+    /// <summary>The owners' accounts, with name and email, for the admin's list of owners (US26). Players are never here.</summary>
+    IQueryable<OwnerAccount> OwnerAccounts { get; }
 
     /// <summary>
     /// The emails waiting to be sent (US22). Add to it on the same context as the change it is about, before that

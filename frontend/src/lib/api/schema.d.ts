@@ -4,6 +4,139 @@
  */
 
 export interface paths {
+    "/api/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStatsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/bookings-over-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    granularity?: string;
+                    from?: string;
+                    to?: string;
+                    includeCancelled?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BookingsOverTimeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                    sort?: string;
+                    direction?: string;
+                    page?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResponseOfAdminOwnerResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -1779,12 +1912,44 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountCounts: {
+            /** Format: int32 */
+            active: number | string;
+            /** Format: int32 */
+            deactivated: number | string;
+        };
         AccountResponse: {
             /** Format: uuid */
             id: string;
             name: string;
             email: string;
             profile: string;
+        };
+        AdminOwnerResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+            /** Format: date-time */
+            registeredAt: string;
+            deactivated: boolean;
+            /** Format: int32 */
+            clubs: number | string;
+            /** Format: int32 */
+            pitches: number | string;
+            /** Format: int32 */
+            bookings: number | string;
+            /** Format: int32 */
+            players: number | string;
+        };
+        AdminStatsResponse: {
+            owners: components["schemas"]["AccountCounts"];
+            clubs: components["schemas"]["ClubCounts"];
+            /** Format: int32 */
+            activePitches: number | string;
+            players: components["schemas"]["AccountCounts"];
+            /** Format: int32 */
+            confirmedBookings: number | string;
         };
         BlockRequest: {
             start: string;
@@ -1816,6 +1981,15 @@ export interface components {
             /** Format: double */
             price: number | string;
             status: string;
+        };
+        BookingsOverTimeResponse: {
+            granularity: string;
+            from: string;
+            to: string;
+            includeCancelled: boolean;
+            /** Format: int32 */
+            total: number | string;
+            buckets: components["schemas"]["PeriodBucket"][];
         };
         CalendarBlock: {
             /** Format: uuid */
@@ -1892,6 +2066,16 @@ export interface components {
             cancellationReason: null | string;
             canCancel: boolean;
         };
+        ClubCounts: {
+            /** Format: int32 */
+            total: number | string;
+            /** Format: int32 */
+            visible: number | string;
+            /** Format: int32 */
+            ofDeactivatedOwners: number | string;
+            /** Format: int32 */
+            withoutActivePitches: number | string;
+        };
         ClubRequest: {
             name: string;
             address: string;
@@ -1964,6 +2148,15 @@ export interface components {
             cancellationWindowHours: number | string;
             timeZone: string;
         };
+        PagedResponseOfAdminOwnerResponse: {
+            items: components["schemas"]["AdminOwnerResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
         PagedResponseOfBlockResponse: {
             items: components["schemas"]["BlockResponse"][];
             /** Format: int32 */
@@ -2008,6 +2201,12 @@ export interface components {
             pageSize: number | string;
             /** Format: int32 */
             totalCount: number | string;
+        };
+        PeriodBucket: {
+            start: string;
+            end: string;
+            /** Format: int32 */
+            count: number | string;
         };
         PitchRequest: {
             name: string;
