@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
@@ -38,6 +39,7 @@ const NEW_CLUB: ClubFormValues = {
   phone: "",
   contactEmail: "",
   cancellationWindowHours: String(DEFAULT_CANCELLATION_WINDOW_HOURS),
+  notifyOnNewBooking: true,
 };
 
 function valuesOf(club: OwnerClub): ClubFormValues {
@@ -48,6 +50,7 @@ function valuesOf(club: OwnerClub): ClubFormValues {
     phone: club.phone,
     contactEmail: club.contactEmail,
     cancellationWindowHours: String(club.cancellationWindowHours),
+    notifyOnNewBooking: club.notifyOnNewBooking,
   };
 }
 
@@ -170,6 +173,23 @@ export function ClubForm({ club }: ClubFormProps) {
           {...form.register("cancellationWindowHours")}
         />
       </FormField>
+
+      <div className="flex items-start gap-3">
+        <input
+          id="club-notifyOnNewBooking"
+          type="checkbox"
+          role="switch"
+          className="mt-1 size-4"
+          aria-describedby="club-notifyOnNewBooking-hint"
+          {...form.register("notifyOnNewBooking")}
+        />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="club-notifyOnNewBooking">Receber um email por cada nova reserva</Label>
+          <p id="club-notifyOnNewBooking-hint" className="text-sm text-muted-foreground">
+            Só para as reservas que os jogadores fazem; as que fazes tu para clientes não enviam email.
+          </p>
+        </div>
+      </div>
 
       {club ? (
         <p className="text-sm text-muted-foreground">

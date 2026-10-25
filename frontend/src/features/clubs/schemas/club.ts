@@ -55,6 +55,8 @@ export const clubSchema = z.object({
     .regex(/^\d+$/, INVALID_WINDOW)
     .transform(Number)
     .pipe(z.number().int().min(MIN_CANCELLATION_WINDOW_HOURS, INVALID_WINDOW).max(MAX_CANCELLATION_WINDOW_HOURS, INVALID_WINDOW)),
+  // US23: the email to the owner on each new booking made by a player; on unless the owner turns it off.
+  notifyOnNewBooking: z.boolean(),
 });
 
 export type ClubFormValues = z.input<typeof clubSchema>;

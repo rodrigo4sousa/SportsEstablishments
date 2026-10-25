@@ -8,10 +8,11 @@ const valid = {
   phone: "912 345 678",
   contactEmail: "geral@tenisfoz.pt",
   cancellationWindowHours: "24",
+  notifyOnNewBooking: true,
 };
 
 // What the form shows: react-hook-form keeps the first message of each field.
-function messages(values: Partial<Record<keyof typeof valid, string>>) {
+function messages(values: Partial<Record<keyof typeof valid, string | boolean>>) {
   const result = clubSchema.safeParse({ ...valid, ...values });
   const found: Record<string, string[]> = {};
   if (!result.success) {
@@ -31,6 +32,7 @@ describe("clubSchema", () => {
       phone: "+351 912 345 678",
       contactEmail: " geral@clube.pt ",
       cancellationWindowHours: " 48 ",
+      notifyOnNewBooking: false,
     });
 
     expect(result).toEqual({
@@ -40,6 +42,7 @@ describe("clubSchema", () => {
       phone: "+351912345678",
       contactEmail: "geral@clube.pt",
       cancellationWindowHours: 48,
+      notifyOnNewBooking: false,
     });
   });
 

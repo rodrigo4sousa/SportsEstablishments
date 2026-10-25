@@ -115,6 +115,7 @@ describe("ClubForm (new club)", () => {
       phone: "912345678",
       contactEmail: "geral@tenisfoz.pt",
       cancellationWindowHours: 48,
+      notifyOnNewBooking: true,
     });
     expect(queryClient.getQueryData(clubQueryKey(saved.id))).toEqual(saved);
     expect(await screen.findByText("Clube criado.")).toBeInTheDocument();
@@ -229,11 +230,68 @@ describe("ClubForm (existing club)", () => {
         phone: "912345678",
         contactEmail: "geral@tenisfoz.pt",
         cancellationWindowHours: 6,
+        notifyOnNewBooking: true,
       },
     });
     expect(queryClient.getQueryData(clubQueryKey(saved.id))).toEqual(updated);
     expect(replace).not.toHaveBeenCalled();
     expect(field(/^nome$/i)).toHaveValue("Foz Ténis & Padel");
+  });
+
+  describe("the email about new bookings (US23)", () => {
+    const notify = () => screen.getByRole("switch", { name: "Receber um email por cada nova reserva" });
+
+    it("is on for a new club", () => {
+      renderWithProviders(<ClubForm />);
+
+      expect(notify()).toBeChecked();
+      expect(screen.getByText(/as que fazes tu para clientes não enviam email/)).toBeInTheDocument();
+    });
+
+    it.each([true, false])("shows what the club has (%s)", (value) => {
+      renderWithProviders(<ClubForm club={{ ...saved, notifyOnNewBooking: value }} />);
+
+      expect(notify().matches(":checked")).toBe(value);
+    });
+
+    it("saves the switch turned off, and shows it off afterwards", async () => {
+      let body: { notifyOnNewBooking?: boolean } | null = null;
+      server.use(
+        http.put(`/api/manage/clubs/${saved.id}`, async ({ request }) => {
+          body = (await request.json()) as { notifyOnNewBooking?: boolean };
+          return HttpResponse.json({ ...saved, notifyOnNewBooking: false });
+        }),
+      );
+      renderWithProviders(<ClubForm club={saved} />);
+      const user = userEvent.setup();
+
+      await user.click(notify());
+      expect(notify()).not.toBeChecked();
+      await user.click(screen.getByRole("button", { name: "Guardar alterações" }));
+
+      await waitFor(() => expect(body).not.toBeNull());
+      expect(body).toMatchObject({ notifyOnNewBooking: false });
+      await waitFor(() => expect(screen.getByRole("button", { name: "Guardar alterações" })).toBeEnabled());
+      expect(notify()).not.toBeChecked();
+    });
+
+    it("saves it turned back on", async () => {
+      let body: { notifyOnNewBooking?: boolean } | null = null;
+      server.use(
+        http.put(`/api/manage/clubs/${saved.id}`, async ({ request }) => {
+          body = (await request.json()) as { notifyOnNewBooking?: boolean };
+          return HttpResponse.json({ ...saved, notifyOnNewBooking: true });
+        }),
+      );
+      renderWithProviders(<ClubForm club={{ ...saved, notifyOnNewBooking: false }} />);
+      const user = userEvent.setup();
+
+      await user.click(notify());
+      await user.click(screen.getByRole("button", { name: "Guardar alterações" }));
+
+      await waitFor(() => expect(body).not.toBeNull());
+      expect(body).toMatchObject({ notifyOnNewBooking: true });
+    });
   });
 
   it("puts the API's validation messages on their fields when editing", async () => {
