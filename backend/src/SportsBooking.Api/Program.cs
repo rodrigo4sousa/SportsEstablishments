@@ -6,6 +6,7 @@ using SportsBooking.Api.Security;
 using SportsBooking.Application;
 using SportsBooking.Infrastructure;
 using SportsBooking.Infrastructure.Demo;
+using SportsBooking.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +73,12 @@ if (!isOpenApiGeneration)
     if (DemoDataCommand.IsRequested(args))
     {
         return await DemoDataCommand.RunAsync(app.Services, Console.Out, Console.Error, CancellationToken.None);
+    }
+
+    // US04: `-- set-admin-password` changes the admin's password (read from ADMIN_NEW_PASSWORD) and exits, without starting the server.
+    if (AdminPasswordCommand.IsRequested(args))
+    {
+        return await AdminPasswordCommand.RunAsync(app.Services, args, Environment.GetEnvironmentVariable, Console.Out, Console.Error, CancellationToken.None);
     }
 }
 
