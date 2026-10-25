@@ -47,6 +47,8 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
 
         // A pitch's bookings in time order: overlap checks, counts and, later, the calendar.
         builder.HasIndex(booking => new { booking.PitchId, booking.StartsAt }).HasDatabaseName("ix_bookings_pitch_id_starts_at");
+        // When bookings were made: the admin's chart of bookings over time (US25).
+        builder.HasIndex(booking => booking.CreatedAt).HasDatabaseName("ix_bookings_created_at");
         // A player's bookings in time order: "my bookings" (US19). Also serves lookups by player alone.
         builder.HasIndex(booking => new { booking.PlayerId, booking.StartsAt }).HasDatabaseName("ix_bookings_player_id_starts_at");
 

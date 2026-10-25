@@ -323,6 +323,9 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bookings");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_bookings_created_at");
+
                     b.HasIndex("PitchId", "StartsAt")
                         .HasDatabaseName("ix_bookings_pitch_id_starts_at");
 
