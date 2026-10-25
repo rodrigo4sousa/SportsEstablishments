@@ -129,6 +129,7 @@ Como utilizador, quero redefinir a palavra-passe por email, para recuperar o ace
   - A confirmação recebe `{ email, token, newPassword }`. A nova palavra-passe segue a US01 (400 no campo `newPassword`); qualquer ligação má (email desconhecido, token errado, expirado ou já usado, conta desativada ou admin) é o mesmo 400 `invalid_or_expired_reset_link`, sem campos.
   - Se resultar: 204, palavra-passe mudada pelo Identity (novo security stamp), todos os refresh tokens da conta revogados, bloqueio por tentativas limpo, e um email «A tua palavra-passe foi alterada» na fila (`password_changed`, sem ligação). **Não entra automaticamente**: a pessoa inicia sessão com a nova palavra-passe.
   - Nunca vão para os logs o email, o token, a ligação ou a palavra-passe (tem teste).
+  - As chaves de Data Protection que protegem os tokens ficam na base de dados (tabela `data_protection_keys`, `PersistKeysToDbContext`, nome de aplicação fixo `SportsBooking`), por isso uma ligação enviada antes de um reinício, de um deploy ou de uma segunda instância continua a funcionar (tem teste). **As cópias de segurança da base de dados guardam também as chaves**: têm de ser tratadas como segredos.
 ## Épico 2 — Configuração do clube
  
 ### US06 · Criar e editar clube · M · 3 pontos
@@ -645,7 +646,6 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - As migrações são aplicadas no deploy de forma controlada.
 - A base de dados tem dois utilizadores. O migration bundle corre como o dono da base de dados, que cria a extensão `btree_gist` (extensão de confiança no PostgreSQL 13 ou superior) e o resto do esquema. A API liga-se com um utilizador de aplicação separado, só com direitos de leitura e escrita nos dados e sem DDL, por isso nunca altera o esquema nem cria extensões.
 - Existe um endpoint `/health` para verificar se a API está a responder.
-- As chaves de Data Protection ficam guardadas fora do contentor (na base de dados ou num volume), senão as ligações de recuperação de palavra-passe (US05) deixam de funcionar a cada arranque ou deploy, e também quando há mais de uma instância da API.
 - `PublicSite__BaseUrl` é o endereço HTTPS público do site, usado nas ligações dos emails (US05); sem ele a API não arranca.
 - Os endpoints públicos de leitura (`/api/clubs`, `/api/localities`, a página do clube e os slots) têm um limite de pedidos por IP, folgado o suficiente para uma navegação normal (pesquisar, abrir clubes, mudar de data e de campo), para que ninguém os possa usar para extrair todos os dados ou sobrecarregar a API. Responde 429 `too_many_requests` com `Retry-After`, como nas rotas de autenticação, e usa o mesmo IP do cliente (ver o critério de `ForwardedHeaders` abaixo).
 - O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.

@@ -172,8 +172,9 @@ sends it, so no token is ever stored. The link points at the site, so the API ne
 | `PublicSite:BaseUrl` (env `PublicSite__BaseUrl`) | `http://localhost:3000` (`appsettings.Development.json`) | the public HTTPS address (T06) |
 
 The API refuses to start without it. A link works once, for 1 hour. The tokens are protected with ASP.NET Core Data
-Protection: its keys must survive restarts in production (stored in the database or on a volume, T06), or every link
-sent before a restart stops working. Tokens, links, addresses and passwords are never logged.
+Protection: its keys are stored in PostgreSQL (table `data_protection_keys`, application name `SportsBooking`), so links
+sent before a restart or a deploy keep working and every instance shares them. Database backups therefore hold the keys
+and are as sensitive as the keys. Tokens, links, addresses and passwords are never logged.
 
 ## Tests and checks
 

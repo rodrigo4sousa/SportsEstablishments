@@ -55,12 +55,12 @@ public sealed partial class PasswordResetTests(ApiFactory factory)
         }
     }
 
-    private Site Start()
+    private Site Start(string? database = null)
     {
         Hosts.Wait(Ct);
         var sender = new FakeEmailSender();
         var clock = new FakeTimeProvider(DateTimeOffset.UtcNow);
-        var database = $"us05_{Guid.NewGuid():N}";
+        database ??= $"us05_{Guid.NewGuid():N}";
         var connectionString = factory.ConnectionStringFor(database) + ";Maximum Pool Size=6;Minimum Pool Size=0";
         var app = factory.CreateIsolatedApp(database, new Dictionary<string, string?> { ["ConnectionStrings:Default"] = connectionString })
             .WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
@@ -334,6 +334,32 @@ public sealed partial class PasswordResetTests(ApiFactory factory)
 
         (await LoginAsync(site, player.Email!, NewPassword)).ShouldBe(HttpStatusCode.OK);
         (await LoginAsync(site, player.Email!, "outra-palavra-passe")).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task A_link_sent_before_the_api_restarted_still_works_with_the_new_host()
+    {
+        // Two hosts, one after the other, on the same database: what the second one knows about the keys it reads from there.
+        var database = $"us05_{Guid.NewGuid():N}";
+        string email;
+        Link link;
+        await using (var before = Start(database))
+        {
+            var player = await AccountAsync(before, Profiles.Player);
+            email = player.Email!;
+            link = await EmailedLinkAsync(before, email);
+        }
+
+        await using var after = Start(database);
+        await using (var scope = after.App.Services.CreateAsyncScope())
+        {
+            // The keys are in PostgreSQL, not in a directory of the first host.
+            (await scope.ServiceProvider.GetRequiredService<AppDbContext>().DataProtectionKeys.CountAsync(Ct)).ShouldBeGreaterThanOrEqualTo(1);
+        }
+
+        using var confirmed = await ConfirmAsync(after, link.Email, link.Token);
+        confirmed.StatusCode.ShouldBe(HttpStatusCode.NoContent, await confirmed.Content.ReadAsStringAsync(Ct));
+        (await LoginAsync(after, email, NewPassword)).ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

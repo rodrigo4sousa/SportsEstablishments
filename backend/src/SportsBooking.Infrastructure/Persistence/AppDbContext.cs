@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -14,8 +15,11 @@ using SportsBooking.Infrastructure.Identity;
 namespace SportsBooking.Infrastructure.Persistence;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options), IAppDbContext
+    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options), IAppDbContext, IDataProtectionKeyContext
 {
+    /// <summary>US05: the Data Protection keys that protect reset tokens, kept here so they survive restarts and are shared by every instance.</summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<Club> Clubs => Set<Club>();

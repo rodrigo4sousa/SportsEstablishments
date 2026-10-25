@@ -110,6 +110,9 @@ public static class DependencyInjection
         services.AddScoped<AccountEmailBuilder>();
     }
 
+    /// <summary>The Data Protection application name: part of every protected payload, so it must never change.</summary>
+    public const string DataProtectionApplicationName = "SportsBooking";
+
     private static void AddAccounts(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<AdminSeedOptions>()
@@ -146,7 +149,12 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<AppDbContext>()
             // US05: Identity's reset tokens (Data Protection; the keys must outlive a restart in production, see T06).
             .AddDefaultTokenProviders();
-        services.AddDataProtection();
+        // The keys live in PostgreSQL (so a restart, a redeploy or a second instance still reads every reset link that was sent), under a
+        // fixed application name (the default is derived from the content root path, which differs between hosts). Database
+        // backups therefore hold them: a backup is as sensitive as the keys.
+        services.AddDataProtection()
+            .SetApplicationName(DataProtectionApplicationName)
+            .PersistKeysToDbContext<AppDbContext>();
         // Identity's token provider reads the system clock itself (it takes no TimeProvider): 1 hour from when the email is sent.
         services.Configure<DataProtectionTokenProviderOptions>(tokens => tokens.TokenLifespan = PasswordResetRules.LinkLifetime);
 
