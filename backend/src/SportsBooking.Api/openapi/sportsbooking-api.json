@@ -1545,6 +1545,134 @@
         }
       }
     },
+    "/api/manage/clubs/{clubId}/bookings/{bookingId}/no-show": {
+      "post": {
+        "tags": [
+          "ManageBookings"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubBookingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/manage/clubs/{clubId}/bookings/{bookingId}/no-show/undo": {
+      "post": {
+        "tags": [
+          "ManageBookings"
+        ],
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubBookingResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manage/clubs/{clubId}/calendar": {
       "get": {
         "tags": [
@@ -2985,7 +3113,10 @@
           "createdAt",
           "cancelledAt",
           "cancellationReason",
-          "canCancel"
+          "canCancel",
+          "canMarkNoShow",
+          "canUndoNoShow",
+          "playerNoShows"
         ],
         "type": "object",
         "properties": {
@@ -3053,6 +3184,21 @@
           },
           "canCancel": {
             "type": "boolean"
+          },
+          "canMarkNoShow": {
+            "type": "boolean"
+          },
+          "canUndoNoShow": {
+            "type": "boolean"
+          },
+          "playerNoShows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -3132,6 +3278,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "notifyOnNewBooking": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -3332,7 +3484,8 @@
           "phone",
           "contactEmail",
           "cancellationWindowHours",
-          "timeZone"
+          "timeZone",
+          "notifyOnNewBooking"
         ],
         "type": "object",
         "properties": {
@@ -3368,6 +3521,9 @@
           },
           "timeZone": {
             "type": "string"
+          },
+          "notifyOnNewBooking": {
+            "type": "boolean"
           }
         }
       },

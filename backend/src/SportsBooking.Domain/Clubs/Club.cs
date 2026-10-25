@@ -43,6 +43,9 @@ public sealed class Club
     /// </summary>
     public int CancellationWindowHours { get; private set; }
 
+    /// <summary>US23: whether the owner gets an email when a player books. On by default.</summary>
+    public bool NotifyOnNewBooking { get; private set; } = true;
+
     /// <summary>IANA time zone of the club's opening hours. Always Europe/Lisbon for now (T04); not editable.</summary>
     public string TimeZoneId { get; private set; } = string.Empty;
 
@@ -82,6 +85,13 @@ public sealed class Club
     {
         EnsureValidWindow(hours);
         CancellationWindowHours = hours;
+        UpdatedAt = EnsureUtc(now);
+    }
+
+    /// <summary>US23: turns the owner's email about new bookings on or off.</summary>
+    public void ChangeNotifyOnNewBooking(bool notify, DateTime now)
+    {
+        NotifyOnNewBooking = notify;
         UpdatedAt = EnsureUtc(now);
     }
 

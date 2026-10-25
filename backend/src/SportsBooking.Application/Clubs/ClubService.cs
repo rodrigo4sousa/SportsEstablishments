@@ -16,7 +16,8 @@ public sealed record OwnerClubResponse(
     string Phone,
     string ContactEmail,
     int CancellationWindowHours,
-    string TimeZone)
+    string TimeZone,
+    bool NotifyOnNewBooking)
 {
     /// <summary>Used both in database projections and for a club already loaded.</summary>
     public static readonly Expression<Func<Club, OwnerClubResponse>> Projection = club => new OwnerClubResponse(
@@ -28,7 +29,8 @@ public sealed record OwnerClubResponse(
         club.Phone,
         club.ContactEmail,
         club.CancellationWindowHours,
-        club.TimeZoneId);
+        club.TimeZoneId,
+        club.NotifyOnNewBooking);
 
     private static readonly Func<Club, OwnerClubResponse> FromClub = Projection.Compile();
 
@@ -58,12 +60,21 @@ public sealed class ClubService(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var club = await clubStore.AddWithUniqueSlugAsync(
             ClubSlug.FromName(normalized.Name),
-            slug => Club.Create(
-                ownerId,
-                slug,
-                normalized.Details(),
-                normalized.CancellationWindowHours ?? ClubRules.DefaultCancellationWindowHours,
-                now),
+            slug =>
+            {
+                var created = Club.Create(
+                    ownerId,
+                    slug,
+                    normalized.Details(),
+                    normalized.CancellationWindowHours ?? ClubRules.DefaultCancellationWindowHours,
+                    now);
+                if (normalized.NotifyOnNewBooking is { } notify)
+                {
+                    created.ChangeNotifyOnNewBooking(notify, now);
+                }
+
+                return created;
+            },
             cancellationToken);
         return OwnerClubResponse.From(club);
     }
@@ -127,6 +138,12 @@ public sealed class ClubService(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         club.UpdateDetails(normalized.Details(), now);
         club.ChangeCancellationWindow(normalized.CancellationWindowHours!.Value, now);
+        // Missing means "leave it as it is": a form that does not know the setting must not switch the emails off.
+        if (normalized.NotifyOnNewBooking is { } notify)
+        {
+            club.ChangeNotifyOnNewBooking(notify, now);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return OwnerClubResponse.From(club);
     }

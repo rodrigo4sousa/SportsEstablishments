@@ -20,6 +20,48 @@ public sealed class BookingEmailOutbox(IAppDbContext dbContext, TimeProvider tim
     public Task EnqueueClubCancellationAsync(Booking booking, CancellationToken cancellationToken) =>
         EnqueueAsync(booking, OutboxMessageTypes.BookingCancelledByClub, booking.CancellationReason, cancellationToken);
 
+    /// <summary>
+    /// US23: tells the club's owner that a player booked, if the club has the setting on (the default). Only called for a player's
+    /// booking: what an owner books for a customer (US13) never reaches here, and a customer booking would send nothing anyway.
+    /// </summary>
+    public async Task EnqueueOwnerNotificationAsync(Booking booking, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(booking);
+        if (booking.PlayerId is null)
+        {
+            return;
+        }
+
+        var notify = await dbContext.Pitches.AsNoTracking()
+            .Where(pitch => pitch.Id == booking.PitchId)
+            .Join(dbContext.Clubs, pitch => pitch.ClubId, club => club.Id, (_, club) => club.NotifyOnNewBooking)
+            .SingleAsync(cancellationToken);
+        if (!notify)
+        {
+            return;
+        }
+
+        dbContext.OutboxMessages.Add(OutboxMessage.Create(
+            OutboxMessageTypes.OwnerNewBooking, new BookingRefPayload(booking.Id).Serialize(), timeProvider.GetUtcNow().UtcDateTime));
+    }
+
+    /// <summary>
+    /// US21: the player's reminder, due 3 hours before the start (<see cref="BookingReminderRules.DueAt"/>), queued in the booking's
+    /// own transaction. None for a customer's booking, and none when that moment is not in the future. A unique index allows one
+    /// per booking.
+    /// </summary>
+    public void EnqueueReminder(Booking booking)
+    {
+        ArgumentNullException.ThrowIfNull(booking);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (booking.PlayerId is null || BookingReminderRules.DueAt(booking.StartsAt, now) is not { } due)
+        {
+            return;
+        }
+
+        dbContext.OutboxMessages.Add(OutboxMessage.Create(OutboxMessageTypes.BookingReminder, new BookingRefPayload(booking.Id).Serialize(), now, due));
+    }
+
     private async Task EnqueueAsync(Booking booking, string type, string? reason, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(booking);

@@ -11,7 +11,7 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         builder.ToTable("outbox_messages", table =>
         {
             table.HasCheckConstraint("ck_outbox_messages_attempts", "attempts >= 0");
-            table.HasCheckConstraint("ck_outbox_messages_sent_or_failed", "sent_at IS NULL OR failed_at IS NULL");
+            table.HasCheckConstraint("ck_outbox_messages_one_outcome", "num_nonnulls(sent_at, failed_at, skipped_at) <= 1");
         });
 
         builder.HasKey(message => message.Id);
@@ -24,6 +24,6 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         // What the worker asks for: the pending messages that are due, oldest due first.
         builder.HasIndex(message => message.NextAttemptAt)
             .HasDatabaseName("ix_outbox_messages_pending_next_attempt_at")
-            .HasFilter("sent_at IS NULL AND failed_at IS NULL");
+            .HasFilter("sent_at IS NULL AND failed_at IS NULL AND skipped_at IS NULL");
     }
 }

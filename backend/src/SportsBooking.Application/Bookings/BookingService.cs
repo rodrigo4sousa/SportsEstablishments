@@ -148,6 +148,9 @@ public sealed class BookingService(
         // US22: the confirmation email is queued now and written by the same SaveChanges as the booking, so a booking
         // that loses the race (23P01, rolled back) leaves no email behind.
         await emails.EnqueueConfirmationAsync(booking, cancellationToken);
+        // US23 and US21: the owner is told (if the club wants it) and the player is reminded 3 hours before: same transaction, same fate.
+        await emails.EnqueueOwnerNotificationAsync(booking, cancellationToken);
+        emails.EnqueueReminder(booking);
         if (!await bookingStore.TryAddAsync(booking, cancellationToken))
         {
             return BookingErrors.SlotTaken;
