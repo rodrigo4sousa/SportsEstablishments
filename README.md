@@ -162,6 +162,10 @@ environment variables (`Email__Host`, …; Brevo: port 587, `StartTls`). The wor
 (`Enabled`, `BatchSize`, `PollIntervalSeconds`, `FirstRetryDelaySeconds`, `MaximumRetryDelaySeconds`, `MaxAttempts`).
 Delivery is at least once. Addresses, email bodies and SMTP credentials are never logged.
 
+Besides the player's confirmation and cancellation emails (US22), the outbox carries the owner's email about a new booking (US23,
+per club, on by default), the player's reminder 3 hours before the start (US21: due at `start − 3 h`, skipped if the booking
+was cancelled by then) and the password-reset emails (US05). A message is closed as sent, given up (failed) or skipped.
+
 ### Password reset emails
 
 `POST /api/auth/password-reset/request` queues a reset email (US05); the worker makes Identity's reset token when it
