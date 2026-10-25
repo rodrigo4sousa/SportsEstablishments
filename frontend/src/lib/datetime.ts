@@ -27,6 +27,18 @@ const longDateFormatter = new Intl.DateTimeFormat(LOCALE, {
   month: "long",
 });
 
+const dayMonthFormatter = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: LISBON_TIME_ZONE,
+  day: "2-digit",
+  month: "2-digit",
+});
+
+const monthYearFormatter = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: LISBON_TIME_ZONE,
+  month: "long",
+  year: "numeric",
+});
+
 const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: LISBON_TIME_ZONE,
   year: "numeric",
@@ -63,6 +75,28 @@ export function formatDateKeyLong(dateKey: string): string {
     throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
   }
   return formatLisbonLongDate(`${dateKey}T12:00:00Z`);
+}
+
+/** "01/08/2026" for a calendar date written "YYYY-MM-DD" (a date key). */
+export function formatDateKey(dateKey: string): string {
+  return formatLisbonDate(noonOf(dateKey));
+}
+
+/** "01/08" for a date key: the short label of a chart axis. */
+export function formatDateKeyShort(dateKey: string): string {
+  return dayMonthFormatter.format(toDate(noonOf(dateKey)));
+}
+
+/** "agosto de 2026" for the month a date key is in. */
+export function formatDateKeyMonth(dateKey: string): string {
+  return monthYearFormatter.format(toDate(noonOf(dateKey)));
+}
+
+function noonOf(dateKey: string): string {
+  if (!isDateKey(dateKey)) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
+  }
+  return `${dateKey}T12:00:00Z`;
 }
 
 /** "01/08/2026" */

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  formatDateKey,
+  formatDateKeyMonth,
+  formatDateKeyShort,
   lisbonNowLocal,
   addDaysToDateKey,
   isDateKey,
@@ -284,5 +287,19 @@ describe("weeks, Monday first", () => {
 
   it("rejects what is not a date", () => {
     expect(() => weekdayIndex("2026-02-30")).toThrow();
+  });
+});
+
+describe("date key formatting for the admin charts", () => {
+  it("writes a date key in pt-PT whatever the time zone", () => {
+    expect(formatDateKey("2026-10-25")).toBe("25/10/2026");
+    expect(formatDateKeyShort("2026-10-25")).toBe("25/10");
+    expect(formatDateKeyMonth("2026-10-01")).toBe("outubro de 2026");
+  });
+
+  it("refuses a value that is not a date", () => {
+    expect(() => formatDateKey("2026-02-30")).toThrow();
+    expect(() => formatDateKeyShort("hoje")).toThrow();
+    expect(() => formatDateKeyMonth("2026-13-01")).toThrow();
   });
 });
