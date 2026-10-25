@@ -305,7 +305,10 @@ describe("OwnerDetails", () => {
 
       await user.click(screen.getByRole("button", { name: "Confirmar desativação" }));
 
-      expect(await screen.findByText("Este dono já não existe.")).toBeInTheDocument();
+      // The message first shows as the notice and then, once the owner is loaded again and is gone, as the page itself:
+      // wait for the final state, so the check does not hold an element that the swap has just removed.
+      expect(await screen.findByRole("link", { name: "Voltar aos donos" })).toBeInTheDocument();
+      expect(screen.getByText("Este dono já não existe.")).toBeInTheDocument();
     });
 
     it("shows a toast for any other failure and keeps the form with what was typed", async () => {
