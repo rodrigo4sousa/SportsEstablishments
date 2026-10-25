@@ -116,7 +116,7 @@ This works while nothing else references the admin account. Revisit it when admi
 
 `seed-demo` fills an **empty** development database with realistic demo data, so there is something to show and the
 admin's numbers (US24 to US28) mean something: 5 owners and 10 clubs around Porto and Lisboa (all four sports), 60
-players, and about 7,000 bookings from the last 60 days and the next 14 (busier in the evening and at weekends, with
+players, and about 12,000 bookings from the last 60 days and the next 14 (busier in the evening and at weekends, with
 cancellations, no-shows and customer bookings), a few blocks. It is deterministic: the same day gives the same data.
 
 ```
