@@ -61,12 +61,13 @@ The API refuses to start if either is missing or invalid. Mutating requests with
 
 ### Rate limiting and trusted proxies
 
-Login, registration and refresh are rate limited per client IP (429 `too_many_requests`). Five wrong passwords lock an account for 15 minutes. Both sets of values are provisional (US03 in [docs/backlog.md](docs/backlog.md)).
+Login, registration, refresh and the two password-reset steps are rate limited per client IP (429 `too_many_requests`). Five wrong passwords lock an account for 15 minutes. Both sets of values are provisional (US03 in [docs/backlog.md](docs/backlog.md)).
 
 | Setting | Default |
 | --- | --- |
 | `RateLimiting:Auth:Window` | `00:01:00` |
 | `RateLimiting:Auth:LoginPermitLimit` / `RegisterPermitLimit` / `RefreshPermitLimit` | 10 / 5 / 30 requests per window |
+| `RateLimiting:Auth:PasswordResetRequestPermitLimit` / `PasswordResetConfirmPermitLimit` | 5 / 10 requests per window (US05, provisional) |
 | `ForwardedHeaders:KnownProxies` (IP addresses) and `ForwardedHeaders:KnownNetworks` (CIDR) | none |
 
 The client IP is the connection's address. `X-Forwarded-For` is believed only from a configured proxy; from anyone else it is ignored, so a client cannot pick its own rate-limit partition. The API refuses to start if an entry is not a valid address or network.
@@ -160,6 +161,19 @@ Settings (section `Email`, checked at start-up): `Host`, `Port`, `Security` (`No
 environment variables (`Email__Host`, …; Brevo: port 587, `StartTls`). The worker's own settings are in `Outbox`
 (`Enabled`, `BatchSize`, `PollIntervalSeconds`, `FirstRetryDelaySeconds`, `MaximumRetryDelaySeconds`, `MaxAttempts`).
 Delivery is at least once. Addresses, email bodies and SMTP credentials are never logged.
+
+### Password reset emails
+
+`POST /api/auth/password-reset/request` queues a reset email (US05); the worker makes Identity's reset token when it
+sends it, so no token is ever stored. The link points at the site, so the API needs its public address:
+
+| Setting | Development | Production |
+| --- | --- | --- |
+| `PublicSite:BaseUrl` (env `PublicSite__BaseUrl`) | `http://localhost:3000` (`appsettings.Development.json`) | the public HTTPS address (T06) |
+
+The API refuses to start without it. A link works once, for 1 hour. The tokens are protected with ASP.NET Core Data
+Protection: its keys must survive restarts in production (stored in the database or on a volume, T06), or every link
+sent before a restart stops working. Tokens, links, addresses and passwords are never logged.
 
 ## Tests and checks
 
