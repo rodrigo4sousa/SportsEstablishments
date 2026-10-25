@@ -21,9 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10.0.x
+      # The official install script, from builds.dotnet.microsoft.com, with the exact SDK of global.json. actions/setup-dotnet
+      # resolves its downloads through aka.ms to dotnetorigin.blob.core.windows.net, which now answers 409
+      # (PublicAccessNotPermitted; actions/setup-dotnet#794, v5 and v6 alike). An exact version skips the aka.ms lookup.
+      - name: Install the .NET SDK
+        working-directory: .
+        run: |
+          curl -sSfL https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+          bash "$RUNNER_TEMP/dotnet-install.sh" --jsonfile global.json --install-dir "$HOME/.dotnet" --azure-feed https://builds.dotnet.microsoft.com/dotnet
+          echo "DOTNET_ROOT=$HOME/.dotnet" >> "$GITHUB_ENV"
+          echo "$HOME/.dotnet" >> "$GITHUB_PATH"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - run: dotnet tool restore
       - run: dotnet restore
