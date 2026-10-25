@@ -17,6 +17,7 @@ public sealed partial class AdminAccountSeeder(
     UserManager<AppUser> userManager,
     AppDbContext dbContext,
     IOptions<AdminSeedOptions> options,
+    TimeProvider timeProvider,
     ILogger<AdminAccountSeeder> logger)
 {
     /// <summary>Display name of the seeded admin account; there is no setting for it.</summary>
@@ -61,7 +62,7 @@ public sealed partial class AdminAccountSeeder(
 
     private async Task CreateAdminAsync(string email, string password, CancellationToken cancellationToken)
     {
-        var admin = new AppUser(email, AdminName) { EmailConfirmed = true };
+        var admin = new AppUser(email, AdminName, timeProvider.GetUtcNow().UtcDateTime) { EmailConfirmed = true };
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);

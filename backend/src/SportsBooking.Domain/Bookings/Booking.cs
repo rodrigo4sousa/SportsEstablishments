@@ -209,6 +209,21 @@ public sealed class Booking
         return CancellationOutcome.Cancelled;
     }
 
+    /// <summary>
+    /// The player did not come (US15 builds the owner's action on this): only a confirmed booking whose end has passed.
+    /// Returns false, and changes nothing, for any other booking.
+    /// </summary>
+    public bool MarkNoShow(DateTime now)
+    {
+        if (!IsConfirmed || EnsureUtc(now) < EndsAt)
+        {
+            return false;
+        }
+
+        Status = BookingStatus.NoShow;
+        return true;
+    }
+
     /// <summary>True from the instant the booking starts: it is no longer "in the future".</summary>
     public bool HasStarted(DateTime now) => StartsAt <= EnsureUtc(now);
 

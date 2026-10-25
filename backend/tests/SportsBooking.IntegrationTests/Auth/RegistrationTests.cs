@@ -186,7 +186,7 @@ public sealed class RegistrationTests(ApiFactory factory)
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-            var owner = new AppUser(ownerEmail, "Dono do Clube");
+            var owner = new AppUser(ownerEmail, "Dono do Clube", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
             (await users.CreateAsync(owner)).Succeeded.ShouldBeTrue();
             (await users.AddToRoleAsync(owner, Profiles.Owner)).Succeeded.ShouldBeTrue();
         }

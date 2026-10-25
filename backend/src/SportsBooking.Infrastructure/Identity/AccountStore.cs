@@ -10,7 +10,8 @@ namespace SportsBooking.Infrastructure.Identity;
 internal sealed class AccountStore(
     UserManager<AppUser> userManager,
     AppDbContext dbContext,
-    FallbackPasswordHash fallbackHash) : IAccountStore
+    FallbackPasswordHash fallbackHash,
+    TimeProvider timeProvider) : IAccountStore
 {
     // The email is also the user name, so a taken email can show up as either error.
     private static readonly HashSet<string> EmailTakenErrors =
@@ -26,7 +27,7 @@ internal sealed class AccountStore(
             throw new ArgumentOutOfRangeException(nameof(profile), "Only the profiles in Profiles.SelfRegistration can be created by a registration.");
         }
 
-        var user = new AppUser(account.Email, account.Name) { PhoneNumber = account.Phone };
+        var user = new AppUser(account.Email, account.Name, timeProvider.GetUtcNow().UtcDateTime) { PhoneNumber = account.Phone };
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
