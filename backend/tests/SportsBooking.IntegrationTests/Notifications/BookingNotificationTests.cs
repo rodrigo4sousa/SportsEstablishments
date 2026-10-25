@@ -477,6 +477,42 @@ public sealed class BookingNotificationTests(ApiFactory factory)
         email.TextBody.ShouldContain("Data: domingo, 25 de outubro de 2026");
     }
 
+    [Fact]
+    public async Task The_owner_email_is_skipped_when_the_owner_was_deactivated_before_it_is_sent()
+    {
+        await using var site = Start();
+        var scenario = await ScenarioAsync(site);
+        await BookAsync(site, scenario);
+        await site.App.DeactivateAccountAsync(scenario.Owner.Id);
+
+        await site.RunWorkerAsync();
+
+        var ownerEmail = (await OutboxAsync(site, OutboxMessageTypes.OwnerNewBooking)).Single();
+        ownerEmail.SkippedAt.ShouldNotBeNull();
+        ownerEmail.SentAt.ShouldBeNull();
+        ownerEmail.FailedAt.ShouldBeNull();
+        ownerEmail.LastError.ShouldBe("owner_deactivated");
+        SentTo(site, scenario.Owner.Email!).ShouldBeEmpty();
+        // The player's own emails are not affected.
+        SentTo(site, scenario.Player.Email!).ShouldHaveSingleItem().Subject.ShouldStartWith("Reserva confirmada");
+        var logs = string.Join(Environment.NewLine, site.App.Services.GetFakeLogCollector().GetSnapshot().Select(record => $"{record.Message} {record.Exception}"));
+        logs.ShouldNotContain(scenario.Owner.Email!, Case.Insensitive);
+        logs.ShouldContain("skipped: owner_deactivated");
+    }
+
+    [Fact]
+    public async Task The_owner_email_of_an_active_owner_is_still_sent()
+    {
+        await using var site = Start();
+        var scenario = await ScenarioAsync(site);
+        await BookAsync(site, scenario);
+
+        await site.RunWorkerAsync();
+
+        SentTo(site, scenario.Owner.Email!).ShouldHaveSingleItem().Subject.ShouldStartWith("Nova reserva");
+        (await OutboxAsync(site, OutboxMessageTypes.OwnerNewBooking)).Single().SkippedAt.ShouldBeNull();
+    }
+
     // ---- Logs
 
     [Fact]

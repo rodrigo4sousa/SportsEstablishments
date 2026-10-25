@@ -116,6 +116,9 @@ public sealed partial class OutboxProcessor(
 
     public const string SkippedStarted = "booking_started";
 
+    /// <summary>US23: the owner's account was deactivated before the email was sent.</summary>
+    public const string SkippedOwnerDeactivated = "owner_deactivated";
+
     private async Task<Built> BuildAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
         if (message.Type is OutboxMessageTypes.PasswordReset or OutboxMessageTypes.PasswordChanged)
@@ -193,6 +196,12 @@ public sealed partial class OutboxProcessor(
         if (player is null || recipient?.Email is not { Length: > 0 } address)
         {
             return new Built(null);
+        }
+
+        // US29, US23: a deactivated owner is not mailed about bookings (their clubs take none): closed like a reminder for a cancelled booking.
+        if (!isReminder && !await accountEmails.IsActiveAsync(booking.OwnerId))
+        {
+            return new Built(null, SkippedOwnerDeactivated);
         }
 
         var details = new BookingNotificationDetails(
