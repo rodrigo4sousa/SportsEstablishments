@@ -498,10 +498,10 @@ Como admin, quero ver os totais da plataforma, para saber o tamanho dela.
 - Mostra o número de donos, clubes, campos ativos, jogadores e reservas confirmadas.
 - Contas e clubes desativados aparecem separados dos ativos.
 - Os valores vêm de queries agregadas na base de dados, sem carregar listas para memória.
-- Estado: API feita (`GET /api/admin/stats`); o ecrã vem numa história seguinte.
-- Decisões de implementação (provisórias, a confirmar):
+- Estado: API feita (`GET /api/admin/stats`); o ecrã vem na mesma entrega do /admin (ver abaixo).
+- Decisões de implementação (decididas):
   - A resposta tem donos e jogadores como `{ active, deactivated }`, clubes como `{ total, visible, ofDeactivatedOwners, withoutActivePitches }` (os três últimos somam o total: visível = dono ativo e pelo menos um campo ativo, como nas páginas públicas), `activePitches` e `confirmedBookings`. Admins não contam como donos nem jogadores.
-  - Os campos ativos são todos os ativos, também os de donos desativados; as reservas confirmadas são todas as confirmadas, passadas e futuras, de jogadores e de clientes (US13).
+  - Os campos ativos são os campos ativos de donos ativos (os de um dono desativado não estão disponíveis, por isso não contam); as reservas confirmadas são todas as confirmadas, também as passadas, de jogadores e de clientes (US13).
   - São sete contagens e um `GROUP BY` sobre as contas (perfil e estado): nada é carregado para memória. O DTO das contas só tem perfil, data de registo e estado, por construção sem nome nem email.
 ### US25 · Reservas por período · M · 3 pontos
  
@@ -511,8 +511,8 @@ Como admin, quero ver as reservas ao longo do tempo num gráfico, para perceber 
 - Intervalo de datas configurável, por omissão os últimos 30 dias.
 - Períodos sem reservas aparecem com zero, em vez de desaparecerem do gráfico.
 - As reservas canceladas ficam de fora por omissão, com opção de as incluir.
-- Estado: API feita (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`); o gráfico vem numa história seguinte.
-- Decisões de implementação (provisórias, a confirmar):
+- Estado: API feita (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`); o gráfico vem na mesma entrega do /admin.
+- Decisões de implementação (decididas):
   - Uma reserva conta no período em que foi **criada** (não naquele em que se joga), pela data de Lisboa: `date_trunc(unidade, created_at AT TIME ZONE 'Europe/Lisbon')`. Assim 00:30 de 25 de outubro de 2026 (23:30 UTC do dia 24 já é dia 25 em Lisboa) cai no dia 25. Índice novo `ix_bookings_created_at`.
   - Semanas de segunda a domingo (ISO), meses civis. O intervalo é alargado a períodos inteiros (a resposta diz o `from`/`to` efetivos), por isso nunca há um período parcial.
   - Por omissão: por dia, os últimos 30 dias de Lisboa (hoje e os 29 anteriores). `from <= to`, datas entre 2000 e 2100, formato `AAAA-MM-DD`; erros 400 com mensagens em pt-PT.
@@ -526,11 +526,11 @@ Como admin, quero ver a lista de donos com os números de cada um, para saber qu
 - Cada linha mostra nome do dono, email, data de registo, número de clubes, de campos, de reservas e de jogadores distintos que reservaram nos seus clubes.
 - Ordenável por qualquer coluna, com pesquisa por nome ou email do dono.
 - Paginada.
-- Estado: API feita (`GET /api/admin/owners?search=&sort=&direction=&page=`); o ecrã vem numa história seguinte.
-- Decisões de implementação (provisórias, a confirmar):
+- Estado: API feita (`GET /api/admin/owners?search=&sort=&direction=&page=`); a tabela vem na mesma entrega do /admin.
+- Decisões de implementação (decididas):
   - Colunas: nome, email, data de registo, desativado, clubes, campos, reservas e jogadores. Ordena-se por `name`, `email`, `registeredAt`, `status`, `clubs`, `pitches`, `bookings` ou `players`, em `asc`/`desc`; nome e email ordenam sem distinguir maiúsculas; o desempate é sempre o id do dono, por isso a ordem é estável. Por omissão, nome ascendente.
   - A pesquisa procura um pedaço do nome ou do email, sem distinguir maiúsculas (e nunca encontra jogadores). 20 por página.
-  - Campos: todos os campos do dono, ativos ou não. Reservas: as não canceladas (a falta conta), incluindo as feitas para clientes. Jogadores: jogadores distintos (`COUNT(DISTINCT player_id)`) com reservas não canceladas nos clubes do dono; as reservas de clientes não têm jogador e não contam.
+  - Campos: só os campos ativos do dono. Reservas: as não canceladas (a falta conta), incluindo as feitas para clientes. Jogadores: jogadores distintos (`COUNT(DISTINCT player_id)`) com reservas não canceladas nos clubes do dono; as reservas de clientes não têm jogador e não contam.
   - Tudo é calculado pela base de dados, só para os donos da página. Os donos desativados aparecem, com o sinal de desativado.
 ### US27 · Clubes com maior ocupação · D · 3 pontos
  
@@ -604,7 +604,7 @@ Como programador, quero dados de exemplo realistas, para demonstrar a app e ver 
 - Só corre com uma flag explícita, nunca por engano em produção.
 - Os dados geram números com sentido nos gráficos e nas listas do admin.
 - Estado: feita. Comando `seed-demo` da API (ver o README, «Demo data»).
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - O comando é `dotnet run --project backend/src/SportsBooking.Api -- seed-demo` (no docker compose, `docker compose run --rm api seed-demo`). Só corre com exatamente esse argumento, cria os dados e sai sem arrancar o servidor (por isso o worker de emails nunca corre). Recusa-se no ambiente Production e recusa-se se já existir algum dono ou jogador (uma conta de admin não o impede), com uma mensagem e o código de saída 1; é tudo numa só transação.
   - Dados: 5 donos e 10 clubes (2 por dono) em Porto, Vila Nova de Gaia, Matosinhos, Maia, Lisboa, Oeiras e Cascais, 43 campos dos quatro desportos, com preços realistas (ténis 7 a 16 €, padel 18 a 32 €, futsal 35 a 45 €, futebol 7 de 55 a 70 €), horários (alguns fecham à segunda ou à meia-noite) e slots de 30, 60 e 90 minutos; 5 bloqueios (dois já passados e três futuros, um deles a manutenção de um campo de padel daqui a 5 dias); 60 jogadores registados ao longo dos últimos 90 dias (os donos, antes disso); e cerca de 12 mil reservas dos últimos 60 dias e dos próximos 14: mais ao fim da tarde e ao fim de semana, a crescer ao longo do tempo e a diminuir para a frente, com reservas confirmadas, canceladas pelo jogador (dentro da janela do clube), canceladas pelo clube (com motivo) e faltas no passado, alguns slots libertados que outro jogador voltou a reservar, e cerca de 6 % de reservas para clientes (US13).
   - É determinístico: uma semente fixa (`20260101`) e tudo calculado a partir do dia de hoje em Lisboa (o «agora» dos dados é o início de hoje). O mesmo dia dá os mesmos nomes, datas, preços e estados; só mudam os ids e os hashes das palavras-passe.
@@ -612,6 +612,8 @@ Como programador, quero dados de exemplo realistas, para demonstrar a app e ver 
   - Uma falta (`no_show`) é marcada por `Booking.MarkNoShow(now)`, que só aceita uma reserva confirmada que já acabou (a base da US15, que lhe acrescentará a ação do dono e a reversão).
   - As contas têm a data de registo (`users.registered_at`, nova nesta história, preenchida pelo registo e pelo seed; as contas que já existiam ficam com a data da migração): é o que a lista de donos e o gráfico de registos do admin (US26, US28) vão ler.
   - Todos os endereços são do domínio reservado `example.test` (`dono01`..`dono05`, `jogador01`..`jogador60`, `geral.clube01`..`geral.clube10`) e todas as contas têm a mesma palavra-passe de desenvolvimento, `demo-password-1`, que está no README. Não são criadas mensagens no outbox, por isso o seed não envia email. O comando só escreve contagens, nunca contas nem a palavra-passe.
+  - Contas que já existiam antes da migração ficam com a data da migração como `registered_at`; todas as contas de demonstração partilham o mesmo hash de palavra-passe.
+  - Mistura de resultados das reservas passadas: cerca de 80 % realizadas, 11 % canceladas pelo jogador, 3 % canceladas pelo clube e 6 % faltas; cerca de 6 % das reservas são de clientes sem conta (US13).
 ### T06 · Deploy contínuo · 5 pontos
  
 Como programador, quero que cada merge na main fique publicado automaticamente, para ter sempre uma versão online para mostrar.
