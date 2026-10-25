@@ -8,7 +8,7 @@ using SportsBooking.IntegrationTests.Infrastructure;
 namespace SportsBooking.IntegrationTests.Security;
 
 /// <summary>
-/// US03: login, registration and refresh are rate limited per client IP. The client IP comes from
+/// US03, US05: login, registration, refresh and both password-reset steps are rate limited per client IP. The client IP comes from
 /// <c>X-Forwarded-For</c> only when the connection is from a configured proxy, so a spoofed header changes nothing.
 /// </summary>
 public sealed class RateLimitingTests(ApiFactory factory)
@@ -26,6 +26,8 @@ public sealed class RateLimitingTests(ApiFactory factory)
             ["RateLimiting:Auth:LoginPermitLimit"] = $"{Limit}",
             ["RateLimiting:Auth:RegisterPermitLimit"] = $"{Limit}",
             ["RateLimiting:Auth:RefreshPermitLimit"] = $"{Limit}",
+            ["RateLimiting:Auth:PasswordResetRequestPermitLimit"] = $"{Limit}",
+            ["RateLimiting:Auth:PasswordResetConfirmPermitLimit"] = $"{Limit}",
             ["ForwardedHeaders:KnownProxies:0"] = TrustedProxy,
             ["ForwardedHeaders:KnownNetworks:0"] = "10.1.0.0/16",
         });
@@ -43,7 +45,7 @@ public sealed class RateLimitingTests(ApiFactory factory)
         using var request = new HttpRequestMessage(HttpMethod.Post, path).From(connectionAddress);
         if (path != "/api/auth/refresh")
         {
-            request.Content = JsonContent.Create(new { email = "ninguem@exemplo.pt", password = "palavra-passe" });
+            request.Content = JsonContent.Create(new { email = "ninguem@exemplo.pt", password = "palavra-passe", token = "nao-e-um-token", newPassword = "palavra-passe-nova" });
         }
 
         if (forwardedFor is not null)
@@ -79,6 +81,8 @@ public sealed class RateLimitingTests(ApiFactory factory)
     [InlineData("/api/auth/login")]
     [InlineData("/api/auth/register")]
     [InlineData("/api/auth/refresh")]
+    [InlineData("/api/auth/password-reset/request")]
+    [InlineData("/api/auth/password-reset/confirm")]
     public async Task Each_auth_endpoint_answers_429_problem_details_after_the_limit_from_one_address(string path)
     {
         await using var app = StartApp();
@@ -100,6 +104,19 @@ public sealed class RateLimitingTests(ApiFactory factory)
         using var register = await SendAsync(app, "/api/auth/register", "203.0.113.12");
 
         register.StatusCode.ShouldNotBe(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task The_two_password_reset_steps_have_their_own_limits()
+    {
+        await using var app = StartApp();
+        await ExhaustAsync(app, "/api/auth/password-reset/request", "203.0.113.13");
+
+        using var confirm = await SendAsync(app, "/api/auth/password-reset/confirm", "203.0.113.13");
+        using var login = await SendAsync(app, "/api/auth/login", "203.0.113.13");
+
+        confirm.StatusCode.ShouldNotBe(HttpStatusCode.TooManyRequests);
+        login.StatusCode.ShouldNotBe(HttpStatusCode.TooManyRequests);
     }
 
     [Fact]
