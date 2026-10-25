@@ -40,7 +40,7 @@ public static class TestAccounts
     {
         await using var scope = app.Services.CreateAsyncScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        var user = new AppUser(email ?? $"conta-{Guid.NewGuid():N}@exemplo.test", name);
+        var user = new AppUser(email ?? $"conta-{Guid.NewGuid():N}@exemplo.test", name, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var created = password is null ? await users.CreateAsync(user) : await users.CreateAsync(user, password);
         created.Succeeded.ShouldBeTrue();
         (await users.AddToRoleAsync(user, profile)).Succeeded.ShouldBeTrue();

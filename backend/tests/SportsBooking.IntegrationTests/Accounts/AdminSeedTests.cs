@@ -161,7 +161,7 @@ public sealed class AdminSeedTests(ApiFactory factory)
         {
             await using var scope = setup.Services.CreateAsyncScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-            var player = new AppUser(email, "Jogador");
+            var player = new AppUser(email, "Jogador", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
             (await userManager.CreateAsync(player, "jogador-palavra-passe")).Succeeded.ShouldBeTrue();
             (await userManager.AddToRoleAsync(player, Profiles.Player)).Succeeded.ShouldBeTrue();
         }
