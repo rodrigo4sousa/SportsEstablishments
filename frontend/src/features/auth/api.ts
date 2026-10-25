@@ -4,6 +4,7 @@ import type { components } from "@/lib/api/schema";
 export type Account = components["schemas"]["AccountResponse"];
 export type LoginRequest = components["schemas"]["LoginRequest"];
 export type RegisterAccountRequest = components["schemas"]["RegisterAccountRequest"];
+export type PasswordResetConfirmRequest = components["schemas"]["PasswordResetConfirmRequest"];
 
 export const currentUserQueryKey = ["auth", "me"] as const;
 
@@ -40,4 +41,20 @@ const REGISTER_PATHS: Record<RegistrationVariant, string> = {
 /** US01 and US02: creates a player or owner account; the API answers with the session cookies already set. */
 export function registerAccount(variant: RegistrationVariant, request: RegisterAccountRequest): Promise<Account> {
   return apiJson<Account>(REGISTER_PATHS[variant], { method: "POST", body: JSON.stringify(request) });
+}
+
+/**
+ * US05: asks for the email with the reset link. The API always answers 202 with the same message, whether or not the email
+ * has an account (only a malformed email is a 400), so neither does this tell the person anything about the account.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiRequest("/api/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+/**
+ * US05: sets the new password with the email and token of the link. 204 on success (nobody is signed in); 400
+ * `validation_failed` on `newPassword`, or 400 `invalid_or_expired_reset_link` for any bad link.
+ */
+export async function confirmPasswordReset(request: PasswordResetConfirmRequest): Promise<void> {
+  await apiRequest("/api/auth/password-reset/confirm", { method: "POST", body: JSON.stringify(request) });
 }

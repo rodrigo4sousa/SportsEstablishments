@@ -53,6 +53,10 @@ public static class DependencyInjection
         services.AddSingleton<CalendarRequestValidator>();
         services.AddScoped<ClubCalendarService>();
 
+        services.AddSingleton<PasswordResetRequestValidator>();
+        services.AddSingleton<PasswordResetConfirmRequestValidator>();
+        services.AddScoped<PasswordResetService>();
+
         services.AddScoped<AdminStatsService>();
         services.AddSingleton<BookingsOverTimeRequestValidator>();
         services.AddScoped<AdminBookingsOverTimeService>();

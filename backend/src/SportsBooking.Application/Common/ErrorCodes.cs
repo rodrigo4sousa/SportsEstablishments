@@ -54,6 +54,9 @@ public static class ErrorCodes
     /// <summary>409 from creating a block (US09): confirmed bookings overlap it; <c>bookings</c> lists their times.</summary>
     public const string BlockOverlapsBookings = "block_overlaps_bookings";
 
+    /// <summary>400 from confirming a password reset (US05): unknown email, wrong, expired or used token; always this one code.</summary>
+    public const string InvalidOrExpiredResetLink = "invalid_or_expired_reset_link";
+
     /// <summary>404 from the admin's owner endpoints (US29): no such account, or it is not an owner's (a player's or the admin's id gives the same answer).</summary>
     public const string OwnerNotFound = "owner_not_found";
 

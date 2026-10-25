@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -99,7 +100,18 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
         services.AddScoped<ISessionService, SessionService>();
+
+        // US05: the address of the site, for the links in emails.
+        services.AddOptions<PublicSiteOptions>()
+            .Bind(configuration.GetSection(PublicSiteOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<PublicSiteOptions>, PublicSiteOptionsValidator>();
+        services.AddScoped<IPasswordResetStore, PasswordResetStore>();
+        services.AddScoped<AccountEmailBuilder>();
     }
+
+    /// <summary>The Data Protection application name: part of every protected payload, so it must never change.</summary>
+    public const string DataProtectionApplicationName = "SportsBooking";
 
     private static void AddAccounts(this IServiceCollection services, IConfiguration configuration)
     {
@@ -134,7 +146,17 @@ public static class DependencyInjection
                 options.Lockout.DefaultLockoutTimeSpan = LoginLockout.Duration;
             })
             .AddRoles<IdentityRole<Guid>>()
-            .AddEntityFrameworkStores<AppDbContext>();
+            .AddEntityFrameworkStores<AppDbContext>()
+            // US05: Identity's reset tokens (Data Protection; the keys must outlive a restart in production, see T06).
+            .AddDefaultTokenProviders();
+        // The keys live in PostgreSQL (so a restart, a redeploy or a second instance still reads every reset link that was sent), under a
+        // fixed application name (the default is derived from the content root path, which differs between hosts). Database
+        // backups therefore hold them: a backup is as sensitive as the keys.
+        services.AddDataProtection()
+            .SetApplicationName(DataProtectionApplicationName)
+            .PersistKeysToDbContext<AppDbContext>();
+        // Identity's token provider reads the system clock itself (it takes no TimeProvider): 1 hour from when the email is sent.
+        services.Configure<DataProtectionTokenProviderOptions>(tokens => tokens.TokenLifespan = PasswordResetRules.LinkLifetime);
 
         // Identity v3 hashes are PBKDF2 with HMAC-SHA512; 210,000 iterations is the OWASP recommendation for it.
         // Older hashes with fewer iterations still verify and are rehashed on the next successful password check.

@@ -22,6 +22,7 @@ if (isOpenApiGeneration)
         new("Email:Host", "unused-during-openapi-generation"),
         new("Email:FromAddress", "unused@openapi.invalid"),
         new("Outbox:Enabled", "false"),
+        new("PublicSite:BaseUrl", "https://unused-during-openapi-generation"),
     ]);
 }
 

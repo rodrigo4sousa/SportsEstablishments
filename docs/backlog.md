@@ -119,6 +119,17 @@ Como utilizador, quero redefinir a palavra-passe por email, para recuperar o ace
 - O email traz uma ligação de uso único que expira ao fim de 1 hora.
 - Uma ligação usada ou expirada mostra erro e permite pedir outra.
 - A nova palavra-passe segue as regras da US01.
+- Estado: feita no back end (`POST /api/auth/password-reset/request` e `POST /api/auth/password-reset/confirm`, os dois emails); a página da ligação e o formulário de pedido vêm a seguir, no front end.
+- Decisões de implementação (decididas):
+  - O pedido responde sempre 202 com a mesma mensagem, exista ou não a conta; só um email vazio ou mal escrito é um 400 no campo `email` (isso não revela nada). Só se pesquisa a conta e se põe trabalho na fila: não há email nem hash a calcular no pedido.
+  - Só um jogador ou dono **ativo** recebe o email. Contas desconhecidas, donos e jogadores desativados e o admin não recebem nada (o admin muda a palavra-passe com `set-admin-password`, US04).
+  - No máximo **um email de recuperação por conta a cada 5 minutos**; os pedidos a mais recebem a mesma resposta e não fazem nada. Rate limiting por IP como nas outras rotas de autenticação: **5** pedidos por minuto no pedido e **10** na confirmação (`RateLimiting:Auth:PasswordResetRequestPermitLimit` e `…ConfirmPermitLimit`).
+  - A mensagem da fila (`password_reset`) só guarda o id da conta. O token é criado pelo worker quando envia o email, com o fornecedor de tokens de recuperação do Identity (Data Protection) e validade de **1 hora** (`DataProtectionTokenProviderOptions.TokenLifespan`; esse fornecedor usa o relógio do sistema, não o `TimeProvider`). O token inclui o security stamp da conta, por isso deixa de valer quando a palavra-passe muda: cada ligação funciona uma vez, e uma ligação antiga deixa de funcionar quando se usa uma mais recente.
+  - A ligação é `{PublicSite:BaseUrl}/reset-password?email=…&token=…` (o email e o token escapados). `PublicSite:BaseUrl` é obrigatório (validado no arranque): `http://localhost:3000` em desenvolvimento, o endereço HTTPS público em produção (T06).
+  - A confirmação recebe `{ email, token, newPassword }`. A nova palavra-passe segue a US01 (400 no campo `newPassword`); qualquer ligação má (email desconhecido, token errado, expirado ou já usado, conta desativada ou admin) é o mesmo 400 `invalid_or_expired_reset_link`, sem campos.
+  - Se resultar: 204, palavra-passe mudada pelo Identity (novo security stamp), todos os refresh tokens da conta revogados, bloqueio por tentativas limpo, e um email «A tua palavra-passe foi alterada» na fila (`password_changed`, sem ligação). **Não entra automaticamente**: a pessoa inicia sessão com a nova palavra-passe.
+  - Nunca vão para os logs o email, o token, a ligação ou a palavra-passe (tem teste).
+  - As chaves de Data Protection que protegem os tokens ficam na base de dados (tabela `data_protection_keys`, `PersistKeysToDbContext`, nome de aplicação fixo `SportsBooking`), por isso uma ligação enviada antes de um reinício, de um deploy ou de uma segunda instância continua a funcionar (tem teste). **As cópias de segurança da base de dados guardam também as chaves**: têm de ser tratadas como segredos.
 ## Épico 2 — Configuração do clube
  
 ### US06 · Criar e editar clube · M · 3 pontos
@@ -635,6 +646,7 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - As migrações são aplicadas no deploy de forma controlada.
 - A base de dados tem dois utilizadores. O migration bundle corre como o dono da base de dados, que cria a extensão `btree_gist` (extensão de confiança no PostgreSQL 13 ou superior) e o resto do esquema. A API liga-se com um utilizador de aplicação separado, só com direitos de leitura e escrita nos dados e sem DDL, por isso nunca altera o esquema nem cria extensões.
 - Existe um endpoint `/health` para verificar se a API está a responder.
+- `PublicSite__BaseUrl` é o endereço HTTPS público do site, usado nas ligações dos emails (US05); sem ele a API não arranca.
 - Os endpoints públicos de leitura (`/api/clubs`, `/api/localities`, a página do clube e os slots) têm um limite de pedidos por IP, folgado o suficiente para uma navegação normal (pesquisar, abrir clubes, mudar de data e de campo), para que ninguém os possa usar para extrair todos os dados ou sobrecarregar a API. Responde 429 `too_many_requests` com `Retry-After`, como nas rotas de autenticação, e usa o mesmo IP do cliente (ver o critério de `ForwardedHeaders` abaixo).
 - O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.
 ## Resumo de pontos

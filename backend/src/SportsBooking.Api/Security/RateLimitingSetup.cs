@@ -14,12 +14,14 @@ internal static class AuthRateLimits
     public const string Login = "auth-login";
     public const string Register = "auth-register";
     public const string Refresh = "auth-refresh";
+    public const string PasswordResetRequest = "auth-password-reset-request";
+    public const string PasswordResetConfirm = "auth-password-reset-confirm";
 }
 
 internal static class RateLimitingSetup
 {
     /// <summary>
-    /// US03: fixed-window limits per client IP on login, registration and refresh (the built-in middleware), and the
+    /// US03, US05: fixed-window limits per client IP on login, registration, refresh and the two password-reset steps (the built-in middleware), and the
     /// forwarded headers that decide the client IP, believed only from configured proxies.
     /// </summary>
     public static IServiceCollection AddAuthRateLimiting(this IServiceCollection services, IConfiguration configuration)
@@ -58,6 +60,8 @@ internal static class RateLimitingSetup
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Login, limits.LoginPermitLimit, limits.Window);
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Register, limits.RegisterPermitLimit, limits.Window);
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Refresh, limits.RefreshPermitLimit, limits.Window);
+                limiter.AddFixedWindowPerClient(AuthRateLimits.PasswordResetRequest, limits.PasswordResetRequestPermitLimit, limits.Window);
+                limiter.AddFixedWindowPerClient(AuthRateLimits.PasswordResetConfirm, limits.PasswordResetConfirmPermitLimit, limits.Window);
                 limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
                 limiter.OnRejected = WriteTooManyRequestsAsync;
             });
