@@ -58,6 +58,8 @@ public static class DependencyInjection
         services.AddScoped<AdminBookingsOverTimeService>();
         services.AddSingleton<AdminOwnersRequestValidator>();
         services.AddScoped<AdminOwnersService>();
+        services.AddSingleton<OwnerStatusRequestValidator>();
+        services.AddScoped<AdminOwnerStatusService>();
 
         services.AddScoped<VisibleClubs>();
         services.AddSingleton<ClubSearchRequestValidator>();

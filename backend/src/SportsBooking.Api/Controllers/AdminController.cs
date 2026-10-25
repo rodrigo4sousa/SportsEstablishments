@@ -15,7 +15,11 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Policy = Profiles.Admin)]
-public sealed class AdminController(AdminStatsService stats, AdminBookingsOverTimeService bookingsOverTime, AdminOwnersService owners) : ControllerBase
+public sealed class AdminController(
+    AdminStatsService stats,
+    AdminBookingsOverTimeService bookingsOverTime,
+    AdminOwnersService owners,
+    AdminOwnerStatusService ownerStatus) : ControllerBase
 {
     /// <summary>US24: owners (active and deactivated), clubs (visible, of deactivated owners, and without active pitches), active pitches, players and confirmed bookings.</summary>
     [HttpGet("stats")]
@@ -61,6 +65,53 @@ public sealed class AdminController(AdminStatsService stats, AdminBookingsOverTi
         var pageNumber = string.IsNullOrWhiteSpace(page) ? 1
             : int.TryParse(page, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
         var result = await owners.ListAsync(new AdminOwnersRequest(search, sort, direction, pageNumber), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>US29: one owner, as in the list, plus how many confirmed bookings in their clubs have not ended yet. 404 for an id that is not an owner's.</summary>
+    [HttpGet("owners/{id:guid}")]
+    [ProducesResponseType<AdminOwnerDetailResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> Owner(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await owners.GetAsync(id, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US29: deactivates an owner, with the reason. They cannot sign in or refresh, their clubs leave the search and refuse bookings,
+    /// and no booking is cancelled. 422 <c>owner_already_deactivated</c> when it already is.
+    /// </summary>
+    [HttpPost("owners/{id:guid}/deactivate")]
+    [ProducesResponseType<AdminOwnerDetailResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> Deactivate(Guid id, [FromBody] OwnerStatusRequest request, CancellationToken cancellationToken)
+    {
+        var result = await ownerStatus.DeactivateAsync(id, request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>US29: reactivates an owner, with the reason. 422 <c>owner_not_deactivated</c> when they are not deactivated.</summary>
+    [HttpPost("owners/{id:guid}/reactivate")]
+    [ProducesResponseType<AdminOwnerDetailResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> Reactivate(Guid id, [FromBody] OwnerStatusRequest request, CancellationToken cancellationToken)
+    {
+        var result = await ownerStatus.ReactivateAsync(id, request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>US29: the deactivations and reactivations of an owner, newest first: what, why, which admin and when.</summary>
+    [HttpGet("owners/{id:guid}/history")]
+    [ProducesResponseType<List<OwnerStatusChangeResponse>>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> History(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await ownerStatus.HistoryAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 }

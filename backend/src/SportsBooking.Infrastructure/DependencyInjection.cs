@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IPitchLock, PitchLock>();
         services.AddScoped<IBookingStore, BookingStore>();
         services.AddScoped<IBookingStatistics, BookingStatistics>();
+        services.AddScoped<IOwnerStatusStore, OwnerStatusStore>();
         // T05: only the `seed-demo` command ever asks for it.
         services.AddScoped<DemoDataSeeder>();
 
