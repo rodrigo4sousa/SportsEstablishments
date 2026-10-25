@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Clubs;
 using SportsBooking.Domain.Pitches;
@@ -22,6 +23,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Block> Blocks => Set<Block>();
 
     public DbSet<Booking> Bookings => Set<Booking>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public IQueryable<Guid> ActiveAccountIds => Users.Where(user => user.DeactivatedAt == null).Select(user => user.Id);
 

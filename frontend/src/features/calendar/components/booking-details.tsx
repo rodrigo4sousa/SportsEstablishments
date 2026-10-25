@@ -73,7 +73,7 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
         <>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
             <dt className="text-muted-foreground">{booking.data.createdByClub ? "Cliente" : "Jogador"}</dt>
-            <dd className="font-medium">{booking.data.playerName}</dd>
+            <dd className="font-medium">{booking.data.bookerName}</dd>
             {booking.data.createdByClub ? (
               <>
                 <dt className="text-muted-foreground">Telemóvel</dt>

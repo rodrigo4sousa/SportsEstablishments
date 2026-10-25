@@ -32,13 +32,13 @@ const booking = (patch: Partial<CalendarBooking> = {}): CalendarBooking => ({
   endsAt: "2026-05-05T10:00:00Z",
   status: "confirmed",
   price: 18.5,
-  playerName: "Rita Jogadora",
+  bookerName: "Rita Jogadora",
   createdByClub: false,
   ...patch,
 });
 
 const customerBooking = (patch: Partial<CalendarBooking> = {}): CalendarBooking =>
-  booking({ id: CUSTOMER_BOOKING, startsAt: "2026-05-05T10:00:00Z", endsAt: "2026-05-05T11:00:00Z", playerName: "Maria Cliente", createdByClub: true, ...patch });
+  booking({ id: CUSTOMER_BOOKING, startsAt: "2026-05-05T10:00:00Z", endsAt: "2026-05-05T11:00:00Z", bookerName: "Maria Cliente", createdByClub: true, ...patch });
 
 const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   id: CUSTOMER_BOOKING,
@@ -49,7 +49,7 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   endsAt: "2026-05-05T11:00:00Z",
   price: 18.5,
   status: "confirmed",
-  playerName: "Maria Cliente",
+  bookerName: "Maria Cliente",
   createdByClub: true,
   customerPhone: "912345678",
   createdAt: "2026-05-04T09:30:00Z",
@@ -457,7 +457,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       serve({ bookings: [booking()] });
       server.use(
         http.get(`/api/manage/clubs/${CLUB}/bookings/${PLAYER_BOOKING}`, () =>
-          HttpResponse.json(details({ id: PLAYER_BOOKING, playerName: "Rita Jogadora", createdByClub: false, customerPhone: null })),
+          HttpResponse.json(details({ id: PLAYER_BOOKING, bookerName: "Rita Jogadora", createdByClub: false, customerPhone: null })),
         ),
       );
       renderWithProviders(<ClubCalendar clubId={CLUB} />);

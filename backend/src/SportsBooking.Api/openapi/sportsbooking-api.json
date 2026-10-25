@@ -2096,7 +2096,7 @@
           "endsAt",
           "status",
           "price",
-          "playerName",
+          "bookerName",
           "createdByClub"
         ],
         "type": "object",
@@ -2128,7 +2128,7 @@
             ],
             "format": "double"
           },
-          "playerName": {
+          "bookerName": {
             "type": "string"
           },
           "createdByClub": {
@@ -2258,7 +2258,7 @@
           "endsAt",
           "price",
           "status",
-          "playerName",
+          "bookerName",
           "createdByClub",
           "customerPhone",
           "createdAt",
@@ -2301,7 +2301,7 @@
           "status": {
             "type": "string"
           },
-          "playerName": {
+          "bookerName": {
             "type": "string"
           },
           "createdByClub": {

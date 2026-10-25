@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Application.Accounts;
 using SportsBooking.Domain.Accounts;
@@ -42,7 +43,7 @@ public sealed record ClubBookingResponse(
     DateTime EndsAt,
     decimal Price,
     string Status,
-    string PlayerName,
+    string BookerName,
     bool CreatedByClub,
     string? CustomerPhone,
     DateTime CreatedAt,
@@ -130,6 +131,7 @@ public sealed class ClubBookingService(
     IPitchLock pitchLock,
     IBookingStore bookingStore,
     BookingSlotCheck slotCheck,
+    BookingEmailOutbox emails,
     IAccountStore accounts,
     CancelClubBookingRequestValidator validator,
     CreateClubBookingRequestValidator createValidator,
@@ -154,7 +156,7 @@ public sealed class ClubBookingService(
 
         public required BookingStatus Status { get; init; }
 
-        public required string PlayerName { get; init; }
+        public required string BookerName { get; init; }
 
         public required bool CreatedByClub { get; init; }
 
@@ -283,6 +285,8 @@ public sealed class ClubBookingService(
                     return BookingErrors.AlreadyStarted;
             }
 
+            // US22: the player is told, with the reason, in the same SaveChanges; a customer booking (US13) queues nothing.
+            await emails.EnqueueClubCancellationAsync(booking, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
             await scope.CommitAsync(cancellationToken);
         }
@@ -308,7 +312,7 @@ public sealed class ClubBookingService(
             EndsAt = booking.EndsAt,
             Price = booking.Price,
             Status = booking.Status,
-            PlayerName = booking.PlayerId == null ? booking.CustomerName! : account.Name,
+            BookerName = booking.PlayerId == null ? booking.CustomerName! : account.Name,
             CreatedByClub = booking.PlayerId == null,
             CustomerPhone = booking.CustomerPhone,
             CreatedAt = booking.CreatedAt,
@@ -325,7 +329,7 @@ public sealed class ClubBookingService(
         row.EndsAt,
         row.Price,
         BookingStatuses.ToCode(row.Status),
-        row.PlayerName,
+        row.BookerName,
         row.CreatedByClub,
         row.CustomerPhone,
         row.CreatedAt,

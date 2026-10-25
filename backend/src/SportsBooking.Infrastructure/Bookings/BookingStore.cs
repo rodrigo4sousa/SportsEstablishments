@@ -23,8 +23,12 @@ internal sealed partial class BookingStore(AppDbContext dbContext, ILogger<Booki
             ConstraintName: BookingConfiguration.NoOverlapConstraint,
         })
         {
-            // T03: another confirmed booking overlaps. The caller's transaction is aborted and rolls back.
-            dbContext.Entry(booking).State = EntityState.Detached;
+            // T03: another confirmed booking overlaps. The caller's transaction is aborted and rolls back. Forget the
+            // booking and everything added with it (its outbox email, US22), so nothing of it is saved later.
+            foreach (var entry in dbContext.ChangeTracker.Entries().Where(entry => entry.State == EntityState.Added).ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
             LogSlotTaken(logger, booking.PitchId, booking.StartsAt, booking.EndsAt);
             return false;
         }

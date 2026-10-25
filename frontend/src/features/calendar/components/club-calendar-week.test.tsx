@@ -33,7 +33,7 @@ const booking = (patch: Partial<CalendarBooking> = {}): CalendarBooking => ({
   endsAt: "2026-05-05T10:00:00Z",
   status: "confirmed",
   price: 18.5,
-  playerName: "Rita Jogadora",
+  bookerName: "Rita Jogadora",
   createdByClub: false,
   ...patch,
 });
@@ -56,7 +56,7 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   endsAt: "2026-05-05T10:00:00Z",
   price: 18.5,
   status: "confirmed",
-  playerName: "Rita Jogadora",
+  bookerName: "Rita Jogadora",
   createdByClub: false,
   customerPhone: null,
   createdAt: "2026-05-01T09:30:00Z",
@@ -178,7 +178,7 @@ describe("ClubCalendar, weekly view", () => {
     it("has seven columns, Monday first, named in Portuguese, with the pitch's bookings and blocks in the right days", async () => {
       resetNavigation(`${BASE}?view=week`);
       serveCalendar({
-        bookings: [booking(), booking({ id: SECOND, pitchId: TENNIS, playerName: "Bruno Jogador" })],
+        bookings: [booking(), booking({ id: SECOND, pitchId: TENNIS, bookerName: "Bruno Jogador" })],
         blocks: [block()],
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
@@ -267,7 +267,7 @@ describe("ClubCalendar, weekly view", () => {
     it("lists the pitches, and switching shows the other pitch's week and puts it in the address", async () => {
       resetNavigation(`${BASE}?view=week`);
       const asked = serveCalendar({
-        bookings: [booking(), booking({ id: SECOND, pitchId: TENNIS, playerName: "Bruno Jogador", startsAt: "2026-05-06T09:00:00Z", endsAt: "2026-05-06T10:00:00Z" })],
+        bookings: [booking(), booking({ id: SECOND, pitchId: TENNIS, bookerName: "Bruno Jogador", startsAt: "2026-05-06T09:00:00Z", endsAt: "2026-05-06T10:00:00Z" })],
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
       await screen.findByRole("button", { name: /Rita Jogadora/ });
@@ -421,7 +421,7 @@ describe("ClubCalendar, weekly view", () => {
       const asked = serveCalendar({
         bookings: [
           booking(),
-          booking({ id: SECOND, status: "cancelled_by_club", playerName: "Ana Cancelada", startsAt: "2026-05-06T09:00:00Z", endsAt: "2026-05-06T10:00:00Z" }),
+          booking({ id: SECOND, status: "cancelled_by_club", bookerName: "Ana Cancelada", startsAt: "2026-05-06T09:00:00Z", endsAt: "2026-05-06T10:00:00Z" }),
         ],
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
@@ -438,9 +438,9 @@ describe("ClubCalendar, weekly view", () => {
 
   describe("a week with the day the clocks go back (Monday 2026-10-19 to Sunday 2026-10-25)", () => {
     const sundayBookings = [
-      booking({ id: FIRST, startsAt: "2026-10-25T00:30:00Z", endsAt: "2026-10-25T01:00:00Z", playerName: "Primeira" }), // 01:30 WEST
-      booking({ id: SECOND, startsAt: "2026-10-25T01:30:00Z", endsAt: "2026-10-25T02:00:00Z", playerName: "Segunda" }), // 01:30 WET
-      booking({ id: THIRD, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", playerName: "Manhã" }), // 09:00 WET
+      booking({ id: FIRST, startsAt: "2026-10-25T00:30:00Z", endsAt: "2026-10-25T01:00:00Z", bookerName: "Primeira" }), // 01:30 WEST
+      booking({ id: SECOND, startsAt: "2026-10-25T01:30:00Z", endsAt: "2026-10-25T02:00:00Z", bookerName: "Segunda" }), // 01:30 WET
+      booking({ id: THIRD, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", bookerName: "Manhã" }), // 09:00 WET
     ];
 
     it("asks for Monday to Sunday and shows seven columns, the Sunday marked as 25 hours long", async () => {
@@ -509,8 +509,8 @@ describe("ClubCalendar, weekly view", () => {
       resetNavigation(`${BASE}?view=week&date=2026-10-22`);
       serveCalendar({
         bookings: [
-          booking({ id: FIRST, startsAt: "2026-10-24T08:00:00Z", endsAt: "2026-10-24T09:00:00Z", playerName: "Sábado" }), // 09:00 WEST
-          booking({ id: SECOND, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", playerName: "Domingo" }), // 09:00 WET
+          booking({ id: FIRST, startsAt: "2026-10-24T08:00:00Z", endsAt: "2026-10-24T09:00:00Z", bookerName: "Sábado" }), // 09:00 WEST
+          booking({ id: SECOND, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", bookerName: "Domingo" }), // 09:00 WET
         ],
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
@@ -541,7 +541,7 @@ describe("ClubCalendar, weekly view", () => {
       resetNavigation(`${BASE}?view=week&date=2026-03-25`);
       const asked = serveCalendar({
         pitches: [{ ...padel, hours: ["00:00", "00:00"] }],
-        bookings: [booking({ id: FIRST, startsAt: "2026-03-29T01:00:00Z", endsAt: "2026-03-29T02:00:00Z", playerName: "Cedo" })], // 02:00 WEST
+        bookings: [booking({ id: FIRST, startsAt: "2026-03-29T01:00:00Z", endsAt: "2026-03-29T02:00:00Z", bookerName: "Cedo" })], // 02:00 WEST
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 

@@ -35,7 +35,7 @@ const created = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   endsAt: "2026-05-05T10:00:00Z",
   price: 18.5,
   status: "confirmed",
-  playerName: "Maria Cliente",
+  bookerName: "Maria Cliente",
   createdByClub: true,
   customerPhone: "912345678",
   createdAt: "2026-05-04T10:00:00Z",
@@ -371,7 +371,7 @@ describe("NewBookingForm", () => {
 
       await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
       expect(bodies).toEqual([{ pitchId: PADEL, startsAt: "2026-05-05T08:00:00Z", customerName: "Maria Cliente", customerPhone: "912345678" }]);
-      expect(onCreated.mock.calls[0][0]).toMatchObject({ id: NEW_ID, playerName: "Maria Cliente", createdByClub: true });
+      expect(onCreated.mock.calls[0][0]).toMatchObject({ id: NEW_ID, bookerName: "Maria Cliente", createdByClub: true });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["calendar", CLUB], refetchType: "all" });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["pitches", CLUB, PADEL, "slots"], refetchType: "all" });
     });

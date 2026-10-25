@@ -31,7 +31,7 @@ const booking = (patch: Partial<CalendarBooking> = {}): CalendarBooking => ({
   endsAt: "2026-05-04T10:00:00Z",
   status: "confirmed",
   price: 18.5,
-  playerName: "Rita Jogadora",
+  bookerName: "Rita Jogadora",
   createdByClub: false,
   ...patch,
 });
@@ -54,7 +54,7 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   endsAt: "2026-05-04T10:00:00Z",
   price: 18.5,
   status: "confirmed",
-  playerName: "Rita Jogadora",
+  bookerName: "Rita Jogadora",
   createdByClub: false,
   customerPhone: null,
   createdAt: "2026-05-01T09:30:00Z",
@@ -189,7 +189,7 @@ describe("ClubCalendar", () => {
       serveCalendar({
         bookings: [
           booking({ id: FIRST, startsAt: "2026-05-04T08:00:00Z", endsAt: "2026-05-04T09:00:00Z" }),
-          booking({ id: SECOND, startsAt: "2026-05-04T09:00:00Z", endsAt: "2026-05-04T10:00:00Z", status: "no_show", playerName: "Bruno Jogador" }),
+          booking({ id: SECOND, startsAt: "2026-05-04T09:00:00Z", endsAt: "2026-05-04T10:00:00Z", status: "no_show", bookerName: "Bruno Jogador" }),
         ],
       });
 
@@ -228,8 +228,8 @@ describe("ClubCalendar", () => {
     it("puts overlapping bookings side by side", async () => {
       serveCalendar({
         bookings: [
-          booking({ id: FIRST, status: "cancelled_by_club", playerName: "Ana Cancelada" }),
-          booking({ id: SECOND, playerName: "Bruno Jogador" }),
+          booking({ id: FIRST, status: "cancelled_by_club", bookerName: "Ana Cancelada" }),
+          booking({ id: SECOND, bookerName: "Bruno Jogador" }),
         ],
       });
       resetNavigation(`/manage/clubs/${CLUB}/calendar?cancelled=1`);
@@ -296,9 +296,9 @@ describe("ClubCalendar", () => {
       serveCalendar({
         pitches: [{ ...padel, hours: ["00:00", "00:00"] }],
         bookings: [
-          booking({ id: FIRST, startsAt: "2026-10-25T00:30:00Z", endsAt: "2026-10-25T01:00:00Z", playerName: "Primeira" }), // 01:30 WEST
-          booking({ id: SECOND, startsAt: "2026-10-25T01:30:00Z", endsAt: "2026-10-25T02:00:00Z", playerName: "Segunda" }), // 01:30 WET
-          booking({ id: THIRD, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", playerName: "Manhã" }), // 09:00 WET
+          booking({ id: FIRST, startsAt: "2026-10-25T00:30:00Z", endsAt: "2026-10-25T01:00:00Z", bookerName: "Primeira" }), // 01:30 WEST
+          booking({ id: SECOND, startsAt: "2026-10-25T01:30:00Z", endsAt: "2026-10-25T02:00:00Z", bookerName: "Segunda" }), // 01:30 WET
+          booking({ id: THIRD, startsAt: "2026-10-25T09:00:00Z", endsAt: "2026-10-25T10:00:00Z", bookerName: "Manhã" }), // 09:00 WET
         ],
       });
 
@@ -325,7 +325,7 @@ describe("ClubCalendar", () => {
       resetNavigation(`/manage/clubs/${CLUB}/calendar?date=2026-10-25`);
       serveCalendar({
         pitches: [{ ...padel, hours: ["00:00", "00:00"] }],
-        bookings: [booking({ id: FIRST, startsAt: "2026-10-25T23:00:00Z", endsAt: "2026-10-26T00:00:00Z", playerName: "Última" })],
+        bookings: [booking({ id: FIRST, startsAt: "2026-10-25T23:00:00Z", endsAt: "2026-10-26T00:00:00Z", bookerName: "Última" })],
       });
 
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
@@ -339,8 +339,8 @@ describe("ClubCalendar", () => {
       serveCalendar({
         pitches: [{ ...padel, hours: ["00:00", "00:00"] }],
         bookings: [
-          booking({ id: FIRST, startsAt: "2026-03-29T01:00:00Z", endsAt: "2026-03-29T02:00:00Z", playerName: "Cedo" }), // 02:00 WEST
-          booking({ id: SECOND, startsAt: "2026-03-29T09:00:00Z", endsAt: "2026-03-29T10:00:00Z", playerName: "Manhã" }), // 10:00 WEST
+          booking({ id: FIRST, startsAt: "2026-03-29T01:00:00Z", endsAt: "2026-03-29T02:00:00Z", bookerName: "Cedo" }), // 02:00 WEST
+          booking({ id: SECOND, startsAt: "2026-03-29T09:00:00Z", endsAt: "2026-03-29T10:00:00Z", bookerName: "Manhã" }), // 10:00 WEST
         ],
       });
 
@@ -469,8 +469,8 @@ describe("ClubCalendar", () => {
       const asked = serveCalendar({
         bookings: [
           booking({ id: FIRST }),
-          booking({ id: SECOND, status: "cancelled_by_player", playerName: "Ana Cancelada", startsAt: "2026-05-04T10:00:00Z", endsAt: "2026-05-04T11:00:00Z" }),
-          booking({ id: THIRD, status: "cancelled_by_club", playerName: "Rui Cancelado", startsAt: "2026-05-04T11:00:00Z", endsAt: "2026-05-04T12:00:00Z" }),
+          booking({ id: SECOND, status: "cancelled_by_player", bookerName: "Ana Cancelada", startsAt: "2026-05-04T10:00:00Z", endsAt: "2026-05-04T11:00:00Z" }),
+          booking({ id: THIRD, status: "cancelled_by_club", bookerName: "Rui Cancelado", startsAt: "2026-05-04T11:00:00Z", endsAt: "2026-05-04T12:00:00Z" }),
         ],
       });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);

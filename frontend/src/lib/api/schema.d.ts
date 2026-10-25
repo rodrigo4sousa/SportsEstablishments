@@ -1840,7 +1840,7 @@ export interface components {
             status: string;
             /** Format: double */
             price: number | string;
-            playerName: string;
+            bookerName: string;
             createdByClub: boolean;
         };
         CalendarDay: {
@@ -1882,7 +1882,7 @@ export interface components {
             /** Format: double */
             price: number | string;
             status: string;
-            playerName: string;
+            bookerName: string;
             createdByClub: boolean;
             customerPhone: null | string;
             /** Format: date-time */

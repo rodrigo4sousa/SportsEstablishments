@@ -112,6 +112,19 @@ There is no endpoint for it, and the seed never touches an existing admin. To ch
 
 This works while nothing else references the admin account. Revisit it when admin actions start being recorded (US29).
 
+## Emails
+
+Booking confirmations and cancellations (US22) are written to the `outbox_messages` table in the same transaction as
+the booking, and a background worker inside the API sends them over SMTP. In development they go to Mailpit: open
+http://localhost:8025 to read them. Running the API outside Docker uses `localhost:1025`
+(`appsettings.Development.json`); `docker compose` sets `Email__Host=mailpit`.
+
+Settings (section `Email`, checked at start-up): `Host`, `Port`, `Security` (`None`, `StartTls` or `SslOnConnect`),
+`Username` and `Password` (both or neither), `FromAddress`, `FromName`, `TimeoutSeconds`. In production set them as
+environment variables (`Email__Host`, …; Brevo: port 587, `StartTls`). The worker's own settings are in `Outbox`
+(`Enabled`, `BatchSize`, `PollIntervalSeconds`, `FirstRetryDelaySeconds`, `MaximumRetryDelaySeconds`, `MaxAttempts`).
+Delivery is at least once. Addresses, email bodies and SMTP credentials are never logged.
+
 ## Tests and checks
 
 ```bash

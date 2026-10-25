@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SportsBooking.Application.Common;
+using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
 using SportsBooking.Domain.Bookings;
 
@@ -22,6 +23,7 @@ public sealed class BookingCancellationService(
     IPitchLock pitchLock,
     ICurrentUser currentUser,
     MyBookingsService myBookings,
+    BookingEmailOutbox emails,
     TimeProvider timeProvider)
 {
     public async Task<Result<MyBookingResponse>> CancelAsync(Guid bookingId, CancellationToken cancellationToken)
@@ -57,6 +59,8 @@ public sealed class BookingCancellationService(
                     return BookingErrors.OutsideCancellationWindow(booking.CancellationDeadline(window), windowHours);
             }
 
+            // US22: the email is written with the cancellation, in the same SaveChanges.
+            await emails.EnqueuePlayerCancellationAsync(booking, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
             await scope.CommitAsync(cancellationToken);
         }

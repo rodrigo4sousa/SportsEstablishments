@@ -111,7 +111,7 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         booking.GetProperty("endsAt").GetDateTime().ToUniversalTime().ShouldBe(TestVenues.Utc(End));
         booking.GetProperty("price").GetDecimal().ShouldBe(25m);
         booking.GetProperty("status").GetString().ShouldBe("confirmed");
-        booking.GetProperty("playerName").GetString().ShouldBe("Maria Cliente");
+        booking.GetProperty("bookerName").GetString().ShouldBe("Maria Cliente");
         booking.GetProperty("createdByClub").GetBoolean().ShouldBeTrue();
         booking.GetProperty("customerPhone").GetString().ShouldBe("912345678"); // spaces removed
         booking.GetProperty("canCancel").GetBoolean().ShouldBeTrue();
@@ -146,7 +146,7 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         var details = await JsonAsync(await SendAsync(app, HttpMethod.Get, created.Headers.Location!.ToString(), setup.OwnerToken), HttpStatusCode.OK);
 
         details.GetProperty("id").GetGuid().ShouldBe((await created.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid());
-        details.GetProperty("playerName").GetString().ShouldBe("Maria Cliente"); // trimmed
+        details.GetProperty("bookerName").GetString().ShouldBe("Maria Cliente"); // trimmed
         details.GetProperty("customerPhone").GetString().ShouldBe("+351912345678");
         details.GetProperty("createdByClub").GetBoolean().ShouldBeTrue();
         details.GetProperty("status").GetString().ShouldBe("confirmed");
@@ -169,9 +169,9 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         response.StatusCode.ShouldBe(HttpStatusCode.OK, text);
         var bookings = calendar.GetProperty("bookings").EnumerateArray().ToList();
         bookings.Select(booking => booking.GetProperty("id").GetGuid()).ShouldBe([customer.GetProperty("id").GetGuid(), playerBooking.Id]);
-        bookings[0].GetProperty("playerName").GetString().ShouldBe("Maria Cliente");
+        bookings[0].GetProperty("bookerName").GetString().ShouldBe("Maria Cliente");
         bookings[0].GetProperty("createdByClub").GetBoolean().ShouldBeTrue();
-        bookings[1].GetProperty("playerName").GetString().ShouldBe("Rita Jogadora");
+        bookings[1].GetProperty("bookerName").GetString().ShouldBe("Rita Jogadora");
         bookings[1].GetProperty("createdByClub").GetBoolean().ShouldBeFalse();
         // The calendar has the name; the phone is only in the details.
         text.ShouldNotContain("912345678");
@@ -447,7 +447,7 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         var created = await JsonAsync(await OwnerBooksAsync(app, setup, CustomerBody(setup.Pitch.Id, name: new string('b', 100))), HttpStatusCode.Created);
 
         problem.GetProperty("errors").GetProperty("customerName").EnumerateArray().Single().GetString().ShouldBe("O nome pode ter no máximo 100 caracteres.");
-        created.GetProperty("playerName").GetString()!.Length.ShouldBe(100);
+        created.GetProperty("bookerName").GetString()!.Length.ShouldBe(100);
     }
 
     [Theory]
@@ -630,7 +630,7 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         cancelled.GetProperty("status").GetString().ShouldBe("cancelled_by_club");
         cancelled.GetProperty("cancellationReason").GetString().ShouldBe("O cliente desistiu");
         cancelled.GetProperty("createdByClub").GetBoolean().ShouldBeTrue();
-        cancelled.GetProperty("playerName").GetString().ShouldBe("Maria Cliente");
+        cancelled.GetProperty("bookerName").GetString().ShouldBe("Maria Cliente");
         cancelled.GetProperty("canCancel").GetBoolean().ShouldBeFalse();
         (await RowsAsync(setup.Pitch.Id)).Single().Status.ShouldBe("CancelledByClub"); // kept, never deleted
         using var rebooked = await SendAsync(app, HttpMethod.Post, "/api/bookings", player.Tokens.AccessToken, new { pitchId = setup.Pitch.Id, startsAt = Start });
@@ -673,7 +673,7 @@ public sealed class CustomerBookingTests(ApiFactory factory)
         var booking = shown.GetProperty("bookings").EnumerateArray().Single();
         booking.GetProperty("status").GetString().ShouldBe("cancelled_by_club");
         booking.GetProperty("createdByClub").GetBoolean().ShouldBeTrue();
-        booking.GetProperty("playerName").GetString().ShouldBe("Maria Cliente");
+        booking.GetProperty("bookerName").GetString().ShouldBe("Maria Cliente");
     }
 
     // ---- Nothing about them is visible to players or the admin

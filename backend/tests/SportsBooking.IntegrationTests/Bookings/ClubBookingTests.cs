@@ -119,7 +119,7 @@ public sealed class ClubBookingTests(ApiFactory factory)
         booking.GetProperty("endsAt").GetDateTime().ToUniversalTime().ShouldBe(TestVenues.Utc(End));
         booking.GetProperty("price").GetDecimal().ShouldBe(20m);
         booking.GetProperty("status").GetString().ShouldBe("confirmed");
-        booking.GetProperty("playerName").GetString().ShouldBe("Rita Jogadora");
+        booking.GetProperty("bookerName").GetString().ShouldBe("Rita Jogadora");
         booking.GetProperty("canCancel").GetBoolean().ShouldBeTrue();
         // A player's booking: not made by the club, and no phone (US13 only shows the number the owner typed for a customer).
         booking.GetProperty("createdByClub").GetBoolean().ShouldBeFalse();
@@ -128,7 +128,7 @@ public sealed class ClubBookingTests(ApiFactory factory)
         booking.GetProperty("cancellationReason").ValueKind.ShouldBe(JsonValueKind.Null);
         text.ShouldNotContain(setup.Player.Email!);
         text.ShouldNotContain(setup.Player.Id.ToString());
-        string[] expected = ["canCancel", "cancellationReason", "cancelledAt", "createdAt", "createdByClub", "customerPhone", "endsAt", "id", "pitchId", "pitchName", "playerName", "price", "sport", "startsAt", "status"];
+        string[] expected = ["canCancel", "cancellationReason", "cancelledAt", "createdAt", "createdByClub", "customerPhone", "endsAt", "id", "pitchId", "pitchName", "bookerName", "price", "sport", "startsAt", "status"];
         booking.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal).ShouldBe(expected.Order(StringComparer.Ordinal));
     }
 
