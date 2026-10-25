@@ -9,13 +9,15 @@ namespace SportsBooking.Application.Clubs;
 /// session, the slug is made from the name at creation, and the time zone is always Europe/Lisbon (T04).
 /// </summary>
 /// <param name="CancellationWindowHours">Optional when creating (24 by default); required when editing.</param>
+/// <param name="NotifyOnNewBooking">US23: the owner's email about new bookings. Optional both ways: on when creating, and left as it is when editing.</param>
 public sealed record ClubRequest(
     string Name,
     string Address,
     string Locality,
     string Phone,
     string ContactEmail,
-    int? CancellationWindowHours = null)
+    int? CancellationWindowHours = null,
+    bool? NotifyOnNewBooking = null)
 {
     /// <summary>Trims every text, removes spaces from the phone and treats missing values as empty.</summary>
     public ClubRequest Normalized() => this with

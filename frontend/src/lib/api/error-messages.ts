@@ -17,6 +17,8 @@ const MESSAGES: Record<string, string> = {
   club_unavailable: "Este clube já não está a aceitar reservas.",
   booking_not_found: "Esta reserva já não existe.",
   booking_already_started: "Esta reserva já começou, por isso já não pode ser cancelada.",
+  booking_not_ended: "Só é possível marcar falta depois de a reserva terminar.",
+  booking_not_no_show: "Esta reserva não está marcada como falta.",
   booking_not_confirmed: "Esta reserva já não está confirmada, por isso não pode ser cancelada.",
   outside_cancellation_window: "O prazo para cancelar esta reserva já terminou.",
   invalid_or_expired_reset_link: "Esta ligação já não é válida: expirou ou já foi usada. Pede uma nova.",

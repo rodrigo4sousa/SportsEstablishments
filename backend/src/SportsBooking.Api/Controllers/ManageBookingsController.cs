@@ -62,4 +62,32 @@ public sealed class ManageBookingsController(ClubBookingService bookings) : Cont
         var result = await bookings.CancelAsync(clubId, bookingId, request, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
+
+    /// <summary>
+    /// US15: marks a booking whose end has passed as a no-show (<c>no_show</c>), a player's or a customer's. 422
+    /// <c>booking_not_confirmed</c> if it is not confirmed (cancelled, or already a no-show); 422 <c>booking_not_ended</c> if it has
+    /// not ended. The answer is the booking, with the player's number of no-shows at this owner's clubs.
+    /// </summary>
+    [HttpPost("{bookingId:guid}/no-show")]
+    [ProducesResponseType<ClubBookingResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> MarkNoShow(Guid clubId, Guid bookingId, CancellationToken cancellationToken)
+    {
+        var result = await bookings.MarkNoShowAsync(clubId, bookingId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US15: takes a no-show back, so the booking is <c>confirmed</c> again. 422 <c>booking_not_no_show</c> if it is not a no-show;
+    /// 409 <c>slot_taken</c> if another confirmed booking took the slot in the meantime.
+    /// </summary>
+    [HttpPost("{bookingId:guid}/no-show/undo")]
+    [ProducesResponseType<ClubBookingResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> UndoNoShow(Guid clubId, Guid bookingId, CancellationToken cancellationToken)
+    {
+        var result = await bookings.UndoNoShowAsync(clubId, bookingId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
 }

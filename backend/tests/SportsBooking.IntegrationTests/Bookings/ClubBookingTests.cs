@@ -128,7 +128,7 @@ public sealed class ClubBookingTests(ApiFactory factory)
         booking.GetProperty("cancellationReason").ValueKind.ShouldBe(JsonValueKind.Null);
         text.ShouldNotContain(setup.Player.Email!);
         text.ShouldNotContain(setup.Player.Id.ToString());
-        string[] expected = ["canCancel", "cancellationReason", "cancelledAt", "createdAt", "createdByClub", "customerPhone", "endsAt", "id", "pitchId", "pitchName", "bookerName", "price", "sport", "startsAt", "status"];
+        string[] expected = ["canCancel", "canMarkNoShow", "canUndoNoShow", "playerNoShows", "cancellationReason", "cancelledAt", "createdAt", "createdByClub", "customerPhone", "endsAt", "id", "pitchId", "pitchName", "bookerName", "price", "sport", "startsAt", "status"];
         booking.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal).ShouldBe(expected.Order(StringComparer.Ordinal));
     }
 

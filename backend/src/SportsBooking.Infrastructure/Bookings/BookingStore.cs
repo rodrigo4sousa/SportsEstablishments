@@ -34,6 +34,33 @@ internal sealed partial class BookingStore(AppDbContext dbContext, ILogger<Booki
         }
     }
 
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ExclusionViolation,
+            ConstraintName: BookingConfiguration.NoOverlapConstraint,
+        })
+        {
+            // US15: another confirmed booking took the slot while this one was a no-show. Forget the change (and any outbox row added with it).
+            foreach (var entry in dbContext.ChangeTracker.Entries().Where(entry => entry.State != EntityState.Unchanged).ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            LogRestoreRefused(logger);
+            return false;
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "A no-show was not taken back: another confirmed booking overlaps its slot (bookings_no_overlap).")]
+    private static partial void LogRestoreRefused(ILogger logger);
+
     // Expected, not a fault: someone else booked the slot first. Only the pitch and the slot are logged, never the player.
     [LoggerMessage(Level = LogLevel.Information, Message = "Booking refused: slot {StartsAt:O}-{EndsAt:O} of pitch {PitchId} overlaps a confirmed booking (bookings_no_overlap).")]
     private static partial void LogSlotTaken(ILogger logger, Guid pitchId, DateTime startsAt, DateTime endsAt);

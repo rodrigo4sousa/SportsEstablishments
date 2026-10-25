@@ -119,6 +119,10 @@ public sealed class AccountEmailBuilder(UserManager<AppUser> userManager, IOptio
 {
     public const string RecipientNotEligible = "recipient_not_eligible";
 
+    /// <summary>True when the account exists and is not deactivated: the owner's booking email is not sent to a deactivated one (US23).</summary>
+    public async Task<bool> IsActiveAsync(Guid accountId) =>
+        await userManager.FindByIdAsync(accountId.ToString()) is { IsActive: true };
+
     public async Task<EmailMessage?> BuildAsync(string type, AccountEmailPayload payload, DateTime createdAt)
     {
         ArgumentNullException.ThrowIfNull(payload);

@@ -35,6 +35,26 @@ export async function cancelClubBooking(clubId: string, bookingId: string, reaso
   );
 }
 
+/**
+ * US15: marks a confirmed booking whose end has passed as a no-show (a player's or a customer's). Failures are the API's codes:
+ * 404 `booking_not_found`, 422 `booking_not_confirmed` and 422 `booking_not_ended`.
+ */
+export async function markNoShow(clubId: string, bookingId: string): Promise<ClubBooking> {
+  return toClubBooking(
+    await apiJson<components["schemas"]["ClubBookingResponse"]>(`/api/manage/clubs/${clubId}/bookings/${bookingId}/no-show`, { method: "POST" }),
+  );
+}
+
+/**
+ * US15: takes a no-show back, so the booking is confirmed again. Failures: 404 `booking_not_found`, 422 `booking_not_no_show`
+ * and 409 `slot_taken` (another confirmed booking has the slot now).
+ */
+export async function undoNoShow(clubId: string, bookingId: string): Promise<ClubBooking> {
+  return toClubBooking(
+    await apiJson<components["schemas"]["ClubBookingResponse"]>(`/api/manage/clubs/${clubId}/bookings/${bookingId}/no-show/undo`, { method: "POST" }),
+  );
+}
+
 /** What the owner enters to book a slot for a customer who has no account (US13). */
 export type CreateClubBookingRequest = { pitchId: string; startsAt: string; customerName: string; customerPhone: string };
 

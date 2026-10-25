@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Notifications;
+using SportsBooking.Domain.Bookings;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Persistence;
 
@@ -37,7 +38,7 @@ public sealed partial class OutboxProcessor(
         var due = await dbContext.OutboxMessages
             .FromSql($"""
                       SELECT * FROM outbox_messages
-                      WHERE sent_at IS NULL AND failed_at IS NULL AND next_attempt_at <= {now}
+                      WHERE sent_at IS NULL AND failed_at IS NULL AND skipped_at IS NULL AND next_attempt_at <= {now}
                       ORDER BY next_attempt_at, id
                       LIMIT {settings.BatchSize}
                       FOR UPDATE SKIP LOCKED
@@ -60,14 +61,23 @@ public sealed partial class OutboxProcessor(
         EmailMessage email;
         try
         {
-            if (await BuildAsync(message, cancellationToken) is not { } built)
+            var built = await BuildAsync(message, cancellationToken);
+            if (built.SkipReason is { } skipReason)
+            {
+                // The message no longer applies (a reminder for a booking that was cancelled): closed, not sent, not a failure.
+                message.Skip(skipReason, Now());
+                LogSkipped(logger, message.Id, message.Type, skipReason);
+                return;
+            }
+
+            if (built.Email is not { } ready)
             {
                 message.GiveUp(RecipientNotFound, Now());
                 LogGivenUp(logger, message.Id, message.Type, message.Attempts, RecipientNotFound);
                 return;
             }
 
-            email = built;
+            email = ready;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -98,13 +108,28 @@ public sealed partial class OutboxProcessor(
         }
     }
 
-    /// <summary>The email of a message, or null when there is nobody to send it to (the account is gone, or may no longer get it).</summary>
-    private async Task<EmailMessage?> BuildAsync(OutboxMessage message, CancellationToken cancellationToken)
+    /// <summary>What a message turned into: an email, nobody to send it to (both null), or a reason not to send it at all.</summary>
+    private sealed record Built(EmailMessage? Email, string? SkipReason = null);
+
+    /// <summary>US21: the codes a reminder is skipped with.</summary>
+    public const string SkippedNotConfirmed = "booking_not_confirmed";
+
+    public const string SkippedStarted = "booking_started";
+
+    /// <summary>US23: the owner's account was deactivated before the email was sent.</summary>
+    public const string SkippedOwnerDeactivated = "owner_deactivated";
+
+    private async Task<Built> BuildAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
         if (message.Type is OutboxMessageTypes.PasswordReset or OutboxMessageTypes.PasswordChanged)
         {
             // US05: the reset token is made now, by Identity, and goes only into the email: never into a log or the outbox.
-            return await accountEmails.BuildAsync(message.Type, AccountEmailPayload.Deserialize(message.Payload), message.CreatedAt);
+            return new Built(await accountEmails.BuildAsync(message.Type, AccountEmailPayload.Deserialize(message.Payload), message.CreatedAt));
+        }
+
+        if (message.Type is OutboxMessageTypes.OwnerNewBooking or OutboxMessageTypes.BookingReminder)
+        {
+            return await BuildBookingNotificationAsync(message, cancellationToken);
         }
 
         var payload = BookingEmailPayload.Deserialize(message.Payload);
@@ -114,14 +139,81 @@ public sealed partial class OutboxProcessor(
             .SingleOrDefaultAsync(cancellationToken);
         if (recipient?.Email is not { Length: > 0 } address)
         {
-            return null;
+            return new Built(null);
         }
 
         var content = BookingEmailComposer.Compose(message.Type, payload, recipient.Name);
-        return new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody);
+        return new Built(new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody));
+    }
+
+    /// <summary>
+    /// US23 and US21: the booking is read now, so the email says what is true at the moment it is sent. The owner's email goes to the
+    /// owner's current address and names the player; the reminder goes to the player, and only if the booking is still confirmed and
+    /// has not started (a reminder that is due after a cancellation, or after the start because the worker was down, is skipped).
+    /// </summary>
+    private async Task<Built> BuildBookingNotificationAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var bookingId = BookingRefPayload.Deserialize(message.Payload).BookingId;
+        var booking = await (
+                from candidate in dbContext.Bookings.AsNoTracking()
+                where candidate.Id == bookingId
+                join pitch in dbContext.Pitches on candidate.PitchId equals pitch.Id
+                join club in dbContext.Clubs on pitch.ClubId equals club.Id
+                select new
+                {
+                    candidate.Status,
+                    candidate.PlayerId,
+                    candidate.StartsAt,
+                    candidate.EndsAt,
+                    PitchName = pitch.Name,
+                    ClubName = club.Name,
+                    club.Address,
+                    club.Locality,
+                    club.TimeZoneId,
+                    club.OwnerId,
+                })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (booking?.PlayerId is not { } playerId)
+        {
+            return new Built(null);
+        }
+
+        var isReminder = message.Type == OutboxMessageTypes.BookingReminder;
+        if (isReminder && booking.Status != BookingStatus.Confirmed)
+        {
+            return new Built(null, SkippedNotConfirmed);
+        }
+
+        if (isReminder && booking.StartsAt <= Now())
+        {
+            return new Built(null, SkippedStarted);
+        }
+
+        var player = await dbContext.Users.AsNoTracking().Where(user => user.Id == playerId).Select(user => new { user.Name, user.Email }).SingleOrDefaultAsync(cancellationToken);
+        var recipient = isReminder
+            ? player
+            : await dbContext.Users.AsNoTracking().Where(user => user.Id == booking.OwnerId).Select(user => new { user.Name, user.Email }).SingleOrDefaultAsync(cancellationToken);
+        if (player is null || recipient?.Email is not { Length: > 0 } address)
+        {
+            return new Built(null);
+        }
+
+        // US29, US23: a deactivated owner is not mailed about bookings (their clubs take none): closed like a reminder for a cancelled booking.
+        if (!isReminder && !await accountEmails.IsActiveAsync(booking.OwnerId))
+        {
+            return new Built(null, SkippedOwnerDeactivated);
+        }
+
+        var details = new BookingNotificationDetails(
+            booking.ClubName, booking.Address, booking.Locality, booking.TimeZoneId, booking.PitchName, booking.StartsAt, booking.EndsAt, player.Name);
+        var content = isReminder ? BookingNotificationComposer.Reminder(details, recipient.Name) : BookingNotificationComposer.OwnerNewBooking(details, recipient.Name);
+        return new Built(new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody));
     }
 
     private DateTime Now() => timeProvider.GetUtcNow().UtcDateTime;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Outbox message {MessageId} ({Type}) skipped: {Reason}; it was not sent.")]
+    private static partial void LogSkipped(ILogger logger, Guid messageId, string type, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Outbox message {MessageId} ({Type}) sent.")]
     private static partial void LogSent(ILogger logger, Guid messageId, string type);

@@ -61,6 +61,9 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   cancelledAt: null,
   cancellationReason: null,
   canCancel: true,
+  canMarkNoShow: false,
+  canUndoNoShow: false,
+  playerNoShows: null,
   ...patch,
 });
 
@@ -799,6 +802,160 @@ describe("ClubCalendar", () => {
       expect(await screen.findByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).toBeInTheDocument();
       expect(screen.getByRole("form", { name: "Cancelar reserva" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Confirmar cancelamento" })).toBeEnabled();
+    });
+  });
+
+  describe("no-shows (US15)", () => {
+    const ENDED = { canCancel: false, canMarkNoShow: true, canUndoNoShow: false } as const;
+    const NO_SHOW = { status: "no_show", canCancel: false, canMarkNoShow: false, canUndoNoShow: true } as const;
+
+    /** Opens the booking with the details the API gives; the calendar is the same as in the other tests. */
+    async function openDetails(first: Partial<ClubBooking>, then?: { action: "no-show" | "no-show/undo"; details: Partial<ClubBooking> }) {
+      resetNavigation(`/manage/clubs/${CLUB}/calendar?booking=${FIRST}`);
+      const asked = serveCalendar({ bookings: [booking()] });
+      let gets = 0;
+      let current = details(first);
+      server.use(
+        http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => {
+          gets += 1;
+          return HttpResponse.json(current);
+        }),
+      );
+      if (then) {
+        // The API changes the booking, so loading it again afterwards gives the new state.
+        server.use(
+          http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/${then.action}`, () => {
+            current = details(then.details);
+            return HttpResponse.json(current);
+          }),
+        );
+      }
+
+      const view = renderWithProviders(<ClubCalendar clubId={CLUB} />);
+      const panel = await screen.findByRole("region", { name: "Detalhes da reserva" });
+      await within(panel).findByText("Rita Jogadora");
+      return { asked, panel, gets: () => gets, ...view };
+    }
+
+    it("offers «Marcar falta», and only that, for a confirmed booking that has ended", async () => {
+      const { panel } = await openDetails(ENDED);
+
+      expect(within(panel).getByRole("button", { name: "Marcar falta" })).toBeEnabled();
+      expect(within(panel).queryByRole("button", { name: "Anular falta" })).not.toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "Cancelar reserva" })).not.toBeInTheDocument();
+      // Not the «has started» note: it has ended.
+      expect(within(panel).queryByText(/já começou/)).not.toBeInTheDocument();
+    });
+
+    it("offers «Anular falta», and only that, for a no-show", async () => {
+      const { panel } = await openDetails(NO_SHOW);
+
+      expect(within(panel).getByRole("button", { name: "Anular falta" })).toBeEnabled();
+      expect(within(panel).queryByRole("button", { name: "Marcar falta" })).not.toBeInTheDocument();
+      expect(within(panel).getByText("Falta")).toBeInTheDocument();
+    });
+
+    it.each([
+      ["a confirmed booking that has not started", { canCancel: true, canMarkNoShow: false, canUndoNoShow: false }],
+      ["a booking in progress", { canCancel: false, canMarkNoShow: false, canUndoNoShow: false }],
+      ["a booking cancelled by the club", { status: "cancelled_by_club", canCancel: false, canMarkNoShow: false, canUndoNoShow: false }],
+      ["a booking cancelled by the player", { status: "cancelled_by_player", canCancel: false, canMarkNoShow: false, canUndoNoShow: false }],
+    ] as const)("offers neither button for %s", async (_, patch) => {
+      const { panel } = await openDetails(patch);
+
+      expect(within(panel).queryByRole("button", { name: "Marcar falta" })).not.toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "Anular falta" })).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [0, "Sem faltas nos teus clubes"],
+      [1, "1 falta nos teus clubes"],
+      [3, "3 faltas nos teus clubes"],
+    ])("shows the player's number of no-shows at the owner's clubs (%i)", async (count, text) => {
+      const { panel } = await openDetails({ ...ENDED, playerNoShows: count });
+
+      expect(within(panel).getByText("Faltas")).toBeInTheDocument();
+      expect(within(panel).getByText(text)).toBeInTheDocument();
+    });
+
+    it("shows no count for a customer's booking, which is not counted per person", async () => {
+      const { panel } = await openDetails({ ...ENDED, createdByClub: true, customerPhone: "912345678", playerNoShows: null });
+
+      expect(within(panel).queryByText("Faltas")).not.toBeInTheDocument();
+      expect(within(panel).getByRole("button", { name: "Marcar falta" })).toBeInTheDocument();
+    });
+
+    it("marks the no-show, says so, shows the new state and count, and loads the calendar again", async () => {
+      const { asked, panel, queryClient } = await openDetails({ ...ENDED, playerNoShows: 1 }, { action: "no-show", details: { ...NO_SHOW, playerNoShows: 2 } });
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+      const askedBefore = asked.length;
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Marcar falta" }));
+
+      expect(await within(panel).findByText("Falta marcada.")).toHaveAttribute("role", "status");
+      expect(within(panel).getByRole("button", { name: "Anular falta" })).toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "Marcar falta" })).not.toBeInTheDocument();
+      expect(within(panel).getByText("2 faltas nos teus clubes")).toBeInTheDocument();
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["calendar", CLUB], refetchType: "all" });
+      await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
+    });
+
+    it("takes the no-show back, says so, and shows the booking confirmed again with the count one lower", async () => {
+      const { asked, panel } = await openDetails({ ...NO_SHOW, playerNoShows: 2 }, { action: "no-show/undo", details: { ...ENDED, playerNoShows: 1 } });
+      const askedBefore = asked.length;
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Anular falta" }));
+
+      expect(await within(panel).findByText("Falta anulada. A reserva voltou a estar confirmada.")).toBeInTheDocument();
+      expect(within(panel).getByRole("button", { name: "Marcar falta" })).toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "Anular falta" })).not.toBeInTheDocument();
+      expect(within(panel).getByText("1 falta nos teus clubes")).toBeInTheDocument();
+      await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
+    });
+
+    it.each([
+      ["booking_not_ended", 422, "Só é possível marcar falta depois de a reserva terminar."],
+      ["booking_not_confirmed", 422, "Esta reserva já não está confirmada, por isso não pode ser cancelada."],
+      ["booking_not_found", 404, "Esta reserva já não existe."],
+    ])("shows the message for %s when marking, and loads the calendar again", async (code, status, message) => {
+      server.use(http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/no-show`, () => problem(status, code)));
+      const { asked, panel } = await openDetails(ENDED);
+      const askedBefore = asked.length;
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Marcar falta" }));
+
+      expect((await screen.findAllByText(message)).length).toBeGreaterThan(0);
+      await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
+    });
+
+    it("tells that the slot is taken when taking a no-show back is refused with 409, and keeps the no-show", async () => {
+      server.use(http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/no-show/undo`, () => problem(409, "slot_taken")));
+      const { panel } = await openDetails(NO_SHOW);
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Anular falta" }));
+
+      expect(await within(panel).findByRole("alert")).toHaveTextContent("Não foi possível anular a falta: outra reserva confirmada já ocupa este horário.");
+      expect(within(panel).getByRole("button", { name: "Anular falta" })).toBeEnabled();
+      expect(within(panel).getByText("Falta")).toBeInTheDocument();
+    });
+
+    it("says the booking is not a no-show (422) when taking it back", async () => {
+      server.use(http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/no-show/undo`, () => problem(422, "booking_not_no_show")));
+      const { panel } = await openDetails(NO_SHOW);
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Anular falta" }));
+
+      expect(await within(panel).findByText("Esta reserva não está marcada como falta.")).toBeInTheDocument();
+    });
+
+    it("shows a toast for any other failure and keeps the button", async () => {
+      server.use(http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/no-show`, () => problem(500, "internal_error")));
+      const { panel } = await openDetails(ENDED);
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Marcar falta" }));
+
+      expect((await screen.findAllByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).length).toBeGreaterThan(0);
+      expect(within(panel).getByRole("button", { name: "Marcar falta" })).toBeEnabled();
     });
   });
 });

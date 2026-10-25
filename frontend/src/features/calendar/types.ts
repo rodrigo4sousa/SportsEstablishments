@@ -21,7 +21,11 @@ export type CalendarRange = {
 };
 
 /** A booking as the owner sees it when opening it: the player's name is the only personal data. */
-export type ClubBooking = Omit<Schemas["ClubBookingResponse"], "price"> & { price: number };
+export type ClubBooking = Omit<Schemas["ClubBookingResponse"], "price" | "playerNoShows"> & {
+  price: number;
+  /** US15: the player's no-shows at all of this owner's clubs; null for a booking the club made for a customer. */
+  playerNoShows: number | null;
+};
 
 export function toCalendarRange(response: Schemas["CalendarResponse"]): CalendarRange {
   return {
@@ -32,5 +36,5 @@ export function toCalendarRange(response: Schemas["CalendarResponse"]): Calendar
 }
 
 export function toClubBooking(booking: Schemas["ClubBookingResponse"]): ClubBooking {
-  return { ...booking, price: Number(booking.price) };
+  return { ...booking, price: Number(booking.price), playerNoShows: booking.playerNoShows == null ? null : Number(booking.playerNoShows) };
 }

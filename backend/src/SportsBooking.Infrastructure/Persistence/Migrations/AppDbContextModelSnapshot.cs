@@ -266,6 +266,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
 
+                    b.Property<DateTime?>("SkippedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("skipped_at");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -277,13 +281,13 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NextAttemptAt")
                         .HasDatabaseName("ix_outbox_messages_pending_next_attempt_at")
-                        .HasFilter("sent_at IS NULL AND failed_at IS NULL");
+                        .HasFilter("sent_at IS NULL AND failed_at IS NULL AND skipped_at IS NULL");
 
                     b.ToTable("outbox_messages", null, t =>
                         {
                             t.HasCheckConstraint("ck_outbox_messages_attempts", "attempts >= 0");
 
-                            t.HasCheckConstraint("ck_outbox_messages_sent_or_failed", "sent_at IS NULL OR failed_at IS NULL");
+                            t.HasCheckConstraint("ck_outbox_messages_one_outcome", "num_nonnulls(sent_at, failed_at, skipped_at) <= 1");
                         });
                 });
 
@@ -410,6 +414,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
+
+                    b.Property<bool>("NotifyOnNewBooking")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_on_new_booking");
 
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid")

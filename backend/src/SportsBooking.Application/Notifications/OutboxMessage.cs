@@ -9,6 +9,12 @@ public static class OutboxMessageTypes
 
     public const string BookingCancelledByClub = "booking_cancelled_by_club";
 
+    /// <summary>US23: tells the club's owner that a player booked. Holds only the booking id; everything else is read when sending.</summary>
+    public const string OwnerNewBooking = "owner_new_booking";
+
+    /// <summary>US21: reminds the player, 3 hours before the start. Holds only the booking id; it is due at the start minus 3 hours.</summary>
+    public const string BookingReminder = "booking_reminder";
+
     /// <summary>US05: the link to set a new password; the token is made when it is sent.</summary>
     public const string PasswordReset = "password_reset";
 
@@ -49,15 +55,22 @@ public sealed class OutboxMessage
 
     public DateTime? SentAt { get; private set; }
 
+    /// <summary>
+    /// Set when the message no longer applies and was deliberately not sent (US21: the booking was cancelled before its reminder was
+    /// due). It is never tried again, and it is not a failure.
+    /// </summary>
+    public DateTime? SkippedAt { get; private set; }
+
     /// <summary>Set when the worker gave up (too many failures, or nobody to send it to); it is never tried again.</summary>
     public DateTime? FailedAt { get; private set; }
 
     /// <summary>Why the last attempt failed, without personal data: an exception type name or a fixed code.</summary>
     public string? LastError { get; private set; }
 
-    public bool IsPending => SentAt is null && FailedAt is null;
+    public bool IsPending => SentAt is null && FailedAt is null && SkippedAt is null;
 
-    public static OutboxMessage Create(string type, string payload, DateTime now)
+    /// <summary>A message that is due at once, or, with <paramref name="dueAt"/>, at that moment (the reminder of US21).</summary>
+    public static OutboxMessage Create(string type, string payload, DateTime now, DateTime? dueAt = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(type);
         ArgumentException.ThrowIfNullOrWhiteSpace(payload);
@@ -68,8 +81,15 @@ public sealed class OutboxMessage
             Type = type,
             Payload = payload,
             CreatedAt = at,
-            NextAttemptAt = at,
+            NextAttemptAt = dueAt is { } due ? EnsureUtc(due) : at,
         };
+    }
+
+    /// <summary>The message is no longer wanted: it is closed without being sent. <paramref name="reason"/> is a fixed code.</summary>
+    public void Skip(string reason, DateTime now)
+    {
+        LastError = Truncate(reason);
+        SkippedAt = EnsureUtc(now);
     }
 
     public void MarkSent(DateTime now)

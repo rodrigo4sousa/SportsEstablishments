@@ -99,6 +99,12 @@ public static class ErrorCodes
     /// <summary>422 from cancelling (US19): only a confirmed booking can be cancelled (it is cancelled already, or a no-show).</summary>
     public const string BookingNotConfirmed = "booking_not_confirmed";
 
+    /// <summary>422 from marking a no-show (US15): the booking has not ended yet.</summary>
+    public const string BookingNotEnded = "booking_not_ended";
+
+    /// <summary>422 from taking a no-show back (US15): the booking is not a no-show.</summary>
+    public const string BookingNotNoShow = "booking_not_no_show";
+
     /// <summary>422 from cancelling a booking as the club's owner (US12): the booking has started, so it stays as history.</summary>
     public const string BookingAlreadyStarted = "booking_already_started";
 }

@@ -35,6 +35,19 @@ public enum ClubCancellationOutcome
     AlreadyStarted,
 }
 
+/// <summary>What happened when the club's owner marked a booking as a no-show (US15).</summary>
+public enum NoShowOutcome
+{
+    /// <summary>The booking is now <see cref="BookingStatus.NoShow"/>.</summary>
+    Marked,
+
+    /// <summary>Only a confirmed booking can be marked: it was cancelled, or it already is a no-show.</summary>
+    NotConfirmed,
+
+    /// <summary>The booking has not ended yet (it ends at <see cref="Booking.EndsAt"/>, which counts as ended).</summary>
+    NotEnded,
+}
+
 /// <summary>Limits of what is stored with a booking.</summary>
 public static class BookingRules
 {
@@ -213,14 +226,40 @@ public sealed class Booking
     /// The player did not come (US15 builds the owner's action on this): only a confirmed booking whose end has passed.
     /// Returns false, and changes nothing, for any other booking.
     /// </summary>
-    public bool MarkNoShow(DateTime now)
+    public bool MarkNoShow(DateTime now) => RecordNoShow(now) == NoShowOutcome.Marked;
+
+    /// <summary>
+    /// The same rule with the reason it was refused (US15): not confirmed comes before not ended. Nothing changes unless the
+    /// outcome is <see cref="NoShowOutcome.Marked"/>. A no-show can be a player's or a customer's booking (US13).
+    /// </summary>
+    public NoShowOutcome RecordNoShow(DateTime now)
     {
-        if (!IsConfirmed || EnsureUtc(now) < EndsAt)
+        if (!IsConfirmed)
+        {
+            return NoShowOutcome.NotConfirmed;
+        }
+
+        if (EnsureUtc(now) < EndsAt)
+        {
+            return NoShowOutcome.NotEnded;
+        }
+
+        Status = BookingStatus.NoShow;
+        return NoShowOutcome.Marked;
+    }
+
+    /// <summary>
+    /// The owner takes a no-show back (US15): the booking is confirmed again. Returns false, and changes nothing, for any other
+    /// status. The database may still refuse the change if another confirmed booking took the slot meanwhile (23P01).
+    /// </summary>
+    public bool UndoNoShow()
+    {
+        if (Status != BookingStatus.NoShow)
         {
             return false;
         }
 
-        Status = BookingStatus.NoShow;
+        Status = BookingStatus.Confirmed;
         return true;
     }
 

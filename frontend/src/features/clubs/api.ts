@@ -4,8 +4,10 @@ import type { components } from "@/lib/api/schema";
 export type OwnerClub = Omit<components["schemas"]["OwnerClubResponse"], "cancellationWindowHours"> & {
   cancellationWindowHours: number;
 };
-export type ClubRequest = Omit<components["schemas"]["ClubRequest"], "cancellationWindowHours"> & {
+export type ClubRequest = Omit<components["schemas"]["ClubRequest"], "cancellationWindowHours" | "notifyOnNewBooking"> & {
   cancellationWindowHours: number;
+  /** US23: always sent by the form, so saving never changes it by accident (the API leaves a missing value as it is). */
+  notifyOnNewBooking: boolean;
 };
 
 export type ClubPage = {

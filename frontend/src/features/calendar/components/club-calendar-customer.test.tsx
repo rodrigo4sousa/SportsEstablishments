@@ -56,6 +56,9 @@ const details = (patch: Partial<ClubBooking> = {}): ClubBooking => ({
   cancelledAt: null,
   cancellationReason: null,
   canCancel: true,
+  canMarkNoShow: false,
+  canUndoNoShow: false,
+  playerNoShows: null,
   ...patch,
 });
 

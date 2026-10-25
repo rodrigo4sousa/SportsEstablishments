@@ -405,8 +405,9 @@ public sealed class EmailWorkerTests(ApiFactory factory)
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         sender.Calls.ShouldBe(0, "the request never waits for the email");
-        await WaitUntilAsync(async () => (await AllMessagesAsync(app)).SingleOrDefault()?.Attempts >= 1, TimeSpan.FromSeconds(20));
-        var message = (await AllMessagesAsync(app)).Single();
+        // A booking queues the player's confirmation, the owner's email (US23) and the reminder (US21, not due yet): the two due ones fail.
+        await WaitUntilAsync(async () => (await AllMessagesAsync(app)).SingleOrDefault(candidate => candidate.Type == OutboxMessageTypes.BookingConfirmed)?.Attempts >= 1, TimeSpan.FromSeconds(20));
+        var message = (await AllMessagesAsync(app)).Single(candidate => candidate.Type == OutboxMessageTypes.BookingConfirmed);
         message.LastError.ShouldBe(nameof(SmtpTestException));
         message.SentAt.ShouldBeNull();
         message.FailedAt.ShouldBeNull();
