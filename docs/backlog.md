@@ -556,13 +556,15 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
 - O admin pode reativar a conta.
 - Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.
 - Estado: feita no back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`); o ecrã do admin vem numa história seguinte.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - `GET /api/admin/owners/{id}` devolve a linha da lista (US26) e `futureBookings`: as reservas confirmadas dos clubes do dono que ainda não terminaram (a que está a decorrer conta; as de clientes também), o número que o admin lê antes de desativar. Um id desconhecido ou de um jogador ou do admin é sempre 404 `owner_not_found`, antes de se ler o corpo.
   - `deactivate` e `reactivate` levam `{ reason }`: obrigatório, sem espaços nas pontas, no máximo **500** caracteres (400 no campo `reason`). Respondem 200 com o dono como o `GET` o dá. Já desativado: 422 `owner_already_deactivated`; não desativado: 422 `owner_not_deactivated`.
   - Desativar põe `deactivated_at`, revoga todos os refresh tokens do dono e escreve a linha de registo, tudo na mesma transação; a decisão é um `UPDATE … WHERE deactivated_at IS NULL`, por isso dois admins ao mesmo tempo dão uma mudança e um 422. Não cancela nenhuma reserva. Reativar limpa `deactivated_at` e não restaura sessões: o dono volta a entrar.
   - Registo em `owner_status_changes` (dono, ação `Deactivated`/`Reactivated`, motivo, admin da sessão, quando). Não há código de alteração nem de remoção, e um trigger da base de dados recusa `UPDATE`, `DELETE` e `TRUNCATE` (SQLSTATE 23001); as chaves para as contas são `RESTRICT`, por isso uma conta com registo não pode ser apagada.
   - `GET …/history` lista as mudanças, as mais recentes primeiro, com ação (`deactivated`/`reactivated`), motivo, `adminId`, `adminName` e `at`.
   - Os efeitos já existiam e têm teste: não entra (401 genérico) nem renova a sessão; os clubes saem da pesquisa e da página (404 `club_not_found`) e recusam reservas (422 `club_unavailable`); as reservas futuras ficam confirmadas; reativar repõe tudo.
+  - Um jogador continua a poder cancelar uma reserva num clube de um dono desativado, com a janela de cancelamento normal do clube (tem teste).
+  - O dono desativado não vê as reservas nem os clubes até ser reativado; o jogador vê as suas reservas como sempre.
 ## Histórias técnicas
  
 Não são visíveis para o utilizador, mas sem elas as estimativas das outras histórias ficam erradas. Todas são MVP.

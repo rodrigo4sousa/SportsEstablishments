@@ -92,7 +92,7 @@ dotnet user-secrets --project backend/src/SportsBooking.Api set "AdminSeed:Passw
 
 - **Both settings missing:** the API starts without an admin and logs a warning.
 - **Only one set, a malformed email or a password under 8 characters:** the API refuses to start. The error names the setting, never its value. Whitespace around the email is trimmed first.
-- The seed never changes an existing admin (changing the password setting later has no effect), never creates a second admin and never promotes an existing player or owner account (it logs a warning instead).
+- The `AdminSeed` values only matter while the database has **no admin**: they create the first one and are ignored from then on. The seed never changes an existing admin (changing the password setting later has no effect; use `set-admin-password`, below), never creates a second admin and never promotes an existing player or owner account (it logs a warning instead).
 
 The seed runs in **every environment**, right after migrations, so the database schema must be up to date before the API starts. Development (and `docker compose`) applies migrations on startup; production applies them at deploy time with a migration bundle, before starting the API.
 
