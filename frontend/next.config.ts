@@ -16,6 +16,19 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async headers() {
+    return [
+      {
+        // US05: the reset link carries a secret token in its address. Without a Referer, nothing the page loads or links to can
+        // learn it, and the page is never cached.
+        source: "/reset-password",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

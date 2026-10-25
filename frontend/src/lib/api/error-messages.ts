@@ -19,6 +19,7 @@ const MESSAGES: Record<string, string> = {
   booking_already_started: "Esta reserva já começou, por isso já não pode ser cancelada.",
   booking_not_confirmed: "Esta reserva já não está confirmada, por isso não pode ser cancelada.",
   outside_cancellation_window: "O prazo para cancelar esta reserva já terminou.",
+  invalid_or_expired_reset_link: "Esta ligação já não é válida: expirou ou já foi usada. Pede uma nova.",
   owner_not_found: "Este dono já não existe.",
   owner_already_deactivated: "Este dono já está desativado.",
   owner_not_deactivated: "Este dono não está desativado.",

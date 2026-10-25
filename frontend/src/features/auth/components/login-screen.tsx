@@ -49,6 +49,11 @@ export function LoginScreen() {
     <>
       <LoginForm next={next} />
       <p className="text-sm text-muted-foreground">
+        <Link href="/forgot-password" className="underline underline-offset-4">
+          Esqueci-me da palavra-passe
+        </Link>
+      </p>
+      <p className="text-sm text-muted-foreground">
         Ainda não tens conta?{" "}
         <Link href={registerUrl(next)} className="underline underline-offset-4">
           Criar conta

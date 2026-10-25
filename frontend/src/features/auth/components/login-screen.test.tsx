@@ -62,6 +62,7 @@ describe("LoginScreen (silent refresh)", () => {
     expect(await screen.findByRole("button", { name: "Entrar" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/register");
+    expect(screen.getByRole("link", { name: "Esqueci-me da palavra-passe" })).toHaveAttribute("href", "/forgot-password");
     expect(replace).not.toHaveBeenCalled();
   });
 
