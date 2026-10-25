@@ -22,6 +22,7 @@ const saved: OwnerClub = {
   contactEmail: "geral@tenisfoz.pt",
   cancellationWindowHours: 24,
   timeZone: "Europe/Lisbon",
+  notifyOnNewBooking: true,
 };
 
 function problem(status: number, code: string, errors?: Record<string, string[]>) {
