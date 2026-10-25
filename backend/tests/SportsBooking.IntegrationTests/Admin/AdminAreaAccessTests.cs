@@ -22,7 +22,8 @@ public sealed class AdminAreaAccessTests(ApiFactory factory)
             .OfType<RouteEndpoint>()
             .Where(endpoint => endpoint.RoutePattern.RawText?.TrimStart('/').StartsWith(Prefix, StringComparison.Ordinal) == true)
             .SelectMany(endpoint => (endpoint.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? ["GET"])
-                .Select(method => (method, "/" + endpoint.RoutePattern.RawText!.TrimStart('/'))))
+                .Select(method => (method, "/" + System.Text.RegularExpressions.Regex.Replace(
+                    endpoint.RoutePattern.RawText!.TrimStart('/'), @"\{(\w+)(:[^}]*)?\}", _ => Guid.CreateVersion7().ToString()))))
             .ToList();
 
     private async Task<HttpStatusCode> SendAsync(string method, string path, string? accessToken)
@@ -39,9 +40,23 @@ public sealed class AdminAreaAccessTests(ApiFactory factory)
     }
 
     [Fact]
-    public void The_admin_area_has_the_three_endpoints()
+    public void The_admin_area_has_the_known_endpoints()
     {
-        Endpoints().Select(endpoint => endpoint.Path).Order().ShouldBe(["/api/admin/bookings-over-time", "/api/admin/owners", "/api/admin/stats"]);
+        // The ids in the paths are new Guids: compare the shape.
+        var shapes = Endpoints()
+            .Select(endpoint => $"{endpoint.Method} {System.Text.RegularExpressions.Regex.Replace(endpoint.Path, "[0-9a-f]{8}-[0-9a-f-]{27}", "{id}")}")
+            .Order()
+            .ToList();
+        shapes.ShouldBe(
+        [
+            "GET /api/admin/bookings-over-time",
+            "GET /api/admin/owners",
+            "GET /api/admin/owners/{id}",
+            "GET /api/admin/owners/{id}/history",
+            "GET /api/admin/stats",
+            "POST /api/admin/owners/{id}/deactivate",
+            "POST /api/admin/owners/{id}/reactivate",
+        ]);
     }
 
     [Fact]
@@ -71,9 +86,16 @@ public sealed class AdminAreaAccessTests(ApiFactory factory)
     {
         var (_, tokens) = await factory.CreateSignedInAsync(Profiles.Admin);
 
+        // An id that is not an owner's is a 404 and a POST without a body a 400: what matters is that the policy lets the admin through.
         foreach (var (method, path) in Endpoints())
         {
-            (await SendAsync(method, path, tokens.AccessToken)).ShouldBe(HttpStatusCode.OK, $"{method} {path}");
+            var status = await SendAsync(method, path, tokens.AccessToken);
+            status.ShouldNotBe(HttpStatusCode.Unauthorized, $"{method} {path}");
+            status.ShouldNotBe(HttpStatusCode.Forbidden, $"{method} {path}");
+            if (method == "GET" && !path.Contains("/owners/", StringComparison.Ordinal))
+            {
+                status.ShouldBe(HttpStatusCode.OK, $"{method} {path}");
+            }
         }
     }
 
