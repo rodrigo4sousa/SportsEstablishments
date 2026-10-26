@@ -320,7 +320,7 @@ Como dono, quero ver a ocupação e a receita dos meus clubes por período, para
 - Receita = soma dos preços das reservas não canceladas.
 - Os números batem certo com o calendário para o mesmo período (verificado por teste).
 - Estado: feita no back end (`GET /api/manage/clubs/{clubId}/statistics?from=&to=&pitchId=` e `GET /api/manage/statistics?from=&to=`, «por clube»); o ecrã vem a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - **Um só cálculo** para o dono e para o admin (US27), `OccupationService`. Horas reservadas = tempo real das reservas **confirmadas e faltas** que se sobrepõem ao período, cortadas nos limites do período; as canceladas (pelo jogador ou pelo clube) ficam de fora. Receita = soma dos preços guardados dessas mesmas reservas, **por inteiro** (uma reserva cortada no limite do período conta o preço todo).
   - Horas abertas = o tempo reservável: para cada dia de Lisboa, os slots que o horário **em vigor agora** gera (`SlotGenerator`) vezes a duração do slot, em tempo real (não há histórico de horários). Um campo aberto 00:00–00:00 tem 25 slots de 60 minutos a 25/10/2026 e 23 a 29/03/2026; um dia fechado conta 0; os minutos depois do último slot que cabe não se podem reservar e não contam (um campo de 90 minutos aberto 4 h tem 3 h abertas).
   - Um campo **inativo** não tem horas abertas: entra só com as reservas que já tem no período, e não aparece se não tiver nenhuma.
@@ -578,9 +578,9 @@ Como admin, quero ver os clubes com mais ocupação num período, para saber qua
 - Top 10 por taxa de ocupação no período escolhido, com a mesma fórmula da US14.
 - Mostra nome do clube, dono, localidade e taxa.
 - Estado: feita no back end (`GET /api/admin/clubs/top-occupation?from=&to=`); o ecrã vem a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - Exatamente a fórmula e o período da US14 (`OccupationService`): um clube tem a mesma taxa aqui e nas estatísticas do dono (tem teste). Clubes sem horas abertas no período ficam de fora.
-  - Ordem: taxa, depois horas reservadas, depois o id do clube. Entram todos os clubes, também os de um dono desativado.
+  - Ordem: a taxa **exata** (reservadas ÷ abertas, antes de arredondar), depois as horas reservadas, depois o id do clube. Os clubes de um dono **desativado** ficam de fora (não estão disponíveis, US29), tal como os campos inativos de um clube não dão horas abertas.
   - Cada linha tem o id, o slug, o nome do clube, o nome do dono, a localidade, a taxa e as horas reservadas e abertas; nada sobre jogadores.
 ### US28 · Novos registos ao longo do tempo · D · 2 pontos
  
@@ -589,7 +589,7 @@ Como admin, quero ver os novos donos e jogadores ao longo do tempo, para acompan
 - Gráfico de registos por semana ou mês, separado por perfil.
 - Usa o mesmo filtro de intervalo da US25.
 - Estado: feita no back end (`GET /api/admin/registrations?granularity=week|month&from=&to=`); o gráfico vem a seguir, no front end.
-- Decisões de implementação (provisórias, a confirmar):
+- Decisões de implementação (decididas):
   - Conta pela data de Lisboa de `users.registered_at` (`date_trunc` depois de `AT TIME ZONE`, semanas de segunda a domingo), donos e jogadores em separado, nunca o admin; contas desativadas contam (registaram-se).
   - As regras do intervalo são as da US25, partilhadas no código (`ReportingPeriods.Range`): por omissão os últimos 30 dias, alargados a períodos inteiros, com o `from`/`to` efetivos na resposta, no máximo 104 semanas ou 60 meses, datas entre 2000 e 2100. Só `week` (por omissão) e `month`; `day` é um 400.
   - Todos os períodos aparecem, com 0 onde não houve registos. Índice novo `ix_users_registered_at`.
