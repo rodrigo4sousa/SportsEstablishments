@@ -96,6 +96,23 @@ public sealed class AdminStatisticsTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task The_clubs_of_a_deactivated_owner_are_not_in_the_top_and_come_back_with_the_owner()
+    {
+        await using var admin = await AdminTestApp.CreateAsync(factory);
+        var (_, activePitch) = await ClubAsync(admin, "Ativo");
+        await BookHoursAsync(admin, activePitch.Id, 1);
+        var gone = await admin.AddOwnerAsync("Dono desativado");
+        var goneClub = await admin.App.CreateClubAsync(gone, "Do dono desativado");
+        var gonePitch = await admin.App.CreatePitchAsync(goneClub.Id, "Campo 1");
+        await BookHoursAsync(admin, gonePitch.Id, 4); // the fullest club of all
+        Names(await admin.GetJsonAsync($"/api/admin/clubs/top-occupation?{Week}")).ShouldBe(["Do dono desativado", "Ativo"]);
+
+        await admin.App.DeactivateAccountAsync(gone);
+
+        Names(await admin.GetJsonAsync($"/api/admin/clubs/top-occupation?{Week}")).ShouldBe(["Ativo"]);
+    }
+
+    [Fact]
     public async Task A_club_has_the_same_occupation_in_the_top_as_with_the_owners_formula()
     {
         await using var admin = await AdminTestApp.CreateAsync(factory);

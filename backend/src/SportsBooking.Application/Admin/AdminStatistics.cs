@@ -22,8 +22,8 @@ public sealed record TopOccupationResponse(string From, string To, IReadOnlyList
 /// <summary>
 /// US27: the 10 clubs with the highest occupation in the period, with the same formula as the owner's statistics (US14,
 /// <see cref="OccupationService"/>), so a club has the same number in both. Ordered by occupation, then booked hours, then the club's
-/// id. A club with no open hours in the period (no active pitch, or every day closed) is left out. Every club counts, also one of a
-/// deactivated owner (provisional). Only schedules are read into memory; bookings are added up by the database.
+/// id. A club with no open hours in the period (no active pitch, or every day closed) is left out. A club of a
+/// deactivated owner is left out (it is not on offer, US29). Only schedules are read into memory; bookings are added up by the database.
 /// </summary>
 public sealed class AdminTopOccupationService(IAppDbContext dbContext, OccupationService occupation, TimeProvider timeProvider)
 {
@@ -39,7 +39,9 @@ public sealed class AdminTopOccupationService(IAppDbContext dbContext, Occupatio
             return period.Error!;
         }
 
-        var byClub = (await occupation.ForPitchesAsync(dbContext.Pitches, period.Value, cancellationToken))
+        var activeOwners = dbContext.ActiveAccountIds;
+        var offered = dbContext.Pitches.Where(pitch => dbContext.Clubs.Any(club => club.Id == pitch.ClubId && activeOwners.Contains(club.OwnerId)));
+        var byClub = (await occupation.ForPitchesAsync(offered, period.Value, cancellationToken))
             .GroupBy(row => row.ClubId)
             .Select(group => (ClubId: group.Key, Figures: OccupationFigures.Sum(group.Select(row => row.Figures))))
             .Where(line => line.Figures.OpenMinutes > 0)
