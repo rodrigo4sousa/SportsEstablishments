@@ -55,6 +55,44 @@ public static class ReportingPeriods
 
     /// <summary>The last day of the period that starts at <paramref name="start"/>.</summary>
     public static DateOnly End(DateOnly start, Granularity granularity) => Next(start, granularity).AddDays(-1);
+
+    public static string Format(DateOnly date) => date.ToString(BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The range rules of US25, shared with US28: an already validated request's dates (default: the last
+    /// <see cref="BookingsOverTimeRequest.DefaultDays"/> days up to <paramref name="today"/>), widened to whole periods, with at most
+    /// <see cref="MaximumPeriods"/> of them. Gives the first day of each period and the last day of the last one, or a 400.
+    /// </summary>
+    public static Result<(IReadOnlyList<DateOnly> Starts, DateOnly EffectiveTo)> Range(BookingsOverTimeRequest normalized, DateOnly today, Granularity granularity)
+    {
+        ArgumentNullException.ThrowIfNull(normalized);
+        var to = normalized.To is null ? today : DateOnly.ParseExact(normalized.To, BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
+        var from = normalized.From is null
+            ? to.AddDays(-(BookingsOverTimeRequest.DefaultDays - 1))
+            : DateOnly.ParseExact(normalized.From, BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
+        if (from > to)
+        {
+            return RangeError("from", "A data inicial não pode ser posterior à final.");
+        }
+
+        // Whole periods: the one `from` is in, up to the one `to` is in.
+        var lastStart = Start(to, granularity);
+        var starts = new List<DateOnly>();
+        for (var start = Start(from, granularity); start <= lastStart; start = Next(start, granularity))
+        {
+            starts.Add(start);
+            if (starts.Count > MaximumPeriods(granularity))
+            {
+                var unit = granularity switch { Granularity.Day => "dias", Granularity.Week => "semanas", _ => "meses" };
+                return RangeError("to", $"O intervalo tem demasiados períodos: no máximo {MaximumPeriods(granularity)} {unit}.");
+            }
+        }
+
+        return (starts, End(lastStart, granularity));
+    }
+
+    private static ServiceError RangeError(string field, string message) =>
+        ServiceError.Validation(new Dictionary<string, string[]> { [field] = [message] });
 }
 
 /// <summary>Bookings counted in one period: <see cref="Start"/> is its first day, in Lisbon time.</summary>
@@ -169,39 +207,14 @@ public sealed class AdminBookingsOverTimeService(IBookingStatistics statistics, 
         }
 
         var granularity = normalized.Granularity is { } code && ReportingPeriods.TryParse(code, out var parsed) ? parsed : Granularity.Day;
-        var today = ClubTime.Today(timeProvider, Lisbon);
-        var to = today;
-        if (normalized.To is not null)
+        var range = ReportingPeriods.Range(normalized, ClubTime.Today(timeProvider, Lisbon), granularity);
+        if (!range.IsSuccess)
         {
-            to = DateOnly.ParseExact(normalized.To, BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
+            return range.Error!;
         }
 
-        var from = to.AddDays(-(BookingsOverTimeRequest.DefaultDays - 1));
-        if (normalized.From is not null)
-        {
-            from = DateOnly.ParseExact(normalized.From, BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
-        }
-
-        if (from > to)
-        {
-            return RangeError("from", "A data inicial não pode ser posterior à final.");
-        }
-
-        // Whole periods: the one `from` is in, up to the one `to` is in.
-        var firstStart = ReportingPeriods.Start(from, granularity);
-        var lastStart = ReportingPeriods.Start(to, granularity);
-        var starts = new List<DateOnly>();
-        for (var start = firstStart; start <= lastStart; start = ReportingPeriods.Next(start, granularity))
-        {
-            starts.Add(start);
-            if (starts.Count > ReportingPeriods.MaximumPeriods(granularity))
-            {
-                var unit = granularity switch { Granularity.Day => "dias", Granularity.Week => "semanas", _ => "meses" };
-                return RangeError("to", $"O intervalo tem demasiados períodos: no máximo {ReportingPeriods.MaximumPeriods(granularity)} {unit}.");
-            }
-        }
-
-        var effectiveTo = ReportingPeriods.End(lastStart, granularity);
+        var (starts, effectiveTo) = range.Value;
+        var firstStart = starts[0];
         var fromUtc = ClubTime.ToUtc(firstStart, TimeOnly.MinValue, Lisbon);
         var toUtc = ClubTime.ToUtc(effectiveTo.AddDays(1), TimeOnly.MinValue, Lisbon);
         var includeCancelled = normalized.IncludeCancelled == "true";
@@ -219,8 +232,5 @@ public sealed class AdminBookingsOverTimeService(IBookingStatistics statistics, 
             ReportingPeriods.ToCode(granularity), Format(firstStart), Format(effectiveTo), includeCancelled, buckets.Sum(bucket => bucket.Count), buckets);
     }
 
-    private static string Format(DateOnly date) => date.ToString(BookingsOverTimeRequest.DateFormat, CultureInfo.InvariantCulture);
-
-    private static ServiceError RangeError(string field, string message) =>
-        ServiceError.Validation(new Dictionary<string, string[]> { [field] = [message] });
+    private static string Format(DateOnly date) => ReportingPeriods.Format(date);
 }

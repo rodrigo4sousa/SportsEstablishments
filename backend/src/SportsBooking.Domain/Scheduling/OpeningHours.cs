@@ -19,6 +19,20 @@ public sealed record OpeningHours
 
     public bool ClosesAtMidnight => Closes == TimeOnly.MinValue;
 
+    /// <summary>
+    /// The UTC instants the pitch opens and closes on <paramref name="date"/>: the one definition of a day's opening, used for the
+    /// slots (<see cref="SlotGenerator"/>) and for the open hours of the statistics (US14). Converted by <see cref="ClubTime.ToUtc"/>,
+    /// so the time between them is real elapsed time: 00:00–00:00 lasts 25 hours on the last Sunday of October and 23 on the last
+    /// Sunday of March.
+    /// </summary>
+    public (DateTime OpensAt, DateTime ClosesAt) UtcIntervalOn(DateOnly date, TimeZoneInfo timeZone)
+    {
+        ArgumentNullException.ThrowIfNull(timeZone);
+        var opensAt = ClubTime.ToUtc(date, Opens, timeZone);
+        var closesAt = ClosesAtMidnight ? ClubTime.ToUtc(date.AddDays(1), TimeOnly.MinValue, timeZone) : ClubTime.ToUtc(date, Closes, timeZone);
+        return (opensAt, closesAt);
+    }
+
     public static bool AreValid(TimeOnly opens, TimeOnly closes) => closes == TimeOnly.MinValue || closes > opens;
 
     public static OpeningHours Create(TimeOnly opens, TimeOnly closes) =>
