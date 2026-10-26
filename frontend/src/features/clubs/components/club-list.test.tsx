@@ -45,6 +45,8 @@ describe("ClubList", () => {
     expect(first).toHaveTextContent("Porto · Rua 1");
     expect(screen.getByRole("link", { name: /Clube 2/ })).toHaveAttribute("href", "/manage/clubs/0199f7a0-0000-7000-8000-000000000002");
     expect(screen.getByRole("link", { name: "Novo clube" })).toHaveAttribute("href", "/manage/clubs/new");
+    // US14: the statistics of all the owner's clubs.
+    expect(screen.getByRole("link", { name: "Estatísticas" })).toHaveAttribute("href", "/manage/statistics");
     expect(screen.queryByRole("heading", { name: "Ainda não tens nenhum clube" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Páginas" })).not.toBeInTheDocument();
   });

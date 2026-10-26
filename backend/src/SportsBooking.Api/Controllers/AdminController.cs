@@ -19,7 +19,9 @@ public sealed class AdminController(
     AdminStatsService stats,
     AdminBookingsOverTimeService bookingsOverTime,
     AdminOwnersService owners,
-    AdminOwnerStatusService ownerStatus) : ControllerBase
+    AdminOwnerStatusService ownerStatus,
+    AdminTopOccupationService topOccupation,
+    AdminRegistrationsService registrations) : ControllerBase
 {
     /// <summary>US24: owners (active and deactivated), clubs (visible, of deactivated owners, and without active pitches), active pitches, players and confirmed bookings.</summary>
     [HttpGet("stats")]
@@ -65,6 +67,32 @@ public sealed class AdminController(
         var pageNumber = string.IsNullOrWhiteSpace(page) ? 1
             : int.TryParse(page, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
         var result = await owners.ListAsync(new AdminOwnersRequest(search, sort, direction, pageNumber), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US27: the 10 clubs with the highest occupation in the period (Lisbon dates, both included; the last 30 days without them), with
+    /// the formula of the owner's statistics (US14). Ties: booked hours, then the club's id. Clubs with nothing open are left out.
+    /// </summary>
+    [HttpGet("clubs/top-occupation")]
+    [ProducesResponseType<TopOccupationResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<IActionResult> TopOccupation([FromQuery] string? from, [FromQuery] string? to, CancellationToken cancellationToken)
+    {
+        var result = await topOccupation.GetAsync(from, to, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US28: new owners and new players per week (from Monday) or month, by the Lisbon date they registered, with a 0 for every period
+    /// without any; the range rules of <c>bookings-over-time</c> (last 30 days by default, widened to whole periods).
+    /// </summary>
+    [HttpGet("registrations")]
+    [ProducesResponseType<RegistrationsResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<IActionResult> Registrations([FromQuery] string? granularity, [FromQuery] string? from, [FromQuery] string? to, CancellationToken cancellationToken)
+    {
+        var result = await registrations.GetAsync(granularity, from, to, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
     }
 

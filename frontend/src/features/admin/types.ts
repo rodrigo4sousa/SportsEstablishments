@@ -58,6 +58,35 @@ export type OwnerStatusChange = {
   at: string;
 };
 
+/** US28: the registrations chart groups by week or month (never by day). */
+export type RegistrationsGranularity = "week" | "month";
+
+export type RegistrationsBucket = { start: string; end: string; owners: number; players: number };
+
+export type Registrations = {
+  granularity: RegistrationsGranularity;
+  from: string;
+  to: string;
+  owners: number;
+  players: number;
+  buckets: RegistrationsBucket[];
+};
+
+/** US27: one club of the top by occupation; the owner's name is the only personal data. */
+export type TopOccupationClub = {
+  clubId: string;
+  slug: string;
+  clubName: string;
+  ownerName: string;
+  locality: string;
+  /** A fraction: 0.8125 is 81,25 %. */
+  occupation: number;
+  bookedHours: number;
+  openHours: number;
+};
+
+export type TopOccupation = { from: string; to: string; clubs: TopOccupationClub[] };
+
 export type AdminOwnersPage = { items: AdminOwner[]; page: number; pageSize: number; totalCount: number };
 
 const counts = (value: Schemas["AccountCounts"]): AccountCounts => ({ active: Number(value.active), deactivated: Number(value.deactivated) });
@@ -85,6 +114,34 @@ export function toBookingsOverTime(response: Schemas["BookingsOverTimeResponse"]
     includeCancelled: response.includeCancelled,
     total: Number(response.total),
     buckets: response.buckets.map((bucket) => ({ start: bucket.start, end: bucket.end, count: Number(bucket.count) })),
+  };
+}
+
+export function toRegistrations(response: Schemas["RegistrationsResponse"]): Registrations {
+  return {
+    granularity: response.granularity === "month" ? "month" : "week",
+    from: response.from,
+    to: response.to,
+    owners: Number(response.owners),
+    players: Number(response.players),
+    buckets: response.buckets.map((bucket) => ({ start: bucket.start, end: bucket.end, owners: Number(bucket.owners), players: Number(bucket.players) })),
+  };
+}
+
+export function toTopOccupation(response: Schemas["TopOccupationResponse"]): TopOccupation {
+  return {
+    from: response.from,
+    to: response.to,
+    clubs: response.clubs.map((club) => ({
+      clubId: club.clubId,
+      slug: club.slug,
+      clubName: club.clubName,
+      ownerName: club.ownerName,
+      locality: club.locality,
+      occupation: Number(club.occupation),
+      bookedHours: Number(club.bookedHours),
+      openHours: Number(club.openHours),
+    })),
   };
 }
 

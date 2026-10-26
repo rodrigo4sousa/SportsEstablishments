@@ -137,6 +137,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/clubs/top-occupation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TopOccupationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    granularity?: string;
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrationsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/owners/{id}": {
         parameters: {
             query?: never;
@@ -2328,6 +2423,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/manage/clubs/{clubId}/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    pitchId?: string;
+                };
+                header?: never;
+                path: {
+                    clubId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClubStatisticsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manage/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerStatisticsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/bookings": {
         parameters: {
             query?: never;
@@ -2583,6 +2784,15 @@ export interface components {
             sports: string[];
             hasFreeSlots: boolean;
         };
+        ClubStatisticsResponse: {
+            /** Format: uuid */
+            clubId: string;
+            clubName: string;
+            from: string;
+            to: string;
+            pitches: components["schemas"]["PitchStatisticsResponse"][];
+            total: components["schemas"]["OccupationFiguresResponse"];
+        };
         CreateBookingRequest: {
             /** Format: uuid */
             pitchId: string;
@@ -2626,6 +2836,20 @@ export interface components {
             /** Format: date-time */
             cancellationDeadline: null | string;
         };
+        OccupationFiguresResponse: {
+            /** Format: double */
+            bookedHours: number | string;
+            /** Format: double */
+            openHours: number | string;
+            /** Format: double */
+            occupation: number | string;
+            /** Format: double */
+            revenue: number | string;
+            /** Format: int32 */
+            confirmedBookings: number | string;
+            /** Format: int32 */
+            noShows: number | string;
+        };
         OwnerClubResponse: {
             /** Format: uuid */
             id: string;
@@ -2639,6 +2863,29 @@ export interface components {
             cancellationWindowHours: number | string;
             timeZone: string;
             notifyOnNewBooking: boolean;
+        };
+        OwnerClubStatisticsResponse: {
+            /** Format: uuid */
+            clubId: string;
+            clubName: string;
+            /** Format: double */
+            bookedHours: number | string;
+            /** Format: double */
+            openHours: number | string;
+            /** Format: double */
+            occupation: number | string;
+            /** Format: double */
+            revenue: number | string;
+            /** Format: int32 */
+            confirmedBookings: number | string;
+            /** Format: int32 */
+            noShows: number | string;
+        };
+        OwnerStatisticsResponse: {
+            from: string;
+            to: string;
+            clubs: components["schemas"]["OwnerClubStatisticsResponse"][];
+            total: components["schemas"]["OccupationFiguresResponse"];
         };
         OwnerStatusChangeResponse: {
             /** Format: uuid */
@@ -2771,6 +3018,25 @@ export interface components {
             slotDurationMinutes: number | string;
             slots: components["schemas"]["SlotResponse"][];
         };
+        PitchStatisticsResponse: {
+            /** Format: uuid */
+            pitchId: string;
+            name: string;
+            sport: string;
+            status: string;
+            /** Format: double */
+            bookedHours: number | string;
+            /** Format: double */
+            openHours: number | string;
+            /** Format: double */
+            occupation: number | string;
+            /** Format: double */
+            revenue: number | string;
+            /** Format: int32 */
+            confirmedBookings: number | string;
+            /** Format: int32 */
+            noShows: number | string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -2820,6 +3086,24 @@ export interface components {
             password: string;
             phone?: null | string;
         };
+        RegistrationsBucket: {
+            start: string;
+            end: string;
+            /** Format: int32 */
+            owners: number | string;
+            /** Format: int32 */
+            players: number | string;
+        };
+        RegistrationsResponse: {
+            granularity: string;
+            from: string;
+            to: string;
+            /** Format: int32 */
+            owners: number | string;
+            /** Format: int32 */
+            players: number | string;
+            buckets: components["schemas"]["RegistrationsBucket"][];
+        };
         SlotResponse: {
             /** Format: date-time */
             startsAt: string;
@@ -2827,6 +3111,25 @@ export interface components {
             endsAt: string;
             blocked: boolean;
             booked: boolean;
+        };
+        TopOccupationClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            slug: string;
+            clubName: string;
+            ownerName: string;
+            locality: string;
+            /** Format: double */
+            occupation: number | string;
+            /** Format: double */
+            bookedHours: number | string;
+            /** Format: double */
+            openHours: number | string;
+        };
+        TopOccupationResponse: {
+            from: string;
+            to: string;
+            clubs: components["schemas"]["TopOccupationClubResponse"][];
         };
         ValidationProblemDetails: {
             type?: null | string;

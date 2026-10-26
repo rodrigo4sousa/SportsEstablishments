@@ -46,7 +46,10 @@ export function ClubList() {
   const pageCount = Math.max(1, Math.ceil(totalCount / CLUBS_PAGE_SIZE));
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button asChild variant="outline">
+          <Link href="/manage/statistics">Estatísticas</Link>
+        </Button>
         <Button asChild>
           <Link href="/manage/clubs/new">Novo clube</Link>
         </Button>

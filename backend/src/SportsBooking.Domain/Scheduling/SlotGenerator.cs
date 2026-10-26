@@ -23,10 +23,7 @@ public static class SlotGenerator
             throw new ArgumentOutOfRangeException(nameof(duration), duration.Minutes, "Slot duration must be 30, 60 or 90 minutes.");
         }
 
-        var opensAtUtc = ClubTime.ToUtc(date, hours.Opens, timeZone);
-        var closesAtUtc = hours.ClosesAtMidnight
-            ? ClubTime.ToUtc(date.AddDays(1), TimeOnly.MinValue, timeZone)
-            : ClubTime.ToUtc(date, hours.Closes, timeZone);
+        var (opensAtUtc, closesAtUtc) = hours.UtcIntervalOn(date, timeZone);
 
         var length = duration.Length;
         var slots = new List<TimeSlot>();

@@ -29,6 +29,7 @@ describe("EditClub", () => {
           contactEmail: "geral@tenisfoz.pt",
           cancellationWindowHours: 12,
           timeZone: "Europe/Lisbon",
+          notifyOnNewBooking: true,
         }),
       ),
     );
@@ -47,6 +48,8 @@ describe("EditClub", () => {
     expect(screen.getByRole("button", { name: "Adicionar campo" })).toBeInTheDocument();
     // US11: the club's calendar is one click away.
     expect(screen.getByRole("link", { name: "Calendário de reservas" })).toHaveAttribute("href", `/manage/clubs/${id}/calendar`);
+    // US14: and so are the club's statistics.
+    expect(screen.getByRole("link", { name: "Estatísticas" })).toHaveAttribute("href", `/manage/clubs/${id}/statistics`);
   });
 
   it("shows the not-found page for a club the API answers 404 for (unknown, or another owner's)", async () => {

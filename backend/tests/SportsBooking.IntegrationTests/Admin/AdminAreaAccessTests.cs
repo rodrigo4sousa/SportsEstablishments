@@ -50,9 +50,11 @@ public sealed class AdminAreaAccessTests(ApiFactory factory)
         shapes.ShouldBe(
         [
             "GET /api/admin/bookings-over-time",
+            "GET /api/admin/clubs/top-occupation",
             "GET /api/admin/owners",
             "GET /api/admin/owners/{id}",
             "GET /api/admin/owners/{id}/history",
+            "GET /api/admin/registrations",
             "GET /api/admin/stats",
             "POST /api/admin/owners/{id}/deactivate",
             "POST /api/admin/owners/{id}/reactivate",
