@@ -147,10 +147,10 @@ public sealed record PitchOccupation(Guid PitchId, Guid ClubId, string Name, Spo
 /// <list type="bullet">
 /// <item>Booked hours: real elapsed time of Confirmed and NoShow bookings that overlap the period, clipped to it; cancelled ones are
 /// left out (in the database, <see cref="IOccupationStore"/>).</item>
-/// <item>Open hours: for each Lisbon day of the period, the opening interval of the schedule in force now
-/// (<see cref="OpeningHours.UtcIntervalOn"/>, real elapsed time, so 25 and 23 hours on the clock-change days; a closed day is 0). An
-/// inactive pitch has no open hours: it counts only with the bookings it already has (provisional). The open time is the whole
-/// interval, also the minutes after the last slot that fits (provisional).</item>
+/// <item>Open hours: for each Lisbon day of the period, the bookable time of the schedule in force now: the slots
+/// <see cref="SlotGenerator"/> generates times the slot duration, real elapsed time (so 25 and 23 hours on the clock-change days; a
+/// closed day is 0; the minutes after the last slot that fits are not bookable, so they do not count: a 90-minute pitch open 4 hours
+/// has 3). An inactive pitch has no open hours: it counts only with the bookings it already has.</item>
 /// <item>Revenue: the stored prices of the same non-cancelled bookings, in full (a price is not split at the edges).</item>
 /// </list>
 /// Only the schedules (a few rows per pitch) are read into memory; bookings are only ever added up by the database.
@@ -168,6 +168,8 @@ public sealed class OccupationService(IAppDbContext dbContext, IOccupationStore 
         public required Sport Sport { get; init; }
 
         public required PitchStatus Status { get; init; }
+
+        public required int SlotDurationMinutes { get; init; }
 
         public required string TimeZoneId { get; init; }
 
@@ -191,6 +193,7 @@ public sealed class OccupationService(IAppDbContext dbContext, IOccupationStore 
                     Name = pitch.Name,
                     Sport = pitch.Sport,
                     Status = pitch.Status,
+                    SlotDurationMinutes = pitch.SlotDurationMinutes,
                     TimeZoneId = club.TimeZoneId,
                     OpeningDays = pitch.OpeningDays.ToList(),
                 })
@@ -223,7 +226,7 @@ public sealed class OccupationService(IAppDbContext dbContext, IOccupationStore 
                 continue;
             }
 
-            var open = isActive ? OpenMinutes(row.OpeningDays, period, TimeZoneInfo.FindSystemTimeZoneById(row.TimeZoneId)) : 0;
+            var open = isActive ? OpenMinutes(row.OpeningDays, SlotDuration.FromMinutes(row.SlotDurationMinutes), period, TimeZoneInfo.FindSystemTimeZoneById(row.TimeZoneId)) : 0;
             result.Add(new PitchOccupation(
                 row.Id,
                 row.ClubId,
@@ -236,8 +239,11 @@ public sealed class OccupationService(IAppDbContext dbContext, IOccupationStore 
         return result;
     }
 
-    /// <summary>The open minutes of a schedule over the period: each day's opening interval, in real elapsed time.</summary>
-    public static long OpenMinutes(IReadOnlyCollection<PitchOpeningDay> schedule, StatisticsPeriod period, TimeZoneInfo timeZone)
+    /// <summary>
+    /// The open minutes of a schedule over the period: for each day, the slots the generator makes for it times their duration, so
+    /// the same slots a player can book, in real elapsed time.
+    /// </summary>
+    public static long OpenMinutes(IReadOnlyCollection<PitchOpeningDay> schedule, SlotDuration duration, StatisticsPeriod period, TimeZoneInfo timeZone)
     {
         ArgumentNullException.ThrowIfNull(schedule);
         ArgumentNullException.ThrowIfNull(period);
@@ -247,8 +253,7 @@ public sealed class OccupationService(IAppDbContext dbContext, IOccupationStore 
         {
             if (byDay.TryGetValue(date.DayOfWeek, out var hours))
             {
-                var (opensAt, closesAt) = hours.UtcIntervalOn(date, timeZone);
-                minutes += (long)(closesAt - opensAt).TotalMinutes;
+                minutes += (long)SlotGenerator.Generate(date, hours, duration, timeZone).Count * duration.Minutes;
             }
         }
 

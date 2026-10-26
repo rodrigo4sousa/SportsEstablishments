@@ -10,7 +10,9 @@ public sealed class OccupationTests
 
     private static readonly DateOnly Today = new(2026, 5, 13);
 
-    private static IReadOnlyList<PitchOpeningDay> Schedule(params (DayOfWeek Day, string Opens, string Closes)[] open)
+    private static IReadOnlyList<PitchOpeningDay> Schedule(params (DayOfWeek Day, string Opens, string Closes)[] open) => Schedule(60, open);
+
+    private static IReadOnlyList<PitchOpeningDay> Schedule(int slotMinutes, params (DayOfWeek Day, string Opens, string Closes)[] open)
     {
         var pitch = Pitch.Create(Guid.CreateVersion7(), new PitchDetails("Campo", Sport.Padel, 20m), new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var week = Enum.GetValues<DayOfWeek>().ToDictionary(day => day, _ => (OpeningHours?)null);
@@ -19,7 +21,7 @@ public sealed class OccupationTests
             week[day] = OpeningHours.Create(TimeOnly.Parse(opens, System.Globalization.CultureInfo.InvariantCulture), TimeOnly.Parse(closes, System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        pitch.ChangeSchedule(SlotDuration.FromMinutes(60), week, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        pitch.ChangeSchedule(SlotDuration.FromMinutes(slotMinutes), week, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         return pitch.OpeningDays;
     }
 
@@ -35,7 +37,7 @@ public sealed class OccupationTests
     {
         var allDay = Schedule(Enum.GetValues<DayOfWeek>().Select(day => (day, "00:00", "00:00")).ToArray());
 
-        OccupationService.OpenMinutes(allDay, Period(date, date), Lisbon).ShouldBe(minutes);
+        OccupationService.OpenMinutes(allDay, SlotDuration.SixtyMinutes, Period(date, date), Lisbon).ShouldBe(minutes);
     }
 
     [Fact]
@@ -44,8 +46,33 @@ public sealed class OccupationTests
         var mondays = Schedule((DayOfWeek.Monday, "09:00", "13:00"), (DayOfWeek.Wednesday, "18:00", "00:00"));
 
         // 4 to 17 May 2026: two Mondays (4 h each) and two Wednesdays (6 h each, to midnight).
-        OccupationService.OpenMinutes(mondays, Period("2026-05-04", "2026-05-17"), Lisbon).ShouldBe(2 * 240 + 2 * 360);
-        OccupationService.OpenMinutes(mondays, Period("2026-05-05", "2026-05-05"), Lisbon).ShouldBe(0);
+        OccupationService.OpenMinutes(mondays, SlotDuration.SixtyMinutes, Period("2026-05-04", "2026-05-17"), Lisbon).ShouldBe(2 * 240 + 2 * 360);
+        OccupationService.OpenMinutes(mondays, SlotDuration.SixtyMinutes, Period("2026-05-05", "2026-05-05"), Lisbon).ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(30, "09:00", "13:00", 240)] // 8 slots
+    [InlineData(60, "09:00", "13:00", 240)] // 4 slots
+    [InlineData(90, "09:00", "13:00", 180)] // 2 slots of 90 minutes; the last 60 minutes cannot be booked
+    [InlineData(90, "09:00", "12:00", 180)]
+    [InlineData(90, "09:00", "10:00", 0)] // not even one slot fits
+    [InlineData(60, "09:30", "12:00", 120)]
+    public void Open_time_is_the_bookable_slots_not_the_whole_interval(int slotMinutes, string opens, string closes, int minutes)
+    {
+        var monday = Schedule(slotMinutes, (DayOfWeek.Monday, opens, closes));
+
+        OccupationService.OpenMinutes(monday, SlotDuration.FromMinutes(slotMinutes), Period("2026-05-04", "2026-05-04"), Lisbon).ShouldBe(minutes);
+    }
+
+    [Fact]
+    public void A_90_minute_pitch_open_all_day_loses_the_remainder_of_the_day()
+    {
+        var allDay = Schedule(90, Enum.GetValues<DayOfWeek>().Select(day => (day, "00:00", "00:00")).ToArray());
+
+        // 24 h = 16 slots of 90 minutes; 25 h = 16 slots (1500 / 90 = 16.67); 23 h = 15 slots (1380 / 90 = 15.33).
+        OccupationService.OpenMinutes(allDay, SlotDuration.NinetyMinutes, Period("2026-05-04", "2026-05-04"), Lisbon).ShouldBe(16 * 90);
+        OccupationService.OpenMinutes(allDay, SlotDuration.NinetyMinutes, Period("2026-10-25", "2026-10-25"), Lisbon).ShouldBe(16 * 90);
+        OccupationService.OpenMinutes(allDay, SlotDuration.NinetyMinutes, Period("2026-03-29", "2026-03-29"), Lisbon).ShouldBe(15 * 90);
     }
 
     [Fact]
@@ -54,7 +81,7 @@ public sealed class OccupationTests
         // Sunday 29 March 2026: 01:00-03:00 local is one real hour (01:00 WET is 01:00 UTC, 03:00 WEST is 02:00 UTC).
         var night = Schedule((DayOfWeek.Sunday, "01:00", "03:00"));
 
-        OccupationService.OpenMinutes(night, Period("2026-03-29", "2026-03-29"), Lisbon).ShouldBe(60);
+        OccupationService.OpenMinutes(night, SlotDuration.SixtyMinutes, Period("2026-03-29", "2026-03-29"), Lisbon).ShouldBe(60);
     }
 
     [Fact]

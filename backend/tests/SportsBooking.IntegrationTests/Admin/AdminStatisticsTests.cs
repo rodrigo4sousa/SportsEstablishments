@@ -118,11 +118,11 @@ public sealed class AdminStatisticsTests(ApiFactory factory)
         var figures = OccupationFigures.Sum(rows.Select(row => row.Figures));
 
         var line = top.GetProperty("clubs").EnumerateArray().Single(candidate => candidate.GetProperty("clubId").GetGuid() == club.Id);
-        // 3 h + 1 h 30 booked of 4 h + 7 h open: 270 / 660 minutes.
-        figures.Occupation.ShouldBe(0.4091m);
+        // 3 h + 1 h 30 booked of 4 h + 3 h + 3 h open (two 90-minute slots a day on two days): 270 / 600 minutes.
+        figures.Occupation.ShouldBe(0.45m);
         line.GetProperty("occupation").GetDecimal().ShouldBe(figures.Occupation);
         line.GetProperty("bookedHours").GetDecimal().ShouldBe(4.5m);
-        line.GetProperty("openHours").GetDecimal().ShouldBe(11m);
+        line.GetProperty("openHours").GetDecimal().ShouldBe(10m);
     }
 
     [Fact]

@@ -61,7 +61,7 @@ public sealed class ClubStatisticsTests(ApiFactory factory)
     /// <summary>
     /// Pitch «A» (60-minute slots) is open on Mondays 09:00-13:00: 4 open hours in the week. Its bookings: one confirmed 1 h, one
     /// no-show 1 h, one cancelled 1 h (left out), and two that cross the week's edges by 30 minutes each (clipped to 30 minutes, priced
-    /// in full). Pitch «B» (90-minute slots) is open Mondays and Tuesdays 09:00-13:00: 8 open hours, one confirmed 90-minute booking.
+    /// in full). Pitch «B» (90-minute slots) is open Mondays and Tuesdays 09:00-13:00: two slots of 90 minutes a day, so 6 open hours, and one confirmed 90-minute booking.
     /// Every booking costs 20 €. A booking outside the week is not counted at all.
     /// </summary>
     private async Task<Venue> VenueAsync()
@@ -103,10 +103,10 @@ public sealed class ClubStatisticsTests(ApiFactory factory)
         statistics.GetProperty("to").GetString().ShouldBe("2026-05-10");
         // A: 60 + 60 + 30 + 30 minutes booked of 240 open; four bookings at 20 € (the clipped ones in full); 3 confirmed, 1 no-show.
         ShouldHave(PitchNamed(statistics, "A"), booked: 3m, open: 4m, occupation: 0.75m, revenue: 80m, confirmed: 3, noShows: 1);
-        // B: 90 minutes of 480.
-        ShouldHave(PitchNamed(statistics, "B"), booked: 1.5m, open: 8m, occupation: 0.1875m, revenue: 20m, confirmed: 1, noShows: 0);
-        // The total is the sum of minutes over the sum of open minutes (270 / 720), not an average of the rates.
-        ShouldHave(statistics.GetProperty("total"), booked: 4.5m, open: 12m, occupation: 0.375m, revenue: 100m, confirmed: 4, noShows: 1);
+        // B: 90 minutes of 360: two 90-minute slots a day in four open hours, on two days.
+        ShouldHave(PitchNamed(statistics, "B"), booked: 1.5m, open: 6m, occupation: 0.25m, revenue: 20m, confirmed: 1, noShows: 0);
+        // The total is the sum of minutes over the sum of open minutes (270 / 600), not an average of the rates.
+        ShouldHave(statistics.GetProperty("total"), booked: 4.5m, open: 10m, occupation: 0.45m, revenue: 100m, confirmed: 4, noShows: 1);
         PitchNamed(statistics, "A").GetProperty("sport").GetString().ShouldBe("padel");
         PitchNamed(statistics, "A").GetProperty("status").GetString().ShouldBe("active");
     }
@@ -122,7 +122,7 @@ public sealed class ClubStatisticsTests(ApiFactory factory)
         var one = await JsonAsync(await GetAsync(app, $"/api/manage/clubs/{venue.Club.Id}/statistics?{Week}&pitchId={venue.NinetyMinutes.Id}", venue.Token));
 
         one.GetProperty("pitches").GetArrayLength().ShouldBe(1);
-        ShouldHave(one.GetProperty("total"), booked: 1.5m, open: 8m, occupation: 0.1875m, revenue: 20m, confirmed: 1, noShows: 0);
+        ShouldHave(one.GetProperty("total"), booked: 1.5m, open: 6m, occupation: 0.25m, revenue: 20m, confirmed: 1, noShows: 0);
         var problem = await JsonAsync(await GetAsync(app, $"/api/manage/clubs/{venue.Club.Id}/statistics?{Week}&pitchId={otherPitch.Id}", venue.Token), HttpStatusCode.NotFound);
         problem.GetProperty("code").GetString().ShouldBe("pitch_not_found");
     }
@@ -240,10 +240,10 @@ public sealed class ClubStatisticsTests(ApiFactory factory)
         clubs.Select(club => club.GetProperty("clubId").GetGuid()).ShouldBe([venue.Club.Id, second.Id], ignoreOrder: true);
         clubs.ShouldNotContain(club => club.GetProperty("clubId").GetGuid() == otherOwner.Club.Id);
         var first = clubs.Single(club => club.GetProperty("clubId").GetGuid() == venue.Club.Id);
-        ShouldHave(first, booked: 4.5m, open: 12m, occupation: 0.375m, revenue: 100m, confirmed: 4, noShows: 0 + 1);
+        ShouldHave(first, booked: 4.5m, open: 10m, occupation: 0.45m, revenue: 100m, confirmed: 4, noShows: 0 + 1);
         // A club with nothing open or booked is listed with zeros.
         ShouldHave(clubs.Single(club => club.GetProperty("clubId").GetGuid() == second.Id), booked: 0m, open: 0m, occupation: 0m, revenue: 0m, confirmed: 0, noShows: 0);
-        ShouldHave(list.GetProperty("total"), booked: 4.5m, open: 12m, occupation: 0.375m, revenue: 100m, confirmed: 4, noShows: 1);
+        ShouldHave(list.GetProperty("total"), booked: 4.5m, open: 10m, occupation: 0.45m, revenue: 100m, confirmed: 4, noShows: 1);
     }
 
     [Fact]
