@@ -6,6 +6,8 @@ import {
   toAdminStats,
   toBookingsOverTime,
   toOwnerStatusChange,
+  toRegistrations,
+  toTopOccupation,
   type AdminOwnerDetail,
   type AdminOwnersPage,
   type AdminStats,
@@ -13,6 +15,9 @@ import {
   type Granularity,
   type OwnerSort,
   type OwnerStatusChange,
+  type Registrations,
+  type RegistrationsGranularity,
+  type TopOccupation,
   type SortDirection,
 } from "./types";
 
@@ -25,6 +30,11 @@ export type OwnersQuery = { search: string; sort: OwnerSort; direction: SortDire
 export const bookingsOverTimeQueryKey = (query: ChartQuery) => [...adminQueryKey, "bookings-over-time", query] as const;
 export const adminOwnerQueryKey = (ownerId: string) => [...adminQueryKey, "owner", ownerId] as const;
 export const adminOwnerHistoryQueryKey = (ownerId: string) => [...adminQueryKey, "owner-history", ownerId] as const;
+export type PeriodQuery = { from: string | null; to: string | null };
+export type RegistrationsQuery = PeriodQuery & { granularity: RegistrationsGranularity };
+
+export const topOccupationQueryKey = (query: PeriodQuery) => [...adminQueryKey, "top-occupation", query] as const;
+export const registrationsQueryKey = (query: RegistrationsQuery) => [...adminQueryKey, "registrations", query] as const;
 export const adminOwnersQueryKey = (query: OwnersQuery) => [...adminQueryKey, "owners", query] as const;
 
 /** US24: the platform's totals. */
@@ -71,4 +81,21 @@ export async function changeOwnerStatus(ownerId: string, action: "deactivate" | 
       body: JSON.stringify({ reason }),
     }),
   );
+}
+
+/** US27: the 10 clubs with the highest occupation in the period (the last 30 days without dates), same formula as the owner's. */
+export async function fetchTopOccupation(query: PeriodQuery): Promise<TopOccupation> {
+  const params = new URLSearchParams();
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  const text = params.toString();
+  return toTopOccupation(await apiJson<components["schemas"]["TopOccupationResponse"]>(`/api/admin/clubs/top-occupation${text ? `?${text}` : ""}`));
+}
+
+/** US28: new owners and players per week or month by the Lisbon date they registered. The period is widened to whole periods. */
+export async function fetchRegistrations(query: RegistrationsQuery): Promise<Registrations> {
+  const params = new URLSearchParams({ granularity: query.granularity });
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  return toRegistrations(await apiJson<components["schemas"]["RegistrationsResponse"]>(`/api/admin/registrations?${params.toString()}`));
 }

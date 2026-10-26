@@ -45,9 +45,12 @@ export function EditClub({ clubId }: { clubId: string }) {
 
   return (
     <div className="flex flex-col gap-10">
-      <p>
+      <p className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
           <Link href={`/manage/clubs/${club.data.id}/calendar`}>Calendário de reservas</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href={`/manage/clubs/${club.data.id}/statistics`}>Estatísticas</Link>
         </Button>
       </p>
       <ClubForm club={club.data} />

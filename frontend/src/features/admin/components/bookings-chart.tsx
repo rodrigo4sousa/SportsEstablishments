@@ -3,13 +3,10 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { formatDateKey, formatDateKeyMonth, formatDateKeyShort } from "@/lib/datetime";
+import { formatDateKey } from "@/lib/datetime";
 import { bookingsOverTimeQueryKey, fetchBookingsOverTime, type ChartQuery } from "../api";
-import type { Granularity, PeriodBucket } from "../types";
+import { axisLabel, failureMessage, periodLabel } from "../period-labels";
+import type { Granularity } from "../types";
 
 const GRANULARITIES: { value: Granularity; label: string }[] = [
   { value: "day", label: "Dia" },
@@ -19,36 +16,15 @@ const GRANULARITIES: { value: Granularity; label: string }[] = [
 
 const number = new Intl.NumberFormat("pt-PT");
 
-/** The short axis label of a period: the day, the Monday of the week, the month. */
-function axisLabel(granularity: Granularity, bucket: PeriodBucket): string {
-  return granularity === "month" ? formatDateKeyMonth(bucket.start) : formatDateKeyShort(bucket.start);
-}
-
-/** The full name of a period, for the tooltip and the table: a day, "de … a …" for a week, a month. */
-function periodLabel(granularity: Granularity, bucket: PeriodBucket): string {
-  if (granularity === "month") return formatDateKeyMonth(bucket.start);
-  if (granularity === "week") return `${formatDateKey(bucket.start)} a ${formatDateKey(bucket.end)}`;
-  return formatDateKey(bucket.start);
-}
-
-/** The API's own message for a rejected range (a field error in Portuguese), else the one for its code. */
-function failureMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    const field = Object.values(error.fieldErrors).flat()[0];
-    return field ?? errorMessage(error.code);
-  }
-  return errorMessage("unknown_error");
-}
-
 type BookingsChartProps = {
   query: ChartQuery;
   onChange: (patch: Partial<ChartQuery>) => void;
 };
 
 /**
- * US25: bookings per day, week (from Monday) or month, by the Lisbon date they were made. The range is the last 30 days
- * until the admin picks one; the API widens it to whole periods and says which, and the date fields show that. Cancelled
- * bookings are left out unless asked for. The same numbers are in a table for screen readers.
+ * US25: bookings per day, week (from Monday) or month, by the Lisbon date they were made. The period (shared with the registrations
+ * and the top of the clubs, US28 and US27) is chosen above, in `PeriodFilter`; the API widens it to whole periods and the
+ * summary says which. Cancelled bookings are left out unless asked for. The same numbers are in a table for screen readers.
  */
 export function BookingsChart({ query, onChange }: BookingsChartProps) {
   const bookings = useQuery({
@@ -85,27 +61,6 @@ export function BookingsChart({ query, onChange }: BookingsChartProps) {
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="chart-from">De</Label>
-          <Input
-            id="chart-from"
-            type="date"
-            value={query.from ?? data?.from ?? ""}
-            onChange={(event) => onChange({ from: event.target.value || null })}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="chart-to">Até</Label>
-          <Input
-            id="chart-to"
-            type="date"
-            value={query.to ?? data?.to ?? ""}
-            onChange={(event) => onChange({ to: event.target.value || null })}
-          />
-        </div>
-        <Button type="button" variant="outline" disabled={query.from === null && query.to === null} onClick={() => onChange({ from: null, to: null })}>
-          Últimos 30 dias
-        </Button>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

@@ -6,6 +6,7 @@ import { currentPath, replace, resetNavigation } from "@/test/navigation";
 import { server } from "@/test/msw";
 import { renderWithProviders } from "@/test/render";
 import type { AdminStats } from "../types";
+import { defaultRange } from "@/features/statistics/components/owner-statistics";
 import { AdminDashboard } from "./admin-dashboard";
 
 vi.mock("next/navigation", async () => import("@/test/navigation"));
@@ -28,6 +29,33 @@ function chartResponse(patch: Record<string, unknown> = {}) {
     includeCancelled: false,
     total: 5,
     buckets: [bucket("2026-09-29", 2), bucket("2026-09-30", 0), bucket("2026-10-01", 3)],
+    ...patch,
+  };
+}
+
+function registrationsResponse(patch: Record<string, unknown> = {}) {
+  return {
+    granularity: "week",
+    from: "2026-09-28",
+    to: "2026-10-11",
+    owners: 3,
+    players: 20,
+    buckets: [
+      { start: "2026-09-28", end: "2026-10-04", owners: 1, players: 8 },
+      { start: "2026-10-05", end: "2026-10-11", owners: 2, players: 12 },
+    ],
+    ...patch,
+  };
+}
+
+function topResponse(patch: Record<string, unknown> = {}) {
+  return {
+    from: "2026-09-26",
+    to: "2026-10-25",
+    clubs: [
+      { clubId: "0199f7a0-0000-7000-8000-0000000000e1", slug: "clube-da-foz", clubName: "Clube da Foz", ownerName: "Ana Dona", locality: "Porto", occupation: 0.8125, bookedHours: 130, openHours: 160 },
+      { clubId: "0199f7a0-0000-7000-8000-0000000000e2", slug: "padel-maia", clubName: "Padel Maia", ownerName: "Rui Dono", locality: "Maia", occupation: 0.5, bookedHours: 62.5, openHours: 125 },
+    ],
     ...patch,
   };
 }
@@ -61,9 +89,11 @@ function serve(
     chart?: (query: URLSearchParams) => Response;
     owners?: (query: URLSearchParams) => Response;
     stats?: () => Response;
+    registrations?: (query: URLSearchParams) => Response;
+    top?: (query: URLSearchParams) => Response;
   } = {},
 ) {
-  const asked = { chart: [] as URLSearchParams[], owners: [] as URLSearchParams[], stats: 0 };
+  const asked = { chart: [] as URLSearchParams[], owners: [] as URLSearchParams[], registrations: [] as URLSearchParams[], top: [] as URLSearchParams[], stats: 0 };
   server.use(
     http.get("/api/admin/stats", () => {
       asked.stats += 1;
@@ -73,6 +103,16 @@ function serve(
       const query = new URL(request.url).searchParams;
       asked.chart.push(query);
       return options.chart ? options.chart(query) : HttpResponse.json(chartResponse());
+    }),
+    http.get("/api/admin/registrations", ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      asked.registrations.push(query);
+      return options.registrations ? options.registrations(query) : HttpResponse.json(registrationsResponse());
+    }),
+    http.get("/api/admin/clubs/top-occupation", ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      asked.top.push(query);
+      return options.top ? options.top(query) : HttpResponse.json(topResponse());
     }),
     http.get("/api/admin/owners", ({ request }) => {
       const query = new URL(request.url).searchParams;
@@ -84,6 +124,7 @@ function serve(
 }
 
 const totals = () => screen.getByRole("list", { name: "Totais da plataforma" });
+const chartGroup = () => within(screen.getByRole("group", { name: "Agrupar por" }));
 const chartTable = () => screen.getByRole("table", { name: "Reservas feitas em cada período" });
 const ownersTable = () => screen.getByRole("table", { name: "Donos e os seus números" });
 
@@ -147,19 +188,20 @@ describe("AdminDashboard", () => {
 
       await waitFor(() => expect(asked.chart).toHaveLength(1));
       expect(Object.fromEntries(asked.chart[0])).toEqual({ granularity: "day" });
-      expect(screen.getByRole("button", { name: "Dia" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "Semana" })).toHaveAttribute("aria-pressed", "false");
+      expect(chartGroup().getByRole("button", { name: "Dia" })).toHaveAttribute("aria-pressed", "true");
+      expect(chartGroup().getByRole("button", { name: "Semana" })).toHaveAttribute("aria-pressed", "false");
       expect(screen.getByLabelText("Incluir canceladas")).not.toBeChecked();
     });
 
-    it("shows the range the API answered, in pt-PT dates, in the fields and in the summary", async () => {
+    it("shows the range the API answered in the summary, and the last 30 days in the shared fields", async () => {
       serve();
 
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
       expect(await screen.findByText(/5 reservas feitas entre 29\/09\/2026 e 01\/10\/2026\./)).toBeInTheDocument();
-      expect(screen.getByLabelText("De")).toHaveValue("2026-09-29");
-      expect(screen.getByLabelText("Até")).toHaveValue("2026-10-01");
+      const last30 = defaultRange();
+      expect(screen.getByLabelText("De")).toHaveValue(last30.from);
+      expect(screen.getByLabelText("Até")).toHaveValue(last30.to);
     });
 
     it("lists every period, a period without bookings with a 0", async () => {
@@ -170,7 +212,7 @@ describe("AdminDashboard", () => {
       await screen.findByRole("table", { name: "Reservas feitas em cada período" });
       const rows = within(chartTable()).getAllByRole("row").slice(1);
       expect(rows.map((row) => row.textContent)).toEqual(["29/09/20262", "30/09/20260", "01/10/20263"]);
-      expect(screen.getByRole("img", { name: /Gráfico de barras/ })).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: /reservas feitas em cada período/ })).toBeInTheDocument();
     });
 
     it("names a week by its first and last day and a month by its name", async () => {
@@ -185,9 +227,9 @@ describe("AdminDashboard", () => {
       const user = userEvent.setup();
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
-      await user.click(screen.getByRole("button", { name: "Semana" }));
+      await user.click(chartGroup().getByRole("button", { name: "Semana" }));
       await waitFor(() => expect(within(chartTable()).getAllByRole("row")[1].textContent).toBe("19/10/2026 a 25/10/20267"));
-      await user.click(screen.getByRole("button", { name: "Mês" }));
+      await user.click(chartGroup().getByRole("button", { name: "Mês" }));
       await waitFor(() => expect(within(chartTable()).getAllByRole("row")[2].textContent).toBe("outubro de 20264"));
     });
 
@@ -197,11 +239,11 @@ describe("AdminDashboard", () => {
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
       await waitFor(() => expect(asked.chart).toHaveLength(1));
 
-      await user.click(screen.getByRole("button", { name: "Mês" }));
+      await user.click(chartGroup().getByRole("button", { name: "Mês" }));
 
       await waitFor(() => expect(asked.chart.at(-1)?.get("granularity")).toBe("month"));
       expect(currentPath()).toBe("/admin?granularity=month");
-      expect(screen.getByRole("button", { name: "Mês" })).toHaveAttribute("aria-pressed", "true");
+      expect(chartGroup().getByRole("button", { name: "Mês" })).toHaveAttribute("aria-pressed", "true");
     });
 
     it("sends the chosen dates and keeps them when the granularity changes", async () => {
@@ -214,7 +256,7 @@ describe("AdminDashboard", () => {
       await waitFor(() => expect(asked.chart.at(-1)?.get("from")).toBe("2026-08-01"));
       fireEvent.change(screen.getByLabelText("Até"), { target: { value: "2026-09-30" } });
       await waitFor(() => expect(asked.chart.at(-1)?.get("to")).toBe("2026-09-30"));
-      await user.click(screen.getByRole("button", { name: "Semana" }));
+      await user.click(chartGroup().getByRole("button", { name: "Semana" }));
 
       await waitFor(() => expect(Object.fromEntries(asked.chart.at(-1)!)).toEqual({ granularity: "week", from: "2026-08-01", to: "2026-09-30" }));
       expect(currentPath()).toBe("/admin?granularity=week&from=2026-08-01&to=2026-09-30");
@@ -265,7 +307,7 @@ describe("AdminDashboard", () => {
 
       await waitFor(() => expect(asked.chart).toHaveLength(1));
       expect(Object.fromEntries(asked.chart[0])).toEqual({ granularity: "week", from: "2026-08-01", to: "2026-09-30", includeCancelled: "true" });
-      expect(screen.getByRole("button", { name: "Semana" })).toHaveAttribute("aria-pressed", "true");
+      expect(chartGroup().getByRole("button", { name: "Semana" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByLabelText("Incluir canceladas")).toBeChecked();
       expect(screen.getByLabelText("De")).toHaveValue("2026-08-01");
     });
