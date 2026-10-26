@@ -29,6 +29,8 @@ internal static class IdentityModelConfiguration
             // One email = one account, enforced by the database and not only by UserManager.
             user.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName(NormalizedEmailIndex);
             user.HasIndex(u => u.NormalizedUserName).HasDatabaseName("ix_users_normalized_user_name");
+            // US28: new accounts by registration date.
+            user.HasIndex(u => u.RegisteredAt).HasDatabaseName("ix_users_registered_at");
         });
 
         modelBuilder.Entity<IdentityRole<Guid>>(role =>

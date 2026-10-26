@@ -755,6 +755,9 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_users_normalized_user_name");
 
+                    b.HasIndex("RegisteredAt")
+                        .HasDatabaseName("ix_users_registered_at");
+
                     b.ToTable("users", (string)null);
                 });
 

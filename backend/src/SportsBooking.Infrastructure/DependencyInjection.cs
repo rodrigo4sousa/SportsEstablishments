@@ -13,6 +13,7 @@ using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
+using SportsBooking.Application.Statistics;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Application.Admin;
 using SportsBooking.Infrastructure.Admin;
@@ -24,6 +25,7 @@ using SportsBooking.Infrastructure.Identity;
 using SportsBooking.Infrastructure.Notifications;
 using SportsBooking.Infrastructure.Pitches;
 using SportsBooking.Infrastructure.Persistence;
+using SportsBooking.Infrastructure.Statistics;
 
 namespace SportsBooking.Infrastructure;
 
@@ -61,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<IPitchLock, PitchLock>();
         services.AddScoped<IBookingStore, BookingStore>();
         services.AddScoped<IBookingStatistics, BookingStatistics>();
+        services.AddScoped<IOccupationStore, OccupationStore>();
+        services.AddScoped<IRegistrationStatistics, RegistrationStatistics>();
         services.AddScoped<IOwnerStatusStore, OwnerStatusStore>();
         // T05: only the `seed-demo` command ever asks for it.
         services.AddScoped<DemoDataSeeder>();

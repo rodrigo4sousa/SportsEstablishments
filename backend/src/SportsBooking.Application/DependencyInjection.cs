@@ -9,6 +9,7 @@ using SportsBooking.Application.Clubs;
 using SportsBooking.Application.Common;
 using SportsBooking.Application.Notifications;
 using SportsBooking.Application.Pitches;
+using SportsBooking.Application.Statistics;
 
 namespace SportsBooking.Application;
 
@@ -56,6 +57,11 @@ public static class DependencyInjection
         services.AddSingleton<PasswordResetRequestValidator>();
         services.AddSingleton<PasswordResetConfirmRequestValidator>();
         services.AddScoped<PasswordResetService>();
+
+        services.AddScoped<OccupationService>();
+        services.AddScoped<ClubStatisticsService>();
+        services.AddScoped<AdminTopOccupationService>();
+        services.AddScoped<AdminRegistrationsService>();
 
         services.AddScoped<AdminStatsService>();
         services.AddSingleton<BookingsOverTimeRequestValidator>();
