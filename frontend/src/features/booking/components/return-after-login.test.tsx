@@ -24,7 +24,7 @@ const club: PublicClub = {
   locality: "Porto",
   phone: "912345678",
   contactEmail: "geral@foz.pt",
-  pitches: [{ id: padel, name: "Padel 1", sport: "padel", pricePerSlot: 18.5 }],
+  pitches: [{ id: padel, name: "Padel 1", sport: "padel", pricePerSlot: 18.5, hasPriceBands: false }],
 };
 
 const slots = [

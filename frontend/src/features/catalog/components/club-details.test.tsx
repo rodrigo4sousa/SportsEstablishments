@@ -11,8 +11,8 @@ const club: PublicClub = {
   phone: "+351912345678",
   contactEmail: "geral@foz.pt",
   pitches: [
-    { id: "p1", name: "Padel 1", sport: "padel", pricePerSlot: 18.5 },
-    { id: "p2", name: "Ténis 1", sport: "tennis", pricePerSlot: 12 },
+    { id: "p1", name: "Padel 1", sport: "padel", pricePerSlot: 18.5, hasPriceBands: false },
+    { id: "p2", name: "Ténis 1", sport: "tennis", pricePerSlot: 12, hasPriceBands: false },
   ],
 };
 
@@ -32,6 +32,17 @@ describe("ClubDetails", () => {
     // Intl writes a no-break space before the euro sign.
     expect(padel.textContent?.replace(/\s/g, " ")).toBe("Padel 1 · Padel18,50 € por slot");
     expect(tennis.textContent?.replace(/\s/g, " ")).toBe("Ténis 1 · Ténis12,00 € por slot");
+  });
+
+  it("calls the price of a pitch with price bands its base price and says some hours cost something else (US10)", () => {
+    render(<ClubDetails club={{ ...club, pitches: [{ ...club.pitches[0], hasPriceBands: true }, club.pitches[1]] }} />);
+
+    const [padel, tennis] = within(screen.getByRole("list", { name: "Campos" })).getAllByRole("listitem");
+    expect(padel.textContent?.replace(/\s/g, " ")).toContain("Preço base: 18,50 € por slot");
+    expect(within(padel).getByText(/Alguns horários têm outro preço/)).toBeInTheDocument();
+    // A pitch without bands says nothing of the kind.
+    expect(tennis.textContent?.replace(/\s/g, " ")).toBe("Ténis 1 · Ténis12,00 € por slot");
+    expect(within(tennis).queryByText(/Alguns horários têm outro preço/)).not.toBeInTheDocument();
   });
 
   it("says so when the club has no pitch to show", () => {

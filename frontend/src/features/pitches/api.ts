@@ -78,8 +78,8 @@ export type PitchSchedule = {
   sunday: DayHours;
 };
 
-/** `blocked`: the slot overlaps a block (US09). `booked`: it overlaps a confirmed booking, even one made on an older grid (US18). */
-export type PreviewSlot = { startsAt: string; endsAt: string; blocked: boolean; booked: boolean };
+/** `price`: what a booking of the slot costs now, from its price band or else the base price (US10). `blocked`: the slot overlaps a block (US09). `booked`: it overlaps a confirmed booking, even one made on an older grid (US18). */
+export type PreviewSlot = { startsAt: string; endsAt: string; blocked: boolean; booked: boolean; price: number };
 
 export type PitchSlots = { date: string; slotDurationMinutes: number; slots: PreviewSlot[] };
 
@@ -111,7 +111,11 @@ export async function fetchSlots(clubId: string, pitchId: string, date: string):
   const response = await apiJson<components["schemas"]["PitchSlotsResponse"]>(
     `${pitchesPath(clubId)}/${pitchId}/slots?date=${encodeURIComponent(date)}`,
   );
-  return { ...response, slotDurationMinutes: Number(response.slotDurationMinutes) };
+  return {
+    ...response,
+    slotDurationMinutes: Number(response.slotDurationMinutes),
+    slots: response.slots.map((slot) => ({ ...slot, price: Number(slot.price) })),
+  };
 }
 
 // ---- US09: blocks
