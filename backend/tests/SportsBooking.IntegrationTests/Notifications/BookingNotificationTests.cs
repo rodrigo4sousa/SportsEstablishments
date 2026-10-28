@@ -361,6 +361,41 @@ public sealed class BookingNotificationTests(ApiFactory factory)
         (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Bookings.AsNoTracking().SingleAsync(booking => booking.Id == bookingId, Ct)).Price.ShouldBe(35.5m);
     }
 
+    // ---- US20: one summary per weekly series, owner emails and reminders per booking
+
+    [Fact]
+    public async Task A_weekly_series_sends_the_player_one_summary_and_the_owner_one_email_and_a_reminder_per_booking()
+    {
+        await using var site = Start();
+        var scenario = await ScenarioAsync(site, playerName: "Rita Jogadora");
+        // 11 May is taken by somebody else: it is left out, and the summary says so.
+        await site.App.AddBookingAsync(scenario.Pitch.Id, TestVenues.Utc("2026-05-11T09:00:00Z"), TestVenues.Utc("2026-05-11T10:00:00Z"));
+        var remindersBefore = (await OutboxAsync(site, OutboxMessageTypes.BookingReminder)).Count;
+
+        using var response = await SendAsync(site, HttpMethod.Post, "/api/bookings/recurring", scenario.PlayerToken, new { pitchId = scenario.Pitch.Id, startsAt = Slot, weeks = 3 });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
+
+        (await OutboxAsync(site, OutboxMessageTypes.BookingSeriesConfirmed)).Count.ShouldBe(1);
+        (await OutboxAsync(site, OutboxMessageTypes.BookingConfirmed)).ShouldBeEmpty();
+        (await OutboxAsync(site, OutboxMessageTypes.OwnerNewBooking)).Count.ShouldBe(2);
+        ((await OutboxAsync(site, OutboxMessageTypes.BookingReminder)).Count - remindersBefore).ShouldBe(2);
+
+        await site.RunWorkerAsync();
+
+        var toPlayer = SentTo(site, scenario.Player.Email!);
+        var summary = toPlayer.ShouldHaveSingleItem(); // the reminders are not due yet
+        summary.Subject.ShouldBe("Reservas semanais confirmadas: Clube da Foz, 2 datas");
+        summary.TextBody.ShouldContain("Olá Rita Jogadora,");
+        summary.TextBody.ShouldContain("- segunda-feira, 4 de maio de 2026, 10:00 – 11:00 · 20,00 €");
+        summary.TextBody.ShouldContain("- segunda-feira, 18 de maio de 2026, 10:00 – 11:00 · 20,00 €");
+        summary.TextBody.ShouldContain("Estas datas ficaram de fora e não foram reservadas:");
+        summary.TextBody.ShouldContain("- segunda-feira, 11 de maio de 2026, 10:00 – 11:00: já está reservado");
+        summary.TextBody.ShouldContain("Campo: Padel 1");
+        summary.HtmlBody.ShouldContain("<li>segunda-feira, 4 de maio de 2026, 10:00 – 11:00 · 20,00 €</li>");
+        SentTo(site, scenario.Owner.Email!).Count.ShouldBe(2);
+        site.Sender.Sent.ShouldNotContain(sent => sent.Subject.StartsWith("Reserva confirmada", StringComparison.Ordinal));
+    }
+
     // ---- US21: the reminder is sent, or skipped
 
     [Fact]

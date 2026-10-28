@@ -115,7 +115,7 @@ public sealed class MyBookingsTests(ApiFactory factory)
 
         var item = Items(page).ShouldHaveSingleItem();
         item.EnumerateObject().Select(property => property.Name).ShouldBe(
-            ["id", "clubName", "clubSlug", "pitchName", "sport", "startsAt", "endsAt", "price", "status", "canCancel", "cancellationDeadline"]);
+            ["id", "clubName", "clubSlug", "pitchName", "sport", "startsAt", "endsAt", "price", "status", "canCancel", "cancellationDeadline", "series"]);
         item.GetProperty("id").GetGuid().ShouldBe(booking.Id);
         item.GetProperty("clubName").GetString().ShouldBe(club.Name);
         item.GetProperty("clubSlug").GetString().ShouldBe(club.Slug);
