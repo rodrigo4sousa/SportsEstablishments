@@ -8,6 +8,7 @@ const MESSAGES: Record<string, string> = {
   block_not_found: "Este bloqueio já não existe.",
   block_overlap: "Este período sobrepõe-se a outro bloqueio deste campo.",
   block_already_started: "Um bloqueio que já começou não pode ser removido.",
+  series_unavailable: "Nenhuma das datas escolhidas está disponível, por isso não foi feita nenhuma reserva.",
   price_band_not_found: "Esta faixa de preço já não existe.",
   price_band_overlap: "Esta faixa sobrepõe-se a outra faixa de preço deste campo num dos dias escolhidos.",
   price_band_limit_reached: "Um campo pode ter no máximo 20 faixas de preço.",

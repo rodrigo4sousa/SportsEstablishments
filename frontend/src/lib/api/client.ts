@@ -17,6 +17,8 @@ export class ApiError extends Error {
     readonly code: string,
     readonly fieldErrors: Readonly<Record<string, string[]>> = {},
     readonly traceId?: string,
+    /** The ProblemDetails members beyond the standard ones (e.g. `skipped` of `series_unavailable`); read what you expect, nothing else. */
+    readonly extensions: Readonly<Record<string, unknown>> = {},
   ) {
     super(`API request failed: ${status} ${code}`);
     this.name = "ApiError";
@@ -94,6 +96,7 @@ async function toApiError(response: Response): Promise<ApiError> {
     typeof problem?.code === "string" ? problem.code : "unknown_error",
     (problem?.errors as Record<string, string[]> | undefined) ?? {},
     problem?.traceId,
+    (problem ?? {}) as Record<string, unknown>,
   );
 }
 

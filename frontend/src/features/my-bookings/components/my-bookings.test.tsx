@@ -97,6 +97,22 @@ describe("MyBookings", () => {
       expect(screen.getByText("1 reserva")).toBeInTheDocument();
     });
 
+    it("says which booking of a weekly series each is («2 de 4»), and nothing for a single booking (US20)", async () => {
+      const series = "0199f7a0-0000-7000-8000-0000000000e1";
+      serveList(() =>
+        page([
+          booking({ id: FIRST_ID, series: { id: series, position: 1, count: 4 } }),
+          booking({ id: SECOND_ID, series: { id: series, position: 2, count: 4 } }),
+          booking({ id: "0199f7a0-0000-7000-8000-0000000000b3", series: null }),
+        ]),
+      );
+
+      renderWithProviders(<MyBookings />);
+
+      await waitFor(() => expect(items()).toHaveLength(3));
+      expect(items().map((item) => details(item)["Reserva semanal"])).toEqual(["1 de 4", "2 de 4", undefined]);
+    });
+
     it("shows the times in Lisbon time whatever the browser's time zone, and marks the repeated October hour", async () => {
       // 00:30 UTC on 25 October 2026 is 01:30 WEST (first); 01:30 UTC is 01:30 WET (second).
       serveList(() =>
