@@ -37,7 +37,7 @@ public sealed record DemoSeedSummary(
 /// <see cref="Pitch.ChangeSchedule"/>, <see cref="Booking.ForPlayer"/>, <see cref="Booking.CancelByPlayer"/>, …); the one
 /// thing it bypasses is the service rule "no bookings in the past", by building the bookings itself. Every booking is on a
 /// slot the pitch's schedule generates (<see cref="Pitch.SlotsOn"/>), at the pitch's price, clear of the blocks, so the
-/// exclusion constraint accepts all of it, and is created before its start and after its player registered.
+/// exclusion constraint accepts all of it, and is created before its start, after its player registered and after its club's owner registered.
 /// The data is deterministic (a fixed random seed) and anchored to the Lisbon date: the same date gives the same names,
 /// dates, prices and statuses (only the generated ids and password hashes differ). It queues no email.
 /// All addresses are on the reserved domain <c>example.test</c>; every account has the same development-only password.
@@ -97,7 +97,7 @@ public sealed partial class DemoDataSeeder(
 
         var owners = await CreateOwnersAsync(anchor, passwordHash, cancellationToken);
         var players = await CreatePlayersAsync(anchor, passwordHash, random, cancellationToken);
-        var venues = CreateVenues(owners, anchor);
+        var venues = CreateVenues(owners);
         dbContext.Clubs.AddRange(venues.Select(venue => venue.Club));
         dbContext.Pitches.AddRange(venues.SelectMany(venue => venue.Pitches).Select(pitch => pitch.Pitch));
         var blocks = CreateBlocks(venues, today);
@@ -132,23 +132,26 @@ public sealed partial class DemoDataSeeder(
 
     // ---- Accounts
 
-    private async Task<List<Guid>> CreateOwnersAsync(DateTime anchor, string passwordHash, CancellationToken cancellationToken)
+    private sealed record DemoOwner(Guid Id, DateTime RegisteredAt);
+
+    private async Task<List<DemoOwner>> CreateOwnersAsync(DateTime anchor, string passwordHash, CancellationToken cancellationToken)
     {
-        var ids = new List<Guid>();
+        var owners = new List<DemoOwner>();
         for (var index = 0; index < OwnerCount; index++)
         {
-            // Owners signed up before their clubs: 150 down to 130 days ago.
-            var registeredAt = anchor.AddDays(-150 + (index * 5)).AddHours(10 + index);
+            // Owners signed up over the first half of the last 90 days (88, 76, 64, 52 and 40 days ago), so the admin's
+            // registrations chart shows them; each club opens the day after its owner registered, and takes no booking before.
+            var registeredAt = anchor.AddDays(-(RegistrationDays - 2) + (index * 12)).AddHours(10 + index);
             var user = new AppUser(DemoNames.OwnerEmail(index), DemoNames.Owners[index], registeredAt)
             {
                 PhoneNumber = $"9{1 + index}{3000000 + (index * 111111):0000000}"[..9],
                 PasswordHash = passwordHash,
             };
             await CreateAccountAsync(user, Profiles.Owner, cancellationToken);
-            ids.Add(user.Id);
+            owners.Add(new DemoOwner(user.Id, registeredAt));
         }
 
-        return ids;
+        return owners;
     }
 
     private async Task<List<DemoPlayer>> CreatePlayersAsync(DateTime anchor, string passwordHash, Random random, CancellationToken cancellationToken)
@@ -191,21 +194,22 @@ public sealed partial class DemoDataSeeder(
 
     // ---- Clubs, pitches, blocks
 
-    private static List<DemoVenue> CreateVenues(List<Guid> owners, DateTime anchor)
+    private static List<DemoVenue> CreateVenues(List<DemoOwner> owners)
     {
         var taken = new List<string>();
         var venues = new List<DemoVenue>();
-        var createdAt = anchor.AddDays(-125);
         foreach (var (spec, number) in DemoCatalog.Clubs.Select((spec, index) => (spec, index + 1)))
         {
             var slug = ClubSlug.NextAvailable(ClubSlug.FromName(spec.Name), taken);
             taken.Add(slug);
             var details = new ClubDetails(spec.Name, spec.Address, spec.Locality, spec.Phone, $"geral.clube{number:00}@{EmailDomain}");
-            var club = Club.Create(owners[spec.OwnerIndex], slug, details, spec.CancellationWindowHours, createdAt.AddDays(number));
+            // The club opens the day after its owner signed up (and its clubs an hour apart).
+            var createdAt = owners[spec.OwnerIndex].RegisteredAt.AddDays(1).AddHours(number);
+            var club = Club.Create(owners[spec.OwnerIndex].Id, slug, details, spec.CancellationWindowHours, createdAt);
             var pitches = spec.Pitches.Select(pitchSpec =>
             {
-                var pitch = Pitch.Create(club.Id, new PitchDetails(pitchSpec.Name, pitchSpec.Sport, pitchSpec.Price), createdAt.AddDays(number).AddHours(1));
-                pitch.ChangeSchedule(SlotDuration.FromMinutes(pitchSpec.SlotMinutes), pitchSpec.Week(), createdAt.AddDays(number).AddHours(1));
+                var pitch = Pitch.Create(club.Id, new PitchDetails(pitchSpec.Name, pitchSpec.Sport, pitchSpec.Price), createdAt.AddHours(1));
+                pitch.ChangeSchedule(SlotDuration.FromMinutes(pitchSpec.SlotMinutes), pitchSpec.Week(), createdAt.AddHours(1));
                 return new DemoPitch(pitch, pitchSpec.Popularity);
             }).ToList();
             venues.Add(new DemoVenue(club, spec.Region, pitches));
@@ -305,6 +309,11 @@ public sealed partial class DemoDataSeeder(
             var isPast = slot.EndsAtUtc <= anchor;
             var forCustomer = random.NextDouble() < 0.06;
             var createdAt = CreationTime(slot.StartsAtUtc, forCustomer);
+            if (createdAt < pitch.CreatedAt)
+            {
+                // The club (and so its owner's account) did not exist yet when this booking would have been made.
+                return;
+            }
 
             var booking = forCustomer
                 ? Booking.ForCustomer(pitch.Id, DemoNames.CustomerName(random), DemoNames.CustomerPhone(random), slot.StartsAtUtc, slot.EndsAtUtc, pitch.PricePerSlot, createdAt)
