@@ -5,6 +5,9 @@ public static class OutboxMessageTypes
 {
     public const string BookingConfirmed = "booking_confirmed";
 
+    /// <summary>US20: one summary of a weekly series for the player: the bookings made and the dates left out (instead of one confirmation each).</summary>
+    public const string BookingSeriesConfirmed = "booking_series_confirmed";
+
     public const string BookingCancelledByPlayer = "booking_cancelled_by_player";
 
     public const string BookingCancelledByClub = "booking_cancelled_by_club";

@@ -117,8 +117,14 @@ public sealed class Booking
 
     public bool IsConfirmed => Status == BookingStatus.Confirmed;
 
+    /// <summary>
+    /// US20: the weekly series this booking was made in, shared by the bookings one recurring request created; null for a single
+    /// booking. Each booking of a series is still independent (its own price, status and cancellation).
+    /// </summary>
+    public Guid? SeriesId { get; private set; }
+
     /// <summary>A confirmed booking by a player (US18).</summary>
-    public static Booking ForPlayer(Guid pitchId, Guid playerId, DateTime startsAt, DateTime endsAt, decimal price, DateTime now)
+    public static Booking ForPlayer(Guid pitchId, Guid playerId, DateTime startsAt, DateTime endsAt, decimal price, DateTime now, Guid? seriesId = null)
     {
         if (playerId == Guid.Empty)
         {
@@ -140,6 +146,7 @@ public sealed class Booking
             Id = Guid.CreateVersion7(),
             PitchId = pitchId,
             PlayerId = playerId,
+            SeriesId = seriesId,
             StartsAt = startsAt,
             EndsAt = endsAt,
             Price = price,

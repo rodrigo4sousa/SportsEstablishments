@@ -337,6 +337,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price");
 
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("series_id");
+
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("starts_at");
@@ -352,6 +356,9 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_bookings_created_at");
+
+                    b.HasIndex("SeriesId")
+                        .HasDatabaseName("ix_bookings_series_id");
 
                     b.HasIndex("PitchId", "StartsAt")
                         .HasDatabaseName("ix_bookings_pitch_id_starts_at");

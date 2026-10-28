@@ -14,7 +14,12 @@ export type BookingSelection = {
   dateInWindow: boolean;
   /** The chosen slot's start as an instant with its zone, as the API gave it; null when none. */
   slot: string | null;
+  /** US20: how many weekly occurrences to book, the first included: 1 (no repetition) to 4. */
+  weeks: number;
 };
+
+/** US20: at most four weeks, the first one included. */
+export const MAX_WEEKS = 4;
 
 // An instant with its zone, as the API writes slot times ("2026-10-25T00:00:00Z"); the zone is what keeps the
 // October hour that happens twice unambiguous. Anything else in the URL is ignored.
@@ -28,10 +33,15 @@ export function resolveSelection(params: URLSearchParams, pitches: readonly { id
   const dateInWindow = isDateKey(date) && date >= range.min && date <= range.max;
 
   const slot = params.get("slot");
-  return { pitchId, date, dateInWindow, slot: slot !== null && ZONED_INSTANT.test(slot) ? slot : null };
+  return { pitchId, date, dateInWindow, slot: slot !== null && ZONED_INSTANT.test(slot) ? slot : null, weeks: parseWeeks(params.get("weeks")) };
 }
 
-export type SelectionPatch = { pitch?: string | null; date?: string | null; slot?: string | null };
+/** The `weeks` in the address: a whole number from 2 to 4; anything else (or nothing) is 1, no repetition. */
+export function parseWeeks(text: string | null): number {
+  return text !== null && /^[1-4]$/.test(text) ? Number(text) : 1;
+}
+
+export type SelectionPatch = { pitch?: string | null; date?: string | null; slot?: string | null; weeks?: string | null };
 
 /** The address of the same page with some choices changed; `null` removes one. Other parameters are kept. */
 export function selectionHref(pathname: string, params: URLSearchParams, patch: SelectionPatch): string {

@@ -54,6 +54,9 @@ public static class ErrorCodes
     /// <summary>409 from creating a block (US09): confirmed bookings overlap it; <c>bookings</c> lists their times.</summary>
     public const string BlockOverlapsBookings = "block_overlaps_bookings";
 
+    /// <summary>409 from a weekly series (US20): none of its dates could be booked; <c>skipped</c> gives each date's reason.</summary>
+    public const string SeriesUnavailable = "series_unavailable";
+
     /// <summary>404 from the owner area (US10): the pitch is the owner's, but it has no price band with this id.</summary>
     public const string PriceBandNotFound = "price_band_not_found";
 

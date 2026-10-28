@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveSelection, sameInstant, selectionHref } from "./selection";
+import { parseWeeks, resolveSelection, sameInstant, selectionHref } from "./selection";
 
 const pitches = [{ id: "p1" }, { id: "p2" }];
 const range = { min: "2026-05-01", max: "2026-05-31" };
@@ -7,7 +7,7 @@ const params = (query: string) => new URLSearchParams(query);
 
 describe("resolveSelection", () => {
   it("defaults to the first pitch, today and no slot", () => {
-    expect(resolveSelection(params(""), pitches, range)).toEqual({ pitchId: "p1", date: "2026-05-01", dateInWindow: true, slot: null });
+    expect(resolveSelection(params(""), pitches, range)).toEqual({ pitchId: "p1", date: "2026-05-01", dateInWindow: true, slot: null, weeks: 1 });
   });
 
   it("reads pitch, date and slot from the URL", () => {
@@ -16,6 +16,7 @@ describe("resolveSelection", () => {
       date: "2026-05-04",
       dateInWindow: true,
       slot: "2026-05-04T10:00:00Z",
+      weeks: 1,
     });
   });
 
@@ -66,5 +67,21 @@ describe("sameInstant", () => {
   it("compares moments, not text", () => {
     expect(sameInstant("2026-05-04T10:00:00Z", "2026-05-04T11:00:00+01:00")).toBe(true);
     expect(sameInstant("2026-10-25T00:30:00Z", "2026-10-25T01:30:00Z")).toBe(false); // the two 01:30s of that night
+  });
+});
+
+describe("weeks (US20)", () => {
+  it("reads 2 to 4 from the address and takes anything else as no repetition", () => {
+    expect(["2", "3", "4"].map((weeks) => resolveSelection(params(`weeks=${weeks}`), pitches, range).weeks)).toEqual([2, 3, 4]);
+    for (const weeks of ["", "0", "5", "-1", "2.5", "tres", "10"]) {
+      expect(parseWeeks(weeks), weeks).toBe(1);
+    }
+    expect(parseWeeks(null)).toBe(1);
+  });
+
+  it("is kept when another choice changes and removed with null", () => {
+    const current = params("pitch=p1&date=2026-05-04&weeks=3");
+    expect(selectionHref("/clubs/foz", current, { slot: "2026-05-04T10:00:00Z" })).toBe("/clubs/foz?pitch=p1&date=2026-05-04&weeks=3&slot=2026-05-04T10%3A00%3A00Z");
+    expect(selectionHref("/clubs/foz", current, { weeks: null })).toBe("/clubs/foz?pitch=p1&date=2026-05-04");
   });
 });

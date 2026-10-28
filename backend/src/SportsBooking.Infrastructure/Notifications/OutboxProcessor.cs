@@ -132,6 +132,23 @@ public sealed partial class OutboxProcessor(
             return await BuildBookingNotificationAsync(message, cancellationToken);
         }
 
+        if (message.Type == OutboxMessageTypes.BookingSeriesConfirmed)
+        {
+            // US20: the summary of a weekly series, to the player's current address.
+            var series = BookingSeriesEmailPayload.Deserialize(message.Payload);
+            var player = await dbContext.Users.AsNoTracking()
+                .Where(user => user.Id == series.PlayerId)
+                .Select(user => new { user.Email, user.Name })
+                .SingleOrDefaultAsync(cancellationToken);
+            if (player?.Email is not { Length: > 0 } playerAddress)
+            {
+                return new Built(null);
+            }
+
+            var summary = BookingSeriesEmailComposer.Compose(series, player.Name);
+            return new Built(new EmailMessage(playerAddress, player.Name, summary.Subject, summary.TextBody, summary.HtmlBody));
+        }
+
         var payload = BookingEmailPayload.Deserialize(message.Payload);
         var recipient = await dbContext.Users.AsNoTracking()
             .Where(user => user.Id == payload.PlayerId)

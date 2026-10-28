@@ -21,9 +21,10 @@ import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { loginUrl } from "@/lib/auth/redirects";
 import { formatDateKeyLong } from "@/lib/datetime";
-import { createBooking, type Booking } from "../api";
+import { createBooking, createRecurring, previewRecurring, skippedOf, type Booking, type RecurringResult, type SkippedDate } from "../api";
 import { resolveSelection, sameInstant, selectionHref, type SelectionPatch } from "../selection";
 import { BookingConfirmation, BookingSummary } from "./booking-summary";
+import { RecurringConfirmation, RecurringNoneBooked, RecurringPreviewList, WeeksSelect } from "./recurring";
 import { SlotList } from "./slot-list";
 
 const SLOT_GONE = "Este horário já não está disponível. Escolhe outro.";
@@ -42,6 +43,8 @@ export function ClubBooking({ club }: { club: PublicClub }) {
   const [range] = useState(() => previewDateRange());
   const [failure, setFailure] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Booking | null>(null);
+  const [series, setSeries] = useState<RecurringResult | null>(null);
+  const [noneBooked, setNoneBooked] = useState<SkippedDate[]>([]);
 
   const selection = resolveSelection(params, club.pitches, range);
   const pitch = club.pitches.find((candidate) => candidate.id === selection.pitchId);
@@ -62,7 +65,9 @@ export function ClubBooking({ club }: { club: PublicClub }) {
   const slotGone = selection.slot !== null && slots.isSuccess && chosenFree === undefined;
 
   // Where to come back to after signing in: this page with the pitch, date and slot written out.
-  const returnPath = selectionHref(pathname, params, { pitch: selection.pitchId, date: selection.date, slot: selection.slot });
+  // US20: the weeks are kept too, so the player comes back to the same repetition.
+  const weeksParam = selection.weeks > 1 ? String(selection.weeks) : null;
+  const returnPath = selectionHref(pathname, params, { pitch: selection.pitchId, date: selection.date, slot: selection.slot, weeks: weeksParam });
   const choose = (patch: SelectionPatch) => router.replace(selectionHref(pathname, params, patch), { scroll: false });
 
   const book = useMutation({
@@ -95,13 +100,51 @@ export function ClubBooking({ club }: { club: PublicClub }) {
     },
   });
 
+  const repeat = useMutation({
+    mutationFn: createRecurring,
+    onSuccess: (result) => {
+      setFailure(null);
+      setNoneBooked([]);
+      setSeries(result);
+      choose({ slot: null });
+      void queryClient.invalidateQueries({ queryKey: catalogQueryKey });
+      void queryClient.invalidateQueries({ queryKey: myBookingsQueryKey });
+    },
+    onError: (error) => {
+      if (!(error instanceof ApiError)) {
+        toast.error(errorMessage("unknown_error"));
+        return;
+      }
+      if (error.status === 401) {
+        router.push(loginUrl(returnPath));
+        return;
+      }
+      setFailure(publicErrorMessage(error.code));
+      setNoneBooked(error.code === "series_unavailable" ? skippedOf(error) : []);
+      if (error.code !== NETWORK_ERROR) {
+        choose({ slot: null });
+        void queryClient.invalidateQueries({ queryKey: catalogQueryKey });
+      }
+    },
+  });
+
+  // US20: with more than one week, which dates are free (read-only, and only for a signed-in player).
+  const recurringPreview = useQuery({
+    queryKey: [...catalogQueryKey, "recurring-preview", selection.pitchId, chosenFree?.startsAt ?? "", selection.weeks],
+    queryFn: () => previewRecurring({ pitchId: selection.pitchId ?? "", startsAt: chosenFree?.startsAt ?? "", weeks: selection.weeks }),
+    enabled: isPlayer && chosenFree !== undefined && selection.weeks > 1,
+  });
+  const freeDates = recurringPreview.data?.occurrences.filter((occurrence) => occurrence.status === "free").length ?? 0;
+
   if (!pitch) {
     return null;
   }
 
   const pick = (patch: SelectionPatch) => {
     setFailure(null);
+    setNoneBooked([]);
     setConfirmed(null);
+    setSeries(null);
     choose(patch);
   };
 
@@ -147,6 +190,10 @@ export function ClubBooking({ club }: { club: PublicClub }) {
           {SLOT_GONE}
         </p>
       ) : null}
+
+      {noneBooked.length > 0 ? <RecurringNoneBooked skipped={noneBooked} /> : null}
+
+      {series ? <RecurringConfirmation result={series} onDismiss={() => setSeries(null)} /> : null}
 
       {confirmed ? (
         <BookingConfirmation
@@ -197,19 +244,52 @@ export function ClubBooking({ club }: { club: PublicClub }) {
         <BookingSummary
           details={{ clubName: club.name, pitchName: pitch.name, startsAt: chosenFree.startsAt, endsAt: chosenFree.endsAt, price: chosenFree.price }}
         >
+          <WeeksSelect weeks={selection.weeks} disabled={book.isPending || repeat.isPending} onChange={(weeks) => pick({ weeks: weeks > 1 ? String(weeks) : null })} />
+          {isPlayer && selection.weeks > 1 ? (
+            recurringPreview.isPending ? (
+              <p role="status" className="basis-full text-sm text-muted-foreground">
+                A ver quais das datas estão livres…
+              </p>
+            ) : recurringPreview.isError ? (
+              <div role="alert" className="flex basis-full flex-col items-start gap-2">
+                <p className="text-sm">{publicErrorMessage(recurringPreview.error instanceof ApiError ? recurringPreview.error.code : "unknown_error")}</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void recurringPreview.refetch()}>
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : (
+              <div className="basis-full">
+                <RecurringPreviewList occurrences={recurringPreview.data.occurrences} />
+              </div>
+            )
+          ) : null}
           {isPlayer ? (
             <>
-              <Button
-                type="button"
-                disabled={book.isPending}
-                onClick={() => {
-                  setFailure(null);
-                  book.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt });
-                }}
-              >
-                {book.isPending ? "A reservar…" : "Confirmar reserva"}
-              </Button>
-              <Button type="button" variant="outline" disabled={book.isPending} onClick={() => pick({ slot: null })}>
+              {selection.weeks > 1 ? (
+                <Button
+                  type="button"
+                  disabled={repeat.isPending || !recurringPreview.isSuccess || freeDates === 0}
+                  onClick={() => {
+                    setFailure(null);
+                    setNoneBooked([]);
+                    repeat.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt, weeks: selection.weeks });
+                  }}
+                >
+                  {repeat.isPending ? "A reservar…" : freeDates === 1 ? "Confirmar 1 reserva" : `Confirmar ${freeDates || ""} reservas`.replace("  ", " ")}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={book.isPending}
+                  onClick={() => {
+                    setFailure(null);
+                    book.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt });
+                  }}
+                >
+                  {book.isPending ? "A reservar…" : "Confirmar reserva"}
+                </Button>
+              )}
+              <Button type="button" variant="outline" disabled={book.isPending || repeat.isPending} onClick={() => pick({ slot: null })}>
                 Cancelar
               </Button>
             </>

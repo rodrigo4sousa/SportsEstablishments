@@ -46,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<BookingEmailOutbox>();
         services.AddScoped<BookingSlotCheck>();
         services.AddScoped<BookingService>();
+        services.AddSingleton<RecurringBookingRequestValidator>();
+        services.AddScoped<RecurringBookingService>();
         services.AddSingleton<MyBookingsRequestValidator>();
         services.AddScoped<MyBookingsService>();
         services.AddScoped<BookingCancellationService>();

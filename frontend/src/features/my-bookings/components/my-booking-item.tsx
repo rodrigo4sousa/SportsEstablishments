@@ -65,6 +65,12 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, on
         </dd>
         <dt className="text-muted-foreground">Preço</dt>
         <dd className="tabular-nums">{formatPrice(booking.price)}</dd>
+        {booking.series ? (
+          <>
+            <dt className="text-muted-foreground">Reserva semanal</dt>
+            <dd className="tabular-nums">{booking.series.position} de {booking.series.count}</dd>
+          </>
+        ) : null}
       </dl>
 
       {isConfirmed && cancellable ? (
