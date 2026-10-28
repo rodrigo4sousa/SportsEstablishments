@@ -56,6 +56,10 @@ internal sealed class PitchConfiguration : IEntityTypeConfiguration<Pitch>
         });
         builder.Navigation(pitch => pitch.OpeningDays).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        // US10: the price bands decide the prices of the pitch, so every read of a pitch brings them (a few rows at most).
+        builder.Navigation(pitch => pitch.PriceBands).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
+        builder.Ignore(pitch => pitch.HasPriceBands);
+
         builder.HasIndex(pitch => new { pitch.ClubId, pitch.NameKey }).IsUnique().HasDatabaseName(NameIndex);
 
         // Pitches are never deleted, and a club that has pitches is not deleted either.

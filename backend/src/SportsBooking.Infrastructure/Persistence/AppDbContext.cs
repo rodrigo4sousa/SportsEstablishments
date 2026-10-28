@@ -28,6 +28,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Block> Blocks => Set<Block>();
 
+    public DbSet<PitchPriceBand> PriceBands => Set<PitchPriceBand>();
+
     public DbSet<Booking> Bookings => Set<Booking>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

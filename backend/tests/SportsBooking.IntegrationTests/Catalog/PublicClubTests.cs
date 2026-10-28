@@ -42,11 +42,12 @@ public sealed class PublicClubTests(ApiFactory factory)
 
         var pitches = body.GetProperty("pitches").EnumerateArray().ToList();
         pitches.Count.ShouldBe(2);
-        pitches[0].EnumerateObject().Select(property => property.Name).ShouldBe(["id", "name", "sport", "pricePerSlot"]);
+        pitches[0].EnumerateObject().Select(property => property.Name).ShouldBe(["id", "name", "sport", "pricePerSlot", "hasPriceBands"]);
         pitches[0].GetProperty("id").GetGuid().ShouldBe(padel.Id);
         pitches[0].GetProperty("name").GetString().ShouldBe("Padel 1");
         pitches[0].GetProperty("sport").GetString().ShouldBe("padel");
         pitches[0].GetProperty("pricePerSlot").GetDecimal().ShouldBe(24.5m);
+        pitches[0].GetProperty("hasPriceBands").GetBoolean().ShouldBeFalse();
         pitches[1].GetProperty("id").GetGuid().ShouldBe(tennis.Id);
         pitches[1].GetProperty("sport").GetString().ShouldBe("tennis");
     }

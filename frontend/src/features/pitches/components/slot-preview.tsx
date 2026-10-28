@@ -9,12 +9,13 @@ import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { formatLisbonLongDate, formatLisbonSlotTime, isDateKey } from "@/lib/datetime";
 import { fetchSlots, slotsQueryKey } from "../api";
+import { formatPrice } from "../price";
 import { DATE_OUT_OF_WINDOW, previewDateRange } from "../schedule";
 
 /**
  * US08: the slots a pitch's hours generate on a date, today to 30 days ahead, in Lisbon time. A read-only preview:
  * a slot taken by a confirmed booking is marked "Reservado" and one that overlaps a block "Bloqueado" (it can be both).
- * The repeated October hour is labelled "(verão)" and "(inverno)".
+ * The repeated October hour is labelled "(verão)" and "(inverno)". Each slot shows the price a booking costs now (US10).
  */
 export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: string }) {
   const [range] = useState(() => previewDateRange());
@@ -67,7 +68,7 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
               data-booked={slot.booked || undefined}
               className={`rounded-md border px-3 py-1 text-sm tabular-nums ${slot.blocked || slot.booked ? "border-dashed bg-muted text-muted-foreground" : ""}`}
             >
-              {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)}
+              {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)} · {formatPrice(slot.price)}
               {slot.booked ? (
                 <>
                   {" "}

@@ -13,7 +13,7 @@ function slots(date: string, minutes: number, instants: string[]) {
   return HttpResponse.json({
     date,
     slotDurationMinutes: minutes,
-    slots: instants.slice(0, -1).map((startsAt, index) => ({ startsAt, endsAt: instants[index + 1] })),
+    slots: instants.slice(0, -1).map((startsAt, index) => ({ startsAt, endsAt: instants[index + 1], price: 20 })),
   });
 }
 
@@ -66,7 +66,7 @@ describe("SlotPreview", () => {
     await screen.findByRole("list", { name: "Slots gerados" });
 
     // 27 October is after the clocks went back: Lisbon is on UTC.
-    expect(texts()).toEqual(["09:00 – 10:30", "10:30 – 12:00"]);
+    expect(texts()).toEqual(["09:00 – 10:30 · 20,00 €", "10:30 – 12:00 · 20,00 €"]);
     expect(screen.getByText(/2 slots de 90 minutos/)).toBeInTheDocument();
   });
 
@@ -88,11 +88,11 @@ describe("SlotPreview", () => {
     await screen.findByRole("list", { name: "Slots gerados" });
 
     expect(texts()).toEqual([
-      "00:00 – 01:00 (verão)",
-      "01:00 (verão) – 01:00 (inverno)",
-      "01:00 (inverno) – 02:00",
-      "02:00 – 03:00",
-      "03:00 – 04:00",
+      "00:00 – 01:00 (verão) · 20,00 €",
+      "01:00 (verão) – 01:00 (inverno) · 20,00 €",
+      "01:00 (inverno) – 02:00 · 20,00 €",
+      "02:00 – 03:00 · 20,00 €",
+      "03:00 – 04:00 · 20,00 €",
     ]);
     expect(screen.getByText(/5 slots de 60 minutos/)).toBeInTheDocument();
   });
@@ -114,12 +114,12 @@ describe("SlotPreview", () => {
           date: "2026-10-25",
           slotDurationMinutes: 60,
           slots: [
-            { startsAt: "2026-10-24T23:00:00Z", endsAt: "2026-10-25T00:00:00Z", blocked: false },
+            { startsAt: "2026-10-24T23:00:00Z", endsAt: "2026-10-25T00:00:00Z", blocked: false, price: 20 },
             // The block 01:30 (verão) to 02:30 cuts into these three.
-            { startsAt: "2026-10-25T00:00:00Z", endsAt: "2026-10-25T01:00:00Z", blocked: true },
-            { startsAt: "2026-10-25T01:00:00Z", endsAt: "2026-10-25T02:00:00Z", blocked: true },
-            { startsAt: "2026-10-25T02:00:00Z", endsAt: "2026-10-25T03:00:00Z", blocked: true },
-            { startsAt: "2026-10-25T03:00:00Z", endsAt: "2026-10-25T04:00:00Z", blocked: false },
+            { startsAt: "2026-10-25T00:00:00Z", endsAt: "2026-10-25T01:00:00Z", blocked: true, price: 20 },
+            { startsAt: "2026-10-25T01:00:00Z", endsAt: "2026-10-25T02:00:00Z", blocked: true, price: 20 },
+            { startsAt: "2026-10-25T02:00:00Z", endsAt: "2026-10-25T03:00:00Z", blocked: true, price: 20 },
+            { startsAt: "2026-10-25T03:00:00Z", endsAt: "2026-10-25T04:00:00Z", blocked: false, price: 20 },
           ],
         }),
       ),
@@ -131,8 +131,30 @@ describe("SlotPreview", () => {
     const items = screen.getAllByRole("listitem");
     expect(items.map((item) => item.hasAttribute("data-blocked"))).toEqual([false, true, true, true, false]);
     expect(screen.getAllByText("Bloqueado")).toHaveLength(3);
-    expect(texts()[1]).toBe("01:00 (verão) – 01:00 (inverno) Bloqueado");
+    expect(texts()[1]).toBe("01:00 (verão) – 01:00 (inverno) · 20,00 € Bloqueado");
     expect(texts()[0]).not.toContain("Bloqueado");
+  });
+
+  it("shows each slot's price, higher inside a price band than outside it (US10)", async () => {
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json({
+          date: "2026-10-27",
+          slotDurationMinutes: 60,
+          slots: [
+            { startsAt: "2026-10-27T17:00:00Z", endsAt: "2026-10-27T18:00:00Z", blocked: false, booked: false, price: 20 },
+            { startsAt: "2026-10-27T18:00:00Z", endsAt: "2026-10-27T19:00:00Z", blocked: false, booked: false, price: 32.5 },
+            { startsAt: "2026-10-27T19:00:00Z", endsAt: "2026-10-27T20:00:00Z", blocked: false, booked: true, price: 32.5 },
+          ],
+        }),
+      ),
+    );
+    renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
+    chosen("2026-10-27");
+
+    await screen.findByRole("list", { name: "Slots gerados" });
+
+    expect(texts()).toEqual(["17:00 – 18:00 · 20,00 €", "18:00 – 19:00 · 32,50 €", "19:00 – 20:00 · 32,50 € Reservado"]);
   });
 
   it("marks the slots taken by a booking as Reservado, next to Bloqueado when a slot is both", async () => {
@@ -142,10 +164,10 @@ describe("SlotPreview", () => {
           date: "2026-10-27",
           slotDurationMinutes: 60,
           slots: [
-            { startsAt: "2026-10-27T09:00:00Z", endsAt: "2026-10-27T10:00:00Z", blocked: false, booked: false },
-            { startsAt: "2026-10-27T10:00:00Z", endsAt: "2026-10-27T11:00:00Z", blocked: false, booked: true },
-            { startsAt: "2026-10-27T11:00:00Z", endsAt: "2026-10-27T12:00:00Z", blocked: true, booked: false },
-            { startsAt: "2026-10-27T12:00:00Z", endsAt: "2026-10-27T13:00:00Z", blocked: true, booked: true },
+            { startsAt: "2026-10-27T09:00:00Z", endsAt: "2026-10-27T10:00:00Z", blocked: false, booked: false, price: 20 },
+            { startsAt: "2026-10-27T10:00:00Z", endsAt: "2026-10-27T11:00:00Z", blocked: false, booked: true, price: 20 },
+            { startsAt: "2026-10-27T11:00:00Z", endsAt: "2026-10-27T12:00:00Z", blocked: true, booked: false, price: 20 },
+            { startsAt: "2026-10-27T12:00:00Z", endsAt: "2026-10-27T13:00:00Z", blocked: true, booked: true, price: 20 },
           ],
         }),
       ),
@@ -156,7 +178,7 @@ describe("SlotPreview", () => {
     await screen.findByRole("list", { name: "Slots gerados" });
 
     // 27 October is after the clocks went back: Lisbon is on UTC.
-    expect(texts()).toEqual(["09:00 – 10:00", "10:00 – 11:00 Reservado", "11:00 – 12:00 Bloqueado", "12:00 – 13:00 Reservado Bloqueado"]);
+    expect(texts()).toEqual(["09:00 – 10:00 · 20,00 €", "10:00 – 11:00 · 20,00 € Reservado", "11:00 – 12:00 · 20,00 € Bloqueado", "12:00 – 13:00 · 20,00 € Reservado Bloqueado"]);
     const items = screen.getAllByRole("listitem");
     expect(items.map((item) => item.hasAttribute("data-booked"))).toEqual([false, true, false, true]);
     expect(items.map((item) => item.hasAttribute("data-blocked"))).toEqual([false, false, true, true]);

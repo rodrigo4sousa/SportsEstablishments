@@ -43,7 +43,13 @@ export function ClubDetails({ club }: { club: PublicClub }) {
                 <span>
                   <span className="font-medium">{pitch.name}</span> <span className="text-muted-foreground">· {sportLabel(pitch.sport)}</span>
                 </span>
-                <span className="tabular-nums">{formatPrice(pitch.pricePerSlot)} por slot</span>
+                <span className="tabular-nums">
+                  {pitch.hasPriceBands ? "Preço base: " : ""}
+                  {formatPrice(pitch.pricePerSlot)} por slot
+                </span>
+                {pitch.hasPriceBands ? (
+                  <span className="basis-full text-sm text-muted-foreground">Alguns horários têm outro preço; o preço de cada horário aparece na escolha do slot.</span>
+                ) : null}
               </li>
             ))}
           </ul>

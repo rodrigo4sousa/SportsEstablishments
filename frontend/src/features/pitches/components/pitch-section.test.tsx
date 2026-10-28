@@ -304,6 +304,29 @@ describe("PitchSection", () => {
     expect(screen.queryByRole("heading", { name: "Horário de Campo 1" })).not.toBeInTheDocument();
   });
 
+  it("opens a pitch's price bands next to Horário and Bloqueios, one panel at a time (US10)", async () => {
+    const id = pitch(1).id;
+    server.use(
+      http.get(listUrl, () => page([pitch(1)])),
+      http.get(`${listUrl}/${id}/price-bands`, () =>
+        HttpResponse.json([{ id: "b1", pitchId: id, days: ["monday"], start: "18:00", end: "22:00", price: 30 }]),
+      ),
+      http.get(`${listUrl}/${id}/blocks`, () => HttpResponse.json({ items: [], page: 1, pageSize: 20, totalCount: 0 })),
+    );
+    renderWithProviders(<PitchSection clubId={clubId} />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Faixas de preço de Campo 1" }));
+    expect(await screen.findByRole("heading", { name: "Faixas de preço de Campo 1" })).toBeInTheDocument();
+    expect(await screen.findByText(/18:00–22:00/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Faixas de preço de Campo 1" })).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("button", { name: "Bloqueios de Campo 1" }));
+    expect(await screen.findByRole("heading", { name: "Bloqueios de Campo 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Faixas de preço de Campo 1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Faixas de preço de Campo 1" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("shows an error with a way to try again when the list cannot be loaded", async () => {
     let calls = 0;
     server.use(

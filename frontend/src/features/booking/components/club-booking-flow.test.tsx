@@ -27,8 +27,8 @@ const club: PublicClub = {
   phone: "912345678",
   contactEmail: "geral@foz.pt",
   pitches: [
-    { id: padel, name: "Padel 1", sport: "padel", pricePerSlot: 18.5 },
-    { id: tennis, name: "Ténis 1", sport: "tennis", pricePerSlot: 12 },
+    { id: padel, name: "Padel 1", sport: "padel", pricePerSlot: 18.5, hasPriceBands: false },
+    { id: tennis, name: "Ténis 1", sport: "tennis", pricePerSlot: 12, hasPriceBands: false },
   ],
 };
 

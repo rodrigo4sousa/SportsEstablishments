@@ -216,8 +216,34 @@ public sealed class DemoDataTests(ApiFactory factory)
         players.Last().RegisteredAt.ShouldBeGreaterThan(Anchor.AddDays(-4));
         players.Select(player => player.RegisteredAt.Date).Distinct().Count().ShouldBeGreaterThan(50); // spread, not clumped
         players.Count(player => player.RegisteredAt < Anchor.AddDays(-80)).ShouldBeGreaterThanOrEqualTo(6);
-        owners.ShouldAllBe(owner => owner.RegisteredAt < Anchor.AddDays(-125));
+        // The owners signed up over the last 90 days too, deterministically and apart, so the registrations chart shows them.
+        owners.Count.ShouldBe(5);
+        owners.ShouldAllBe(owner => owner.RegisteredAt > Anchor.AddDays(-90) && owner.RegisteredAt < Anchor.AddDays(-30));
+        owners.Select(owner => owner.RegisteredAt.Date).Distinct().Count().ShouldBe(5);
+        owners.Min(owner => owner.RegisteredAt).ShouldBeLessThan(Anchor.AddDays(-85));
+        owners.Max(owner => owner.RegisteredAt).ShouldBeGreaterThan(Anchor.AddDays(-45));
         data.Clubs.Count.ShouldBe(10);
+    }
+
+    [Fact]
+    public async Task No_booking_is_made_before_its_clubs_owner_registered_and_each_club_opens_after_its_owner()
+    {
+        var (_, _, data) = await SharedAsync();
+
+        var users = data.UserById;
+        var checkedBookings = 0;
+        foreach (var booking in data.Bookings)
+        {
+            var owner = users[data.ClubById[data.PitchById[booking.PitchId].ClubId].OwnerId];
+            booking.CreatedAt.ShouldBeGreaterThanOrEqualTo(owner.RegisteredAt, $"a booking of {owner.Email} was made before the owner signed up");
+            checkedBookings++;
+        }
+
+        checkedBookings.ShouldBeGreaterThan(5000);
+        // The clubs of the owner who signed up last have a shorter history than the clubs of the first.
+        var perOwner = data.Bookings.GroupBy(booking => data.ClubById[data.PitchById[booking.PitchId].ClubId].OwnerId).ToDictionary(group => group.Key, group => group.Min(booking => booking.StartsAt));
+        var owners = data.Users.Where(user => user.Profile == Profiles.Owner).OrderBy(user => user.RegisteredAt).ToList();
+        perOwner[owners[^1].Id].ShouldBeGreaterThan(owners[^1].RegisteredAt);
     }
 
     [Fact]

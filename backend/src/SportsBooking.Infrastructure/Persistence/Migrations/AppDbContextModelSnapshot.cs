@@ -573,6 +573,57 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.PitchPriceBand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DaysMask")
+                        .HasColumnType("integer")
+                        .HasColumnName("days_mask");
+
+                    b.Property<TimeOnly>("Ends")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("ends");
+
+                    b.Property<Guid>("PitchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pitch_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<TimeOnly>("Starts")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("starts");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pitch_price_bands");
+
+                    b.HasIndex("PitchId")
+                        .HasDatabaseName("ix_pitch_price_bands_pitch_id");
+
+                    b.ToTable("pitch_price_bands", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_pitch_price_bands_days_mask", "days_mask BETWEEN 1 AND 127");
+
+                            t.HasCheckConstraint("ck_pitch_price_bands_ends_after_starts", "ends = TIME '00:00' OR ends > starts");
+
+                            t.HasCheckConstraint("ck_pitch_price_bands_price", "price > 0 AND price <= 500");
+                        });
+                });
+
             modelBuilder.Entity("SportsBooking.Infrastructure.Admin.OwnerStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -899,6 +950,16 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.Navigation("OpeningDays");
                 });
 
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.PitchPriceBand", b =>
+                {
+                    b.HasOne("SportsBooking.Domain.Pitches.Pitch", null)
+                        .WithMany("PriceBands")
+                        .HasForeignKey("PitchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_pitch_price_bands_pitches_pitch_id");
+                });
+
             modelBuilder.Entity("SportsBooking.Infrastructure.Admin.OwnerStatusChange", b =>
                 {
                     b.HasOne("SportsBooking.Infrastructure.Identity.AppUser", null)
@@ -924,6 +985,11 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("SportsBooking.Domain.Pitches.Pitch", b =>
+                {
+                    b.Navigation("PriceBands");
                 });
 #pragma warning restore 612, 618
         }

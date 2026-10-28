@@ -25,6 +25,9 @@ public interface IAppDbContext
     /// <summary>Every block of the platform. Reach blocks only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
     DbSet<Block> Blocks { get; }
 
+    /// <summary>Every price band of the platform (US10). Reach them only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
+    DbSet<PitchPriceBand> PriceBands { get; }
+
     /// <summary>Every booking of the platform. In the owner area, reach them only through a pitch found with <see cref="Application.Pitches.OwnedPitches"/> (T02).</summary>
     DbSet<Booking> Bookings { get; }
 

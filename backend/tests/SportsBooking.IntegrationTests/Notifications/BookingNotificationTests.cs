@@ -29,6 +29,8 @@ public sealed class BookingNotificationTests(ApiFactory factory)
     private const string Friday = "2026-05-01T12:00:00Z";
     private const string Slot = "2026-05-04T09:00:00Z";
 
+    private static readonly string[] MondayOnly = ["monday"];
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static readonly SemaphoreSlim Hosts = new(4);
@@ -331,6 +333,32 @@ public sealed class BookingNotificationTests(ApiFactory factory)
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await OutboxAsync(site, OutboxMessageTypes.BookingReminder)).ShouldBeEmpty();
+    }
+
+    // ---- US10: the confirmation shows the price the booking stored
+
+    [Fact]
+    public async Task The_confirmation_email_shows_the_band_price_stored_in_the_booking_even_if_the_band_changes_before_it_is_sent()
+    {
+        await using var site = Start();
+        var scenario = await ScenarioAsync(site);
+        var bandId = await site.App.AddPriceBandAsync(scenario.Pitch.Id, 35.5m, "10:00", "12:00", DayOfWeek.Monday); // Slot is 10:00 in Lisbon
+        var bookingId = await BookAsync(site, scenario);
+
+        using var change = await SendAsync(
+            site,
+            HttpMethod.Put,
+            $"/api/manage/clubs/{scenario.Club.Id}/pitches/{scenario.Pitch.Id}/price-bands/{bandId}",
+            scenario.OwnerToken,
+            new { days = MondayOnly, start = "10:00", end = "12:00", price = 50m });
+        change.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await site.RunWorkerAsync();
+
+        var email = SentTo(site, scenario.Player.Email!).Single(sent => sent.Subject.StartsWith("Reserva confirmada", StringComparison.Ordinal));
+        email.TextBody.ShouldContain("Preço: 35,50 €");
+        email.TextBody.ShouldNotContain("50,00 €");
+        await using var scope = site.App.Services.CreateAsyncScope();
+        (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Bookings.AsNoTracking().SingleAsync(booking => booking.Id == bookingId, Ct)).Price.ShouldBe(35.5m);
     }
 
     // ---- US21: the reminder is sent, or skipped

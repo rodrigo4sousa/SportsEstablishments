@@ -106,7 +106,7 @@ function serve(world: World = {}) {
         const startsAt = `${date}T${String(first + index - 1).padStart(2, "0")}:00:00Z`; // Lisbon is UTC+1 in May
         const endsAt = `${date}T${String(first + index).padStart(2, "0")}:00:00Z`;
         const booked = state.bookings.some((candidate) => candidate.pitchId === params.pitchId && candidate.status === "confirmed" && candidate.startsAt < endsAt && startsAt < candidate.endsAt);
-        return { startsAt, endsAt, blocked: false, booked };
+        return { startsAt, endsAt, blocked: false, booked, price: 20 };
       });
       return HttpResponse.json({ date, slotDurationMinutes: 60, slots });
     }),
@@ -144,7 +144,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       expect(form()).toBeInTheDocument();
       expect((within(form()).getByLabelText("Campo") as HTMLSelectElement).value).toBe(PADEL);
       expect(within(form()).getByLabelText("Data")).toHaveValue("2026-05-05");
-      expect(await within(form()).findByRole("button", { name: "09:00 – 10:00" })).toBeEnabled();
+      expect(await within(form()).findByRole("button", { name: "09:00 – 10:00 · 20,00 €" })).toBeEnabled();
     });
 
     it("opens the form on the pitch of the weekly view and the day shown", async () => {
@@ -216,7 +216,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
 
       expect((within(form()).getByLabelText("Campo") as HTMLSelectElement).value).toBe(TENNIS);
       expect(within(form()).getByLabelText("Data")).toHaveValue("2026-05-05");
-      await waitFor(() => expect(within(form()).getByRole("button", { name: "11:00 – 12:00" })).toHaveAttribute("aria-pressed", "true"));
+      await waitFor(() => expect(within(form()).getByRole("button", { name: "11:00 – 12:00 · 20,00 €" })).toHaveAttribute("aria-pressed", "true"));
     });
 
     it("does not choose the slot when that hour is already booked", async () => {
@@ -228,7 +228,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       // The cell lies under the booking, so a mouse click lands on the booking; the cell itself is still reachable for assistive technology.
       await userEvent.click(emptyCell("Nova reserva: Padel 1, 10:00"));
 
-      expect(await within(form()).findByRole("button", { name: "10:00 – 11:00 Reservado" })).toBeDisabled();
+      expect(await within(form()).findByRole("button", { name: "10:00 – 11:00 · 20,00 € Reservado" })).toBeDisabled();
       expect(within(form()).queryByRole("button", { pressed: true })).not.toBeInTheDocument();
     });
 
@@ -298,7 +298,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
 
       expect((within(form()).getByLabelText("Campo") as HTMLSelectElement).value).toBe(TENNIS);
       expect(within(form()).getByLabelText("Data")).toHaveValue("2026-05-05");
-      await waitFor(() => expect(within(form()).getByRole("button", { name: "11:00 – 12:00" })).toHaveAttribute("aria-pressed", "true"));
+      await waitFor(() => expect(within(form()).getByRole("button", { name: "11:00 – 12:00 · 20,00 €" })).toHaveAttribute("aria-pressed", "true"));
     });
 
     it("is not offered in the weekly view for days outside the booking window or the pitch's closed days", async () => {
@@ -328,7 +328,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       await waitFor(() => expect(toolbarButton()).toBeEnabled());
       await userEvent.click(toolbarButton());
       fireEvent.change(within(form()).getByLabelText("Data"), { target: { value: "2026-05-06" } });
-      await userEvent.click(await within(form()).findByRole("button", { name: "11:00 – 12:00" }));
+      await userEvent.click(await within(form()).findByRole("button", { name: "11:00 – 12:00 · 20,00 €" }));
       await userEvent.type(within(form()).getByLabelText("Nome do cliente"), "Maria Cliente");
       await userEvent.type(within(form()).getByLabelText("Telemóvel do cliente"), "912 345 678");
       await userEvent.click(within(form()).getByRole("button", { name: "Criar reserva" }));
@@ -385,7 +385,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
       await screen.findByRole("group", { name: "Padel 1" });
       await userEvent.click(toolbarButton());
-      await userEvent.click(await within(form()).findByRole("button", { name: "09:00 – 10:00" }));
+      await userEvent.click(await within(form()).findByRole("button", { name: "09:00 – 10:00 · 20,00 €" }));
       await userEvent.type(within(form()).getByLabelText("Nome do cliente"), "Maria Cliente");
       await userEvent.type(within(form()).getByLabelText("Telemóvel do cliente"), "912345678");
       const askedBefore = asked.length;
@@ -393,7 +393,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       await userEvent.click(within(form()).getByRole("button", { name: "Criar reserva" }));
 
       expect(await within(form()).findByRole("alert")).toHaveTextContent("Este horário acabou de ser reservado. Escolhe outro.");
-      expect(await within(form()).findByRole("button", { name: "09:00 – 10:00 Reservado" })).toBeDisabled();
+      expect(await within(form()).findByRole("button", { name: "09:00 – 10:00 · 20,00 € Reservado" })).toBeDisabled();
       await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
       expect(screen.getByRole("button", { name: /Rita Jogadora/ })).toBeInTheDocument();
       expect(screen.queryByText(/Reserva criada/)).not.toBeInTheDocument();

@@ -20,6 +20,19 @@ describe("SlotList", () => {
     expect(items.map(text)).toEqual(["09:00 – 10:00 18,50 €", "10:00 – 11:00 18,50 €", "11:00 – 12:00 18,50 €"]);
   });
 
+  it("shows the price of each slot, which differs inside and outside a price band (US10)", () => {
+    const banded: PublicSlot[] = [
+      { startsAt: "2026-05-04T08:00:00Z", endsAt: "2026-05-04T09:00:00Z", price: 20, available: true },
+      { startsAt: "2026-05-04T09:00:00Z", endsAt: "2026-05-04T10:00:00Z", price: 35.5, available: true },
+      { startsAt: "2026-05-04T10:00:00Z", endsAt: "2026-05-04T11:00:00Z", price: 35.5, available: true },
+      { startsAt: "2026-05-04T11:00:00Z", endsAt: "2026-05-04T12:00:00Z", price: 20, available: true },
+    ];
+    render(<SlotList slots={banded} selected={null} interactive onSelect={() => undefined} />);
+
+    const items = within(screen.getByRole("list", { name: "Horários" })).getAllByRole("listitem");
+    expect(items.map(text)).toEqual(["09:00 – 10:00 20,00 €", "10:00 – 11:00 35,50 €", "11:00 – 12:00 35,50 €", "12:00 – 13:00 20,00 €"]);
+  });
+
   it("makes free slots buttons and shows the others disabled, with no reason", async () => {
     const onSelect = vi.fn();
     render(<SlotList slots={slots} selected={null} interactive onSelect={onSelect} />);

@@ -11,8 +11,11 @@ import { formatPrice } from "../price";
 import { sportLabel } from "../sports";
 import { BlocksSection } from "./blocks-section";
 import { PitchForm } from "./pitch-form";
+import { PriceBandsSection } from "./price-bands-section";
 import { ScheduleEditor } from "./schedule-editor";
 import { SlotPreview } from "./slot-preview";
+
+type PanelKind = "schedule" | "blocks" | "prices";
 
 /** What the form below the list is doing: nothing, adding a pitch, or editing this one. */
 type Editing = { kind: "new" } | { kind: "edit"; pitch: Pitch } | null;
@@ -26,8 +29,8 @@ export function PitchSection({ clubId }: { clubId: string }) {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(null);
   // The pitch whose hours or blocks are open below its row (one panel at a time).
-  const [panel, setPanel] = useState<{ pitchId: string; kind: "schedule" | "blocks" } | null>(null);
-  const togglePanel = (pitchId: string, kind: "schedule" | "blocks") =>
+  const [panel, setPanel] = useState<{ pitchId: string; kind: PanelKind } | null>(null);
+  const togglePanel = (pitchId: string, kind: PanelKind) =>
     setPanel(panel?.pitchId === pitchId && panel.kind === kind ? null : { pitchId, kind });
   const pitches = useQuery({
     queryKey: pitchListQueryKey(clubId, page),
@@ -132,6 +135,16 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   type="button"
                   variant="outline"
                   size="sm"
+                  aria-expanded={panel?.pitchId === pitch.id && panel.kind === "prices"}
+                  aria-label={`Faixas de preço de ${pitch.name}`}
+                  onClick={() => togglePanel(pitch.id, "prices")}
+                >
+                  Faixas de preço
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   aria-label={`Editar ${pitch.name}`}
                   onClick={() => setEditing({ kind: "edit", pitch })}
                 >
@@ -160,6 +173,12 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <div className="flex flex-col gap-6 border-t pt-4">
                   <h3 className="font-medium">Bloqueios de {pitch.name}</h3>
                   <BlocksSection clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
+                </div>
+              ) : null}
+              {panel?.pitchId === pitch.id && panel.kind === "prices" ? (
+                <div className="flex flex-col gap-6 border-t pt-4">
+                  <h3 className="font-medium">Faixas de preço de {pitch.name}</h3>
+                  <PriceBandsSection clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                 </div>
               ) : null}
             </li>
