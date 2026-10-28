@@ -213,12 +213,15 @@ Como dono, quero definir preços diferentes por faixa horária, para cobrar mais
 - Faixas sobrepostas no mesmo campo são rejeitadas.
 - O preço mostrado ao jogador e guardado na reserva é o da faixa do slot.
 - Estado: back end feito (faixas, preço único por slot, preço da faixa nas reservas, nos slots públicos e na pré-visualização do dono). Interface do dono para criar e editar faixas: **ainda não feita** (pergunta em aberto). Interface do jogador: o preço de cada slot já aparece na lista de slots; a página do clube mostra o preço base e uma nota quando o campo tem faixas.
-- Decidido (provisório, a confirmar):
+- Decidido (confirmado):
   - Uma faixa tem dias da semana (um ou mais), início e fim em hora local do clube, de meia em meia hora (como a US08), fim `00:00` = meia-noite, sem faixas que passem da meia-noite, e um preço com os limites do preço do campo (> 0, ≤ 500 €, duas casas decimais). Id público GUID v7. Máximo de 20 faixas por campo (422 `price_band_limit_reached`).
   - O preço de um slot (`Pitch.PriceForSlot`) é o da faixa que contém a **hora local de início** do slot nesse dia da semana (início incluído, fim excluído); fora de qualquer faixa, o preço base. Um slot que atravessa o fim de uma faixa (ex.: 90 minutos a partir das 21:00 numa faixa até às 22:00) fica com o preço da faixa onde começa. Na hora repetida de 25 de outubro, os dois slots das 01:00 têm o mesmo preço (conta a hora local).
   - Faixas do mesmo campo não se sobrepõem se partilharem um dia da semana e as horas se cruzarem; faixas que se tocam (uma acaba quando a outra começa) são aceites. Sobreposição: 409 `price_band_overlap`; os outros erros são 400 `validation_failed` com mensagem por campo (`days`, `start`, `end`, `price`). Criar, alterar e apagar correm sob o trinco do campo (`IPitchLock`), o mesmo das reservas.
   - As faixas são configuração, não histórico: apagar é apagar a linha (`DELETE …/price-bands/{bandId}`, 204). Alterar ou apagar faixas nunca toca nas reservas existentes, que guardam o preço com que foram feitas.
   - A pesquisa (US16) continua sem mostrar preços. A página do clube mostra o preço base («Preço base: 18,50 € por slot») e uma nota quando o campo tem faixas (`hasPriceBands`); o preço de cada slot vem em `price` nos slots públicos e na pré-visualização do dono.
+  - Os dias da semana viajam na API como nomes em inglês (`monday` … `sunday`), como as chaves do horário; a interface mostra-os em pt-PT, a começar na segunda-feira.
+  - Só a sobreposição (409 `price_band_overlap`), o limite (422 `price_band_limit_reached`) e o «não encontrada» (404 `price_band_not_found`) têm código próprio; os erros de campo (dias vazios, fim antes do início, hora fora do passo, preço fora dos limites) são 400 `validation_failed` com a mensagem em `days`, `start`, `end` ou `price`.
+  - Texto da página do clube: o preço do campo aparece como «Preço base: 18,50 € por slot» e, por baixo, «Alguns horários têm outro preço; o preço de cada horário aparece na escolha do slot.» quando o campo tem faixas.
 ## Épico 3 — Operação do clube
  
 ### US11 · Calendário de reservas · M · 8 pontos
