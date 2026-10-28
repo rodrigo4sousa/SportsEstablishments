@@ -51,6 +51,8 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(booking => booking.CreatedAt).HasDatabaseName("ix_bookings_created_at");
         // A player's bookings in time order: "my bookings" (US19). Also serves lookups by player alone.
         builder.HasIndex(booking => new { booking.PlayerId, booking.StartsAt }).HasDatabaseName("ix_bookings_player_id_starts_at");
+        // US20: the bookings of one weekly series, for the player's "2 of 4".
+        builder.HasIndex(booking => booking.SeriesId).HasDatabaseName("ix_bookings_series_id");
 
         // Bookings are never deleted, and neither are pitches or accounts that have them.
         builder.HasOne<Pitch>().WithMany().HasForeignKey(booking => booking.PitchId).OnDelete(DeleteBehavior.Restrict);
