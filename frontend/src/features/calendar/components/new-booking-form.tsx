@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { fetchSlots, slotsQueryKey, type PreviewSlot } from "@/features/pitches/api";
+import { formatPrice } from "@/features/pitches/price";
 import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
 import { sportLabel } from "@/features/pitches/sports";
 import { ApiError } from "@/lib/api/client";
@@ -211,7 +212,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
                       startsAt === slot.startsAt ? "border-foreground bg-foreground text-background" : "hover:bg-accent"
                     }`}
                   >
-                    {label}
+                    {label} · {formatPrice(slot.price)}
                     {reason ? (
                       <>
                         {" "}

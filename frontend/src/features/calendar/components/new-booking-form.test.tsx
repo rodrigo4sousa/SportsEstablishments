@@ -23,6 +23,7 @@ const slot = (startsAt: string, patch: { blocked?: boolean; booked?: boolean } =
   endsAt: new Date(new Date(startsAt).getTime() + 3_600_000).toISOString().replace(".000Z", "Z"),
   blocked: false,
   booked: false,
+  price: 20,
   ...patch,
 });
 
@@ -98,10 +99,10 @@ describe("NewBookingForm", () => {
 
       await screen.findByRole("button", { name: /^09:00 – 10:00/ });
 
-      expect(slotButton("09:00 – 10:00")).toBeEnabled();
-      expect(slotButton("10:00 – 11:00")).toBeEnabled();
-      expect(slotButton("11:00 – 12:00 Reservado")).toBeDisabled();
-      expect(slotButton("12:00 – 13:00 Bloqueado")).toBeDisabled();
+      expect(slotButton("09:00 – 10:00 · 20,00 €")).toBeEnabled();
+      expect(slotButton("10:00 – 11:00 · 20,00 €")).toBeEnabled();
+      expect(slotButton("11:00 – 12:00 · 20,00 € Reservado")).toBeDisabled();
+      expect(slotButton("12:00 – 13:00 · 20,00 € Bloqueado")).toBeDisabled();
       expect(screen.getByLabelText("Data")).toHaveValue(TOMORROW);
       expect((screen.getByLabelText("Campo") as HTMLSelectElement).value).toBe(PADEL);
     });
@@ -116,10 +117,10 @@ describe("NewBookingForm", () => {
 
       await screen.findByRole("button", { name: /^12:00 – 13:00/ });
 
-      expect(slotButton("09:00 – 10:00 Já começou")).toBeDisabled();
-      expect(slotButton("10:00 – 11:00 Já começou")).toBeDisabled();
-      expect(slotButton("11:00 – 12:00 Já começou")).toBeDisabled(); // starting now counts as started
-      expect(slotButton("12:00 – 13:00")).toBeEnabled();
+      expect(slotButton("09:00 – 10:00 · 20,00 € Já começou")).toBeDisabled();
+      expect(slotButton("10:00 – 11:00 · 20,00 € Já começou")).toBeDisabled();
+      expect(slotButton("11:00 – 12:00 · 20,00 € Já começou")).toBeDisabled(); // starting now counts as started
+      expect(slotButton("12:00 – 13:00 · 20,00 €")).toBeEnabled();
     });
 
     it("marks a slot taken by a booking and blocked at the same time with the booking first, and neither can be chosen", async () => {
@@ -134,12 +135,12 @@ describe("NewBookingForm", () => {
       renderForm();
       await screen.findByRole("button", { name: /^09:00 – 10:00/ });
 
-      await userEvent.click(slotButton("09:00 – 10:00"));
-      expect(slotButton("09:00 – 10:00")).toHaveAttribute("aria-pressed", "true");
-      await userEvent.click(slotButton("10:00 – 11:00"));
+      await userEvent.click(slotButton("09:00 – 10:00 · 20,00 €"));
+      expect(slotButton("09:00 – 10:00 · 20,00 €")).toHaveAttribute("aria-pressed", "true");
+      await userEvent.click(slotButton("10:00 – 11:00 · 20,00 €"));
 
-      expect(slotButton("09:00 – 10:00")).toHaveAttribute("aria-pressed", "false");
-      expect(slotButton("10:00 – 11:00")).toHaveAttribute("aria-pressed", "true");
+      expect(slotButton("09:00 – 10:00 · 20,00 €")).toHaveAttribute("aria-pressed", "false");
+      expect(slotButton("10:00 – 11:00 · 20,00 €")).toHaveAttribute("aria-pressed", "true");
     });
 
     it("clicking a slot that is not free does nothing", async () => {
@@ -147,9 +148,9 @@ describe("NewBookingForm", () => {
       renderForm();
       await screen.findByRole("button", { name: /^09:00 – 10:00/ });
 
-      await userEvent.click(slotButton("11:00 – 12:00 Reservado"));
+      await userEvent.click(slotButton("11:00 – 12:00 · 20,00 € Reservado"));
 
-      expect(slotButton("11:00 – 12:00 Reservado")).toHaveAttribute("aria-pressed", "false");
+      expect(slotButton("11:00 – 12:00 · 20,00 € Reservado")).toHaveAttribute("aria-pressed", "false");
     });
 
     it("says when the pitch has no slots that day", async () => {
@@ -157,6 +158,16 @@ describe("NewBookingForm", () => {
       renderForm();
 
       expect(await screen.findByText("Sem horários neste dia: o campo está fechado.")).toBeInTheDocument();
+    });
+
+    it("shows each slot's price: the band price inside a band and the base price outside it (US10)", async () => {
+      serveSlots(() => [slot("2026-05-05T08:00:00Z"), { ...slot("2026-05-05T09:00:00Z"), price: 35.5 }, { ...slot("2026-05-05T10:00:00Z"), price: 35.5 }, slot("2026-05-05T11:00:00Z")]);
+      renderForm();
+
+      expect(await screen.findByRole("button", { name: "09:00 – 10:00 · 20,00 €" })).toBeEnabled();
+      expect(slotButton("10:00 – 11:00 · 35,50 €")).toBeEnabled();
+      expect(slotButton("11:00 – 12:00 · 35,50 €")).toBeEnabled();
+      expect(slotButton("12:00 – 13:00 · 20,00 €")).toBeEnabled();
     });
 
     it("shows an error with a way to try again when the slots cannot be read", async () => {
@@ -182,9 +193,9 @@ describe("NewBookingForm", () => {
 
       await userEvent.selectOptions(screen.getByLabelText("Campo"), TENNIS);
 
-      expect(await screen.findByRole("button", { name: "15:00 – 16:00" })).toHaveAttribute("aria-pressed", "false");
+      expect(await screen.findByRole("button", { name: "15:00 – 16:00 · 20,00 €" })).toHaveAttribute("aria-pressed", "false");
       expect(asked).toContain(`${TENNIS} ${TOMORROW}`);
-      await userEvent.click(slotButton("15:00 – 16:00"));
+      await userEvent.click(slotButton("15:00 – 16:00 · 20,00 €"));
       fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2026-05-07" } });
       await waitFor(() => expect(asked).toContain(`${TENNIS} 2026-05-07`));
       expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
@@ -232,8 +243,8 @@ describe("NewBookingForm", () => {
 
       await screen.findByRole("button", { name: /^10:00 – 11:00/ });
 
-      await waitFor(() => expect(slotButton("10:00 – 11:00")).toHaveAttribute("aria-pressed", "true"));
-      expect(slotButton("09:00 – 10:00")).toHaveAttribute("aria-pressed", "false");
+      await waitFor(() => expect(slotButton("10:00 – 11:00 · 20,00 €")).toHaveAttribute("aria-pressed", "true"));
+      expect(slotButton("09:00 – 10:00 · 20,00 €")).toHaveAttribute("aria-pressed", "false");
     });
 
     it("chooses nothing when that slot is not free", async () => {
@@ -420,7 +431,7 @@ describe("NewBookingForm", () => {
 
       expect(await screen.findByRole("alert")).toHaveTextContent(message);
       await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
-      expect(await screen.findByRole("button", { name: "09:00 – 10:00 Reservado" })).toBeDisabled();
+      expect(await screen.findByRole("button", { name: "09:00 – 10:00 · 20,00 € Reservado" })).toBeDisabled();
       expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
       expect(nameField()).toHaveValue("Maria Cliente");
       expect(phoneField()).toHaveValue("912345678");
@@ -444,7 +455,7 @@ describe("NewBookingForm", () => {
       await submit();
       await screen.findByRole("alert");
 
-      await userEvent.click(slotButton("10:00 – 11:00"));
+      await userEvent.click(slotButton("10:00 – 11:00 · 20,00 €"));
       await submit();
 
       await waitFor(() => expect(onCreated).toHaveBeenCalled());
@@ -490,7 +501,7 @@ describe("NewBookingForm", () => {
       await submit();
 
       expect(await screen.findByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).toBeInTheDocument();
-      expect(slotButton("09:00 – 10:00")).toHaveAttribute("aria-pressed", "true");
+      expect(slotButton("09:00 – 10:00 · 20,00 €")).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "Criar reserva" })).toBeEnabled();
       expect(onCreated).not.toHaveBeenCalled();
     });

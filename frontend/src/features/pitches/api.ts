@@ -155,3 +155,39 @@ export async function createBlock(clubId: string, pitchId: string, request: Bloc
 export async function deleteBlock(clubId: string, pitchId: string, blockId: string): Promise<void> {
   await apiRequest(`${blocksPath(clubId, pitchId)}/${blockId}`, { method: "DELETE" });
 }
+
+// ---- US10: price bands
+
+/** `days` are the API's English weekday names, Monday first; `start` and `end` are the club's local "HH:mm" ("00:00" as the end is midnight). */
+export type PriceBand = { id: string; pitchId: string; days: string[]; start: string; end: string; price: number };
+
+export type PriceBandRequest = { days: string[]; start: string; end: string; price: number };
+
+export const priceBandsQueryKey = (clubId: string, pitchId: string) => [...pitchKey(clubId, pitchId), "price-bands"] as const;
+
+const priceBandsPath = (clubId: string, pitchId: string) => `${pitchesPath(clubId)}/${pitchId}/price-bands`;
+
+function toPriceBand(band: components["schemas"]["PriceBandResponse"]): PriceBand {
+  return { ...band, price: Number(band.price) };
+}
+
+/** All of the pitch's bands (at most 20), by start time. */
+export async function fetchPriceBands(clubId: string, pitchId: string): Promise<PriceBand[]> {
+  const bands = await apiJson<components["schemas"]["PriceBandResponse"][]>(priceBandsPath(clubId, pitchId));
+  return bands.map(toPriceBand);
+}
+
+export async function createPriceBand(clubId: string, pitchId: string, request: PriceBandRequest): Promise<PriceBand> {
+  return toPriceBand(await apiJson<components["schemas"]["PriceBandResponse"]>(priceBandsPath(clubId, pitchId), { method: "POST", body: JSON.stringify(request) }));
+}
+
+export async function updatePriceBand(clubId: string, pitchId: string, bandId: string, request: PriceBandRequest): Promise<PriceBand> {
+  return toPriceBand(
+    await apiJson<components["schemas"]["PriceBandResponse"]>(`${priceBandsPath(clubId, pitchId)}/${bandId}`, { method: "PUT", body: JSON.stringify(request) }),
+  );
+}
+
+/** A real delete: the band's slots go back to the base price; bookings keep their price. */
+export async function deletePriceBand(clubId: string, pitchId: string, bandId: string): Promise<void> {
+  await apiRequest(`${priceBandsPath(clubId, pitchId)}/${bandId}`, { method: "DELETE" });
+}
