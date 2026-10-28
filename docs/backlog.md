@@ -485,7 +485,7 @@ Como jogador, quero reservar o mesmo slot todas as semanas durante algum tempo, 
 - Cada ocorrência é uma reserva independente, que se pode cancelar sozinha.
 - Candidata a dividir.
 - Estado: back end feito (`POST /api/bookings/recurring/preview` e `POST /api/bookings/recurring`). Interface: ainda não feita.
-- Decidido (provisório, a confirmar):
+- Decidido (confirmado):
   - `weeks` é o número de datas, a primeira incluída, de 1 a 4. A data n é o mesmo dia da semana e a mesma hora **local** n semanas depois (`ClubTime`), por isso uma mudança de hora não desloca a hora do jogo; a primeira data é exatamente o instante pedido (na hora repetida de outubro, o verão ou o inverno escolhido).
   - A pré-visualização só aceita um campo que o público vê (ativo, de um clube visível); outro é 404 `pitch_not_found`. Cada data traz início, fim, preço (`PriceForSlot` dessa data) e `free` ou `unavailable` com um código: `taken`, `blocked`, `not_a_slot`, `outside_window`, `closed` (o campo está fechado nesse dia), `pitch_inactive` e, além da lista pedida, `started` (só a primeira data pode já ter começado). Nunca diz quem reservou.
   - Reservar corre, data a data e por ordem, as mesmas regras da reserva simples (`BookingSlotCheck` sob o trinco do campo, preço de `PriceForSlot`, inserção pela restrição de exclusão), cada data na sua transação: uma data recusada não impede as outras. As reservas feitas partilham um `series_id`; uma data perdida para a restrição (23P01) fica de fora como `taken`. O campo desconhecido é 404 e o clube de um dono desativado é 422 `club_unavailable`, para o pedido todo, como na reserva simples.
