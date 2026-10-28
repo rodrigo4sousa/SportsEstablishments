@@ -103,6 +103,24 @@ public static class TestVenues
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>US10: a price band (local "HH:mm" times) on the given weekdays; returns its id. Goes through the domain model, so overlaps are refused.</summary>
+    public static async Task<Guid> AddPriceBandAsync(
+        this WebApplicationFactory<Program> app,
+        Guid pitchId,
+        decimal price,
+        string starts,
+        string ends,
+        params DayOfWeek[] days)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var pitch = await dbContext.Pitches.SingleAsync(candidate => candidate.Id == pitchId, TestContext.Current.CancellationToken);
+        var details = new PriceBandDetails(days.ToHashSet(), TimeOnly.Parse(starts, CultureInfo.InvariantCulture), TimeOnly.Parse(ends, CultureInfo.InvariantCulture), price);
+        pitch.TryAddPriceBand(details, CreatedAt, out var band).ShouldBe(PriceBandOutcome.Done);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return band!.Id;
+    }
+
     public static async Task DeactivatePitchAsync(this WebApplicationFactory<Program> app, Guid pitchId)
     {
         await using var scope = app.Services.CreateAsyncScope();
