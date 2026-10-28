@@ -223,7 +223,7 @@ public sealed class ClubBookingService(
                 return checkedSlot.Error!;
             }
 
-            var booking = Booking.ForCustomer(pitch.Id, normalized.CustomerName, normalized.CustomerPhone, startsAt, checkedSlot.Value.EndsAtUtc, pitch.PricePerSlot, now);
+            var booking = Booking.ForCustomer(pitch.Id, normalized.CustomerName, normalized.CustomerPhone, startsAt, checkedSlot.Value.EndsAtUtc, pitch.PriceForSlot(startsAt, timeZone), now);
             if (!await bookingStore.TryAddAsync(booking, cancellationToken))
             {
                 return BookingErrors.SlotTaken;

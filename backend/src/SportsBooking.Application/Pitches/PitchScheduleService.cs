@@ -31,7 +31,8 @@ public sealed record PitchScheduleResponse(
 /// <summary>One generated slot, as UTC instants.</summary>
 /// <param name="Blocked">True when the slot overlaps a block of the pitch (US09).</param>
 /// <param name="Booked">True when the slot overlaps a confirmed booking (US18), even one made on an older grid.</param>
-public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt, bool Blocked, bool Booked);
+/// <param name="Price">What a booking of this slot would cost now: the band price or the base price (US10, <see cref="Pitch.PriceForSlot"/>).</param>
+public sealed record SlotResponse(DateTime StartsAt, DateTime EndsAt, bool Blocked, bool Booked, decimal Price);
 
 /// <summary>The slots a pitch's schedule generates on one local date; slots that overlap a block are marked (US09).</summary>
 public sealed record PitchSlotsResponse(DateOnly Date, int SlotDurationMinutes, IReadOnlyList<SlotResponse> Slots);
@@ -103,7 +104,7 @@ public sealed class PitchScheduleService(
         var pitch = found.Value;
         var daySlots = await calendar.SlotsAsync([new PitchInZone(pitch, timeZone)], day, cancellationToken);
         var slots = daySlots[pitch.Id]
-            .Select(slot => new SlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, slot.Blocked, slot.Booked))
+            .Select(slot => new SlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, slot.Blocked, slot.Booked, pitch.PriceForSlot(slot.Slot.StartsAtUtc, timeZone)))
             .ToList();
         return new PitchSlotsResponse(day, pitch.SlotDurationMinutes, slots);
     }

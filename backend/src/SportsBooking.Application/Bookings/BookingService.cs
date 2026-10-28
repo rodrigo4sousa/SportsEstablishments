@@ -144,7 +144,7 @@ public sealed class BookingService(
 
         var endsAt = checkedSlot.Value.EndsAtUtc;
 
-        var booking = Booking.ForPlayer(pitch.Id, playerId, startsAt, endsAt, pitch.PricePerSlot, now);
+        var booking = Booking.ForPlayer(pitch.Id, playerId, startsAt, endsAt, pitch.PriceForSlot(startsAt, timeZone), now);
         // US22: the confirmation email is queued now and written by the same SaveChanges as the booking, so a booking
         // that loses the race (23P01, rolled back) leaves no email behind.
         await emails.EnqueueConfirmationAsync(booking, cancellationToken);

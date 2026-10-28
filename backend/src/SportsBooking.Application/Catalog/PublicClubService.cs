@@ -7,8 +7,11 @@ using SportsBooking.Domain.Scheduling;
 
 namespace SportsBooking.Application.Catalog;
 
-/// <summary>An active pitch on the club page: what a player needs to pick one. The price is the current price per slot.</summary>
-public sealed record PublicPitchResponse(Guid Id, string Name, string Sport, decimal PricePerSlot);
+/// <summary>
+/// An active pitch on the club page: what a player needs to pick one. <see cref="PricePerSlot"/> is the base price, the one
+/// outside every price band; <see cref="HasPriceBands"/> says some slots cost something else (US10), and each slot says its own price.
+/// </summary>
+public sealed record PublicPitchResponse(Guid Id, string Name, string Sport, decimal PricePerSlot, bool HasPriceBands);
 
 /// <summary>
 /// The public page of a club (US16): its contacts and its active pitches. Nothing about the owner or the players.
@@ -70,7 +73,7 @@ public sealed class PublicClubService(
             club.Locality,
             club.Phone,
             club.ContactEmail,
-            pitches.Select(pitch => new PublicPitchResponse(pitch.Id, pitch.Name, Sports.ToCode(pitch.Sport), pitch.PricePerSlot)).ToList());
+            pitches.Select(pitch => new PublicPitchResponse(pitch.Id, pitch.Name, Sports.ToCode(pitch.Sport), pitch.PricePerSlot, pitch.HasPriceBands)).ToList());
     }
 
     /// <summary>
@@ -107,7 +110,7 @@ public sealed class PublicClubService(
         var daySlots = await calendar.SlotsAsync([new PitchInZone(pitch, timeZone)], requested.Value, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var slots = daySlots[pitch.Id]
-            .Select(slot => new PublicSlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, pitch.PricePerSlot, slot.IsFreeAt(now)))
+            .Select(slot => new PublicSlotResponse(slot.Slot.StartsAtUtc, slot.Slot.EndsAtUtc, pitch.PriceForSlot(slot.Slot.StartsAtUtc, timeZone), slot.IsFreeAt(now)))
             .ToList();
         return new PublicSlotsResponse(requested.Value, slots);
     }
