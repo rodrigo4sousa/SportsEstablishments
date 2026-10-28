@@ -23,6 +23,7 @@ const booking = (patch: Partial<MyBooking> = {}): MyBooking => ({
   startsAt: "2026-07-04T17:00:00Z",
   endsAt: "2026-07-04T18:00:00Z",
   price: 18.5,
+  series: null,
   status: "confirmed",
   canCancel: true,
   cancellationDeadline: "2026-07-03T17:00:00Z",

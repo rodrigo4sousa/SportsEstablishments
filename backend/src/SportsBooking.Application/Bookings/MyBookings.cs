@@ -23,7 +23,14 @@ public sealed record MyBookingResponse(
     decimal Price,
     string Status,
     bool CanCancel,
-    DateTime? CancellationDeadline);
+    DateTime? CancellationDeadline,
+    MyBookingSeries? Series);
+
+/// <summary>
+/// US20: the weekly series a booking belongs to. <see cref="Position"/> of <see cref="Count"/> counts the bookings the series made
+/// (cancelled ones included, dates left out not), in start order (provisional).
+/// </summary>
+public sealed record MyBookingSeries(Guid Id, int Position, int Count);
 
 /// <summary>The query string of <c>GET /api/me/bookings</c>: <c>scope</c> is <c>upcoming</c> or <c>past</c>.</summary>
 public sealed record MyBookingsRequest(string? Scope, int Page = 1)
@@ -90,6 +97,12 @@ public sealed class MyBookingsService(
         public required BookingStatus Status { get; init; }
 
         public required int WindowHours { get; init; }
+
+        public required Guid? SeriesId { get; init; }
+
+        public required int SeriesPosition { get; init; }
+
+        public required int SeriesCount { get; init; }
     }
 
     /// <summary>
@@ -157,6 +170,11 @@ public sealed class MyBookingsService(
                     Price = joined.Booking.Price,
                     Status = joined.Booking.Status,
                     WindowHours = club.CancellationWindowHours,
+                    SeriesId = joined.Booking.SeriesId,
+                    SeriesPosition = joined.Booking.SeriesId == null
+                        ? 0
+                        : dbContext.Bookings.Count(other => other.SeriesId == joined.Booking.SeriesId && other.StartsAt <= joined.Booking.StartsAt),
+                    SeriesCount = joined.Booking.SeriesId == null ? 0 : dbContext.Bookings.Count(other => other.SeriesId == joined.Booking.SeriesId),
                 });
     }
 
@@ -174,6 +192,7 @@ public sealed class MyBookingsService(
             row.Price,
             BookingStatuses.ToCode(row.Status),
             Booking.CanBeCancelledByPlayer(row.Status, row.StartsAt, window, now),
-            row.Status == BookingStatus.Confirmed ? Booking.CancellationDeadline(row.StartsAt, window) : null);
+            row.Status == BookingStatus.Confirmed ? Booking.CancellationDeadline(row.StartsAt, window) : null,
+            row.SeriesId is { } seriesId ? new MyBookingSeries(seriesId, row.SeriesPosition, row.SeriesCount) : null);
     }
 }

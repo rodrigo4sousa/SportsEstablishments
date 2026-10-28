@@ -10,7 +10,11 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/bookings")]
 [Authorize(Policy = Profiles.Player)]
-public sealed class BookingsController(BookingService bookings, MyBookingsService myBookings, BookingCancellationService cancellation) : ControllerBase
+public sealed class BookingsController(
+    BookingService bookings,
+    RecurringBookingService recurring,
+    MyBookingsService myBookings,
+    BookingCancellationService cancellation) : ControllerBase
 {
     /// <summary>
     /// Books one slot: the pitch and the slot's start as an instant with its zone (as the slot lists give it). The end
@@ -31,6 +35,42 @@ public sealed class BookingsController(BookingService bookings, MyBookingsServic
         return result.IsSuccess
             // Relative on purpose, like the other Location headers: behind the proxy the request host is the API's own name.
             ? Created($"/api/bookings/{result.Value.Id}", result.Value)
+            : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US20, read-only: the dates of a weekly series (the same local weekday and time, 1 to 4 weeks, the first included) with each
+    /// date's end, price and <c>free</c> or <c>unavailable</c> plus a reason code (<c>taken</c>, <c>blocked</c>, <c>not_a_slot</c>,
+    /// <c>outside_window</c>, <c>closed</c>, <c>pitch_inactive</c>, <c>started</c>). A pitch the public cannot see is 404.
+    /// </summary>
+    [HttpPost("recurring/preview")]
+    [Consumes("application/json")]
+    [ProducesResponseType<RecurringPreviewResponse>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> PreviewRecurring(RecurringBookingRequest request, CancellationToken cancellationToken)
+    {
+        var result = await recurring.PreviewAsync(request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : this.Problem(result.Error!);
+    }
+
+    /// <summary>
+    /// US20: books every free date of a weekly series, each with the checks of a single booking and its own price, all sharing one
+    /// <c>seriesId</c>. 201 with the bookings made and the dates left out (with reason codes) when at least one was made; 409
+    /// <c>series_unavailable</c> (with <c>skipped</c>) when none was.
+    /// </summary>
+    [HttpPost("recurring")]
+    [Consumes("application/json")]
+    [ProducesResponseType<RecurringBookingResponse>(StatusCodes.Status201Created, "application/json")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> CreateRecurring(RecurringBookingRequest request, CancellationToken cancellationToken)
+    {
+        var result = await recurring.CreateAsync(request, cancellationToken);
+        return result.IsSuccess
+            ? Created($"/api/bookings/{result.Value.Created[0].Id}", result.Value)
             : this.Problem(result.Error!);
     }
 

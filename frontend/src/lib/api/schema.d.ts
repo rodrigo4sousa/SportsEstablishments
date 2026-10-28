@@ -983,6 +983,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookings/recurring/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecurringBookingRequest"];
+                    "application/*+json": components["schemas"]["RecurringBookingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurringPreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/recurring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecurringBookingRequest"];
+                    "application/*+json": components["schemas"]["RecurringBookingRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurringBookingResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bookings/{id}/cancel": {
         parameters: {
             query?: never;
@@ -3046,6 +3180,15 @@ export interface components {
             canCancel: boolean;
             /** Format: date-time */
             cancellationDeadline: null | string;
+            series: null | components["schemas"]["MyBookingSeries"];
+        };
+        MyBookingSeries: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            position: number | string;
+            /** Format: int32 */
+            count: number | string;
         };
         OccupationFiguresResponse: {
             /** Format: double */
@@ -3060,6 +3203,16 @@ export interface components {
             confirmedBookings: number | string;
             /** Format: int32 */
             noShows: number | string;
+        };
+        OccurrencePreview: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            status: string;
+            reason: null | string;
         };
         OwnerClubResponse: {
             /** Format: uuid */
@@ -3310,6 +3463,26 @@ export interface components {
             date: string;
             slots: components["schemas"]["PublicSlotResponse"][];
         };
+        RecurringBookingRequest: {
+            /** Format: uuid */
+            pitchId: string;
+            startsAt: string;
+            /** Format: int32 */
+            weeks: number | string;
+            /** Format: date-time */
+            startsAtUtc?: null | string;
+        };
+        RecurringBookingResponse: {
+            /** Format: uuid */
+            seriesId: string;
+            created: components["schemas"]["BookingResponse"][];
+            skipped: components["schemas"]["SkippedOccurrence"][];
+        };
+        RecurringPreviewResponse: {
+            /** Format: int32 */
+            weeks: number | string;
+            occurrences: components["schemas"]["OccurrencePreview"][];
+        };
         RegisterAccountRequest: {
             name: string;
             email: string;
@@ -3333,6 +3506,13 @@ export interface components {
             /** Format: int32 */
             players: number | string;
             buckets: components["schemas"]["RegistrationsBucket"][];
+        };
+        SkippedOccurrence: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason: string;
         };
         SlotResponse: {
             /** Format: date-time */

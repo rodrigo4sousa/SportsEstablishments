@@ -62,6 +62,41 @@ public sealed class BookingEmailOutbox(IAppDbContext dbContext, TimeProvider tim
         dbContext.OutboxMessages.Add(OutboxMessage.Create(OutboxMessageTypes.BookingReminder, new BookingRefPayload(booking.Id).Serialize(), now, due));
     }
 
+    /// <summary>
+    /// US20: the one email a player gets for a weekly series: the bookings made (date, time, price each) and the dates left out with
+    /// their reason. <paramref name="created"/> are bookings of one player on one pitch; the caller saves.
+    /// </summary>
+    public async Task EnqueueSeriesSummaryAsync(IReadOnlyList<Booking> created, IReadOnlyList<Bookings.SkippedOccurrence> skipped, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(created);
+        ArgumentNullException.ThrowIfNull(skipped);
+        if (created.Count == 0 || created[0].PlayerId is not { } playerId)
+        {
+            return;
+        }
+
+        var pitchId = created[0].PitchId;
+        var place = await dbContext.Pitches.AsNoTracking()
+            .Where(pitch => pitch.Id == pitchId)
+            .Join(
+                dbContext.Clubs,
+                pitch => pitch.ClubId,
+                club => club.Id,
+                (pitch, club) => new { PitchName = pitch.Name, ClubName = club.Name, club.Address, club.Locality, club.TimeZoneId })
+            .SingleAsync(cancellationToken);
+
+        var payload = new BookingSeriesEmailPayload(
+            playerId,
+            place.ClubName,
+            place.Address,
+            place.Locality,
+            place.TimeZoneId,
+            place.PitchName,
+            created.Select(booking => new SeriesBookedLine(booking.StartsAt, booking.EndsAt, booking.Price)).ToList(),
+            skipped.Select(date => new SeriesSkippedLine(date.StartsAt, date.EndsAt, date.Reason)).ToList());
+        dbContext.OutboxMessages.Add(OutboxMessage.Create(OutboxMessageTypes.BookingSeriesConfirmed, payload.Serialize(), timeProvider.GetUtcNow().UtcDateTime));
+    }
+
     private async Task EnqueueAsync(Booking booking, string type, string? reason, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(booking);
