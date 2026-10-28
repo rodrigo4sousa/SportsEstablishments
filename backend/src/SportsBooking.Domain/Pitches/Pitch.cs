@@ -8,6 +8,14 @@ public enum PitchStatus
     Inactive,
 }
 
+/// <summary>What happened when a band was added or changed (US10).</summary>
+public enum PriceBandOutcome
+{
+    Done,
+    Overlaps,
+    LimitReached,
+}
+
 /// <summary>The details an owner edits (US07), already validated and normalized.</summary>
 public sealed record PitchDetails(string Name, Sport Sport, decimal PricePerSlot);
 
@@ -19,6 +27,7 @@ public sealed record PitchDetails(string Name, Sport Sport, decimal PricePerSlot
 public sealed class Pitch
 {
     private readonly List<PitchOpeningDay> _openingDays = [];
+    private readonly List<PitchPriceBand> _priceBands = [];
 
     private Pitch()
     {
@@ -48,6 +57,11 @@ public sealed class Pitch
 
     /// <summary>The open weekdays, at most one interval each; a weekday that is not here is closed.</summary>
     public IReadOnlyList<PitchOpeningDay> OpeningDays => _openingDays;
+
+    /// <summary>The price bands (US10): none or more, never overlapping. A slot outside every band costs <see cref="PricePerSlot"/>.</summary>
+    public IReadOnlyList<PitchPriceBand> PriceBands => _priceBands;
+
+    public bool HasPriceBands => _priceBands.Count > 0;
 
     public bool IsActive => Status == PitchStatus.Active;
 
@@ -155,6 +169,66 @@ public sealed class Pitch
     {
         var localDate = DateOnly.FromDateTime(ClubTime.ToLocal(startsAtUtc, timeZone));
         return SlotsOn(localDate, timeZone).SingleOrDefault(slot => slot.StartsAtUtc == startsAtUtc);
+    }
+
+    /// <summary>
+    /// The price of the slot that starts at <paramref name="startsAtUtc"/> (US10): the band that contains its local start
+    /// time on its local weekday, otherwise <see cref="PricePerSlot"/>. A slot that runs past the end of a band keeps the
+    /// price of the band where it starts (provisional). Local time, so the repeated hour of 25 October is priced by the
+    /// clock on the wall, in summer and in winter alike (T04). The one place a slot's price is decided.
+    /// </summary>
+    public decimal PriceForSlot(DateTime startsAtUtc, TimeZoneInfo timeZone)
+    {
+        var local = ClubTime.ToLocal(startsAtUtc, timeZone);
+        var time = TimeOnly.FromDateTime(local);
+        var band = _priceBands.FirstOrDefault(candidate => candidate.Covers(local.DayOfWeek, time));
+        return band?.Price ?? PricePerSlot;
+    }
+
+    /// <summary>Adds a band unless the pitch already has <see cref="PriceBandRules.MaximumPerPitch"/> or the band overlaps another one.</summary>
+    public PriceBandOutcome TryAddPriceBand(PriceBandDetails details, DateTime now, out PitchPriceBand? band)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        band = null;
+        if (_priceBands.Count >= PriceBandRules.MaximumPerPitch)
+        {
+            return PriceBandOutcome.LimitReached;
+        }
+
+        if (_priceBands.Any(existing => existing.Overlaps(details)))
+        {
+            return PriceBandOutcome.Overlaps;
+        }
+
+        band = PitchPriceBand.Create(Id, details, EnsureUtc(now));
+        _priceBands.Add(band);
+        return PriceBandOutcome.Done;
+    }
+
+    /// <summary>Replaces the fields of one of the pitch's bands, unless the new ones overlap another band (not itself).</summary>
+    public PriceBandOutcome TryChangePriceBand(PitchPriceBand band, PriceBandDetails details, DateTime now)
+    {
+        ArgumentNullException.ThrowIfNull(band);
+        ArgumentNullException.ThrowIfNull(details);
+        if (!_priceBands.Contains(band))
+        {
+            throw new ArgumentException("The band does not belong to this pitch.", nameof(band));
+        }
+
+        if (_priceBands.Any(existing => existing != band && existing.Overlaps(details)))
+        {
+            return PriceBandOutcome.Overlaps;
+        }
+
+        band.Apply(details, EnsureUtc(now));
+        return PriceBandOutcome.Done;
+    }
+
+    /// <summary>Removes a band for real: bands are configuration, and bookings keep their own price.</summary>
+    public void RemovePriceBand(PitchPriceBand band)
+    {
+        ArgumentNullException.ThrowIfNull(band);
+        _priceBands.Remove(band);
     }
 
     private void Apply(PitchDetails details)
