@@ -26,7 +26,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 | [01-context.md](01-context.md) | Nível 1 · Contexto do sistema | Cenários (contexto de uso) | Quem usa o sistema e com que sistemas externos fala? |
 | [02-containers.md](02-containers.md) | Nível 2 · Contentores | De processo (unidades que correm) | De que aplicações e armazenamentos é feito, e como comunicam? |
 | [03-logical-view.md](03-logical-view.md) | Nível 3 · Componentes e nível 4 · Código | Lógica | Como se organiza o código em camadas e componentes, que conceitos, invariantes e estados tem o domínio? |
-| [05-runtime.md](05-runtime.md) | Diagramas dinâmicos | De processo | Como colaboram as partes num pedido, numa transação e em segundo plano? |
+| [04-process-view.md](04-process-view.md) | Diagramas dinâmicos (em sequência) | De processo | Que processos e fios correm, o que corre ao mesmo tempo, e como colaboram as partes num pedido, numa transação e em segundo plano? |
 | [06-deployment.md](06-deployment.md) | Diagrama de implantação | Física | Onde corre cada contentor, em desenvolvimento, no CI e em produção? |
 | [07-scenarios.md](07-scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Os casos de uso que atravessam todas as vistas e as validam. |
 | [adr/](adr/README.md) | — | — (justificação transversal) | Porque é que as escolhas importantes são as que são? |
@@ -38,7 +38,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 | 01 Contexto | Pessoas (`P-`), o sistema como uma caixa, sistemas externos (`X-`). | Tecnologias, contentores, código. |
 | 02 Contentores | Contentores (`C-`), sistemas externos, protocolos e formatos nas setas. | Classes, pastas, componentes internos. |
 | 03 Vista lógica | Camadas (`L-`); componentes de um contentor de cada vez (`API-`, `CC-` ou `WEB-`) e as suas dependências; entidades e valores (`D-`) com relações, invariantes e estados; o código de duas peças centrais. | Classes individuais nos diagramas de componentes, salvo quando são o próprio componente; controllers, HTTP e ecrãs no modelo do domínio. |
-| 05 Execução | Uma sequência por diagrama: pedido, transação, trinco, outbox, worker. | Todas as variantes de erro de uma só vez (uma variante por diagrama). |
+| 04 Vista de processo | Processos e fios; o pipeline da API; uma sequência por diagrama (pedido, transação, trinco, outbox, worker), com cerca de 8 participantes no máximo. | Detalhe interno das classes; recusas que não mudam a sequência (ficam no texto). |
 | 06 Implantação | Nós, contentores implantados, portas, redes, variáveis de configuração que mudam o comportamento. | Lógica de negócio. |
 | 07 Cenários | Um caso de uso de ponta a ponta, com as vistas que atravessa. | Detalhe que já está nas outras vistas (aponta para elas). |
 

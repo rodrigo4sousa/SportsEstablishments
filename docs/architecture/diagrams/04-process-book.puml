@@ -1,0 +1,53 @@
+' plantuml-version: 1.2026.8
+@startuml 04-process-book
+!include <C4/C4_Sequence>
+
+title Jogador reserva um slot (US18, T03) · trinco do campo, exclusion constraint e outbox na mesma transação
+
+HIDE_STEREOTYPE()
+
+Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "ClubBooking, createBooking")
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(API_BOOK_SINGLE, "API-BOOK-SINGLE · Uma reserva", "BookingService.CreateAsync")
+  Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas", "IAccountStore.IsActiveAsync")
+  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
+  Component(CC_SLOTCHECK, "CC-SLOTCHECK · Verificação do slot", "BookingSlotCheck.CheckAsync")
+  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
+  Component(API_BOOK_STORE, "API-BOOK-STORE · Store das reservas", "BookingStore.TryAddAsync")
+Boundary_End()
+ContainerDb(C_DB, "C-DB · PostgreSQL", "pitches, blocks, bookings, outbox_messages")
+
+Rel(WEB_F_BOOKING, API_BOOK_SINGLE, "POST /api/bookings { pitchId, startsAt }", "apiJson, via WEB-REWRITE; política Player")
+Rel(API_BOOK_SINGLE, API_BOOK_SINGLE, "Valida o pedido (400 validation_failed)")
+Rel(API_BOOK_SINGLE, C_DB, "Lê o campo e o clube, fora de transação (404 pitch_not_found)", "SELECT pitches JOIN clubs")
+Rel(API_BOOK_SINGLE, API_AUTH_ACCOUNTS, "O dono do clube está ativo? (422 club_unavailable)")
+Rel(API_AUTH_ACCOUNTS, C_DB, "users.deactivated_at IS NULL", "SELECT")
+
+group Transação do trinco (READ COMMITTED)
+  Rel(API_BOOK_SINGLE, CC_LOCK, "LockAsync(pitchId)")
+  Rel(CC_LOCK, C_DB, "BEGIN; SELECT 1 FROM pitches WHERE id = … FOR UPDATE", "SQL")
+  note over CC_LOCK, C_DB: Outro pedido para o mesmo campo (reserva, bloqueio, cancelamento, falta, faixa de preço) espera aqui.
+  Rel(API_BOOK_SINGLE, C_DB, "Volta a ler o campo dentro do trinco", "SELECT pitches (+ horário, faixas)")
+  Rel(API_BOOK_SINGLE, CC_SLOTCHECK, "CheckAsync(pitch, timeZone, startsAt, now)")
+  Rel(CC_SLOTCHECK, C_DB, "Há bloqueio sobreposto?", "SELECT blocks")
+  Rel_Back(API_BOOK_SINGLE, CC_SLOTCHECK, "O slot, ou a 1.ª recusa: 422 pitch_inactive, outside_booking_window, invalid_slot, slot_started; 409 slot_blocked")
+  Rel(API_BOOK_SINGLE, API_BOOK_SINGLE, "Booking.ForPlayer(…, pitch.PriceForSlot(startsAt, timeZone), now)")
+  Rel(API_BOOK_SINGLE, API_NOTIF_OUTBOX, "EnqueueConfirmationAsync, EnqueueOwnerNotificationAsync, EnqueueReminder")
+  note over API_NOTIF_OUTBOX: Só junta OutboxMessage ao mesmo AppDbContext, sem gravar:\nbooking_confirmed; owner_new_booking se o clube o quer;\nbooking_reminder devido a startsAt − 3 h, se ainda no futuro.
+  Rel(API_BOOK_SINGLE, API_BOOK_STORE, "TryAddAsync(booking)")
+  Rel(API_BOOK_STORE, C_DB, "Um SaveChanges: INSERT bookings e INSERT outbox_messages", "SQL")
+  alt bookings_no_overlap recusa
+    Rel_Back(API_BOOK_STORE, C_DB, "SQLSTATE 23P01 (exclusion_violation)")
+    Rel(API_BOOK_STORE, API_BOOK_STORE, "Desliga as entradas Added (reserva e mensagens); log Information sem o jogador")
+    Rel_Back(API_BOOK_SINGLE, API_BOOK_STORE, "false")
+    Rel(CC_LOCK, C_DB, "Sem commit: o scope é descartado → ROLLBACK", "SQL")
+    Rel_Back(WEB_F_BOOKING, API_BOOK_SINGLE, "409 slot_taken")
+  else inserida
+    Rel(API_BOOK_SINGLE, CC_LOCK, "scope.CommitAsync")
+    Rel(CC_LOCK, C_DB, "COMMIT: reserva e emails juntos; o trinco é libertado", "SQL")
+    Rel_Back(WEB_F_BOOKING, API_BOOK_SINGLE, "201 Created, Location: /api/bookings/{id}")
+  end
+end
+
+SHOW_LEGEND()
+@enduml
