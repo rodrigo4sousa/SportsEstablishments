@@ -6,7 +6,7 @@ Next.js (App Router) no front end, ASP.NET Core no back end e PostgreSQL, servid
  
 ## Arquitetura
  
-&#91;embedded content: arquitetura · 6 componentes\]
+A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/00-inventory.md](architecture/00-inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
  
 O browser só fala com o Caddy. Os Server Components chamam a API por dentro, a passar o cookie do utilizador, e nada além da API acede ao PostgreSQL.
  
@@ -19,7 +19,7 @@ Cada escolha tem uma razão; o que não tem razão para estar aqui ficou de fora
 | Front end | Next.js (App Router), React, TypeScript em modo strict | Server Components lêem dados no servidor com o cookie; Client Components tratam da interação |
 | UI | Tailwind CSS e shadcn/ui | Tailwind aparece nas vagas; shadcn/ui dá componentes acessíveis que ficam no teu código |
 | Dados do servidor no cliente | TanStack Query | Cache, recarregamento e invalidação depois de reservar ou cancelar |
-| Estado de UI | Zustand | Estado partilhado que não vem da API (passo da reserva, vista do calendário) |
+| Estado de UI | O endereço da página (`useSearchParams`) | O passo da reserva e a vista do calendário vivem no URL, não numa store (ver Estado) |
 | Formulários | React Hook Form e Zod | Validação no browser com mensagens por campo |
 | Tipos da API | Gerados do OpenAPI (openapi-typescript) | Os DTOs em C# são a única fonte de verdade; o front end não reescreve tipos à mão |
 | Gráficos | Recharts | Gráficos do admin |
@@ -31,7 +31,7 @@ Cada escolha tem uma razão; o que não tem razão para estar aqui ficou de fora
 | Base de dados | PostgreSQL | Exclusion constraints para impedir reservas sobrepostas |
 | Trabalho em segundo plano | BackgroundService e tabela outbox | Emails e lembretes sem bloquear pedidos e sem se perderem |
 | Email | SMTP: Brevo em produção, Mailpit em desenvolvimento | Nenhum email real sai durante o desenvolvimento |
-| Testes | xUnit, Testcontainers, Vitest, React Testing Library, MSW, Playwright | Ver Testes |
+| Testes | xUnit, Testcontainers, Vitest, React Testing Library, MSW | Ver Testes |
 | Infraestrutura | Docker, docker compose, GitHub Actions, Caddy | Tudo arranca com um comando; Caddy trata do HTTPS e junta front end e API na mesma origem |
  
 ## Back end: arquitetura e injeção de dependências
@@ -112,8 +112,8 @@ Server Components por omissão; `'use client'` só onde há interação, e o mai
  
 | Onde corre | Para quê | Exemplos | Como obtém os dados |
 | --- | --- | --- | --- |
-| Server Component | Mostrar dados na primeira renderização | Página do clube, lista de reservas, totais do admin | `fetch` à API interna com o cabeçalho `Cookie`, sem cache (`cache: 'no-store'`) |
-| Client Component | Interação | Formulários, fluxo de reserva, navegação do calendário, gráficos, filtros | TanStack Query sobre `/api/*` (mesma origem, os cookies seguem sozinhos) |
+| Server Component | Mostrar dados na primeira renderização | Página do clube, totais do admin | `fetch` à API interna com o cabeçalho `Cookie`, sem cache (`cache: 'no-store'`) |
+| Client Component | Interação | Formulários, fluxo de reserva, «As minhas reservas», navegação do calendário, gráficos, filtros | TanStack Query sobre `/api/*` (mesma origem, os cookies seguem sozinhos) |
  
 **Regras**
  
@@ -121,14 +121,13 @@ Server Components por omissão; `'use client'` só onde há interação, e o mai
 - Cada área tem o seu `layout.tsx`, que no servidor chama `/api/auth/me` e redireciona se o perfil não corresponder. É conveniência: a API continua a decidir o acesso.
 - `loading.tsx` e `error.tsx` em cada segmento de rota; erros de mutações aparecem como toast.
 - Só as variáveis `NEXT_PUBLIC_*` chegam ao browser; nenhum segredo usa esse prefixo.
-**Estado: TanStack Query vs Zustand**
- 
+**Estado: TanStack Query e o endereço da página**
+
 - Dados que vêm da API ficam no TanStack Query. Depois de reservar ou cancelar, invalida as queries afetadas (slots livres, as minhas reservas); com um 409, volta a carregar os slots.
-- O Zustand guarda só estado de UI partilhado entre componentes: o passo da reserva (clube, campo, data, slot), a vista do calendário (dia ou semana, campo escolhido).
-- Nunca copiar dados da API para o Zustand: cria duas versões da verdade que deixam de bater certo.
-- Nunca tokens nem dados pessoais em `persist` ou `localStorage`.
-- Uma store pequena por funcionalidade, lida com seletores (`useBookingStore(s => s.date)`) para evitar re-renders.
-- Usar as stores só em Client Components. Uma store criada ao nível do módulo é partilhada entre pedidos no servidor; se for precisa no SSR, cria-se uma por pedido com um Provider.
+- **Não há Zustand.** O que o utilizador escolhe vive no endereço da página, lido com `useSearchParams` e escrito com `router.replace`: na reserva `?pitch=&date=&slot=&weeks=` (`features/booking/selection.ts`), no calendário `?date=&view=&pitch=&cancelled=&booking=`, nas pesquisas e nas listas os filtros e a página. Há duas razões. Quem não tem sessão e é enviado para o login (`/login?next=<este endereço>`) volta ao mesmo clube, campo, data e slot. E a ligação é partilhável e funciona com o botão «Voltar» e ao recarregar. Uma store em memória perdia a escolha a cada redirecionamento e criava uma segunda versão da verdade.
+- Os valores por omissão não se escrevem no endereço (hoje, uma semana, a primeira página) e um valor sem sentido conta como o valor por omissão.
+- Nunca copiar dados da API para outro estado; nunca tokens nem dados pessoais em `localStorage`.
+- Se um dia for preciso estado de UI partilhado que não faça sentido no endereço, usa-se uma store pequena por funcionalidade, só em Client Components e criada por pedido se for precisa no SSR; hoje nenhuma funcionalidade o pede.
 **Formulários com Zod**
  
 - React Hook Form com `zodResolver`; um schema por formulário, na pasta da funcionalidade.
@@ -139,16 +138,21 @@ Server Components por omissão; `'use client'` só onde há interação, e o mai
 ```text
 frontend/src/
   app/
-    (player)/      início, pesquisa, clube, as minhas reservas
-    manage/        área do dono
-    admin/         área do admin
-    login/  register/
+    (player)/      início e pesquisa, clubs/[slug], bookings (as minhas reservas)
+    manage/        área do dono (clubes, calendário, estatísticas)
+    admin/         área do admin (painel, owners/[id])
+    login/  register/ (e register/owner)  forgot-password/  reset-password/
+  proxy.ts         escreve o caminho pedido no cabeçalho x-pathname (regresso depois do login)
   features/
-    booking/       components/ hooks/ schemas/ store.ts
-    clubs/  calendar/  admin-stats/
+    auth/  catalog/  booking/  my-bookings/
+    clubs/  pitches/  calendar/  statistics/  admin/
+                   cada uma com components/, schemas/ quando há formulários, api.ts e testes ao lado
   lib/
-    api/           tipos gerados do OpenAPI e cliente do browser
+    api/           tipos gerados do OpenAPI, cliente do browser, mensagens por código
     server/        chamadas à API a partir do servidor (server-only)
+    auth/          decisões de redirecionamento (funções puras)
+    datetime.ts    datas sempre em hora de Lisboa
+  components/      cabeçalhos e guardas das áreas, campos de formulário, filtro de período
   components/ui/   componentes shadcn/ui
 ```
  
@@ -230,7 +234,9 @@ Os testes de integração correm contra um PostgreSQL real, porque as regras mai
 | Unitários (back end) | xUnit, Shouldly, `FakeTimeProvider` | Regras do domínio e dos serviços | Janela de cancelamento, geração de slots nas mudanças de hora |
 | Integração (back end) | xUnit, `WebApplicationFactory`, Testcontainers (PostgreSQL) | Endpoints completos, da autenticação à base de dados | Dono A não vê dados do dono B (T02); pedidos simultâneos para o mesmo slot (T03); códigos e `code` dos erros |
 | Componentes (front end) | Vitest, React Testing Library, MSW | Comportamento da UI com a API simulada | Erros por campo no registo; mensagem e lista atualizada depois de um 409 |
-| End-to-end | Playwright | Três fluxos críticos na app a correr | Jogador reserva; dono cancela com motivo; admin vê os totais |
+| End-to-end | Nenhum no repositório | — | Ver a nota abaixo: a prática é a verificação manual no browser |
+ 
+**End-to-end.** Não há testes Playwright (nem outra ferramenta end-to-end) no repositório nem no CI. A prática usada, antes de cada merge de uma história com interface, é a verificação manual no browser com a stack completa a correr (`docker compose` com os dados de demonstração e o Mailpit): os fluxos críticos (o jogador reserva e cancela, o dono cancela com motivo, o admin vê os totais) percorrem-se à mão ou com scripts de navegador temporários que não ficam no repositório, e conferem-se os emails no Mailpit e o que fica nos logs. Podem vir a ser acrescentados testes end-to-end mais tarde.
  
 **Regras**
  
@@ -249,12 +255,13 @@ Para ir marcando à medida que fica feito.
 - [x] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação (login, registo, refresh e os dois passos da recuperação de palavra-passe). (US03, US05)
 - [x] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe). (US03, US05: o pedido responde sempre o mesmo 202 e a confirmação dá sempre o mesmo 400 para uma ligação má.)
 - [ ] HTTPS em todo o lado e HSTS em produção.
-- [ ] Cabeçalhos de segurança: Content-Security-Policy, X-Content-Type-Options, Referrer-Policy.
-- [ ] Segredos em variáveis de ambiente (user-secrets em desenvolvimento); `.env` no `.gitignore`.
-- [ ] SQL à mão só com parâmetros (`FromSql` com interpolação, que parametriza); nunca concatenar strings.
-- [ ] Nada de palavras-passe, tokens nem cookies nos logs.
-- [ ] Admin vê só contagens, nunca nomes ou emails de jogadores.
-- [ ] Dependabot ligado, e `dotnet list package --vulnerable` e `npm audit` no CI.
+- [ ] Cabeçalhos de segurança: Content-Security-Policy, X-Content-Type-Options, Referrer-Policy. **Planeado antes da T06.** Hoje só a `/reset-password` leva `Referrer-Policy: no-referrer` e `Cache-Control: no-store` (US05, testado).
+- [x] Segredos em variáveis de ambiente (user-secrets em desenvolvimento); `.env` no `.gitignore`. O código lê a chave do JWT, a conta de admin, o SMTP e a ligação à base de dados de variáveis de ambiente, e a API não arranca com definições obrigatórias em falta (testado com os validadores das opções); a única chave no repositório é a de desenvolvimento, que só serve em desenvolvimento. A configuração dos segredos em produção é a T06.
+- [x] SQL à mão só com parâmetros (`FromSql`, `SqlQuery` e `ExecuteSql` com interpolação, que parametriza); nunca concatenar strings. Todo o SQL à mão da Infrastructure é assim.
+- [x] Nada de palavras-passe, tokens nem cookies nos logs. Testado onde o risco existe: o comando do admin, as reservas e os emails (nenhum endereço, corpo ou segredo chega aos logs) e a recuperação de palavra-passe.
+- [x] Admin vê só contagens, nunca nomes ou emails de jogadores. Cada endpoint da área tem um teste que procura o nome, o email e o id de um jogador na resposta.
+- [x] `dotnet list package --vulnerable` e `npm audit` no CI.
+- [ ] Dependabot ligado. **Planeado antes da T06.**
 ## Repositório, Git, CI e deploy
  
 Um só repositório, `main` protegida e deploy automático de tudo o que passa no CI.
@@ -279,7 +286,7 @@ Um só repositório, `main` protegida e deploy automático de tudo o que passa n
  
 - Back end: restore, build e testes, incluindo os de integração com Testcontainers (os runners Ubuntu do GitHub têm Docker).
 - Front end: lint, verificação de tipos, testes e build.
-- Playwright só nos pull requests para a `main`, por ser o mais lento.
+- Não há testes end-to-end no CI (ver Testes).
 - Verificação de pacotes vulneráveis em ambos.
 **Deploy**
  

@@ -2,7 +2,7 @@
  
 Oct 22, 2026 · @Rodri
  
-O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 37. Uma só app React com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
+O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 37. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
  
 ## Pontos a rever no T06
 
