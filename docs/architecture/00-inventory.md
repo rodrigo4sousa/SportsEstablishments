@@ -163,3 +163,9 @@ Não usar estes ids nos diagramas do estado atual; só nas vistas de implantaç�
 | PL-BREVO | Brevo | Sistema externo (SMTP) | O servidor SMTP de produção (X-SMTP em produção). | `docs/stack.md`, `docs/backlog.md` (US22, T06) |
 | PL-PGMANAGED | PostgreSQL gerido | Sistema externo (alternativa) | PostgreSQL como serviço (por exemplo Azure Database for PostgreSQL) em vez do contentor C-DB. | `docs/stack.md` (Deploy) |
 | PL-BACKUP | Cópia diária | Tarefa | `pg_dump` diário da base de dados. | `docs/stack.md` (Deploy) |
+| PL-RENDER | Render | Sistema externo (plataforma de alojamento) | Aloja o front end e a API em produção; é uma caixa nos diagramas, sem detalhe. | Plano de produção indicado pelo autor (T06); ainda não está em `docs/stack.md` |
+| PL-RENDER-WEB | Serviço web público do Render | Nó de implantação | Corre C-WEB; é a única entrada pública (HTTPS) e reencaminha `/api/*` para a API. | Idem |
+| PL-RENDER-API | Serviço privado do Render | Nó de implantação | Corre C-API com C-WORKER, sem URL público; só se alcança pela rede interna do Render. | Idem |
+| PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção. | Idem |
+
+**Nota (plano de produção).** `docs/stack.md` e `docs/backlog.md` (T06) descrevem uma máquina virtual com Caddy (PL-HOST, PL-CADDY, PL-GHCR, PL-DEPLOY, PL-MIGBUNDLE). O plano atual, com PL-RENDER, PL-RENDER-WEB, PL-RENDER-API, PL-SUPABASE e PL-BREVO, não tem Caddy: o Next.js (C-WEB) continua a ser o proxy reverso. Os dois ainda não estão reconciliados nesses documentos; os ids antigos ficam até a T06 decidir.

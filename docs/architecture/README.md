@@ -53,13 +53,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 **Como editar e voltar a desenhar.**
 
 1. Edita o `.puml`. Usa a biblioteca incluída no próprio PlantUML (`!include <C4/C4_Container>`, `C4_Component`, `C4_Context`, `C4_Dynamic`, `C4_Deployment`), sem descarregar nada da rede, para o desenho ser sempre o mesmo.
-2. Desenha todos os diagramas do repositório com o PlantUML em Docker (precisa só do Docker):
-
-   ```bash
-   docker run --rm -v "$(pwd)/docs/architecture/diagrams:/data" plantuml/plantuml -tsvg "/data/*.puml"
-   ```
-
-   (Com o `plantuml.jar` e Java: `java -jar plantuml.jar -tsvg docs/architecture/diagrams/*.puml`.) A versão do PlantUML usada fica registada no cabeçalho de cada `.puml`, para uma nova versão não mudar os desenhos sem se dar por isso.
+2. Desenha todos os diagramas do repositório (precisa só do Docker) com `scripts/render-diagrams.sh` (ou `scripts/render-diagrams.ps1` no Windows). Os dois leem a versão do cabeçalho dos `.puml` (`' plantuml-version: X.Y.Z`) e usam a imagem `plantuml/plantuml:X.Y.Z`; recusam-se a correr se os ficheiros indicarem versões diferentes. O CI (job `diagrams`) corre o mesmo script e falha se algum `.svg` mudar, por isso a versão é a mesma em todo o lado: para a mudar, altera o cabeçalho de **todos** os `.puml`, volta a desenhar e faz commit dos SVG.
 3. Confirma o resultado no SVG, e faz commit do `.puml` e do `.svg` juntos. Um SVG que não corresponde ao `.puml` é um erro de revisão.
 
 **Cores (as do C4-PlantUML, sem as alterar).**
