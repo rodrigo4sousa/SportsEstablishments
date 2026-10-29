@@ -4,6 +4,26 @@ Oct 22, 2026 · @Rodri
  
 O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 37. Uma só app React com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
  
+## Decisões em aberto
+
+Estas decisões estão implementadas e a funcionar, mas ainda estão marcadas «provisórias, a confirmar» na história respetiva. Cada linha é um bloco; para fechar um, muda-se o título do bloco para «Decidido (confirmado)». Nenhuma bloqueia o deploy.
+
+- US11, interface do calendário: colunas por campo e linhas por hora, estilos por estado, navegação, estado da vista no endereço (`?date=`, `&cancelled=1`, `&booking=`), vista semanal e abertura dos detalhes.
+- US11, implementação: intervalo da API (`from`/`to` locais, no máximo 7 dias), forma da resposta, uma reserva pertence ao intervalo se o sobrepõe, campos inativos só com reservas à vista.
+- US12, interface: botão «Cancelar reserva» só quando a API diz `canCancel`, formulário com motivo, mensagens depois de cancelar e das recusas.
+- US12, implementação: sem janela de cancelamento para o clube, trinco do campo e leitura repetida, estado `cancelled_by_club` com motivo e instante.
+- US13, interface: entradas do formulário «Nova reserva», validações, o que acontece num conflito e depois de criar, marca «Criada pelo clube».
+- US13, implementação: reserva de jogador ou de cliente (`ck_bookings_player_or_customer`), `POST …/bookings`, regras do slot partilhadas com a US18, preço guardado, o que o calendário e os detalhes mostram.
+- US16, implementação: o que torna um clube visível, `GET /api/clubs` (20 por página, ordem, `hasFreeSlots`), `GET /api/clubs/{slug}`.
+- US16, interface: filtros e pesquisa ao mudar, resultados, páginas de 20 e a página do clube.
+- US17, implementação: resposta dos slots (`available` sem motivo), uma só conta de «livre» e as duas 01:00 de 25 de outubro.
+- US17, interface: seletor de campo e de data, slots desativados sem dizer porquê.
+- US18, implementação: fim e preço vêm do campo, ordem dentro da transação, forma da resposta 201.
+- US18, interface: o que o botão de confirmar envia, a confirmação e o regresso depois de criar conta.
+- US19, interface: página `/bookings` só para jogadores, separadores e páginas no endereço, o que cada reserva mostra, confirmação do cancelamento.
+- US19, implementação: `GET /api/me/bookings`, campos de cada reserva, `POST /api/bookings/{id}/cancel`, janela lida do clube sob o trinco.
+- US22, implementação: tabela `outbox_messages`, escrita na mesma transação, envio por `BackgroundService`, textos dos emails, definições SMTP.
+- Valores provisórios de configuração (não são decisões de produto): limites de pedidos por IP da autenticação (US03, US05) e dos endpoints públicos de leitura (T06).
 ## Convenções e regras de negócio
  
 **Formato.** Cada história segue «Como \<perfil>, quero \<ação>, para \<benefício>», com critérios de aceitação testáveis. **M** = MVP, **D** = depois do MVP.
@@ -119,7 +139,7 @@ Como utilizador, quero redefinir a palavra-passe por email, para recuperar o ace
 - O email traz uma ligação de uso único que expira ao fim de 1 hora.
 - Uma ligação usada ou expirada mostra erro e permite pedir outra.
 - A nova palavra-passe segue as regras da US01.
-- Estado: feita no back end (`POST /api/auth/password-reset/request` e `POST /api/auth/password-reset/confirm`, os dois emails); a página da ligação e o formulário de pedido vêm a seguir, no front end.
+- Estado: feita no back end (`POST /api/auth/password-reset/request` e `POST /api/auth/password-reset/confirm`, os dois emails); a página do pedido (`/forgot-password`) e a da ligação (`/reset-password`) no front end.
 - Decisões de implementação (decididas):
   - O pedido responde sempre 202 com a mesma mensagem, exista ou não a conta; só um email vazio ou mal escrito é um 400 no campo `email` (isso não revela nada). Só se pesquisa a conta e se põe trabalho na fila: não há email nem hash a calcular no pedido.
   - Só um jogador ou dono **ativo** recebe o email. Contas desconhecidas, donos e jogadores desativados e o admin não recebem nada (o admin muda a palavra-passe com `set-admin-password`, US04).
@@ -236,7 +256,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
 - Abrir uma reserva mostra os detalhes e a ação de cancelar.
 - Os bloqueios aparecem no calendário (US09): `GET …/pitches/{pitchId}/blocks` dá os bloqueios em curso e futuros de cada campo.
 - Candidata a dividir: vista diária (5) e vista semanal (3).
-- Estado: back end feito (`GET /api/manage/clubs/{clubId}/calendar` e `GET …/bookings/{bookingId}`). Interface: feita, a vista diária e a semanal (`/manage/clubs/{id}/calendar`).
+- Estado: feita. Back end (`GET /api/manage/clubs/{clubId}/calendar` e `GET …/bookings/{bookingId}`) e interface (a vista diária e a semanal, `/manage/clubs/{id}/calendar`).
 - Decidido (confirmado):
   - Back end: o intervalo do calendário tem no máximo 7 dias, ambos incluídos; as datas têm de estar entre 2000 e 2100 (limite defensivo); o dono pode ver qualquer data (passado e futuro, sem a janela de 30 dias dos jogadores).
   - Back end: uma reserva que atravessa a meia-noite local aparece nos dois dias.
@@ -329,7 +349,7 @@ Como dono, quero ver a ocupação e a receita dos meus clubes por período, para
 - Ocupação = horas reservadas a dividir pelas horas abertas no período, por campo.
 - Receita = soma dos preços das reservas não canceladas.
 - Os números batem certo com o calendário para o mesmo período (verificado por teste).
-- Estado: feita no back end (`GET /api/manage/clubs/{clubId}/statistics?from=&to=&pitchId=` e `GET /api/manage/statistics?from=&to=`, «por clube»); o ecrã vem a seguir, no front end.
+- Estado: feita. Back end (`GET /api/manage/clubs/{clubId}/statistics?from=&to=&pitchId=` e `GET /api/manage/statistics?from=&to=`, «por clube») e ecrãs (`/manage/statistics` e `/manage/clubs/{id}/statistics`).
 - Decisões de implementação (decididas):
   - **Um só cálculo** para o dono e para o admin (US27), `OccupationService`. Horas reservadas = tempo real das reservas **confirmadas e faltas** que se sobrepõem ao período, cortadas nos limites do período; as canceladas (pelo jogador ou pelo clube) ficam de fora. Receita = soma dos preços guardados dessas mesmas reservas, **por inteiro** (uma reserva cortada no limite do período conta o preço todo).
   - Horas abertas = o tempo reservável: para cada dia de Lisboa, os slots que o horário **em vigor agora** gera (`SlotGenerator`) vezes a duração do slot, em tempo real (não há histórico de horários). Um campo aberto 00:00–00:00 tem 25 slots de 60 minutos a 25/10/2026 e 23 a 29/03/2026; um dia fechado conta 0; os minutos depois do último slot que cabe não se podem reservar e não contam (um campo de 90 minutos aberto 4 h tem 3 h abertas).
@@ -345,7 +365,7 @@ Como dono, quero marcar uma reserva passada como falta, para saber que jogadores
 - Só se podem marcar reservas confirmadas cuja hora de fim já passou.
 - O estado passa a «Falta» e a marcação pode ser revertida.
 - O dono vê quantas faltas um jogador tem nos seus clubes.
-- Estado: feita no back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/no-show` e `…/no-show/undo`); os botões e o número no ecrã vêm a seguir, no front end.
+- Estado: feita. Back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/no-show` e `…/no-show/undo`) e, nos detalhes da reserva do calendário, os botões «Marcar falta» e «Anular falta» e o número de faltas do jogador.
 - Decisões de implementação (decididas):
   - Marcar: só uma reserva **confirmada** cuja hora de fim já passou (a hora de fim conta como passada). Primeiro 422 `booking_not_confirmed` (cancelada, ou já é uma falta), depois 422 `booking_not_ended`. Reverter: a falta volta a `confirmed`; uma reserva que não é falta é 422 `booking_not_no_show`. Dono de outro clube, ou reserva de outro clube: 404 (T02); jogador e admin: 403.
   - Tudo corre sob o `IPitchLock` do campo, como os cancelamentos, e lê a reserva outra vez lá dentro. Se ao reverter outra reserva confirmada já ocupou o horário (uma falta não o ocupa), a constraint `bookings_no_overlap` recusa e a resposta é **409 `slot_taken`**, nunca 500; o pedido não deixa nada a meio.
@@ -414,7 +434,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
 - Um campo inativo não aceita reservas (US07).
 - Decidido e feito (T03/US18): desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07): `POST …/pitches/{pitchId}/deactivate` devolve 422 `pitch_has_future_bookings` com `count` (regra de negócio, como na tabela de códigos da Stack; esta nota dizia antes 409).
 - Decidido e feito (T03/US18): um bloqueio que se sobreponha a reservas confirmadas é rejeitado (409 `block_overlaps_bookings`) e a mensagem lista essas reservas (US09); a verificação está em `BlockService.CreateAsync`, dentro do trinco da linha do campo, e a criação de uma reserva tranca a mesma linha antes de verificar os bloqueios.
-- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. Os emails (US22) ainda não existem; ver as minhas reservas e cancelar é a US19.
+- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. O email de confirmação é da US22; ver as minhas reservas e cancelar é a US19.
 - Decidido (confirmado):
   - O pedido traz o campo e o início do slot como instante com fuso (`2026-10-25T00:00:00Z`, como as listas de slots o dão), para a hora repetida de outubro nunca ser ambígua.
   - Códigos: 404 `pitch_not_found` (campo desconhecido); 422 `club_unavailable` (dono desativado), `pitch_inactive`, `outside_booking_window` (data local fora de hoje até 30 dias em Lisboa, incluindo dias passados), `invalid_slot` (um início que não seja um slot gerado: dia fechado, fora do horário, fora da grelha, segundos a mais), `slot_started`; 409 `slot_blocked` (um bloqueio sobrepõe-se, mesmo em parte) e `slot_taken` («Este horário acabou de ser reservado. Escolhe outro.»). Os 422 são verificados por esta ordem; os 409 só depois de trancar a linha do campo.
@@ -538,7 +558,7 @@ Como dono, quero receber um email quando entra uma reserva nova num dos meus clu
 - O email traz clube, campo, data, hora e nome do jogador.
 - O dono pode desligar estes emails nas definições do clube.
 - As reservas criadas pelo próprio dono (US13) não geram email.
-- Estado: feita no back end; o interruptor nas definições do clube vem a seguir, no front end.
+- Estado: feita. Back end e, nas definições do clube, o interruptor «Receber um email por cada nova reserva».
 - Decisões de implementação (decididas):
   - Definição por clube `notifyOnNewBooking`, **ligada por omissão** (também nos clubes que já existiam, pela migração). Edita-se no `PUT /api/manage/clubs/{id}` (e pode vir no `POST`); é opcional nos dois: se um pedido não a traz, fica como estava, para que um formulário que não a conhece não desligue os emails.
   - Quando um jogador reserva, e a definição está ligada, o email do dono entra na fila na mesma transação (uma reserva que perde a corrida não deixa email). O email traz clube, campo, data, hora de Lisboa e o nome do jogador, e nada mais sobre ele.
@@ -555,7 +575,7 @@ Como admin, quero ver os totais da plataforma, para saber o tamanho dela.
 - Mostra o número de donos, clubes, campos ativos, jogadores e reservas confirmadas.
 - Contas e clubes desativados aparecem separados dos ativos.
 - Os valores vêm de queries agregadas na base de dados, sem carregar listas para memória.
-- Estado: API feita (`GET /api/admin/stats`); o ecrã vem na mesma entrega do /admin (ver abaixo).
+- Estado: feita. API (`GET /api/admin/stats`) e os cartões da página `/admin`.
 - Decisões de implementação (decididas):
   - A resposta tem donos e jogadores como `{ active, deactivated }`, clubes como `{ total, visible, ofDeactivatedOwners, withoutActivePitches }` (os três últimos somam o total: visível = dono ativo e pelo menos um campo ativo, como nas páginas públicas), `activePitches` e `confirmedBookings`. Admins não contam como donos nem jogadores.
   - Os campos ativos são os campos ativos de donos ativos (os de um dono desativado não estão disponíveis, por isso não contam); as reservas confirmadas são todas as confirmadas, também as passadas, de jogadores e de clientes (US13).
@@ -568,7 +588,7 @@ Como admin, quero ver as reservas ao longo do tempo num gráfico, para perceber 
 - Intervalo de datas configurável, por omissão os últimos 30 dias.
 - Períodos sem reservas aparecem com zero, em vez de desaparecerem do gráfico.
 - As reservas canceladas ficam de fora por omissão, com opção de as incluir.
-- Estado: API feita (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`); o gráfico vem na mesma entrega do /admin.
+- Estado: feita. API (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`) e o gráfico da página `/admin`.
 - Decisões de implementação (decididas):
   - Uma reserva conta no período em que foi **criada** (não naquele em que se joga), pela data de Lisboa: `date_trunc(unidade, created_at AT TIME ZONE 'Europe/Lisbon')`. Assim 00:30 de 25 de outubro de 2026 (23:30 UTC do dia 24 já é dia 25 em Lisboa) cai no dia 25. Índice novo `ix_bookings_created_at`.
   - Semanas de segunda a domingo (ISO), meses civis. O intervalo é alargado a períodos inteiros (a resposta diz o `from`/`to` efetivos), por isso nunca há um período parcial.
@@ -583,7 +603,7 @@ Como admin, quero ver a lista de donos com os números de cada um, para saber qu
 - Cada linha mostra nome do dono, email, data de registo, número de clubes, de campos, de reservas e de jogadores distintos que reservaram nos seus clubes.
 - Ordenável por qualquer coluna, com pesquisa por nome ou email do dono.
 - Paginada.
-- Estado: API feita (`GET /api/admin/owners?search=&sort=&direction=&page=`); a tabela vem na mesma entrega do /admin.
+- Estado: feita. API (`GET /api/admin/owners?search=&sort=&direction=&page=`) e a tabela da página `/admin`.
 - Decisões de implementação (decididas):
   - Colunas: nome, email, data de registo, desativado, clubes, campos, reservas e jogadores. Ordena-se por `name`, `email`, `registeredAt`, `status`, `clubs`, `pitches`, `bookings` ou `players`, em `asc`/`desc`; nome e email ordenam sem distinguir maiúsculas; o desempate é sempre o id do dono, por isso a ordem é estável. Por omissão, nome ascendente.
   - A pesquisa procura um pedaço do nome ou do email, sem distinguir maiúsculas (e nunca encontra jogadores). 20 por página.
@@ -595,7 +615,7 @@ Como admin, quero ver os clubes com mais ocupação num período, para saber qua
  
 - Top 10 por taxa de ocupação no período escolhido, com a mesma fórmula da US14.
 - Mostra nome do clube, dono, localidade e taxa.
-- Estado: feita no back end (`GET /api/admin/clubs/top-occupation?from=&to=`); o ecrã vem a seguir, no front end.
+- Estado: feita. API (`GET /api/admin/clubs/top-occupation?from=&to=`) e a tabela «Clubes com maior ocupação» da página `/admin`, com o período partilhado com os gráficos.
 - Decisões de implementação (decididas):
   - Exatamente a fórmula e o período da US14 (`OccupationService`): um clube tem a mesma taxa aqui e nas estatísticas do dono (tem teste). Clubes sem horas abertas no período ficam de fora.
   - Ordem: a taxa **exata** (reservadas ÷ abertas, antes de arredondar), depois as horas reservadas, depois o id do clube. Os clubes de um dono **desativado** ficam de fora (não estão disponíveis, US29), tal como os campos inativos de um clube não dão horas abertas.
@@ -606,7 +626,7 @@ Como admin, quero ver os novos donos e jogadores ao longo do tempo, para acompan
  
 - Gráfico de registos por semana ou mês, separado por perfil.
 - Usa o mesmo filtro de intervalo da US25.
-- Estado: feita no back end (`GET /api/admin/registrations?granularity=week|month&from=&to=`); o gráfico vem a seguir, no front end.
+- Estado: feita. API (`GET /api/admin/registrations?granularity=week|month&from=&to=`) e o gráfico de registos da página `/admin`, com o período partilhado com o gráfico de reservas.
 - Decisões de implementação (decididas):
   - Conta pela data de Lisboa de `users.registered_at` (`date_trunc` depois de `AT TIME ZONE`, semanas de segunda a domingo), donos e jogadores em separado, nunca o admin; contas desativadas contam (registaram-se).
   - As regras do intervalo são as da US25, partilhadas no código (`ReportingPeriods.Range`): por omissão os últimos 30 dias, alargados a períodos inteiros, com o `from`/`to` efetivos na resposta, no máximo 104 semanas ou 60 meses, datas entre 2000 e 2100. Só `week` (por omissão) e `month`; `day` é um 400.
@@ -622,7 +642,7 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
 - As reservas futuras não são canceladas automaticamente; o admin vê quantas há antes de confirmar.
 - O admin pode reativar a conta.
 - Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.
-- Estado: feita no back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`); o ecrã do admin vem numa história seguinte.
+- Estado: feita no back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`) e a página `/admin/owners/{id}` (números, estado, histórico e o botão «Desativar dono» / «Reativar dono»).
 - Decisões de implementação (decididas):
   - `GET /api/admin/owners/{id}` devolve a linha da lista (US26) e `futureBookings`: as reservas confirmadas dos clubes do dono que ainda não terminaram (a que está a decorrer conta; as de clientes também), o número que o admin lê antes de desativar. Um id desconhecido ou de um jogador ou do admin é sempre 404 `owner_not_found`, antes de se ler o corpo.
   - `deactivate` e `reactivate` levam `{ reason }`: obrigatório, sem espaços nas pontas, no máximo **500** caracteres (400 no campo `reason`). Respondem 200 com o dono como o `GET` o dá. Já desativado: 422 `owner_already_deactivated`; não desativado: 422 `owner_not_deactivated`.
@@ -704,18 +724,21 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 - Existe um endpoint `/health` para verificar se a API está a responder.
 - `PublicSite__BaseUrl` é o endereço HTTPS público do site, usado nas ligações dos emails (US05); sem ele a API não arranca.
 - Os endpoints públicos de leitura (`/api/clubs`, `/api/localities`, a página do clube e os slots) têm um limite de pedidos por IP, folgado o suficiente para uma navegação normal (pesquisar, abrir clubes, mudar de data e de campo), para que ninguém os possa usar para extrair todos os dados ou sobrecarregar a API. Responde 429 `too_many_requests` com `Retry-After`, como nas rotas de autenticação, e usa o mesmo IP do cliente (ver o critério de `ForwardedHeaders` abaixo).
+- Estado: **por fazer** (é a única história aberta). O limite de pedidos dos endpoints públicos de leitura está feito: 120 pedidos por minuto e por IP, um só limite partilhado pelos quatro endpoints (`RateLimiting:Public:Window` / `ReadPermitLimit`, valores provisórios), com a mesma partição por IP e as mesmas regras de proxy de confiança das rotas de autenticação. Falta tudo o resto, incluindo o `ForwardedHeaders__KnownProxies__0` de produção, que continua a ser obrigatório (critério seguinte).
 - O rate limiting só funciona em produção se `ForwardedHeaders:KnownProxies` (`ForwardedHeaders__KnownProxies__0`) for o endereço do Caddy, com um endereço fixo na rede partilhada com a API; senão todos os utilizadores partilham o IP do Caddy e o mesmo limite.
 ## Resumo de pontos
  
-| Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) |
-| --- | --- | --- | --- | --- |
-| 1 — Contas e acesso | 4 | 12 | 1 | 3 |
-| 2 — Configuração do clube | 4 | 16 | 1 | 5 |
-| 3 — Operação do clube | 3 | 13 | 2 | 7 |
-| 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 |
-| 5 — Notificações | 1 | 3 | 1 | 1 |
-| 6 — Administração | 3 | 9 | 3 | 10 |
-| Histórias técnicas | 6 | 23 | 0 | 0 |
-| **Total** | **25** | **92** | **10** | **37** |
+| Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 — Contas e acesso | 4 | 12 | 1 | 3 | 5 de 5 | 15 de 15 |
+| 2 — Configuração do clube | 4 | 16 | 1 | 5 | 5 de 5 | 21 de 21 |
+| 3 — Operação do clube | 3 | 13 | 2 | 7 | 5 de 5 | 20 de 20 |
+| 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
+| 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
+| 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
+| Histórias técnicas | 6 | 23 | 0 | 0 | 5 de 6 | 18 de 23 |
+| **Total** | **25** | **92** | **10** | **37** | **34 de 35** | **124 de 129** |
+
+Estado final: tudo está feito menos a **T06 (deploy contínuo, 5 pontos)**, a única história em aberto.
  
 As duas histórias de 8 pontos (US11 e US20) são as primeiras a dividir se não couberem num sprint.
