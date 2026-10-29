@@ -8,6 +8,12 @@ using SportsBooking.Application.Common;
 
 namespace SportsBooking.Api.Security;
 
+/// <summary>Rate-limit policy name of the public read endpoints (T06), used with <c>[EnableRateLimiting]</c>.</summary>
+internal static class PublicRateLimits
+{
+    public const string Read = "public-read";
+}
+
 /// <summary>Rate-limit policy names, used with <c>[EnableRateLimiting]</c> on the auth endpoints.</summary>
 internal static class AuthRateLimits
 {
@@ -21,10 +27,10 @@ internal static class AuthRateLimits
 internal static class RateLimitingSetup
 {
     /// <summary>
-    /// US03, US05: fixed-window limits per client IP on login, registration, refresh and the two password-reset steps (the built-in middleware), and the
-    /// forwarded headers that decide the client IP, believed only from configured proxies.
+    /// US03, US05, T06: fixed-window limits per client IP on login, registration, refresh, the two password-reset steps and the public read
+    /// endpoints (the built-in middleware), and the forwarded headers that decide the client IP, believed only from configured proxies.
     /// </summary>
-    public static IServiceCollection AddAuthRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<TrustedProxyOptions>()
             .Bind(configuration.GetSection(TrustedProxyOptions.SectionName))
@@ -52,10 +58,15 @@ internal static class RateLimitingSetup
             .Bind(configuration.GetSection(AuthRateLimitOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<AuthRateLimitOptions>, AuthRateLimitOptionsValidator>();
+        services.AddOptions<PublicRateLimitOptions>()
+            .Bind(configuration.GetSection(PublicRateLimitOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<PublicRateLimitOptions>, PublicRateLimitOptionsValidator>();
         services.AddRateLimiter(_ => { });
         services.AddOptions<RateLimiterOptions>()
-            .Configure<IOptions<AuthRateLimitOptions>>((limiter, auth) =>
+            .Configure<IOptions<AuthRateLimitOptions>, IOptions<PublicRateLimitOptions>>((limiter, auth, publicRead) =>
             {
+                limiter.AddFixedWindowPerClient(PublicRateLimits.Read, publicRead.Value.ReadPermitLimit, publicRead.Value.Window);
                 var limits = auth.Value;
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Login, limits.LoginPermitLimit, limits.Window);
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Register, limits.RegisterPermitLimit, limits.Window);

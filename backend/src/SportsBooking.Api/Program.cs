@@ -34,7 +34,7 @@ builder.Services
 builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddApiProblemDetails();
 builder.Services.AddOriginCheck(builder.Configuration);
-builder.Services.AddAuthRateLimiting(builder.Configuration);
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.AddCookieJwtAuthentication();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer<ProblemDetailsSchemaTransformer>());
 

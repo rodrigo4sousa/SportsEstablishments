@@ -61,13 +61,14 @@ The API refuses to start if either is missing or invalid. Mutating requests with
 
 ### Rate limiting and trusted proxies
 
-Login, registration, refresh and the two password-reset steps are rate limited per client IP (429 `too_many_requests`). Five wrong passwords lock an account for 15 minutes. Both sets of values are provisional (US03 in [docs/backlog.md](docs/backlog.md)).
+Login, registration, refresh, the two password-reset steps and the public read endpoints (club search, localities, a club page and its slots) are rate limited per client IP (429 `too_many_requests` with `Retry-After`). Five wrong passwords lock an account for 15 minutes. Both sets of values are provisional (US03 in [docs/backlog.md](docs/backlog.md)).
 
 | Setting | Default |
 | --- | --- |
 | `RateLimiting:Auth:Window` | `00:01:00` |
 | `RateLimiting:Auth:LoginPermitLimit` / `RegisterPermitLimit` / `RefreshPermitLimit` | 10 / 5 / 30 requests per window |
 | `RateLimiting:Auth:PasswordResetRequestPermitLimit` / `PasswordResetConfirmPermitLimit` | 5 / 10 requests per window (US05, provisional) |
+| `RateLimiting:Public:Window` / `ReadPermitLimit` | `00:01:00` / 120 requests per window, shared by the public read endpoints: club search, localities, a club page and its slots (T06, provisional) |
 | `ForwardedHeaders:KnownProxies` (IP addresses) and `ForwardedHeaders:KnownNetworks` (CIDR) | none |
 
 The client IP is the connection's address. `X-Forwarded-For` is believed only from a configured proxy; from anyone else it is ignored, so a client cannot pick its own rate-limit partition. The API refuses to start if an entry is not a valid address or network.

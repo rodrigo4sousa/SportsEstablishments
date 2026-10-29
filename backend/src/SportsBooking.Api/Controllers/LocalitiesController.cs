@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SportsBooking.Api.Security;
 using SportsBooking.Application.Catalog;
 
 namespace SportsBooking.Api.Controllers;
@@ -8,6 +10,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/localities")]
 [AllowAnonymous]
+[EnableRateLimiting(PublicRateLimits.Read)]
 public sealed class LocalitiesController(ClubSearchService search) : ControllerBase
 {
     /// <summary>The localities of the clubs that can take bookings, one per spelling-insensitive locality, ordered.</summary>
