@@ -10,7 +10,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
 
 ## 1. Pessoas e atores
 
@@ -200,3 +200,25 @@ Não usar estes ids nos diagramas do estado atual; só nas vistas de implantaç�
 | PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção. | Idem |
 
 **Nota (plano de produção).** `docs/stack.md` e `docs/backlog.md` (T06) descrevem uma máquina virtual com Caddy (PL-HOST, PL-CADDY, PL-GHCR, PL-DEPLOY, PL-MIGBUNDLE). O plano atual, com PL-RENDER, PL-RENDER-WEB, PL-RENDER-API, PL-SUPABASE e PL-BREVO, não tem Caddy: o Next.js (C-WEB) continua a ser o proxy reverso. Os dois ainda não estão reconciliados nesses documentos; os ids antigos ficam até a T06 decidir.
+
+## 9. Vista de desenvolvimento
+
+Elementos que só a [vista de desenvolvimento](05-development-view.md) usa: pastas do repositório, projetos de teste, ficheiros gerados e jobs de CI. Os projetos do back end são as camadas `L-` e as pastas do front end reutilizam os ids `WEB-`.
+
+| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| --- | --- | --- | --- | --- |
+| DEV-BACKEND | `backend/` | Pasta | Solução .NET: quatro projetos em `src/`, dois de teste em `tests/`, versões centrais dos pacotes, `Dockerfile`. | `backend/` |
+| DEV-FRONTEND | `frontend/` | Pasta | Aplicação Next.js (`src/`), configuração, `Dockerfile`. | `frontend/` |
+| DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
+| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs e os diagramas (`.puml` e `.svg` lado a lado). | `docs/architecture/` |
+| DEV-SCRIPTS | `scripts/` | Pasta | Desenho dos diagramas com a imagem PlantUML fixada no cabeçalho. | `scripts/render-diagrams.sh`, `scripts/render-diagrams.ps1` |
+| DEV-WORKFLOWS | `.github/workflows/` | Pasta | Pipeline de CI. | `.github/workflows/ci.yml` |
+| DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
+| DEV-ROOTCFG | Configuração da raiz | Ficheiros | SDK fixado, estilo de código, fins de linha, ficheiros ignorados, README e AGENTS. | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` |
+| DEV-TEST-UNIT | Testes unitários do back end | Projeto de teste | Domínio, serviços e peças da API sem base de dados (xUnit v3, Shouldly, `FakeTimeProvider`). | `backend/tests/SportsBooking.UnitTests/` |
+| DEV-TEST-INT | Testes de integração do back end | Projeto de teste | Endpoints completos contra PostgreSQL real (Testcontainers), com `ApiFactory`. | `backend/tests/SportsBooking.IntegrationTests/` |
+| DEV-TEST-WEB | Testes do front end | Testes | Vitest, Testing Library e MSW; os `*.test.ts(x)` ficam ao lado do código, o apoio em `src/test/`. | `Web/test/`, `frontend/vitest.config.mts`, `frontend/vitest.setup.ts` |
+| DEV-WEBTYPES | Tipos da API gerados | Ficheiro gerado | Tipos TypeScript gerados do documento OpenAPI (CC-OPENAPI) por `openapi-typescript`; nunca se editam à mão. | `Web/lib/api/schema.d.ts` |
+| DEV-CI-BACKEND | Job `backend` | Job de CI | «Backend (build + tests)». | `.github/workflows/ci.yml` |
+| DEV-CI-FRONTEND | Job `frontend` | Job de CI | «Frontend (lint, typecheck, tests, build)». | `.github/workflows/ci.yml` |
+| DEV-CI-DIAGRAMS | Job `diagrams` | Job de CI | «Docs (architecture diagrams)»: desenha e compara os SVG. | `.github/workflows/ci.yml` |

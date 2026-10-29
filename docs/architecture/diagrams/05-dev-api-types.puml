@@ -1,0 +1,32 @@
+' plantuml-version: 1.2026.8
+@startuml 05-dev-api-types
+title Vista de desenvolvimento · do controller aos tipos do front end
+
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor White
+  BorderColor #1168BD
+}
+skinparam ArrowColor #555555
+
+start
+:Mudar um controller ou um DTO\n(L-API, L-APP);
+:dotnet build backend/SportsBooking.slnx\nMicrosoft.Extensions.ApiDescription.Server\ngera o documento OpenAPI;
+note right
+  O gerador arranca a aplicação como GetDocument.Insider
+  e Program.cs dá-lhe definições de substituição.
+end note
+:CC-OPENAPI\nbackend/src/SportsBooking.Api/openapi/sportsbooking-api.json;
+:cd frontend && npm run gen:api\nopenapi-typescript 7.13.0;
+:DEV-WEBTYPES\nfrontend/src/lib/api/schema.d.ts;
+:Os módulos de features/ e lib/ usam\nimport type { components } from "@/lib/api/schema";
+:Commit dos dois ficheiros gerados;
+if (CI: o documento ou os tipos mudariam?) then (sim)
+  #FFD5D5:CI falha: git diff ~-~-exit-code;
+  stop
+else (não)
+  :CI verde;
+  stop
+endif
+
+@enduml

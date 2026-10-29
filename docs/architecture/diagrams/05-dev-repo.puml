@@ -1,0 +1,55 @@
+' plantuml-version: 1.2026.8
+@startuml 05-dev-repo
+title Vista de desenvolvimento · estrutura do repositório
+
+skinparam shadowing false
+skinparam folder {
+  BackgroundColor White
+  BorderColor #1168BD
+}
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor #1168BD
+}
+skinparam ArrowColor #555555
+skinparam defaultTextAlignment left
+
+folder "/ · raiz do repositório" as ROOT {
+  rectangle "DEV-ROOTCFG\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md" as DEV_ROOTCFG
+  rectangle "DEV-COMPOSE\ndocker-compose.yml\npostgres, mailpit, api, frontend" as DEV_COMPOSE
+
+  folder "backend/ · DEV-BACKEND" as DEV_BACKEND {
+    rectangle "src/\nL-DOM, L-APP, L-INF, L-API" as B_SRC
+    rectangle "tests/\nDEV-TEST-UNIT, DEV-TEST-INT" as B_TESTS
+    rectangle "Directory.Build.props, Directory.Packages.props,\ndotnet-tools.json, SportsBooking.slnx, Dockerfile" as B_CFG
+  }
+
+  folder "frontend/ · DEV-FRONTEND" as DEV_FRONTEND {
+    rectangle "src/\napp, components, features, lib, test, proxy.ts\n(DEV-TEST-WEB: ficheiros *.test.ts(x) ao lado do código)" as F_SRC
+    rectangle "package.json, package-lock.json, next.config.ts,\nvitest.config.mts, eslint.config.mjs, tsconfig.json,\ncomponents.json, Dockerfile" as F_CFG
+  }
+
+  folder "docs/ · DEV-DOCS" as DEV_DOCS {
+    rectangle "backlog.md, stack.md" as D_SRC
+    folder "architecture/ · DEV-ARCHDOCS" as DEV_ARCHDOCS {
+      rectangle "00 a 07 (.md), README.md, adr/,\ndiagrams/ (.puml e .svg lado a lado)" as A_SRC
+    }
+  }
+
+  folder "scripts/ · DEV-SCRIPTS" as DEV_SCRIPTS {
+    rectangle "render-diagrams.sh, render-diagrams.ps1" as S_SRC
+  }
+
+  folder ".github/workflows/ · DEV-WORKFLOWS" as DEV_WORKFLOWS {
+    rectangle "ci.yml\njobs: backend, frontend, diagrams" as W_SRC
+  }
+}
+
+DEV_COMPOSE ..> DEV_BACKEND : "imagem da API"
+DEV_COMPOSE ..> DEV_FRONTEND : "imagem do front end"
+DEV_WORKFLOWS ..> DEV_BACKEND : "CI backend"
+DEV_WORKFLOWS ..> DEV_FRONTEND : "CI frontend"
+DEV_WORKFLOWS ..> DEV_SCRIPTS : "CI diagramas"
+DEV_SCRIPTS ..> DEV_ARCHDOCS : "lê os .puml, escreve os .svg"
+
+@enduml
