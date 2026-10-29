@@ -1,6 +1,8 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SportsBooking.Api.Security;
 using SportsBooking.Api.ErrorHandling;
 using SportsBooking.Application.Catalog;
 using SportsBooking.Application.Common;
@@ -14,6 +16,7 @@ namespace SportsBooking.Api.Controllers;
 [ApiController]
 [Route("api/clubs")]
 [AllowAnonymous]
+[EnableRateLimiting(PublicRateLimits.Read)]
 public sealed class ClubsController(ClubSearchService search, PublicClubService clubs) : ControllerBase
 {
     /// <summary>
