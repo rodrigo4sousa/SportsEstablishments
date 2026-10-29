@@ -10,7 +10,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
 
 ## 1. Pessoas e atores
 
@@ -47,6 +47,17 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 
 ## 4. Componentes da API por funcionalidade
 
+### Camadas (projetos do back end)
+
+| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| --- | --- | --- | --- | --- |
+| L-API | Camada Api | Projeto .NET | Controllers finos, cookies e autenticação, ProblemDetails, segurança HTTP; `Program.cs` compõe. Referencia só L-INF. | `backend/src/SportsBooking.Api/` |
+| L-APP | Camada Application | Projeto .NET | Serviços por caso de uso, validação, `Result`, `IAppDbContext` e as interfaces que a Infrastructure implementa. Referencia só L-DOM. | `backend/src/SportsBooking.Application/` |
+| L-INF | Camada Infrastructure | Projeto .NET | EF Core e PostgreSQL, Identity, sessões, SMTP, worker do outbox, comandos. Referencia L-APP. | `backend/src/SportsBooking.Infrastructure/` |
+| L-DOM | Camada Domain | Projeto .NET | Entidades, valores e regras, sem dependências. | `backend/src/SportsBooking.Domain/` |
+
+### Componentes
+
 Cada componente junta o controller (Api), os serviços (Application) e o que a Infrastructure lhe dá.
 
 | Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
@@ -67,6 +78,26 @@ Cada componente junta o controller (Api), os serviços (Application) e o que a I
 | API-DEMO | Dados de demonstração | Componente (comando) | Cria donos, jogadores, clubes, campos, bloqueios e reservas determinísticos numa base vazia; recusa em produção. | `Inf/Demo/DemoDataCommand.cs`, `DemoDataSeeder.cs`, `DemoCatalog.cs` |
 | API-ADMINPW | Mudar a palavra-passe do admin | Componente (comando) | `set-admin-password`: lê `ADMIN_NEW_PASSWORD`, troca o hash e revoga as sessões do admin. | `Inf/Identity/AdminPasswordCommand.cs` |
 | API-PERSIST | Persistência | Componente | `IAppDbContext` (vista da Application sobre a base de dados), `AppDbContext`, migrações, registo de comandos falhados, health check. | `App/Common/IAppDbContext.cs`; `Inf/Persistence/` (`AppDbContext`, `DatabaseOptions`, `FailedCommandLogger`, `Migrations/`); `Inf/DependencyInjection.cs` |
+
+### Partes dos componentes mais carregados
+
+Usadas nos diagramas de pormenor da [vista lógica](03-logical-view.md). Cada parte pertence ao componente cujo id é o prefixo do seu.
+
+| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| --- | --- | --- | --- | --- |
+| API-BOOK-SINGLE | Uma reserva | Parte de API-BOOK | Reserva de um slot por um jogador. | `App/Bookings/BookingService.cs` |
+| API-BOOK-SERIES | Série semanal | Parte de API-BOOK | Pré-visualização e criação de uma série, uma data por transação. | `App/Bookings/RecurringBookings.cs` (`RecurringBookingService`, `RecurringOccurrences`) |
+| API-BOOK-MINE | As minhas reservas e cancelar | Parte de API-BOOK | Lista e detalhe das reservas do jogador; cancelamento pelo jogador. | `App/Bookings/MyBookings.cs`, `BookingCancellationService.cs` |
+| API-BOOK-STORE | Store das reservas | Parte de API-BOOK (usada também por API-CLUBBOOK) | Insere e grava reservas; 23P01 em `bookings_no_overlap` → `false`. | `App/Bookings/IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
+| API-AUTH-REG | Registo | Parte de API-AUTH | Registo de jogador e de dono, com início de sessão. | `App/Accounts/AccountRegistrationService.cs` |
+| API-AUTH-LOGIN | Login | Parte de API-AUTH | Login com uma só resposta para qualquer falha. | `App/Auth/LoginService.cs` |
+| API-AUTH-RESET | Recuperação de palavra-passe | Parte de API-AUTH | Pedido e confirmação; no envio, o token e o texto do email. | `App/Auth/PasswordReset.cs`; `Inf/Auth/PasswordReset.cs` (`PasswordResetStore`, `AccountEmailBuilder`) |
+| API-AUTH-ACCOUNTS | Contas no Identity | Parte de API-AUTH | Criar, autenticar, procurar, saber se uma conta está ativa. | `App/Accounts/IAccountStore.cs`; `Inf/Identity/AccountStore.cs`, `FallbackPasswordHash.cs`, `LoginLockout.cs` |
+| API-NOTIF-OUTBOX | Pôr no outbox | Parte de API-NOTIF | Junta as mensagens de reservas ao `IAppDbContext` de quem chama. | `App/Notifications/BookingEmailOutbox.cs`, `OutboxMessage.cs` |
+| API-NOTIF-DISPATCH | Ciclo do worker | Parte de API-NOTIF (corre em C-WORKER) | `BackgroundService`: um scope por passagem, espera no `TimeProvider`. | `Inf/Notifications/OutboxDispatcher.cs` |
+| API-NOTIF-PROC | Processar o outbox | Parte de API-NOTIF (corre em C-WORKER) | Reclama as mensagens devidas (`SKIP LOCKED`), compõe, envia e grava o resultado. | `Inf/Notifications/OutboxProcessor.cs` |
+| API-NOTIF-COMPOSE | Compor os emails | Parte de API-NOTIF | Texto e HTML em pt-PT dos emails de reservas e de contas. | `App/Notifications/BookingEmails.cs`, `BookingNotifications.cs`, `AccountEmails.cs` |
+| API-NOTIF-SENDER | Enviar por SMTP | Parte de API-NOTIF | `IEmailSender` com MailKit, uma ligação por mensagem. | `App/Notifications/BookingEmails.cs` (`IEmailSender`); `Inf/Notifications/SmtpEmailSender.cs` |
 
 ### Peças transversais da API
 

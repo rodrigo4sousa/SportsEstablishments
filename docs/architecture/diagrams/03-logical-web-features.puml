@@ -1,0 +1,54 @@
+' plantuml-version: 1.2026.8
+@startuml 03-logical-web-features
+!include <C4/C4_Component>
+
+title Componentes do front end · áreas e funcionalidades
+
+LAYOUT_TOP_DOWN()
+HIDE_STEREOTYPE()
+
+Container_Boundary(C_WEB, "C-WEB · Aplicação Next.js") {
+  Component(WEB_AREA_PLAYER, "WEB-AREA-PLAYER · Área do jogador", "app/(player)", "/, /clubs/[slug], /bookings")
+  Component(WEB_AREA_ACCOUNT, "WEB-AREA-ACCOUNT · Páginas de conta", "app/login, register, …", "Login, registo, recuperação.")
+  Component(WEB_AREA_MANAGE, "WEB-AREA-MANAGE · Área do dono", "app/manage", "/manage/...")
+  Component(WEB_AREA_ADMIN, "WEB-AREA-ADMIN · Área do admin", "app/admin", "/admin, /admin/owners/[id]")
+
+  Component(WEB_F_AUTH, "WEB-F-AUTH · Contas", "features/auth", "Formulários; useCurrentUser (chave [auth, me]).")
+  Component(WEB_F_CATALOG, "WEB-F-CATALOG · Catálogo", "features/catalog", "Pesquisa no endereço; slots públicos.")
+  Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "features/booking", "Escolha no endereço (selection.ts); série semanal.")
+  Component(WEB_F_MYBOOK, "WEB-F-MYBOOK · As minhas reservas", "features/my-bookings", "Separador e página no endereço; cancelar.")
+  Component(WEB_F_CLUBS, "WEB-F-CLUBS · Clubes do dono", "features/clubs", "Lista e formulário do clube.")
+  Component(WEB_F_PITCHES, "WEB-F-PITCHES · Campos", "features/pitches", "Campos, horário, pré-visualização, bloqueios, faixas de preço.")
+  Component(WEB_F_CALENDAR, "WEB-F-CALENDAR · Calendário", "features/calendar", "Vista no endereço (calendar-url.ts); layout por tempo real.")
+  Component(WEB_F_STATS, "WEB-F-STATS · Estatísticas", "features/statistics", "Período e campo no endereço.")
+  Component(WEB_F_ADMIN, "WEB-F-ADMIN · Admin", "features/admin", "Vista no endereço (admin-url.ts); gráficos.")
+}
+
+Rel(WEB_AREA_PLAYER, WEB_F_CATALOG, "Pesquisa e página do clube", "")
+Rel(WEB_AREA_PLAYER, WEB_F_BOOKING, "Reserva na página do clube", "ClubBooking")
+Rel(WEB_AREA_PLAYER, WEB_F_MYBOOK, "/bookings", "MyBookings")
+Rel(WEB_AREA_PLAYER, WEB_F_AUTH, "Estado da sessão no cabeçalho", "AccountStatus")
+Rel(WEB_AREA_ACCOUNT, WEB_F_AUTH, "Formulários de conta", "")
+Rel(WEB_AREA_MANAGE, WEB_F_CLUBS, "Clubes", "ClubList, EditClub")
+Rel(WEB_AREA_MANAGE, WEB_F_CALENDAR, "Calendário", "ClubCalendar")
+Rel(WEB_AREA_MANAGE, WEB_F_STATS, "Estatísticas", "")
+Rel(WEB_AREA_ADMIN, WEB_F_ADMIN, "Painel e página do dono", "")
+
+Rel(WEB_F_CLUBS, WEB_F_PITCHES, "Mostra os campos do clube", "PitchSection")
+Rel(WEB_F_CALENDAR, WEB_F_PITCHES, "Lê os slots livres para a nova reserva", "fetchSlots")
+Rel(WEB_F_BOOKING, WEB_F_CATALOG, "Lê os slots públicos do campo", "fetchPublicSlots")
+Rel(WEB_F_BOOKING, WEB_F_AUTH, "Sabe se quem reserva é jogador", "useCurrentUser")
+Rel(WEB_F_BOOKING, WEB_F_MYBOOK, "Invalida as minhas reservas", "myBookingsQueryKey")
+Rel(WEB_F_MYBOOK, WEB_F_CATALOG, "Invalida o catálogo ao cancelar", "catalogQueryKey")
+Rel(WEB_F_ADMIN, WEB_F_STATS, "Formata horas e ocupação", "formatHours, formatOccupation")
+Rel(WEB_F_STATS, WEB_F_CLUBS, "Clube não encontrado", "ClubNotFound")
+
+note bottom of WEB_F_PITCHES
+  WEB-F-PITCHES também dá a quase todas as funcionalidades
+  formatPrice, sportLabel e previewDateRange (setas omitidas).
+  Todas as funcionalidades chamam a API só por WEB-API-CLIENT
+  e mostram datas só por WEB-DATETIME (lib/datetime.ts).
+end note
+
+SHOW_LEGEND()
+@enduml

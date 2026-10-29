@@ -1,0 +1,103 @@
+' plantuml-version: 1.2026.8
+@startuml 03-logical-code-booking
+title Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)
+
+hide empty members
+skinparam class {
+  BackgroundColor White
+  BorderColor #1168BD
+  ArrowColor #555555
+}
+skinparam stereotypeCBackgroundColor #85BBF0
+
+class Booking <<D-BOOKING>> <<sealed>> {
+  - Booking()
+  + Id : Guid
+  + PitchId : Guid
+  + PlayerId : Guid?
+  + CustomerName : string?
+  + CustomerPhone : string?
+  + IsForCustomer : bool
+  + StartsAt : DateTime
+  + EndsAt : DateTime
+  + Price : decimal
+  + Status : BookingStatus
+  + CreatedAt : DateTime
+  + CancelledAt : DateTime?
+  + CancellationReason : string?
+  + IsConfirmed : bool
+  + SeriesId : Guid?
+  ..
+  + {static} ForPlayer(pitchId, playerId, startsAt, endsAt, price, now, seriesId = null) : Booking
+  + {static} ForCustomer(pitchId, customerName, customerPhone, startsAt, endsAt, price, now) : Booking
+  ..
+  + CancellationDeadline(window) : DateTime
+  + {static} CancellationDeadline(startsAt, window) : DateTime
+  + CanBeCancelledByPlayer(window, now) : bool
+  + {static} CanBeCancelledByPlayer(status, startsAt, window, now) : bool
+  + CancelByPlayer(window, now) : CancellationOutcome
+  + CancelByClub(reason, now) : ClubCancellationOutcome
+  + MarkNoShow(now) : bool
+  + RecordNoShow(now) : NoShowOutcome
+  + UndoNoShow() : bool
+  + HasStarted(now) : bool
+  + Overlaps(startsAt, endsAt) : bool
+  ..
+  - {static} EnsureWindow(window) : TimeSpan
+  - {static} EnsureUtc(value) : DateTime
+}
+
+enum BookingStatus <<D-BOOKING>> {
+  Confirmed
+  CancelledByPlayer
+  CancelledByClub
+  NoShow
+}
+
+enum CancellationOutcome <<D-BOOKING>> {
+  Cancelled
+  NotConfirmed
+  OutsideWindow
+}
+
+enum ClubCancellationOutcome <<D-BOOKING>> {
+  Cancelled
+  NotConfirmed
+  AlreadyStarted
+}
+
+enum NoShowOutcome <<D-BOOKING>> {
+  Marked
+  NotConfirmed
+  NotEnded
+}
+
+class BookingStatuses <<D-BOOKING>> <<static>> {
+  + {static} ToCode(status) : string
+}
+
+class BookingRules <<D-BOOKING>> <<static>> {
+  + {static} CancellationReasonMaximumLength = 200
+}
+
+Booking --> BookingStatus : Status
+Booking ..> CancellationOutcome : CancelByPlayer
+Booking ..> ClubCancellationOutcome : CancelByClub
+Booking ..> NoShowOutcome : RecordNoShow
+BookingStatuses ..> BookingStatus : confirmed, cancelled_by_player,\ncancelled_by_club, no_show
+
+note right of Booking
+  **Invariantes nos métodos**
+  Todas as propriedades têm private set; o construtor é privado.
+  ForPlayer: playerId ≠ Guid.Empty; ForCustomer: nome e telemóvel
+  preenchidos (aparados); ambos: EndsAt > StartsAt, Price > 0,
+  Status = Confirmed, Id = Guid.CreateVersion7(), instantes UTC.
+  Um método que devolve um resultado só muda o estado quando
+  o resultado é o de sucesso (Cancelled, Marked, true).
+  CancelByClub sem motivo é erro de programação (exceção):
+  o serviço valida antes. A janela de cancelamento entra como
+  argumento e nunca é guardada na reserva.
+  Overlaps é meio aberto [início, fim), como bookings_no_overlap.
+end note
+
+@enduml

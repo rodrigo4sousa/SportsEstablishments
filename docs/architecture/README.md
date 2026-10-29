@@ -25,8 +25,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 | [00-inventory.md](00-inventory.md) | — (catálogo) | — (catálogo) | Que elementos existem e onde estão no código? |
 | [01-context.md](01-context.md) | Nível 1 · Contexto do sistema | Cenários (contexto de uso) | Quem usa o sistema e com que sistemas externos fala? |
 | [02-containers.md](02-containers.md) | Nível 2 · Contentores | De processo (unidades que correm) | De que aplicações e armazenamentos é feito, e como comunicam? |
-| [03-components.md](03-components.md) | Nível 3 · Componentes | De desenvolvimento | Como se organiza o código dentro da API e do front end? |
-| [04-domain.md](04-domain.md) | Nível 4 · Código (modelo do domínio) | Lógica | Que conceitos e invariantes tem o domínio, e onde vivem? |
+| [03-logical-view.md](03-logical-view.md) | Nível 3 · Componentes e nível 4 · Código | Lógica | Como se organiza o código em camadas e componentes, que conceitos, invariantes e estados tem o domínio? |
 | [05-runtime.md](05-runtime.md) | Diagramas dinâmicos | De processo | Como colaboram as partes num pedido, numa transação e em segundo plano? |
 | [06-deployment.md](06-deployment.md) | Diagrama de implantação | Física | Onde corre cada contentor, em desenvolvimento, no CI e em produção? |
 | [07-scenarios.md](07-scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Os casos de uso que atravessam todas as vistas e as validam. |
@@ -38,8 +37,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 | --- | --- | --- |
 | 01 Contexto | Pessoas (`P-`), o sistema como uma caixa, sistemas externos (`X-`). | Tecnologias, contentores, código. |
 | 02 Contentores | Contentores (`C-`), sistemas externos, protocolos e formatos nas setas. | Classes, pastas, componentes internos. |
-| 03 Componentes | Componentes de um contentor de cada vez (`API-`, `CC-` ou `WEB-`) e as suas dependências. | Classes individuais, salvo quando são o próprio componente. |
-| 04 Domínio | Entidades e valores (`D-`), relações e invariantes, objetos da base de dados que os garantem (`DB-`). | Controllers, HTTP, ecrãs. |
+| 03 Vista lógica | Camadas (`L-`); componentes de um contentor de cada vez (`API-`, `CC-` ou `WEB-`) e as suas dependências; entidades e valores (`D-`) com relações, invariantes e estados; o código de duas peças centrais. | Classes individuais nos diagramas de componentes, salvo quando são o próprio componente; controllers, HTTP e ecrãs no modelo do domínio. |
 | 05 Execução | Uma sequência por diagrama: pedido, transação, trinco, outbox, worker. | Todas as variantes de erro de uma só vez (uma variante por diagrama). |
 | 06 Implantação | Nós, contentores implantados, portas, redes, variáveis de configuração que mudam o comportamento. | Lógica de negócio. |
 | 07 Cenários | Um caso de uso de ponta a ponta, com as vistas que atravessa. | Detalhe que já está nas outras vistas (aponta para elas). |
@@ -48,7 +46,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 
 **Ferramenta.** Os diagramas são escritos em [PlantUML](https://plantuml.com) com a biblioteca [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) e **desenhados para SVG**. O texto (`.puml`) é a fonte e muda no mesmo pull request que o código; o SVG gerado também vai para o repositório, para os diagramas se verem no GitHub e nos documentos sem ninguém ter de instalar nada. Em cada ficheiro Markdown, o diagrama é uma imagem (`![Título](diagrams/02-containers.svg)`) seguida da sua legenda.
 
-**Onde ficam.** Em `docs/architecture/diagrams/`, lado a lado: `NN-nome.puml` e `NN-nome.svg`, com o número do documento a que pertencem (`02-containers.puml` para `02-containers.md`; vários diagramas no mesmo documento levam um sufixo, `03-components-api-bookings.puml`).
+**Onde ficam.** Em `docs/architecture/diagrams/`, lado a lado: `NN-nome.puml` e `NN-nome.svg`, com o número do documento a que pertencem (`02-containers.puml` para `02-containers.md`; vários diagramas no mesmo documento levam um sufixo, `03-logical-api-bookings.puml`).
 
 **Como editar e voltar a desenhar.**
 

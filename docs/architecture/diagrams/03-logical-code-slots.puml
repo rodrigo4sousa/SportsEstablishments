@@ -1,0 +1,119 @@
+' plantuml-version: 1.2026.8
+@startuml 03-logical-code-slots
+title Código (C4 nível 4) · geração de slots, «livre» e preço de um slot
+
+hide empty members
+skinparam class {
+  BackgroundColor White
+  BorderColor #1168BD
+  ArrowColor #555555
+}
+skinparam package {
+  BorderColor #888888
+  BackgroundColor transparent
+}
+skinparam stereotypeCBackgroundColor #85BBF0
+
+package "Dom/Scheduling (CC-CLUBTIME)" {
+  class ClubTime <<CC-CLUBTIME>> <<static>> {
+    + {static} ToUtc(date, time, timeZone) : DateTime
+    + {static} ToLocal(utc, timeZone) : DateTime
+    + {static} Today(timeProvider, timeZone) : DateOnly
+  }
+  class OpeningHours <<CC-CLUBTIME>> <<record>> {
+    + Opens : TimeOnly
+    + Closes : TimeOnly
+    + ClosesAtMidnight : bool
+    + UtcIntervalOn(date, timeZone) : (OpensAt, ClosesAt)
+    + {static} AreValid(opens, closes) : bool
+    + {static} Create(opens, closes) : OpeningHours
+  }
+  class SlotDuration <<CC-CLUBTIME>> <<record struct>> {
+    + Minutes : int
+    + Length : TimeSpan
+    + {static} IsSupported(minutes) : bool
+    + {static} FromMinutes(minutes) : SlotDuration
+  }
+  class SlotGenerator <<CC-CLUBTIME>> <<static>> {
+    + {static} Generate(date, hours, duration, timeZone) : IReadOnlyList<TimeSlot>
+  }
+  class TimeSlot <<D-SLOT>> <<record>> {
+    + StartsAtUtc : DateTime
+    + EndsAtUtc : DateTime
+    + HasStartedBy(nowUtc) : bool
+  }
+  class BookingWindow <<CC-CLUBTIME>> <<static>> {
+    + {static} DaysAhead = 30
+    + {static} Contains(date, today) : bool
+  }
+}
+
+package "Dom/Pitches" {
+  class Pitch <<D-PITCH>> {
+    + HoursOn(day) : OpeningHours?
+    + SlotsOn(date, timeZone) : IReadOnlyList<TimeSlot>
+    + SlotStartingAt(startsAtUtc, timeZone) : TimeSlot?
+    + PriceForSlot(startsAtUtc, timeZone) : decimal
+  }
+  class PitchPriceBand <<D-PRICEBAND>> {
+    + Covers(day, time) : bool
+  }
+}
+
+package "App/Pitches e App/Bookings" {
+  class PitchDayCalendar <<CC-DAYCAL>> {
+    + SlotsAsync(pitches, date, ct) : Task<IReadOnlyDictionary<Guid, IReadOnlyList<DaySlot>>>
+  }
+  class DaySlot <<CC-DAYCAL>> <<record>> {
+    + Slot : TimeSlot
+    + Blocked : bool
+    + Booked : bool
+    + IsFreeAt(nowUtc) : bool
+  }
+  class PitchInZone <<CC-DAYCAL>> <<record>> {
+    + Pitch : Pitch
+    + TimeZone : TimeZoneInfo
+  }
+  class BookingSlotCheck <<CC-SLOTCHECK>> {
+    + CheckAsync(pitch, timeZone, startsAt, now, ct) : Task<Result<TimeSlot>>
+  }
+}
+
+Pitch --> OpeningHours : HoursOn (de PitchOpeningDay)
+Pitch ..> SlotGenerator : SlotsOn chama Generate
+Pitch ..> ClubTime : SlotStartingAt e PriceForSlot: ToLocal
+Pitch --> "0..20" PitchPriceBand : PriceForSlot: a primeira que Covers
+SlotGenerator ..> OpeningHours : UtcIntervalOn
+SlotGenerator ..> SlotDuration : Length
+SlotGenerator ..> TimeSlot : cria
+OpeningHours ..> ClubTime : ToUtc
+PitchDayCalendar ..> PitchInZone : recebe
+PitchDayCalendar ..> Pitch : SlotsOn
+PitchDayCalendar ..> DaySlot : cria
+DaySlot --> TimeSlot : HasStartedBy
+BookingSlotCheck ..> Pitch : SlotStartingAt
+BookingSlotCheck ..> BookingWindow : Contains
+BookingSlotCheck ..> ClubTime : ToLocal, Today
+
+note bottom of SlotGenerator
+  Slots consecutivos de duração exata desde a abertura,
+  medidos em tempo real entre instantes UTC:
+  for (start = opensAt; start + length ≤ closesAt; start += length).
+  25 h a 25/10/2026 e 23 h a 29/03/2026 em Lisboa.
+end note
+
+note bottom of ClubTime
+  Hora que não existe (adiantar): avança pelo intervalo
+  (01:30 → 02:30 WEST). Hora repetida (atrasar): a primeira
+  ocorrência (WEST). Fecho 00:00 = meia-noite (dia seguinte).
+end note
+
+note bottom of DaySlot
+  IsFreeAt = !Blocked && !Booked && !Slot.HasStartedBy(now):
+  a única definição de «livre» (pré-visualização do dono,
+  slots públicos, pesquisa). Blocked/Booked: qualquer
+  sobreposição meio aberta com um bloqueio ou uma
+  reserva Confirmed (uma consulta de cada para todos os campos).
+end note
+
+@enduml
