@@ -4,26 +4,10 @@ Oct 22, 2026 · @Rodri
  
 O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 37. Uma só app React com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
  
-## Decisões em aberto
+## Pontos a rever no T06
 
-Estas decisões estão implementadas e a funcionar, mas ainda estão marcadas «provisórias, a confirmar» na história respetiva. Cada linha é um bloco; para fechar um, muda-se o título do bloco para «Decidido (confirmado)». Nenhuma bloqueia o deploy.
+- Limite de pedidos dos endpoints públicos de leitura: mantém-se 120 pedidos por minuto e por IP (`RateLimiting:Public`), a rever na T06, porque em produção a API só vê o endereço do serviço Next.js até o `X-Forwarded-For` ser reescrito (ver os critérios da T06).
 
-- US11, interface do calendário: colunas por campo e linhas por hora, estilos por estado, navegação, estado da vista no endereço (`?date=`, `&cancelled=1`, `&booking=`), vista semanal e abertura dos detalhes.
-- US11, implementação: intervalo da API (`from`/`to` locais, no máximo 7 dias), forma da resposta, uma reserva pertence ao intervalo se o sobrepõe, campos inativos só com reservas à vista.
-- US12, interface: botão «Cancelar reserva» só quando a API diz `canCancel`, formulário com motivo, mensagens depois de cancelar e das recusas.
-- US12, implementação: sem janela de cancelamento para o clube, trinco do campo e leitura repetida, estado `cancelled_by_club` com motivo e instante.
-- US13, interface: entradas do formulário «Nova reserva», validações, o que acontece num conflito e depois de criar, marca «Criada pelo clube».
-- US13, implementação: reserva de jogador ou de cliente (`ck_bookings_player_or_customer`), `POST …/bookings`, regras do slot partilhadas com a US18, preço guardado, o que o calendário e os detalhes mostram.
-- US16, implementação: o que torna um clube visível, `GET /api/clubs` (20 por página, ordem, `hasFreeSlots`), `GET /api/clubs/{slug}`.
-- US16, interface: filtros e pesquisa ao mudar, resultados, páginas de 20 e a página do clube.
-- US17, implementação: resposta dos slots (`available` sem motivo), uma só conta de «livre» e as duas 01:00 de 25 de outubro.
-- US17, interface: seletor de campo e de data, slots desativados sem dizer porquê.
-- US18, implementação: fim e preço vêm do campo, ordem dentro da transação, forma da resposta 201.
-- US18, interface: o que o botão de confirmar envia, a confirmação e o regresso depois de criar conta.
-- US19, interface: página `/bookings` só para jogadores, separadores e páginas no endereço, o que cada reserva mostra, confirmação do cancelamento.
-- US19, implementação: `GET /api/me/bookings`, campos de cada reserva, `POST /api/bookings/{id}/cancel`, janela lida do clube sob o trinco.
-- US22, implementação: tabela `outbox_messages`, escrita na mesma transação, envio por `BackgroundService`, textos dos emails, definições SMTP.
-- Valores provisórios de configuração (não são decisões de produto): limites de pedidos por IP da autenticação (US03, US05) e dos endpoints públicos de leitura (T06).
 ## Convenções e regras de negócio
  
 **Formato.** Cada história segue «Como \<perfil>, quero \<ação>, para \<benefício>», com critérios de aceitação testáveis. **M** = MVP, **D** = depois do MVP.
@@ -269,7 +253,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
   - Interface: um campo que não está no clube, no endereço da vista semanal, conta como o primeiro; um campo inativo que a API devolva aparece marcado «Inativo».
   - Interface: reservas e bloqueios posicionam-se pelo tempo real decorrido desde o início do dia de Lisboa, e não pelas horas do relógio: o dia 25 de outubro de 2026 (25 horas) tem 25 linhas, com «01:00 (verão)» e «01:00 (inverno)», e o dia 29 de março de 2026 (23 horas) tem 23, sem a 01:00. As horas só se mostram por `lib/datetime.ts`. Um horário de abertura que não existe nesse dia avança para depois do salto, como na API (01:30 → 02:30).
   - Interface: numa semana com mudança de hora a coluna desse dia mostra «25 h» (ou «23 h») e uma nota por cima diz que as reservas desse dia estão desenhadas pelo tempo realmente decorrido, por isso depois da mudança ficam uma hora desfasadas da escala das horas (a de um dia normal); a hora escrita em cada reserva é sempre a certa.
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - O calendário diário está em `/manage/clubs/{id}/calendar`, com uma ligação «Calendário de reservas» na página do clube. Uma coluna por campo (os que a API devolve) e uma linha por hora, desde a abertura mais cedo até ao fecho mais tarde desse dia, em horas inteiras. Sem nenhum campo aberto nem reservas ou bloqueios, diz-se isso em vez de se mostrar a grelha.
   - Cada reserva mostra o nome do jogador, a hora e o estado («Confirmada», «Cancelada pelo jogador», «Cancelada pelo clube», «Falta»), com um estilo por estado; as canceladas ficam riscadas e a tracejado. Um bloqueio tem um estilo à parte (tracejado, riscas) e mostra «Bloqueio», a hora e o motivo, e não se abre. O que está fora do horário de abertura do campo fica sombreado, e um campo fechado nesse dia diz «Fechado».
   - Navegação: «Dia anterior», «Hoje» (o dia de hoje em Lisboa, não o do navegador), «Dia seguinte» e um campo de data.
@@ -278,7 +262,7 @@ Como dono, quero ver as reservas de um clube numa vista diária e semanal, para 
   - Vista semanal («Vista semanal» / «Vista diária»): um campo de cada vez, escolhido numa lista «Campo» (o primeiro por omissão), em sete colunas, de segunda a domingo, com os nomes dos dias em português («Segunda-feira, 04/05/2026»), e linhas por hora, com as mesmas caixas e a mesma regra de posição da vista diária (cada dia pelo tempo real decorrido desde o seu início, em `layoutWeek`, que usa o `layoutDay`). A grelha é partilhada pelas sete colunas, da abertura mais cedo à hora de fecho mais tarde da semana. Um pedido à API por semana (segunda a domingo, 7 dias), com todos os campos; mudar de campo não faz outro pedido.
   - Navegação semanal: «Semana anterior», «Hoje» (a semana de hoje, em Lisboa) e «Semana seguinte»; o campo de data leva à semana que contém essa data. O estado da vista está no endereço: `?view=week&date=AAAA-MM-DD&pitch=<id>&cancelled=1&booking=<id>` (a vista diária é o valor por omissão e não se escreve; o campo só se escreve na vista semanal).
   - Abrir uma reserva (carregar nela) mostra os detalhes por baixo da grelha: jogador, campo, data, hora, preço, estado, quando foi feita e, se estiver cancelada, quando e porquê. «Fechar» fecha. Uma reserva que já não existe diz «Esta reserva já não existe.». Um clube que não é do dono (ou não existe) mostra a mesma página «Clube não encontrado» da edição do clube.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - `GET /api/manage/clubs/{clubId}/calendar?from=AAAA-MM-DD&to=AAAA-MM-DD&includeCancelled=false` (perfil Dono, pela T02: o clube de outro dono, ou inexistente, é 404 `club_not_found`, antes de se olhar para a query). `from` e `to` são datas locais do clube, ambas incluídas; `from` não pode ser depois de `to` (400 em `from`/`to`/`includeCancelled`, mensagens em português).
   - A resposta tem `from`, `to`, `pitches`, `bookings` e `blocks`. Os campos do clube: os campos que a API lista, ordenados pelo nome; cada um com `id`, `name`, `sport`, `status`, `slotDurationMinutes` e `days` (uma entrada por data do intervalo, com `opens` e `closes` locais «HH:mm», ou `null` num dia fechado; fecho «00:00» é meia-noite). Os instantes das reservas e dos bloqueios vão em UTC; a interface mostra-os em hora de Lisboa.
   - Uma reserva pertence ao intervalo se se sobrepuser a ele (meio-aberto), e um dia é o dia local: a 25 de outubro de 2026 (25 horas) o intervalo é [2026-10-24T23:00Z, 2026-10-26T00:00Z), e as duas 01:30 contam.
@@ -299,11 +283,11 @@ Como dono, quero cancelar uma reserva, para resolver problemas como um campo ava
   - Corpo `{ "reason": "…" }`: o motivo é obrigatório, sem espaços nas pontas, com no máximo 200 caracteres (400 em `reason`).
   - Ordem das respostas: clube de outro dono 404 `club_not_found` → reserva que não é deste clube 404 `booking_not_found` (as duas antes de validar o corpo) → 400 → 422 `booking_not_confirmed` (já cancelada, pelo jogador ou pelo clube, ou falta; verifica-se primeiro) → 422 `booking_already_started` (já começou; começar agora conta como começada).
   - O cancelamento feito pelo jogador (US19) também guarda o instante (`cancelled_at`).
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - Nos detalhes, uma reserva que a API diz poder cancelar (`canCancel`: confirmada e ainda não começou) tem o botão «Cancelar reserva»; o ecrã nunca o calcula. Abre um formulário com «Motivo do cancelamento» (obrigatório, até 200 caracteres, com a mesma mensagem da API) e «Confirmar cancelamento» / «Manter reserva». Uma reserva confirmada que já começou diz «Esta reserva já começou, por isso já não pode ser cancelada.» e não tem botão.
   - Depois de cancelar diz «Reserva cancelada. O horário voltou a ficar livre.», os detalhes passam a mostrar o estado, a hora e o motivo, e o calendário recarrega-se (a reserva sai da grelha, a menos que as canceladas estejam à vista). Não se promete nenhum email: o aviso ao jogador é da US22.
   - As recusas da API mostram a mensagem do código (422 `booking_not_confirmed`, 422 `booking_already_started`, 404 `booking_not_found`), fecham o formulário e recarregam a reserva e o calendário; a mensagem fica mesmo que a reserva recarregada já não ofereça o formulário. Um 400 em `reason` vai para o campo do motivo.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - Não há janela de cancelamento para o clube: pode cancelar até ao instante em que a reserva começa.
   - Corre sob o trinco do campo (o mesmo das reservas, dos bloqueios e do cancelamento do jogador) e lê a reserva outra vez lá dentro; por isso, se o dono e o jogador cancelam ao mesmo tempo, só um tem sucesso e o outro recebe 422 `booking_not_confirmed`, nunca um 500. A regra está na entidade (`Booking.CancelByClub`).
   - A reserva passa a `cancelled_by_club` e guarda o motivo (`cancellation_reason`) e o instante (`cancelled_at`); nunca é apagada e o slot volta a ficar livre. A resposta é a reserva, como nos detalhes.
@@ -325,14 +309,14 @@ Como dono, quero criar uma reserva para um cliente que ligou ou apareceu, para q
   - Interface: uma data fora de hoje..+30 volta a hoje no formulário.
   - Interface: abrir o formulário fecha os detalhes da reserva aberta.
   - Interface: a verificação de que um horário já começou usa o instante em que a página foi aberta; quem decide, no fim, é a API.
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - Há duas entradas para o formulário «Nova reserva» no calendário: o botão «Nova reserva» (campo e dia que se estão a ver; na vista semanal, o campo escolhido) e carregar numa hora vazia de um campo (essa hora, esse campo e esse dia, com o slot já escolhido se estiver livre). O botão fica desativado se o clube não tiver campos ativos.
   - O formulário pede campo (só os ativos), data (de hoje a 30 dias à frente, em Lisboa), um horário livre, o nome e o telemóvel do cliente. Os horários vêm da pré-visualização do dono (`GET …/pitches/{pitchId}/slots`): só se escolhem os livres; os reservados («Reservado»), os bloqueados («Bloqueado») e os que já começaram («Já começou», incluindo o que começa agora) aparecem desativados. Mudar o campo ou a data limpa o horário escolhido.
   - As validações são as da API, em português: horário («Escolhe um horário livre.»), nome obrigatório e até 100 caracteres, telemóvel obrigatório com 9 a 15 algarismos e «+» opcional (os espaços tiram-se antes de enviar, como na API). Os erros 400 da API vão para os campos.
   - Num conflito (409 `slot_taken` ou `slot_blocked`) ou num horário que já não existe (422 `invalid_slot`, `slot_started`, `outside_booking_window`, `pitch_inactive`, 404 `pitch_not_found`) mostra-se a mensagem do código no formulário, limpa-se o horário, recarregam-se os horários e o calendário, e o formulário fica aberto com o nome e o telemóvel já escritos. Qualquer outro erro vai para um aviso.
   - Depois de criar, o calendário vai para o dia da reserva (e, na vista semanal, para o campo dela), mostra-a com os detalhes abertos, e diz «Reserva criada para <nome>.». O formulário diz que o cliente não tem conta e por isso não recebe email.
   - Uma reserva criada pelo clube diz «Criada pelo clube» nas duas vistas (no quadrado da reserva, com uma barra lateral azul, e na etiqueta para leitores de ecrã) e nos detalhes, onde «Jogador» passa a «Cliente» e aparecem o «Telemóvel» que o dono escreveu e a «Origem: Criada pelo clube». Cancela-se como qualquer reserva (US12), com motivo, e continua a dizer de onde veio.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - Uma reserva é de um jogador ou de um cliente (nome e telemóvel), nunca das duas coisas nem de nenhuma: a check constraint `ck_bookings_player_or_customer` substitui a `ck_bookings_has_player` (migração `AddCustomerBookings`, colunas `customer_name` e `customer_phone`). A exclusion constraint `bookings_no_overlap` não mudou, por isso um cliente e um jogador disputam os mesmos slots.
   - `POST /api/manage/clubs/{clubId}/bookings` (perfil Dono, pela T02: o clube de outro dono é 404 `club_not_found`, antes de validar o corpo) com `{ pitchId, startsAt, customerName, customerPhone }`. `startsAt` é o instante do início do slot com fuso, como as listas de slots o dão; o fim e o preço vêm do campo, nunca do pedido. 201 com a reserva (a mesma resposta dos detalhes) e `Location: /api/manage/clubs/{clubId}/bookings/{id}`, que `GET …/bookings/{id}` resolve.
   - Nome e telemóvel seguem as regras da US01: o nome é obrigatório e tem no máximo 100 caracteres; o telemóvel tem um «+» opcional e 9 a 15 algarismos e é guardado sem espaços (400 em `customerName` e `customerPhone`, mensagens em português).
@@ -392,12 +376,12 @@ Como jogador, quero pesquisar clubes por desporto, localidade e data, para encon
   - `GET /api/localities` devolve uma lista simples de textos (para um select): as localidades dos clubes visíveis, uma por grafia (ignorando maiúsculas e acentos, mostrada numa das grafias em uso), ordenadas.
   - Cada resultado da pesquisa lista os desportos de todos os campos ativos do clube, mesmo quando se filtra por um desporto.
   - Na pesquisa a data é opcional (hoje em Lisboa por omissão); nos slots é obrigatória (ver a US17).
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - Visível = o dono não está desativado (US29) e o clube tem pelo menos um campo ativo (US07). Tudo o que é público parte de `VisibleClubs`; o que não é visível não existe: um clube desconhecido, sem campos ativos ou de um dono desativado dão o mesmo 404 `club_not_found`.
   - `GET /api/clubs?sport=&locality=&date=&page=`: 20 por página (fixo), ordenado pelo nome sem distinguir maiúsculas e depois pelo id. `date` é `AAAA-MM-DD`, hoje em Lisboa por omissão, de hoje até hoje + 30; fora disso ou mal escrita é 400 em `date`. Filtros vazios contam como ausentes.
   - Cada resultado traz só `slug`, `name`, `locality`, `sports` (os desportos dos campos ativos) e `hasFreeSlots` (algum campo ativo tem um slot livre na data, pela mesma regra da US17). Não traz morada nem contactos. A disponibilidade só se calcula para os clubes da página.
   - `GET /api/clubs/{slug}`: nome, morada, localidade, telefone, email de contacto e os campos ativos (`id`, `name`, `sport`, `pricePerSlot` atual), ordenados pelo nome. O `slug` tem de coincidir exatamente. O id do clube não aparece (é da área do dono).
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - A pesquisa (`/`) tem um select de desporto («Todos os desportos» e os quatro desportos), um select de localidade (as de `GET /api/localities`) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Pesquisa logo ao mudar um campo, sem botão; funciona sem sessão. A pesquisa fica no endereço (`?sport=&locality=&date=&page=`), por isso pode ser partilhada e o botão «voltar» funciona. Mudar um filtro volta à primeira página; um valor inválido no endereço é ignorado e uma data fora do período mostra o erro sem perguntar à API.
   - Cada resultado mostra o nome (ligação para `/clubs/{slug}`, com `?date=` se se pesquisou uma data), a localidade, os desportos e «Há horários livres» ou «Sem horários livres». Páginas de 20 com «Anterior», «Seguinte» e «Página X de Y» (só se houver mais de uma). Sem resultados: «Não encontrámos clubes com estes filtros. Experimenta outra localidade, outro desporto ou outra data.» Uma página para lá do fim oferece «Voltar à primeira página».
   - A página do clube é um Server Component que lê o clube na API interna, sem cookies e sem cache: contactos (telefone e email como ligações) e os campos ativos com o preço por slot em formato pt-PT («18,50 € por slot»). Um clube desconhecido, escondido, ou um slug que não pode existir mostra a página «Clube não encontrado», sem dizer porquê.
@@ -417,11 +401,11 @@ Como jogador, quero ver os slots livres de um campo numa data, para escolher a h
   - Na API dos slots a data (`AAAA-MM-DD`) é obrigatória e vai de hoje até hoje + 30 em Lisboa: em falta, mal escrita ou fora do período é 400 em `date`. Na pesquisa (US16) é opcional.
   - O que está escondido não existe, e isso verifica-se antes da data: um clube desconhecido ou escondido (sem campos ativos, dono desativado), e um campo desconhecido, inativo, de outro clube ou com um id que não é um GUID, são 404 (`club_not_found` ou `pitch_not_found`) mesmo que a data seja inválida.
   - Quem tem sessão de dono ou de admin vê os slots mas não os pode escolher (não são botões, não há botão de reservar); ver a US18.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - A resposta é `date` e `slots`; cada slot traz `startsAt` e `endsAt` (instantes UTC com fuso), `price` (o preço atual do campo) e um só booleano `available`. Nunca diz porque não está livre, nem quem reservou, nem o id de uma reserva ou de um bloqueio. Um dia fechado devolve a lista vazia.
   - `available` = não se sobrepõe, nem em parte, a uma reserva confirmada ou a um bloqueio, está dentro do horário e ainda não começou (começar agora conta como começado, como na US18). É uma só conta (`PitchDayCalendar` e `DaySlot.IsFreeAt`), partilhada com a pré-visualização do dono e com o «há slots livres» da pesquisa, e um teste confirma que concordam.
   - Em 25 de outubro a API devolve os slots como instantes distintos (a hora das 01:00 às 02:00 aparece duas vezes, uma em cada fuso); a etiqueta «(verão)/(inverno)» é da interface.
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - A secção «Horários» da página do clube tem um select de campo (o primeiro por omissão; mostra nome, desporto e preço) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Os slots do dia aparecem em hora de Lisboa, qualquer que seja o fuso do browser, com o preço, e a hora que se repete em outubro leva «(verão)» ou «(inverno)». O campo e a data ficam no endereço (`?pitch=&date=`).
   - Um slot que não está livre aparece desativado (`disabled`), sem dizer porquê: nem «reservado», nem «bloqueado», nem «fechado». Um dia sem slots diz «Sem horários neste dia.» Uma data fora do período mostra o erro sem perguntar à API.
 ### US18 · Reservar slot · M · 3 pontos
@@ -442,7 +426,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
   - A desativação de um campo conta as reservas confirmadas que ainda não acabaram: as que estão a decorrer também impedem.
   - Os estados na API são `confirmed`, `cancelled_by_player`, `cancelled_by_club` e `no_show`; na base de dados ficam com o nome do enum (`Confirmed`, …), como pede a constraint.
   - A resposta 201 traz o cabeçalho `Location: /api/bookings/{id}` (relativo, como os outros), que `GET /api/bookings/{id}` resolve (US19).
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - O fim vem sempre do horário do campo e o preço é o preço por slot atual do campo.
   - A transação tranca a linha do campo, volta a ler o campo (estado, preço e horário como estão nesse momento), verifica os bloqueios e insere; a sobreposição com outra reserva fica só a cargo da exclusion constraint (23P01 → 409 `slot_taken`), que é a última defesa e a regra também para a US13.
   - A resposta 201 traz a reserva (`id`, `pitchId`, `clubId`, início e fim em UTC, `price`, `status` = `confirmed`).
@@ -453,7 +437,7 @@ Como jogador, quero reservar um slot livre, para garantir o campo.
   - Só um jogador vê «Confirmar reserva». Donos e admins veem os slots mas não os podem escolher, nem há botão de reservar, e uma nota diz «Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.»
   - Em 409 (`slot_taken`, `slot_blocked`) ou 422 (`slot_started`, `invalid_slot`, `outside_booking_window`, `pitch_inactive`, `club_unavailable`) mostra-se a mensagem desse código («Este horário acabou de ser reservado. Escolhe outro.» para `slot_taken`), fecha-se o resumo e recarrega-se a lista de slots. Um 401 (sessão terminada) volta ao login, com regresso ao slot; sem ligação ao servidor mantém-se o resumo para tentar de novo.
   - Para um visitante, `club_not_found` diz «Este clube já não está disponível.» (a mensagem geral fala a um dono).
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - Confirmar envia só `pitchId` e `startsAt` (o instante com fuso, tal como a lista o deu); o botão fica desativado enquanto se reserva. Em 201 aparece «Reserva confirmada» com os mesmos dados, a lista de slots e a pesquisa recarregam-se e o slot passa a desativado.
   - Quem escolhe «Criar conta» no ecrã de login também volta ao mesmo slot: a ligação leva o `next` (`/register?next=…`), a página de registo de jogador lê-o (e a ligação «Entrar» desse ecrã também o mantém) e, depois de criada a conta, o `safeNext` decide se o aceita: um endereço público segue-se, qualquer outro (outro site, área do dono ou do admin, a própria página de login) é ignorado e o jogador vai para a página inicial. O registo de dono não usa `next`.
 - Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
@@ -480,14 +464,14 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
   - O separador e a página da lista ficam no endereço (`?tab=past&page=2`; «Próximas» e a página 1 são o valor por omissão), por isso um recarregamento ou o botão de voltar mantêm o sítio.
   - O botão «Cancelar reserva» só segue o `canCancel` da API: quem decide se ainda se pode cancelar é a API, nunca o cálculo no navegador.
   - A mensagem do 422 `outside_cancellation_window` não leva o prazo (o front end só vê o código); o prazo vê-se na lista, que se recarrega logo a seguir.
-- Decisões da interface (provisórias, a confirmar):
+- Decidido (confirmado) — decisões da interface:
   - A página `/bookings` é só para jogadores: sem sessão vai para `/login?next=<a página, com o separador e a página>` e volta a ela depois de entrar; um dono ou um admin vai para a sua área (`/manage`, `/admin`). A API continua a ser quem decide (401/403).
   - Mudar de separador volta à primeira página. Uma página do endereço que não é um número de 1 a 99999 conta como a primeira.
   - Cada reserva mostra o clube (ligação para `/clubs/{slug}`), o campo e o desporto, a data (com o dia da semana e o ano) e a hora em hora de Lisboa (`lib/datetime.ts`, com «(verão)»/«(inverno)» na hora repetida de outubro), o preço pago e o estado em português: «Confirmada», «Cancelada pelo jogador», «Cancelada pelo clube», «Falta».
   - Só as «Próximas» se podem cancelar (uma reserva confirmada que já acabou, em «Anteriores», não tem botão). O botão «Cancelar reserva» pede uma confirmação na própria linha («Sim, cancelar reserva» / «Manter reserva»; só uma de cada vez). Depois do prazo o botão fica desativado e diz «Já não é possível cancelar: o prazo terminou a dd/mm/aaaa hh:mm.»; antes do prazo diz «Podes cancelar até dd/mm/aaaa hh:mm.».
   - Depois de cancelar aparece «Reserva cancelada. O horário voltou a ficar livre.» e recarregam-se as listas e os horários livres das páginas públicas (`["my-bookings"]` e `["catalog"]`). Se o pedido for recusado (422 `outside_cancellation_window`, 422 `booking_not_confirmed`, 404 `booking_not_found`) mostra-se a mensagem do código e recarrega-se só a lista; uma sessão que acabou leva ao login. Uma reserva nova (US18) também recarrega «As minhas reservas».
   - O cabeçalho do jogador tem a ligação «As minhas reservas» (só para o perfil Jogador) e a confirmação de uma reserva tem «Ver as minhas reservas».
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - `GET /api/me/bookings?scope=upcoming|past&page=` (perfil Jogador, só as reservas de quem pede, 20 por página). `page` de 1 a 10000, e não numérica também é 400 em `page` (mensagem em português).
   - Cada reserva traz `id`, `clubName`, `clubSlug`, `pitchName`, `sport`, `startsAt`, `endsAt`, `price` (o que foi pago, não o preço atual do campo), `status`, `canCancel` e `cancellationDeadline` (instante UTC). `canCancel` é verdadeiro se a reserva está confirmada e agora é antes do início menos a janela atual do clube.
   - `GET /api/bookings/{id}` lê uma reserva própria; a de outro jogador e um id desconhecido são o mesmo 404 `booking_not_found`.
@@ -545,7 +529,7 @@ Como jogador, quero receber um email quando reservo e quando uma reserva minha �
   - A entrega é «pelo menos uma vez»: se o processo parar depois de enviar e antes de registar o envio, essa mensagem volta a sair. Os trincos das linhas do lote ficam presos enquanto o lote é enviado.
   - Não há ligações para a aplicação nos emails até à T06 (falta o endereço público).
   - A API não arranca sem `Email:Host` e `Email:FromAddress`.
-- Decisões de implementação (provisórias, a confirmar):
+- Decidido (confirmado) — decisões de implementação:
   - Tabela `outbox_messages` (migração `AddOutboxMessages`): `id`, `type` (`booking_confirmed`, `booking_cancelled_by_player`, `booking_cancelled_by_club`), `payload` (jsonb, só o que o email mostra: o id do jogador, o nome, a morada e a localidade do clube, o fuso, o campo, o início, o fim, o preço e, numa cancelação do clube, o motivo), `created_at`, `attempts`, `next_attempt_at`, `sent_at`, `failed_at` e `last_error` (o nome do tipo da exceção, ou `recipient_not_found`; nunca a mensagem da exceção, que pode trazer o endereço). O endereço e o nome do jogador não ficam na tabela: leem-se no momento do envio, por isso o email vai sempre para o endereço atual.
   - A mensagem é escrita no mesmo `SaveChanges` e na mesma transação (a do trinco do campo) que a reserva ou o cancelamento: uma reserva que perde a corrida (23P01) ou qualquer recusa não deixa email nenhum, e de vários cancelamentos simultâneos só o que vence deixa um. As reservas para clientes sem conta (US13) não geram email, nem a criar nem a cancelar.
   - O envio é feito por um `BackgroundService` dentro da API, que nunca toca nos pedidos: uma falha ou uma lentidão do SMTP não falha nem atrasa uma reserva ou um cancelamento. Cada passagem cria o seu scope, tira até um lote de mensagens vencidas com `SELECT … FOR UPDATE SKIP LOCKED` (dentro de uma transação que dura até o lote ficar registado), por isso duas instâncias da API nunca enviam a mesma mensagem, e envia-as por SMTP (MailKit). Os trincos das linhas do lote ficam presos enquanto o lote é enviado.
