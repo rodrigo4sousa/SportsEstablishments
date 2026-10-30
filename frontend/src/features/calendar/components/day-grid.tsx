@@ -170,7 +170,7 @@ export function BookingBox({
       data-created-by-club={booking.createdByClub || undefined}
       aria-pressed={selected}
       onClick={onOpen}
-      className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${booking.createdByClub ? "border-l-4 border-l-sky-600" : ""} ${selected ? "ring-2 ring-foreground" : ""}`}
+      className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight focus-visible:z-10 focus-visible:-outline-offset-2 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${booking.createdByClub ? "border-l-4 border-l-sky-600" : ""} ${selected ? "ring-2 ring-foreground" : ""}`}
       style={positionOf(item, gridStartMinute)}
     >
       <span className="truncate font-medium">{booking.bookerName}</span>

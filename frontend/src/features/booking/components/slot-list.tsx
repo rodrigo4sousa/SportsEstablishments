@@ -38,7 +38,7 @@ export function SlotList({ slots, selected, interactive, onSelect }: SlotListPro
                 disabled={!slot.available}
                 aria-pressed={slot.available ? isSelected : undefined}
                 onClick={() => onSelect(slot)}
-                className={`w-full rounded-md border px-3 py-2 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none ${
+                className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                   isSelected ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent"
                 } disabled:cursor-not-allowed disabled:border-dashed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-muted`}
               >
