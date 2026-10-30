@@ -16,6 +16,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      // UX-024: the region a screen reader announces; Sonner's default is English.
+      containerAriaLabel="Notificações"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

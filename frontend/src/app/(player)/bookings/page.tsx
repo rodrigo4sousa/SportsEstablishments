@@ -5,7 +5,7 @@ import { RouteLoading } from "@/components/route-loading";
 import { MyBookings } from "@/features/my-bookings/components/my-bookings";
 
 export const metadata: Metadata = {
-  title: "As minhas reservas · Reservas de Campos",
+  title: "As minhas reservas",
 };
 
 export default function Page() {

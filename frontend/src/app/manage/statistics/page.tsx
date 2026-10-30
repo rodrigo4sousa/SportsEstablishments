@@ -5,7 +5,7 @@ import { RouteLoading } from "@/components/route-loading";
 import { OwnerStatistics } from "@/features/statistics/components/owner-statistics";
 
 export const metadata: Metadata = {
-  title: "Estatísticas · Reservas de Campos",
+  title: "Estatísticas",
 };
 
 export default function Page() {

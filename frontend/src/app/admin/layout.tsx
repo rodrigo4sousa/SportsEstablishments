@@ -4,7 +4,7 @@ import { AreaGuard } from "@/components/area-guard";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={null}>
-      <AreaGuard profile="Admin" title="Administração">
+      <AreaGuard profile="Admin" title="Administração" width="wide">
         {children}
       </AreaGuard>
     </Suspense>

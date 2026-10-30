@@ -15,7 +15,7 @@ export function AccountStatus() {
 
   if (account) {
     return (
-      <div className="flex items-center gap-3">
+      <nav aria-label="Conta" className="flex items-center gap-3">
         {account.profile === "Player" ? (
           <Link href="/bookings" className="text-sm underline-offset-4 hover:underline">
             As minhas reservas
@@ -25,18 +25,18 @@ export function AccountStatus() {
           Olá, <span className="font-medium">{account.name}</span>
         </p>
         <LogoutButton />
-      </div>
+      </nav>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <nav aria-label="Conta" className="flex items-center gap-2">
       <Button asChild variant="ghost" size="sm">
         <Link href="/login">Entrar</Link>
       </Button>
       <Button asChild variant="outline" size="sm">
         <Link href="/register">Criar conta</Link>
       </Button>
-    </div>
+    </nav>
   );
 }

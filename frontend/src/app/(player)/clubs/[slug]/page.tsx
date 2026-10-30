@@ -5,11 +5,15 @@ import { PageShell } from "@/components/page-shell";
 import { RouteLoading } from "@/components/route-loading";
 import { ClubBooking } from "@/features/booking/components/club-booking";
 import { ClubDetails } from "@/features/catalog/components/club-details";
-import { loadPublicClub } from "@/lib/server/public-club";
+import { isClubSlug } from "@/features/catalog/slug";
+import { getPublicClub, loadPublicClub } from "@/lib/server/public-club";
 
-export const metadata: Metadata = {
-  title: "Clube · Reservas de Campos",
-};
+/** UX-011: the tab says which club this is. A club that does not exist gets the not-found page, titled to match. */
+export async function generateMetadata({ params }: PageProps<"/clubs/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const club = isClubSlug(slug) ? await getPublicClub(slug) : null;
+  return { title: club ? club.name : "Clube não encontrado" };
+}
 
 export default async function Page({ params }: PageProps<"/clubs/[slug]">) {
   const { slug } = await params;

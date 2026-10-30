@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw";
@@ -28,6 +28,8 @@ describe("AccountStatus", () => {
     expect(screen.getByRole("link", { name: "As minhas reservas" })).toHaveAttribute("href", "/bookings");
     expect(screen.queryByRole("link", { name: "Criar conta" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Entrar" })).not.toBeInTheDocument();
+    // UX-014: the account links are a navigation landmark of their own, signed in or not.
+    expect(within(screen.getByRole("navigation", { name: "Conta" })).getByRole("button", { name: "Sair" })).toBeInTheDocument();
   });
 
   it.each(["Owner", "Admin"])("does not offer the player's bookings to the %s profile", async (profile) => {
@@ -57,6 +59,7 @@ describe("AccountStatus", () => {
 
     expect(await screen.findByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/register");
     expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
+    expect(within(screen.getByRole("navigation", { name: "Conta" })).getByRole("link", { name: "Criar conta" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sair" })).not.toBeInTheDocument();
     expect(refreshed).toBe(true);
   });

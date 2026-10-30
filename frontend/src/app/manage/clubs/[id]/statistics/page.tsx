@@ -7,7 +7,7 @@ import { ClubStatistics } from "@/features/statistics/components/club-statistics
 import { isGuid } from "@/lib/guid";
 
 export const metadata: Metadata = {
-  title: "Estatísticas do clube · Reservas de Campos",
+  title: "Estatísticas do clube",
 };
 
 export default async function Page({ params }: PageProps<"/manage/clubs/[id]/statistics">) {
