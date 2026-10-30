@@ -15,7 +15,7 @@ Estes documentos descrevem a arquitetura da aplicação tal como está no códig
 | Contexto, contentores, vista lógica, vista de processo, vista de desenvolvimento, desenvolvimento e CI da vista física, cenários | **Construído**: verificado contra o código. |
 | Produção (diagramas `*-prod`, secção 3 da vista física, ADR 0009) | **Planeado (T06)**: nada implantado, sujeito a verificação com os fornecedores. |
 
-**Verificado contra o commit `f4057ca`** (último commit de código da `main`, 2026-10-29: «chore: pre-deploy cleanup and public rate limit»). O merge destes documentos (`2e4e113`, PR #26) não mudou código. A [vista de desenvolvimento](05-development-view.md) cita ainda `9b45eed` nas contagens de testes: é um commit anterior ao squash, que já não está na `main`. Quando o código mudar, o inventário e os diagramas afetados mudam no mesmo pull request (ver [Atualização](#63-atualização)).
+**Verificado contra o commit `f4057ca`** (último commit de código da `main`, 2026-10-29: «chore: pre-deploy cleanup and public rate limit»). O merge destes documentos (`2e4e113`, PR #26) não mudou código. O pull request de endurecimento pré-deploy (T06) acrescentou depois o middleware `UseResponseSecurityHeaders` (CC-HEADERS) e os cabeçalhos de segurança do site (WEB-HEADERS), que o inventário, a vista de processo e dois diagramas já mostram. Quando o código mudar, o inventário e os diagramas afetados mudam no mesmo pull request (ver [Atualização](#63-atualização)).
 
 **Fontes de verdade.** As regras estão no [backlog](../backlog.md); as escolhas técnicas, na [Stack](../stack.md); o mapa do código, no [AGENTS.md](../../AGENTS.md). Estes documentos não repetem regras: mostram como as partes se ligam e apontam para onde está o detalhe.
 
@@ -348,19 +348,14 @@ Tirados dos próprios documentos (secções «Notas» e «Riscos» de cada vista
 - **O IP do cliente não está resolvido.** Hoje a API não confia em nenhum proxy e vê o endereço do contentor Next.js, por isso todos os utilizadores partilham o mesmo limite de pedidos por IP. A solução prevista (cinco passos) está na [secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente) e depende de confirmar, com um pedido real no Render, o cabeçalho que a borda envia.
 - **Os 16 pontos de risco da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** estão por confirmar com os fornecedores (planos e custos do Render, pooler do Supabase com o EF Core, `btree_gist`, domínio próprio para o Brevo, migrações e comandos sem acesso local, limites dos planos gratuitos, entre outros). Foram lidos em 2026-10-30 e têm de ser verificados outra vez antes de decidir.
 - **O worker corre dentro da API**, por isso em produção a API tem de estar sempre ligada, ou os emails e lembretes atrasam ou são ignorados.
-- **Faltam antes da T06** o `dependabot.yml` e os cabeçalhos de segurança do site (`PL-DEPENDABOT`, `PL-SECHEADERS`); hoje só `/reset-password` tem cabeçalhos próprios.
+- **Feitos antes da T06:** o `dependabot.yml` e os cabeçalhos de segurança do site e da API (`PL-DEPENDABOT`, `PL-SECHEADERS`). Falta ligar o HSTS (`ENABLE_HSTS=true` no build do serviço web) quando houver HTTPS. A política de conteúdo (CSP) tem `'unsafe-inline'` em scripts e estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página: um limite conhecido, marcado como «Provisório» no backlog (T06).
 
 ### 7.2 Diferenças entre documentos e código que ficaram em aberto
 
-As que já foram corrigidas estão registadas como tal nas «Notas» de cada vista. Estas continuam por corrigir (fora do âmbito de uma branch só de documentação):
+As que já foram corrigidas estão registadas como tal nas «Notas» de cada vista. Fecharam-se com o pull request de endurecimento pré-deploy (T06) os comentários de código (`PitchPriceBand`, `TrustedProxyOptions`, `MigrateDatabaseAsync` e `Program.cs`), o `README.md` da raiz (reescrito no pull request #29) e o commit citado nas contagens da vista de desenvolvimento. Estas continuam por corrigir (fora do âmbito de uma branch só de documentação):
 
-1. **Comentário de `PitchPriceBand`**: refere `Pitch.AddPriceBand` e `Pitch.ChangePriceBand`; os métodos chamam-se `TryAddPriceBand` e `TryChangePriceBand` (código, [vista lógica](03-logical-view.md#notas)).
-2. **Comentário de `TrustedProxyOptions`** (`Api/Security/TrustedProxyOptions.cs`): diz que a produção confia só no Caddy, tal como o critério da T06 no backlog ([vista física](06-physical-view.md#6-notas)).
-3. **`README.md` da raiz**: diz «Production: trust only Caddy»; a secção «Continuous integration» não menciona o job `diagrams`; a «Repository layout» está desatualizada ([vista de desenvolvimento, secção 7](05-development-view.md#7-notas-e-diferenças-encontradas)).
-4. **`docs/stack.md`**: a árvore do repositório mostra `Caddyfile` e `deploy.yml`, que não existem (são da T06), e promete as ADRs «em `docs/`» quando estão em `docs/architecture/adr/`.
-5. **Comentários de `MigrateDatabaseAsync` e de `Program.cs`**: dizem que a produção usa um migration bundle, que ainda não existe.
-6. **`getPublicClub`** chama, a partir do servidor, um endpoint com limite por IP sem o IP do cliente: no compose, todas as páginas de clube já partilham a partição do contentor Next.js ([secção 4.4](06-physical-view.md#44-o-ip-do-cliente)).
-7. **Commit citado na vista de desenvolvimento**: as contagens de testes citam `9b45eed`, que já não está na `main` (ver a [secção 1](#1-para-que-serve)).
+1. **`docs/stack.md`**: a árvore do repositório mostra `Caddyfile` e `deploy.yml`, que não existem (são da T06), e promete as ADRs «em `docs/`» quando estão em `docs/architecture/adr/`.
+2. **`getPublicClub`** chama, a partir do servidor, um endpoint com limite por IP sem o IP do cliente: no compose, todas as páginas de clube já partilham a partição do contentor Next.js ([secção 4.4](06-physical-view.md#44-o-ip-do-cliente)).
 
 Não são erros: o `frontend/Dockerfile` copia uma pasta `public` que não existe e cria-a vazia; a `main` não tem proteção de branch (o CI confirma-se à mão antes de cada merge).
 

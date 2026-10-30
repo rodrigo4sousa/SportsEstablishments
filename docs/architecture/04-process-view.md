@@ -33,14 +33,15 @@ A ordem real, de `Api/Program.cs`:
 | --- | --- | --- | --- |
 | 0 | `UseRouting` (implícito) | — | O `WebApplication` põe-no antes dos middlewares de `Program.cs`: o endpoint fica escolhido logo, e os seguintes leem os seus atributos. |
 | 1 | `UseForwardedHeaders` | CC-RATE | IP do cliente a partir de `X-Forwarded-For`, só quando a ligação vem de um proxy de confiança (`ForwardedHeaders:KnownProxies`/`KnownNetworks`, vazios por omissão). |
-| 2 | `UseExceptionHandler` | CC-PROBLEM | Envolve tudo o que vem a seguir: uma exceção não tratada chega ao `GlobalExceptionHandler` (log Error, 500 `internal_error`). |
-| 3 | `UseStatusCodePages` | CC-PROBLEM | Uma resposta de erro sem corpo (401, 403, 404 de rota) passa a ProblemDetails com `code` e `traceId`. |
-| 4 | `UseOriginCheck` | CC-ORIGIN | POST, PUT, PATCH e DELETE sem um `Origin` de `Security:AllowedOrigins` → 403 `origin_not_allowed`. |
-| 5 | `UseRateLimiter` | CC-RATE | Só nos endpoints com `[EnableRateLimiting]`: janela fixa por IP (IPv6 por /64) → 429 `too_many_requests` com `Retry-After`. |
-| 6 | Swagger UI e `MapOpenApi` | CC-OPENAPI | Só em Development; antes da autenticação, porque a política de fallback os bloquearia. |
-| 7 | `UseAuthentication` | CC-COOKIES | O JwtBearer lê o cookie `access_token` e valida o JWT sem ir à base de dados. |
-| 8 | `UseAuthorization` | CC-AUTHZ | Política de fallback (sessão obrigatória salvo `[AllowAnonymous]`) → 401; política do perfil → 403. A verificação por dono (T02) vem depois, nos serviços. |
-| 9 | Controllers | API-* | Controller fino → serviço → `Result<T>`; um `ServiceError` vira ProblemDetails com `this.Problem(error)` (CC-PROBLEM). |
+| 2 | `UseResponseSecurityHeaders` | CC-HEADERS | Põe `X-Content-Type-Options: nosniff` em todas as respostas, também nos erros e nas recusas dos middlewares seguintes (o cabeçalho é escrito quando a resposta começa). O Kestrel não envia `Server`. |
+| 3 | `UseExceptionHandler` | CC-PROBLEM | Envolve tudo o que vem a seguir: uma exceção não tratada chega ao `GlobalExceptionHandler` (log Error, 500 `internal_error`). |
+| 4 | `UseStatusCodePages` | CC-PROBLEM | Uma resposta de erro sem corpo (401, 403, 404 de rota) passa a ProblemDetails com `code` e `traceId`. |
+| 5 | `UseOriginCheck` | CC-ORIGIN | POST, PUT, PATCH e DELETE sem um `Origin` de `Security:AllowedOrigins` → 403 `origin_not_allowed`. |
+| 6 | `UseRateLimiter` | CC-RATE | Só nos endpoints com `[EnableRateLimiting]`: janela fixa por IP (IPv6 por /64) → 429 `too_many_requests` com `Retry-After`. |
+| 7 | Swagger UI e `MapOpenApi` | CC-OPENAPI | Só em Development; antes da autenticação, porque a política de fallback os bloquearia. |
+| 8 | `UseAuthentication` | CC-COOKIES | O JwtBearer lê o cookie `access_token` e valida o JWT sem ir à base de dados. |
+| 9 | `UseAuthorization` | CC-AUTHZ | Política de fallback (sessão obrigatória salvo `[AllowAnonymous]`) → 401; política do perfil → 403. A verificação por dono (T02) vem depois, nos serviços. |
+| 10 | Controllers | API-* | Controller fino → serviço → `Result<T>`; um `ServiceError` vira ProblemDetails com `this.Problem(error)` (CC-PROBLEM). |
 
 Consequências da ordem: um POST de outra origem recebe 403 antes de gastar uma tentativa do limite; o limite é aplicado antes da autenticação, por isso conta também os pedidos sem sessão; e as recusas destes middlewares saem também como ProblemDetails (o 403 e o 429 escrevem-no eles próprios).
 

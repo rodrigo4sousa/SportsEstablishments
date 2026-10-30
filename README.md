@@ -118,6 +118,8 @@ Versions are those in [frontend/package.json](frontend/package.json), [backend/D
 
 **Cookie sessions.** A 15-minute JWT and a 7-day refresh token travel only in httpOnly, Secure cookies; the browser learns who is signed in from `GET /api/auth/me`. Each refresh rotates the token with a conditional update, a reused refresh token revokes every session of the account, and a refresh for a deactivated account fails. Mutating requests must carry an allowed `Origin`, and login, registration, refresh and password reset are rate limited per client IP. See [ADR 0002](docs/architecture/adr/0002-sessao-em-cookies-httponly.md), [SessionService](backend/src/SportsBooking.Infrastructure/Auth/SessionService.cs) and [AuthCookies](backend/src/SportsBooking.Api/Auth/AuthCookies.cs).
 
+**Security headers.** Every page of the web app is served with a `Content-Security-Policy` that allows only its own origin, `X-Content-Type-Options`, `Referrer-Policy`, a restrictive `Permissions-Policy` and no framing; the password-reset page keeps `no-referrer` and `no-store`. Every API response carries `nosniff` and no `Server` header. The policy has one known relaxation: it allows inline scripts and styles, because Next.js streams inline data scripts and `cacheComponents` rules out a per-request nonce (a nonce and a build-time hash were both tried in a browser and stopped hydration). HSTS exists as a build setting and stays off until the site is served over HTTPS. See [security-headers.ts](frontend/src/lib/security-headers.ts) and the T06 notes in the [backlog](docs/backlog.md).
+
 **Per-owner isolation: 404, not 403.** Every owner query starts from the signed-in owner's clubs ([OwnedClubs](backend/src/SportsBooking.Application/Clubs/OwnedClubs.cs)), so another owner's club, pitch or booking answers the same 404 as one that does not exist; a wrong profile gets 403. [OwnerAreaAccessTests](backend/tests/SportsBooking.IntegrationTests/Clubs/OwnerAreaAccessTests.cs) discovers every `/api/manage` route and checks 401, 403 and the cross-owner 404, so new endpoints are covered automatically.
 
 **Outbox with at-least-once delivery.** Emails are written as outbox rows in the same transaction as the booking or cancellation. The worker claims due rows with `FOR UPDATE SKIP LOCKED`, so several API instances never send the same batch at once; failures are retried with a doubling back-off, and reminders whose booking was cancelled are skipped rather than failed. See [ADR 0004](docs/architecture/adr/0004-outbox-para-emails.md) and [OutboxProcessor](backend/src/SportsBooking.Infrastructure/Notifications/OutboxProcessor.cs).
@@ -196,7 +198,7 @@ dotnet run --project backend/src/SportsBooking.Api   # API on http://localhost:5
 cd frontend && npm install && npm run dev            # web app on http://localhost:3000, /api/* rewritten to :5080
 ```
 
-Settings outside Development (JWT signing key, allowed origins, public site address, SMTP, database roles, trusted proxies) are listed in the [physical view, section 4.7](docs/architecture/06-physical-view.md#47-segredos-e-variáveis-de-ambiente-por-serviço). The API refuses to start when a required setting is missing or invalid. No proxy is trusted for `X-Forwarded-For` today.
+Settings outside Development (JWT signing key, allowed origins, public site address, SMTP, database roles, trusted proxies) are listed in the [physical view, section 4.7](docs/architecture/06-physical-view.md#47-segredos-e-variáveis-de-ambiente-por-serviço). The API refuses to start when a required setting is missing or invalid. The web app sends HSTS only if its image is built with `--build-arg ENABLE_HSTS=true`, for a site served over HTTPS (off by default). No proxy is trusted for `X-Forwarded-For` today.
 
 ## Running the tests and checks
 
@@ -263,12 +265,11 @@ The backlog, the Stack document and the architecture documents are in Portuguese
 
 ## Status and roadmap
 
-**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built except T06, continuous deployment (5 points): 34 stories and 124 points, including all optional stories.
+**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built except T06, continuous deployment (5 points): 34 stories and 124 points, including all optional stories. Dependabot and the security headers, planned before T06, are in place.
 
 **Planned.**
 
-- Dependabot (NuGet, npm and GitHub Actions) and security headers (`Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`), each in a small branch before T06.
-- Deployment (T06), not started. The **planned** hosting, proposed in ADR 0009 and not yet decided: Render for the public web app and a private API service, Supabase for PostgreSQL, and Brevo for email. Before it, the client IP used for rate limiting must be handled ([physical view, section 4.4](docs/architecture/06-physical-view.md#44-o-ip-do-cliente)).
+- Deployment (T06), not started. The **planned** hosting, proposed in ADR 0009 and not yet decided: Render for the public web app and a private API service, Supabase for PostgreSQL, and Brevo for email. Turning on HSTS is a build setting, off until the site is served over HTTPS. Before deployment, the client IP used for rate limiting must be handled ([physical view, section 4.4](docs/architecture/06-physical-view.md#44-o-ip-do-cliente)).
 
 > **Live demo:** to be added after the deployment.
 
@@ -277,6 +278,7 @@ The backlog, the Stack document and the architecture documents are in Portuguese
 - One branch per story, named after its ID (`feat/US18-…`, `chore/T01-…`, `docs/…`), merged into `main` through a pull request with squash merge.
 - Conventional Commits with the story ID, for example `feat(US18): …` or `fix(US19): …`.
 - `main` has no branch protection rule; the CI result is checked by hand before every merge.
+- Dependabot proposes updates weekly: one grouped pull request per ecosystem (NuGet, npm, GitHub Actions) for minor and patch updates, with a 14-day cooldown; major updates arrive one by one and are reviewed by hand.
 - Every bug gets a reproducing test before the fix.
 - Significant decisions are recorded as ADRs in [docs/architecture/adr](docs/architecture/adr/README.md).
 
