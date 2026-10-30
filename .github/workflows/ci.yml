@@ -104,3 +104,7 @@ jobs:
             echo "::error::The .svg files are out of date. Run scripts/render-diagrams.sh (or .ps1) and commit them."
             exit 1
           fi
+
+      # Every SVG is in the README gallery exactly once, and relative links in docs/architecture resolve to a file.
+      - name: Architecture docs are consistent
+        run: scripts/check-architecture-docs.sh
