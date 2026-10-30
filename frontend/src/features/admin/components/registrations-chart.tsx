@@ -1,7 +1,8 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ChartDataTable } from "./chart-data-table";
 import { LoadingRegion } from "@/components/loading-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,10 @@ const GRANULARITIES: { value: RegistrationsGranularity; label: string }[] = [
 ];
 
 const number = new Intl.NumberFormat("pt-PT");
+
+/** Few bars: each one says its number, so the series can be read without the colours (UX-027). A zero is left unsaid. */
+const MAX_LABELLED_PERIODS = 12;
+const valueLabel = (value: unknown) => (Number(value) > 0 ? number.format(Number(value)) : "");
 
 type RegistrationsChartProps = {
   /** The period shared with the bookings chart and the top of the clubs. */
@@ -45,6 +50,8 @@ export function RegistrationsChart({ period, granularity, onGranularity }: Regis
     owners: bucket.owners,
     players: bucket.players,
   }));
+
+  const showValues = points.length <= MAX_LABELLED_PERIODS;
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,31 +104,22 @@ export function RegistrationsChart({ period, granularity, onGranularity }: Regis
                   formatter={(value, name) => [number.format(Number(value)), String(name)]}
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? ""}
                 />
-                <Legend />
-                <Bar dataKey="owners" name="Donos" fill="var(--chart-1)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-                <Bar dataKey="players" name="Jogadores" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                <Legend formatter={(value) => <span className="text-foreground">{value}</span>} />
+                <Bar dataKey="owners" name="Donos" fill="var(--chart-1)" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                  {showValues ? <LabelList dataKey="owners" position="top" fontSize={11} formatter={valueLabel} /> : null}
+                </Bar>
+                <Bar dataKey="players" name="Jogadores" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                  {showValues ? <LabelList dataKey="players" position="top" fontSize={11} formatter={valueLabel} /> : null}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <table className="sr-only">
-            <caption>Registos em cada período</caption>
-            <thead>
-              <tr>
-                <th scope="col">Período</th>
-                <th scope="col">Donos</th>
-                <th scope="col">Jogadores</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.key}>
-                  <th scope="row">{point.label}</th>
-                  <td>{point.owners}</td>
-                  <td>{point.players}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ChartDataTable
+            caption="Registos em cada período"
+            firstColumn="Período"
+            series={["Donos", "Jogadores"]}
+            rows={points.map((point) => ({ key: point.key, label: point.label, values: [point.owners, point.players] }))}
+          />
         </>
       )}
     </div>

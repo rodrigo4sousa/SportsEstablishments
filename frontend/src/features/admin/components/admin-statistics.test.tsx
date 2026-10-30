@@ -105,6 +105,18 @@ describe("the admin's registrations and top of the clubs", () => {
       expect(screen.getByRole("img", { name: /donos e os jogadores registados/ })).toBeInTheDocument();
     });
 
+    it("offers the numbers as a table anyone can open, not only to screen readers (UX-027)", async () => {
+      serve();
+
+      renderWithProviders(<AdminDashboard initialStats={STATS} />);
+
+      const table = await screen.findByRole("table", { name: "Registos em cada período" });
+      const details = table.closest("details");
+      expect(details).not.toBeNull();
+      expect(within(details as HTMLElement).getByText("Ver os números numa tabela")).toBeInTheDocument();
+      expect(table.closest(".sr-only")).toBeNull();
+    });
+
     it("switches to months, asks again and writes the choice in the URL, leaving the bookings chart alone", async () => {
       const asked = serve({
         registrations: (query) =>
@@ -190,8 +202,8 @@ describe("the admin's registrations and top of the clubs", () => {
       expect(Object.fromEntries(asked.top[0])).toEqual({});
       const rowsOf = within(topTable()).getAllByRole("row").slice(1);
       expect(rowsOf.map((row) => text(row.textContent))).toEqual([
-        "1Clube 1Dono 1Porto81,3 %130 h160 h",
-        "2Clube 2Dono 2Maia50 %62,5 h125 h",
+        "11. Clube 1Dono 1Porto81,3 %130 h160 h",
+        "22. Clube 2Dono 2Maia50 %62,5 h125 h",
       ]);
       expect(within(rowsOf[0]).getByRole("link", { name: "Clube 1" })).toHaveAttribute("href", "/clubs/clube-1");
       expect(screen.getByText("De 26/09/2026 a 25/10/2026.")).toBeInTheDocument();

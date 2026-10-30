@@ -31,7 +31,7 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
 
   if (stats.isPending) {
     return (
-      <LoadingRegion label="A carregar os totais…" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <LoadingRegion label="A carregar os totais…" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {[0, 1, 2, 3, 4].map((key) => (
           <Skeleton key={key} className="h-24 w-full rounded-lg" />
         ))}
@@ -51,7 +51,7 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
 
   const { owners, clubs, activePitches, players, confirmedBookings } = stats.data;
   return (
-    <ul aria-label="Totais da plataforma" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul aria-label="Totais da plataforma" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
       <Card label="Donos" value={owners.active}>
         <Detail value={owners.deactivated} singular="dono desativado" plural="donos desativados" />
       </Card>

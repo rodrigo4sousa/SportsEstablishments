@@ -381,6 +381,34 @@ describe("AdminDashboard", () => {
       expect(link).toHaveAttribute("href", "/admin/owners/0199f7a0-0000-7000-8000-000000000001");
     });
 
+    it("shows an owner's name as a link people recognise: underlined, not only on hover (UX-029)", async () => {
+      serve();
+      renderWithProviders(<AdminDashboard initialStats={STATS} />);
+
+      const link = await within(await screen.findByRole("table", { name: "Donos e os seus números" })).findByRole("link", { name: "Ana Dona" });
+
+      expect(link).toHaveClass("underline");
+    });
+
+    it("on a phone every owner is a card with each figure labelled, and the order is chosen with a list instead of the headers (UX-029)", async () => {
+      const asked = serve();
+      const user = userEvent.setup();
+      renderWithProviders(<AdminDashboard initialStats={STATS} />);
+      const table = await screen.findByRole("table", { name: "Donos e os seus números" });
+
+      const labels = within(within(table).getAllByRole("row")[1])
+        .getAllByRole("cell")
+        .map((cell) => cell.getAttribute("data-label"));
+      expect(labels).toEqual(["Email", "Registo", "Estado", "Clubes", "Campos", "Reservas", "Jogadores"]);
+      expect(within(table).getAllByRole("row")[1]).toHaveClass("max-sm:block", "max-sm:border");
+      expect(screen.getByRole("region", { name: "Donos e os seus números" })).toHaveAttribute("tabindex", "0");
+
+      await user.selectOptions(screen.getByLabelText("Ordenar por"), "bookings");
+      await waitFor(() => expect(Object.fromEntries(asked.owners.at(-1)!)).toEqual({ sort: "bookings", direction: "asc" }));
+      await user.click(screen.getByRole("button", { name: "Ordem crescente" }));
+      await waitFor(() => expect(Object.fromEntries(asked.owners.at(-1)!)).toEqual({ sort: "bookings", direction: "desc" }));
+    });
+
     it("sorts by a header, reverses on the second click, and marks the column", async () => {
       const asked = serve();
       const user = userEvent.setup();

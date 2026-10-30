@@ -86,6 +86,14 @@ describe.each([
     }
   });
 
+  it("the chart series are visible against the page (3:1, WCAG 1.4.11) and apart from each other (UX-027)", () => {
+    const [first, second] = [token(scope, "chart-1"), token(scope, "chart-2")];
+
+    expect(contrast(first, background)).toBeGreaterThanOrEqual(3);
+    expect(contrast(second, background)).toBeGreaterThanOrEqual(3);
+    expect(contrast(first, second)).toBeGreaterThanOrEqual(2);
+  });
+
   it("muted help text is readable on the tinted alert background too", () => {
     const destructive = token(scope, "destructive");
 

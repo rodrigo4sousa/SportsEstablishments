@@ -70,7 +70,8 @@
   --input: oklch(0.922 0 0);
   /* UX-001: the focus ring is the foreground colour at full strength (was a light grey at half strength). */
   --ring: oklch(0.205 0 0);
-  --chart-1: oklch(0.87 0 0);
+  /* UX-027: a chart series is a graphic and needs 3:1 against the page (WCAG 1.4.11); --chart-1 was 1.5:1. The two series of a chart differ by lightness and by their value labels. */
+  --chart-1: oklch(0.269 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);

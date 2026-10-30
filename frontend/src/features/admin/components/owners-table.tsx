@@ -4,6 +4,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { LoadingRegion } from "@/components/loading-region";
+import { ScrollRegion } from "@/components/scroll-region";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
@@ -124,19 +126,36 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
           <p role="status" className="text-sm text-muted-foreground">
             {data!.totalCount === 1 ? "1 dono" : `${number.format(data!.totalCount)} donos`}
           </p>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
+          {/* A phone has no column headers to press, so the order is chosen here (UX-029). */}
+          <div className="flex flex-wrap items-end gap-3 sm:hidden">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="owners-sort">Ordenar por</Label>
+              <NativeSelect id="owners-sort" value={query.sort} onChange={(event) => onChange({ sort: event.target.value as OwnerSort, direction: "asc", page: 1 })}>
+                {COLUMNS.map((column) => (
+                  <option key={column.sort} value={column.sort}>
+                    {column.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <Button type="button" variant="outline" size="cta" onClick={() => onChange({ direction: query.direction === "asc" ? "desc" : "asc", page: 1 })}>
+              {query.direction === "asc" ? "Ordem crescente" : "Ordem decrescente"}
+            </Button>
+          </div>
+          <ScrollRegion label="Donos e os seus números">
+            <table role="table" className="w-full text-sm max-sm:block">
               <caption className="sr-only">Donos e os seus números</caption>
-              <thead className="border-b bg-muted/50 text-left">
-                <tr>
+              <thead role="rowgroup" className="border-b bg-muted/50 text-left max-sm:hidden">
+                <tr role="row">
                   {COLUMNS.map((column) => (
                     <th
                       key={column.sort}
+                      role="columnheader"
                       scope="col"
                       aria-sort={query.sort === column.sort ? (query.direction === "asc" ? "ascending" : "descending") : "none"}
                       className={column.numeric ? "px-3 py-2 text-right" : "px-3 py-2"}
                     >
-                      <button type="button" onClick={() => sortBy(column.sort)} className="font-medium hover:underline">
+                      <button type="button" onClick={() => sortBy(column.sort)} className="-my-2 py-2 font-medium hover:underline">
                         {column.label}
                         <span aria-hidden="true">{query.sort === column.sort ? (query.direction === "asc" ? " ↑" : " ↓") : ""}</span>
                       </button>
@@ -144,32 +163,32 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup" className="max-sm:block max-sm:p-3 max-sm:pb-0">
                 {data!.items.map((owner) => (
-                  <tr key={owner.id} className="border-b last:border-b-0">
-                    <th scope="row" className="px-3 py-2 text-left font-medium">
-                      <Link href={`/admin/owners/${owner.id}`} className="underline-offset-4 hover:underline">
+                  <tr key={owner.id} role="row" className="border-b last:border-b-0 max-sm:mb-3 max-sm:block max-sm:rounded-md max-sm:border max-sm:p-3 max-sm:last:border-b">
+                    <th role="rowheader" scope="row" className="px-3 py-2 text-left font-medium max-sm:block max-sm:px-0 max-sm:pt-0 max-sm:text-base">
+                      <Link href={`/admin/owners/${owner.id}`} className="underline underline-offset-4 decoration-muted-foreground hover:decoration-foreground">
                         {owner.name}
                       </Link>
                     </th>
-                    <td className="px-3 py-2">{owner.email}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatLisbonDate(owner.registeredAt)}</td>
-                    <td className="px-3 py-2">
+                    <td role="cell" data-label="Email" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{owner.email}</td>
+                    <td role="cell" data-label="Registo" className="px-3 py-2 whitespace-nowrap max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formatLisbonDate(owner.registeredAt)}</td>
+                    <td role="cell" data-label="Estado" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">
                       {owner.deactivated ? (
                         <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Desativado</span>
                       ) : (
                         <span className="text-muted-foreground">Ativo</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{number.format(owner.clubs)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{number.format(owner.pitches)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{number.format(owner.bookings)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{number.format(owner.players)}</td>
+                    <td role="cell" data-label="Clubes" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.clubs)}</td>
+                    <td role="cell" data-label="Campos" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.pitches)}</td>
+                    <td role="cell" data-label="Reservas" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.bookings)}</td>
+                    <td role="cell" data-label="Jogadores" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.players)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           {pages > 1 ? (
             <nav aria-label="Páginas de donos" className="flex items-center justify-between gap-3">
               <Button type="button" variant="outline" disabled={data!.page <= 1} onClick={() => onChange({ page: data!.page - 1 })}>

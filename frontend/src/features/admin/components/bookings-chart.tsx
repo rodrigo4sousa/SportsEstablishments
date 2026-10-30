@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ChartDataTable } from "./chart-data-table";
 import { LoadingRegion } from "@/components/loading-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -109,23 +110,12 @@ export function BookingsChart({ query, onChange }: BookingsChartProps) {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <table className="sr-only">
-            <caption>Reservas feitas em cada período</caption>
-            <thead>
-              <tr>
-                <th scope="col">Período</th>
-                <th scope="col">Reservas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.key}>
-                  <th scope="row">{point.label}</th>
-                  <td>{point.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ChartDataTable
+            caption="Reservas feitas em cada período"
+            firstColumn="Período"
+            series={["Reservas"]}
+            rows={points.map((point) => ({ key: point.key, label: point.label, values: [point.count] }))}
+          />
         </>
       )}
     </div>
