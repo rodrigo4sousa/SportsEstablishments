@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
@@ -29,9 +31,11 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
 
   if (stats.isPending) {
     return (
-      <p role="status" className="text-muted-foreground">
-        A carregar os totais…
-      </p>
+      <LoadingRegion label="A carregar os totais…" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2, 3, 4].map((key) => (
+          <Skeleton key={key} className="h-24 w-full rounded-lg" />
+        ))}
+      </LoadingRegion>
     );
   }
   if (stats.isError) {

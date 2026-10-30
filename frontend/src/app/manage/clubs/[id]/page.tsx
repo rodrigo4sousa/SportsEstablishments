@@ -5,7 +5,7 @@ import { EditClub } from "@/features/clubs/components/edit-club";
 import { isGuid } from "@/lib/guid";
 
 export const metadata: Metadata = {
-  title: "Editar clube · Reservas de Campos",
+  title: "Editar clube",
 };
 
 export default async function Page({ params }: PageProps<"/manage/clubs/[id]">) {

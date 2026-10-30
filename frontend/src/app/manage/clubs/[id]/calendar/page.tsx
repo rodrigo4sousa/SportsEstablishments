@@ -7,7 +7,7 @@ import { ClubCalendar } from "@/features/calendar/components/club-calendar";
 import { isGuid } from "@/lib/guid";
 
 export const metadata: Metadata = {
-  title: "Calendário · Reservas de Campos",
+  title: "Calendário",
 };
 
 export default async function Page({ params }: PageProps<"/manage/clubs/[id]/calendar">) {

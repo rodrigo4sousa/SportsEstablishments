@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import {
   createPriceBand,
@@ -62,8 +62,8 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
       onDone();
     },
     onError: async (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {

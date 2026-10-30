@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +21,7 @@ import { formatPrice } from "@/features/pitches/price";
 import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
 import { sportLabel } from "@/features/pitches/sports";
 import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { loginUrl } from "@/lib/auth/redirects";
 import { formatDateKeyLong } from "@/lib/datetime";
 import { createBooking, createRecurring, previewRecurring, skippedOf, type Booking, type RecurringResult, type SkippedDate } from "../api";
@@ -82,8 +85,8 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       void queryClient.invalidateQueries({ queryKey: myBookingsQueryKey });
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error, { handlesNetworkError: true })) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.status === 401) {
@@ -111,8 +114,8 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       void queryClient.invalidateQueries({ queryKey: myBookingsQueryKey });
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error, { handlesNetworkError: true })) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.status === 401) {
@@ -182,9 +185,8 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       </div>
 
       {failure ? (
-        <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {failure}
-        </p>
+        // A refusal of what the player just asked for: it takes focus (the confirm button it replaces had it), UX-002.
+        <ResultNotice kind="error">{failure}</ResultNotice>
       ) : slotGone ? (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {SLOT_GONE}
@@ -214,9 +216,11 @@ export function ClubBooking({ club }: { club: PublicClub }) {
           {selection.date === "" ? "Escolhe uma data." : DATE_OUT_OF_WINDOW}
         </p>
       ) : slots.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          A carregar os horários…
-        </p>
+        <LoadingRegion label="A carregar os horários…" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((key) => (
+            <Skeleton key={key} className="h-16 w-full" />
+          ))}
+        </LoadingRegion>
       ) : slots.isError ? (
         <div role="alert" className="flex flex-col items-start gap-3">
           <p>{publicErrorMessage(slots.error instanceof ApiError ? slots.error.code : "unknown_error")}</p>

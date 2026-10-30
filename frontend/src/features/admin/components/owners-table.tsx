@@ -3,6 +3,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,13 +105,13 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
           </Button>
         </div>
       ) : owners.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          A carregar os donos…
-        </p>
+        <LoadingRegion label="A carregar os donos…" className="flex flex-col gap-2">
+          {[0, 1, 2, 3, 4].map((key) => (
+            <Skeleton key={key} className="h-8 w-full" />
+          ))}
+        </LoadingRegion>
       ) : data!.totalCount === 0 ? (
-        <p role="status" className="rounded-md border border-dashed px-4 py-6 text-muted-foreground">
-          {query.search ? "Nenhum dono corresponde à pesquisa." : "Ainda não há donos registados."}
-        </p>
+        <EmptyState title={query.search ? "Nenhum dono corresponde à pesquisa." : "Ainda não há donos registados."} />
       ) : data!.items.length === 0 ? (
         <div role="status" className="flex flex-col items-start gap-3">
           <p className="text-muted-foreground">Esta página não tem donos.</p>

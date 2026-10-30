@@ -221,7 +221,10 @@ describe("ClubBooking: booking a slot", () => {
       const invalidate = vi.spyOn(queryClient, "invalidateQueries");
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
 
-      const confirmation = await screen.findByRole("status", { name: "Reserva confirmada" });
+      const confirmation = await screen.findByRole("region", { name: "Reserva confirmada" });
+      // UX-002: the confirm button is gone, so focus goes to the heading; the section is not also a live region (read twice).
+      expect(within(confirmation).getByRole("heading", { name: "Reserva confirmada" })).toHaveFocus();
+      expect(confirmation).not.toHaveAttribute("role");
       // US19: the confirmation leads to "As minhas reservas", and the new booking makes that list stale.
       expect(within(confirmation).getByRole("link", { name: "Ver as minhas reservas" })).toHaveAttribute("href", "/bookings");
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["my-bookings"] });
@@ -266,7 +269,7 @@ describe("ClubBooking: booking a slot", () => {
       expect(await screen.findByRole("button", { name: "A reservar…" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
       release?.();
-      await screen.findByRole("status", { name: "Reserva confirmada" });
+      await screen.findByRole("region", { name: "Reserva confirmada" });
       expect(bookings).toHaveLength(1);
     });
   });
@@ -286,9 +289,10 @@ describe("ClubBooking: booking a slot", () => {
       renderWithProviders(<ClubBooking club={club} />);
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
 
-      const alert = await screen.findByRole("alert");
-      expect(alert).toHaveTextContent("Este horário acabou de ser reservado. Escolhe outro.");
-      expect(screen.queryByRole("status", { name: "Reserva confirmada" })).not.toBeInTheDocument();
+      // The refusal replaces the confirm button, so it takes focus (UX-002) instead of leaving it on <body>.
+      const alert = await screen.findByText("Este horário acabou de ser reservado. Escolhe outro.");
+      expect(alert).toHaveFocus();
+      expect(screen.queryByRole("region", { name: "Reserva confirmada" })).not.toBeInTheDocument();
       expect(summary()).not.toBeInTheDocument();
       expect(currentPath()).not.toContain("slot=");
       // The list was asked for again and now shows that slot disabled, with the other still free.
@@ -309,7 +313,7 @@ describe("ClubBooking: booking a slot", () => {
       renderWithProviders(<ClubBooking club={club} />);
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent(message);
+      expect(await screen.findByText(message)).toHaveFocus();
       expect(summary()).not.toBeInTheDocument();
       await waitFor(() => expect(slotRequests).toHaveLength(2));
     });
@@ -321,7 +325,7 @@ describe("ClubBooking: booking a slot", () => {
       renderWithProviders(<ClubBooking club={club} />);
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível contactar o servidor.");
+      expect(await screen.findByText(/Não foi possível contactar o servidor\./)).toBeInTheDocument();
       expect(summary()).toBeInTheDocument();
       expect(confirmButton()).toBeEnabled();
       expect(slotRequests).toHaveLength(1);
@@ -341,11 +345,11 @@ describe("ClubBooking: booking a slot", () => {
       serve({ me: account("Player"), slots: () => [slot(FIRST), slot(SECOND)], book: () => problem(409, "slot_taken") });
       renderWithProviders(<ClubBooking club={club} />);
       await userEvent.click(await screen.findByRole("button", { name: "Confirmar reserva" }));
-      await screen.findByRole("alert");
+      await screen.findByText("Este horário acabou de ser reservado. Escolhe outro.");
 
       await userEvent.click(slotButton("11:00"));
 
-      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByText("Este horário acabou de ser reservado. Escolhe outro.")).not.toBeInTheDocument());
     });
   });
 

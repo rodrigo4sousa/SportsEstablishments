@@ -4,11 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { loginUrl } from "@/lib/auth/redirects";
 import { formatLisbonDate, formatLisbonDateTime } from "@/lib/datetime";
+import { useRestoreFocus } from "@/lib/focus";
 import { adminOwnerHistoryQueryKey, adminOwnerQueryKey, fetchAdminOwner, fetchOwnerHistory } from "../api";
 import { OwnerStatusForm } from "./owner-status-form";
 
@@ -30,6 +32,8 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [formOpen, setFormOpen] = useState(false);
+  // Cancelling the form puts focus back on the button that opened it (UX-002); a result takes focus itself.
+  const statusButton = useRestoreFocus<HTMLButtonElement>(formOpen);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const owner = useQuery({ queryKey: adminOwnerQueryKey(ownerId), queryFn: () => fetchAdminOwner(ownerId) });
@@ -97,18 +101,8 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
         </dl>
       </section>
 
-      {notice ? (
-        <p
-          role={notice.kind === "error" ? "alert" : "status"}
-          className={
-            notice.kind === "error"
-              ? "rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              : "rounded-md border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30"
-          }
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      {/* The result of the change takes focus where the form was (UX-002). */}
+      {notice ? <ResultNotice kind={notice.kind}>{notice.text}</ResultNotice> : null}
 
       <section aria-labelledby="owner-status" className="flex flex-col gap-3">
         <h2 id="owner-status" className="text-lg font-semibold">
@@ -131,6 +125,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
         ) : (
           <div>
             <Button
+              ref={statusButton}
               type="button"
               variant={data.deactivated ? "default" : "destructive"}
               onClick={() => {

@@ -3,7 +3,7 @@ import { PageShell } from "@/components/page-shell";
 import { ClubForm } from "@/features/clubs/components/club-form";
 
 export const metadata: Metadata = {
-  title: "Novo clube · Reservas de Campos",
+  title: "Novo clube",
 };
 
 export default function Page() {

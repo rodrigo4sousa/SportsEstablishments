@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/form-field";
-import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
@@ -61,8 +61,8 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
       router.replace(safeNext(next, account.profile));
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "email_taken") {

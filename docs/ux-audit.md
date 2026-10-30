@@ -321,3 +321,50 @@ Quatro lotes, cada um numa branch pequena, com verificação manual no browser n
 - Regiões vivas (`role="status"`/`alert`) nas confirmações e nos avisos, `aria-sort` nas tabelas ordenáveis, tabelas `sr-only` com os números dos gráficos, `aria-expanded` nos painéis dos campos.
 - Nenhuma página com scroll horizontal em 390 px; layout shift baixo em todo o lado (CLS ≤ 0,022).
 - O estado no endereço funciona: voltar, recarregar e entrar a meio de uma reserva devolvem a mesma escolha.
+
+## 8. Decisões
+
+Tomadas a 2026-10-30, depois da secção 6, e que valem para os lotes seguintes.
+
+1. **Direção visual (UX-030).** Mantém-se o tema neutro e corrige-se só o que falha em contraste (nos tokens); sem cor de marca por agora. Acrescenta-se uma introdução curta na página inicial, no lote 4 (UX-030). Uma cor de marca pode entrar mais tarde sem refazer nada, e não é o que prejudica a experiência: pesa mais o foco invisível e o feedback fora do ecrã.
+2. **Erros inesperados (UX-019).** Vão para um toast, como diz o AGENTS.md: corrige-se o código, não a documentação. É um erro real, feito no lote 1 (`isExpectedApiError`, `unexpectedErrorMessage`), com nota no backlog.
+3. **Navegação do dono e do admin (UX-013), para o lote 3.** As duas coisas: atalhos por clube («Calendário», «Estatísticas») em `/manage`, para chegar em um clique, e um menu no cabeçalho para a navegação entre áreas.
+4. **Calendário (UX-005), para o lote 3.** Em mobile, um campo de cada vez com seletor (a grelha completa só confunde em 390 px). Em desktop, página mais larga só para o calendário, não para toda a área do dono, para não mexer em formulários que ficam bem estreitos (`PAGE_WIDTH` já tem a largura `wide` para isso).
+5. **Página do clube (UX-010), para o lote 2.** Os slots passam para cima dos contactos. A barra fixa de reserva em mobile só entra se for barata (esforço S ou M); senão fica de fora.
+
+## 9. Estado dos lotes
+
+### Lote 1 · Fundações (feito)
+
+Medido na app a correr, com os mesmos scripts e a mesma conta de demonstração que na auditoria (desktop e mobile, teclado e axe).
+
+| Achado | Estado | Notas |
+| --- | --- | --- |
+| UX-001 foco invisível | **Feito** | Uma regra em `globals.css` (anel de 2 px a 2 px de distância, `--ring` escuro) e sem `outline-none` nos controlos; testado nos tokens (3:1) e visto nos botões escuros. O botão deixou de animar o anel (`transition-all`). |
+| UX-002 foco perdido | **Parcial** | Regra e ajudas feitas (`lib/focus.ts`: `useFocusOn`, `useRestoreFocus`; `ResultNotice`). Aplicadas a: confirmação de reserva e de série, recusa da reserva, perguntar e manter o cancelamento do jogador e o seu resultado, detalhes de uma reserva (abrir, formulário de cancelar, falta, resultado), formulário de estado do dono (admin), recusa do login, página de erro. **Fica para os lotes 2 e 3:** fechar os detalhes (devolver o foco à caixa da reserva), gravar o clube, os formulários dos campos (horário, bloqueios, faixas, campo), «Nova reserva». |
+| UX-003 aviso fora de vista | **Parcial** | O resultado recebe o foco e entra no ecrã onde quer que a reserva estivesse. Pô-lo dentro do cartão fica para o lote 2. |
+| UX-004 detalhes longe da grelha | **Parcial** | Os detalhes recebem o foco ao abrir e passam a estar à vista (com teclado, de 1 396 px para 771 px do topo do ecrã). O painel lateral e o Escape ficam para o lote 3. |
+| UX-007 404 em inglês | **Feito** | `app/not-found.tsx`, `app/error.tsx` e `app/global-error.tsx` em pt-PT, com o cabeçalho do site e o caminho de volta. |
+| UX-008 contraste | **Feito** | `--muted-foreground` e `--destructive` nos tokens; axe: 48 nós para 0. Um teste lê `globals.css` e confere os pares nos dois temas. |
+| UX-011 títulos | **Feito** | Sufixo único (`title.template`), títulos próprios em todas as páginas e o nome do clube na página do clube. O nome do clube no calendário e nas estatísticas vem com UX-012 (lote 3). |
+| UX-014 saltar para o conteúdo | **Feito** | Ligação «Saltar para o conteúdo», um `<main id>` por página, `<nav aria-label="Conta">`, cabeçalho do site nas páginas de conta. A navegação das áreas fica com UX-013 (lote 3). |
+| UX-017 hierarquia dos títulos | **Feito** | `h2` nos resultados da pesquisa e na lista de reservas; axe `heading-order`: 14 nós para 0. |
+| UX-019 erros inesperados | **Feito** | 500, falha de rede e erros que não são da API vão para o toast em todos os formulários e ações (a falha de rede continua dentro do formulário nos quatro ecrãs que a descrevem: login, recuperação, nova palavra-passe, reservar). Testado em «As minhas reservas», no calendário e no login, e visto na app. |
+| UX-020 carregamentos | **Parcial** | `Skeleton`, `LoadingRegion` e `EmptyState`, usados em «As minhas reservas», nas rotas, na pesquisa, nos horários e nos totais, gráficos e tabelas do admin. **Fica para o lote 3:** o calendário, as estatísticas e os painéis dos campos (continuam só com texto). |
+| UX-024 região dos toasts | **Feito** | «Notificações». |
+| UX-028 larguras | **Feito no admin** | `PAGE_WIDTH`: o cabeçalho e as páginas do admin usam a mesma largura; o dono e o jogador já usavam a mesma. O calendário mais largo é do lote 3. |
+
+**Resultados do axe, antes e depois** (mesmos ecrãs, as duas larguras):
+
+| Regra | Antes (nós) | Depois (nós) |
+| --- | --- | --- |
+| `color-contrast` | 48 | 0 |
+| `heading-order` | 14 | 0 |
+| `landmark-one-main` | 2 | 0 |
+| `region` | 4 | 0 |
+| `label-content-name-mismatch` | 264 | 264 (UX-016, lote 3) |
+| `scrollable-region-focusable` | 1 | 1 (UX-006, lote 3) |
+
+Capturas sem nenhuma violação: 59 de 102 antes, 78 de 93 depois (corrida final; as duas séries não têm exatamente as mesmas capturas, por isso o que conta são as contagens por regra). Nenhuma violação de CSP nem erro na consola em nenhum dos fluxos.
+
+**Encontrado durante o lote:** o `transition-all` do botão fazia o anel de foco aparecer a desvanecer (corrigido); gravar o clube deixa o foco no `<body>` (fica com UX-002, lote 3). Do lote 2 ficam também UX-009, UX-010, UX-015, UX-018, UX-021, UX-022, UX-025, UX-026.

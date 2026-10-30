@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
 import { statusLabel } from "@/features/my-bookings/status";
 import { formatPrice } from "@/features/pitches/price";
@@ -9,7 +10,9 @@ import { sportLabel } from "@/features/pitches/sports";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { formatLisbonDate, formatLisbonDateTime, formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
+import { useFocusOn, useRestoreFocus } from "@/lib/focus";
 import { calendarBookingQueryKey, calendarQueryKey, fetchClubBooking, markNoShow, undoNoShow } from "../api";
 import { CancelBookingForm } from "./cancel-booking-form";
 import { CREATED_BY_CLUB } from "./day-grid";
@@ -42,6 +45,9 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
   const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
+  // UX-002, UX-004: opening a booking moves focus to its details, which also scrolls them into view, wherever the grid left them.
+  const headingFocus = useFocusOn<HTMLHeadingElement>(bookingId);
+  const cancelButton = useRestoreFocus<HTMLButtonElement>(cancelling);
   const booking = useQuery({
     queryKey: calendarBookingQueryKey(clubId, bookingId),
     queryFn: () => fetchClubBooking(clubId, bookingId),
@@ -61,8 +67,8 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
       await queryClient.invalidateQueries({ queryKey: calendarQueryKey(clubId), refetchType: "all" });
     },
     onError: async (error, action) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       setNotice(null);
@@ -89,7 +95,9 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
   return (
     <section aria-label="Detalhes da reserva" className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold">Reserva</h3>
+        <h3 {...headingFocus} className="font-semibold">
+          Reserva
+        </h3>
         <Button type="button" variant="ghost" size="sm" onClick={close}>
           Fechar
         </Button>
@@ -163,17 +171,10 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
             ) : null}
           </dl>
 
-          {refusal ? (
-            <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {refusal}
-            </p>
-          ) : null}
+          {/* The result of what the owner just did takes focus, so it is seen and read where the buttons were (UX-002). */}
+          {refusal ? <ResultNotice kind="error">{refusal}</ResultNotice> : null}
 
-          {notice ? (
-            <p role="status" className="rounded-md border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30">
-              {notice}
-            </p>
-          ) : null}
+          {notice ? <ResultNotice kind="success">{notice}</ResultNotice> : null}
 
           {booking.data.canCancel ? (
             cancelling ? (
@@ -194,6 +195,7 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
             ) : (
               <div>
                 <Button
+                  ref={cancelButton}
                   type="button"
                   variant="outline"
                   onClick={() => {

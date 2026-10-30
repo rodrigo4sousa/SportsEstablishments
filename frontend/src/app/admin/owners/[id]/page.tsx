@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { PageShell } from "@/components/page-shell";
 import { RouteLoading } from "@/components/route-loading";
 import { OwnerDetails } from "@/features/admin/components/owner-details";
 import { isGuid } from "@/lib/guid";
@@ -18,11 +19,10 @@ export default async function Page({ params }: PageProps<"/admin/owners/[id]">) 
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Dono</h1>
+    <PageShell title="Dono" width="wide">
       <Suspense fallback={<RouteLoading />}>
         <OwnerDetails ownerId={id} />
       </Suspense>
-    </section>
+    </PageShell>
   );
 }

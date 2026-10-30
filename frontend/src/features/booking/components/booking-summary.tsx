@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/features/pitches/price";
 import { formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
+import { useFocusOn } from "@/lib/focus";
 
 export type BookingDetails = {
   clubName: string;
@@ -58,9 +61,12 @@ type BookingConfirmationProps = {
 
 /** US18: shown after the booking is made. */
 export function BookingConfirmation({ details, onDismiss, dismissLabel }: BookingConfirmationProps) {
+  // The summary this replaces had focus (the confirm button): focus goes to the heading, which a screen reader reads. The
+  // section is not a live region, or it would be read twice (UX-002).
+  const focus = useFocusOn<HTMLHeadingElement>();
   return (
-    <section role="status" aria-labelledby="booking-confirmed" className="flex flex-col gap-4 rounded-lg border border-emerald-600/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
-      <h3 id="booking-confirmed" className="font-semibold">
+    <section aria-labelledby="booking-confirmed" className="flex flex-col gap-4 rounded-lg border border-emerald-600/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
+      <h3 id="booking-confirmed" {...focus} className="font-semibold">
         Reserva confirmada
       </h3>
       <BookingDetailList details={details} />

@@ -4,10 +4,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/empty-state";
+import { LoadingRegion } from "@/components/loading-region";
+import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { catalogQueryKey } from "@/features/catalog/api";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { loginUrl } from "@/lib/auth/redirects";
 import { cancelBooking, fetchMyBookings, myBookingsListQueryKey, myBookingsQueryKey } from "../api";
 import type { BookingScope, MyBooking } from "../types";
@@ -77,8 +82,8 @@ export function MyBookings() {
       void queryClient.invalidateQueries({ queryKey: catalogQueryKey });
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.status === 401) {
@@ -123,24 +128,17 @@ export function MyBookings() {
         ))}
       </div>
 
-      {notice ? (
-        <p
-          role={notice.kind === "error" ? "alert" : "status"}
-          className={
-            notice.kind === "error"
-              ? "rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              : "rounded-md border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30"
-          }
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      {/* The result of the last cancellation takes focus, which brings it into view wherever the booking was in the list (UX-003). */}
+      {notice ? <ResultNotice kind={notice.kind}>{notice.text}</ResultNotice> : null}
 
       <div role="tabpanel" id="bookings-panel" aria-labelledby={`bookings-tab-${scope}`} className="flex flex-col gap-4">
+        <h2 className="sr-only">{scope === "upcoming" ? "Reservas próximas" : "Reservas anteriores"}</h2>
         {bookings.isPending || sessionEnded ? (
-          <p role="status" className="text-muted-foreground">
-            A carregar as reservas…
-          </p>
+          <LoadingRegion label="A carregar as reservas…" className="flex flex-col gap-4">
+            {[0, 1, 2].map((key) => (
+              <Skeleton key={key} className="h-44 w-full rounded-lg" />
+            ))}
+          </LoadingRegion>
         ) : bookings.isError ? (
           <div role="alert" className="flex flex-col items-start gap-3">
             <p>{errorMessage(bookings.error instanceof ApiError ? bookings.error.code : "unknown_error")}</p>
@@ -149,9 +147,7 @@ export function MyBookings() {
             </Button>
           </div>
         ) : bookings.data.totalCount === 0 ? (
-          <p role="status" className="rounded-md border border-dashed px-4 py-6 text-muted-foreground">
-            {EMPTY_TEXT[scope]}
-          </p>
+          <EmptyState title={EMPTY_TEXT[scope]} />
         ) : bookings.data.items.length === 0 ? (
           <div role="status" className="flex flex-col items-start gap-3">
             <p className="text-muted-foreground">Esta página não tem reservas.</p>
