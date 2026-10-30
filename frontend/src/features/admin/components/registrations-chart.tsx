@@ -2,6 +2,8 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDateKey } from "@/lib/datetime";
 import { fetchRegistrations, registrationsQueryKey, type PeriodQuery } from "../api";
@@ -72,9 +74,9 @@ export function RegistrationsChart({ period, granularity, onGranularity }: Regis
           </Button>
         </div>
       ) : registrations.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          A carregar os registos…
-        </p>
+        <LoadingRegion label="A carregar os registos…">
+          <Skeleton className="h-72 w-full" />
+        </LoadingRegion>
       ) : (
         <>
           <p role="status" className="text-sm text-muted-foreground">

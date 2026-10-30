@@ -2,6 +2,8 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDateKey } from "@/lib/datetime";
 import { formatHours, formatOccupation } from "@/features/statistics/format";
@@ -32,9 +34,11 @@ export function TopOccupationTable({ period }: { period: PeriodQuery }) {
   }
   if (top.isPending) {
     return (
-      <p role="status" className="text-muted-foreground">
-        A carregar os clubes…
-      </p>
+      <LoadingRegion label="A carregar os clubes…" className="flex flex-col gap-2">
+        {[0, 1, 2, 3, 4].map((key) => (
+          <Skeleton key={key} className="h-8 w-full" />
+        ))}
+      </LoadingRegion>
     );
   }
 

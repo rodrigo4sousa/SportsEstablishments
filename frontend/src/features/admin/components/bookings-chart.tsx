@@ -2,6 +2,8 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDateKey } from "@/lib/datetime";
 import { bookingsOverTimeQueryKey, fetchBookingsOverTime, type ChartQuery } from "../api";
@@ -80,9 +82,9 @@ export function BookingsChart({ query, onChange }: BookingsChartProps) {
           </Button>
         </div>
       ) : bookings.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          A carregar o gráfico…
-        </p>
+        <LoadingRegion label="A carregar o gráfico…">
+          <Skeleton className="h-72 w-full" />
+        </LoadingRegion>
       ) : (
         <>
           <p role="status" className="text-sm text-muted-foreground">

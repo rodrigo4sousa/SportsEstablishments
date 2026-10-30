@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { currentPath, replace, resetNavigation } from "@/test/navigation";
 import { server } from "@/test/msw";
@@ -154,6 +154,31 @@ describe("ClubSearch", () => {
     renderWithProviders(<ClubSearch />);
 
     expect(await screen.findByRole("link", { name: "Clube da Foz" })).toHaveAttribute("href", "/clubs/clube-da-foz?date=2026-05-04");
+  });
+
+  it("has an h2 between the page title and the club names, so the headings do not skip a level (UX-017)", async () => {
+    serveSearch();
+
+    renderWithProviders(<ClubSearch />);
+
+    await screen.findByRole("list", { name: "Clubes" });
+    expect(screen.getByRole("heading", { level: 2, name: "Clubes encontrados" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Clube da Foz" })).toBeInTheDocument();
+  });
+
+  it("shows the shape of the results while it searches (UX-020)", async () => {
+    server.use(
+      http.get("/api/localities", () => HttpResponse.json([])),
+      http.get("/api/clubs", async () => {
+        await delay("infinite");
+        return page([]);
+      }),
+    );
+
+    renderWithProviders(<ClubSearch />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("A procurar clubes…");
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(1);
   });
 
   it("says so clearly when nothing is found", async () => {

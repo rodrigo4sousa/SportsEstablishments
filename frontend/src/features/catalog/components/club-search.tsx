@@ -4,6 +4,9 @@ import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { LoadingRegion } from "@/components/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,9 +124,11 @@ type ResultsProps = {
 function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   if (query.isPending) {
     return (
-      <p role="status" className="text-muted-foreground">
-        A procurar clubes…
-      </p>
+      <LoadingRegion label="A procurar clubes…" className="flex flex-col gap-3">
+        {[0, 1, 2].map((key) => (
+          <Skeleton key={key} className="h-20 w-full rounded-lg" />
+        ))}
+      </LoadingRegion>
     );
   }
 
@@ -142,9 +147,10 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   const { items, page, pageSize, totalCount } = query.data;
   if (totalCount === 0) {
     return (
-      <p role="status" className="rounded-md border border-dashed px-4 py-6 text-muted-foreground">
-        Não encontrámos clubes com estes filtros. Experimenta outra localidade, outro desporto ou outra data.
-      </p>
+      <EmptyState
+        title="Não encontrámos clubes com estes filtros."
+        description="Experimenta outra localidade, outro desporto ou outra data."
+      />
     );
   }
 
@@ -162,6 +168,8 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
 
   return (
     <section aria-label="Resultados" className="flex flex-col gap-4">
+      {/* UX-017: the club names below are h3, so the page needs an h2 between them and its h1. */}
+      <h2 className="sr-only">Clubes encontrados</h2>
       <p role="status" className="text-sm text-muted-foreground">
         {totalCount === 1 ? "1 clube" : `${totalCount} clubes`} · {formatDateKeyLong(date)}
       </p>
