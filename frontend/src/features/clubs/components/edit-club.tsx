@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { LoadingRegion } from "@/components/loading-region";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { PitchSection } from "@/features/pitches/components/pitch-section";
@@ -22,9 +24,11 @@ export function EditClub({ clubId }: { clubId: string }) {
 
   if (club.isPending) {
     return (
-      <p role="status" className="text-muted-foreground">
-        A carregar o clube…
-      </p>
+      <LoadingRegion label="A carregar o clube…" className="flex flex-col gap-6">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-11 w-full sm:w-80" />
+        <Skeleton className="h-64 w-full" />
+      </LoadingRegion>
     );
   }
 
@@ -45,15 +49,24 @@ export function EditClub({ clubId }: { clubId: string }) {
 
   return (
     <div className="flex flex-col gap-10">
-      <p className="flex flex-wrap gap-3">
-        <Button asChild variant="outline">
-          <Link href={`/manage/clubs/${club.data.id}/calendar`}>Calendário de reservas</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href={`/manage/clubs/${club.data.id}/statistics`}>Estatísticas</Link>
-        </Button>
-      </p>
-      <ClubForm club={club.data} />
+      <div className="flex flex-col gap-4">
+        {/* The page's title says what it is; this says which club (UX-012). */}
+        <p className="text-lg font-medium">{club.data.name}</p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild size="cta">
+            <Link href={`/manage/clubs/${club.data.id}/calendar`}>Calendário de reservas</Link>
+          </Button>
+          <Button asChild variant="outline" size="cta">
+            <Link href={`/manage/clubs/${club.data.id}/statistics`}>Estatísticas</Link>
+          </Button>
+        </div>
+      </div>
+      <section aria-labelledby="club-data-heading" className="flex flex-col gap-4">
+        <h2 id="club-data-heading" className="text-xl font-semibold tracking-tight">
+          Dados do clube
+        </h2>
+        <ClubForm club={club.data} />
+      </section>
       <PitchSection clubId={club.data.id} />
     </div>
   );

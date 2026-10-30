@@ -82,7 +82,7 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
       </div>
     );
   } else if (bands.data.length === 0) {
-    list = <p className="text-muted-foreground">Sem faixas de preço: todos os slots custam o preço base do campo.</p>;
+    list = <p className="text-muted-foreground">Sem faixas de preço: todos os horários custam o preço base do campo.</p>;
   } else {
     list = (
       <ul aria-label="Faixas de preço do campo" className="flex flex-col divide-y rounded-md border">
@@ -123,7 +123,7 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
             ) : null}
             {confirming === band.id ? (
               <div role="group" aria-label="Confirmar remoção" className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2">
-                <p className="text-sm">Remover esta faixa? Os slots passam a custar o preço base. As reservas já feitas mantêm o preço.</p>
+                <p className="text-sm">Remover esta faixa? Os horários passam a custar o preço base. As reservas já feitas mantêm o preço.</p>
                 <Button type="button" size="sm" variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate(band)}>
                   {remove.isPending ? "A remover…" : "Confirmar remoção"}
                 </Button>

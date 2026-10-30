@@ -14,6 +14,7 @@ import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { clubQueryKey, clubsQueryKey, createClub, updateClub, type ClubRequest, type OwnerClub } from "../api";
+import { useRestoreFocus } from "@/lib/focus";
 import {
   CLUB_ADDRESS_MAX_LENGTH,
   CLUB_LOCALITY_MAX_LENGTH,
@@ -97,6 +98,9 @@ export function ClubForm({ club }: ClubFormProps) {
       toast.error(errorMessage(error.code));
     },
   });
+
+  // UX-002: a disabled button drops focus while saving; it gets it back when the save ends.
+  const submitButton = useRestoreFocus<HTMLButtonElement>(save.isPending);
 
   const describedBy = (field: FieldName, hint?: boolean) =>
     [hint ? `club-${field}-hint` : null, errors[field] ? `club-${field}-error` : null].filter(Boolean).join(" ") || undefined;
@@ -198,7 +202,7 @@ export function ClubForm({ club }: ClubFormProps) {
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={save.isPending}>
+        <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : club ? "Guardar alterações" : "Criar clube"}
         </Button>
         <Button asChild variant="ghost">

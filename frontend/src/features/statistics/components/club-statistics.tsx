@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { PeriodFilter } from "@/components/period-filter";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ import { ClubNotFound } from "@/features/clubs/components/club-not-found";
 import { sportLabel } from "@/features/pitches/sports";
 import { clubStatisticsQueryKey, fetchClubStatistics, type StatisticsRange } from "../api";
 import { pitchFromParams, rangeFromParams, statisticsHref } from "../statistics-url";
-import { Numbers, defaultRange, statisticsFailureMessage } from "./owner-statistics";
+import { StatisticsSkeleton, StatisticsTable, defaultRange, statisticsFailureMessage } from "./owner-statistics";
 
 /**
  * US14: one club over a period, per pitch and in total, with a filter for one pitch. The period and the pitch are in the URL
@@ -106,53 +107,33 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
           </Button>
         </div>
       ) : shown.isPending || sessionEnded || !data ? (
-        <p role="status" className="text-muted-foreground">
-          A carregar as estatísticas…
-        </p>
+        <StatisticsSkeleton />
       ) : (
         <>
           <p role="status" className="text-sm text-muted-foreground">
             {data.clubName}, de {formatDateKey(data.from)} a {formatDateKey(data.to)}.
           </p>
           {data.pitches.length === 0 ? (
-            <p className="rounded-md border border-dashed px-4 py-6 text-muted-foreground">Este clube não tem campos com horas abertas nem reservas neste período.</p>
+            <EmptyState title="Este clube não tem campos com horas abertas nem reservas neste período." />
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <caption className="sr-only">Ocupação e receita por campo</caption>
-                <thead className="border-b bg-muted/50 text-left">
-                  <tr>
-                    <th scope="col" className="px-3 py-2">Campo</th>
-                    <th scope="col" className="px-3 py-2 text-right">Horas reservadas</th>
-                    <th scope="col" className="px-3 py-2 text-right">Horas abertas</th>
-                    <th scope="col" className="px-3 py-2 text-right">Ocupação</th>
-                    <th scope="col" className="px-3 py-2 text-right">Receita</th>
-                    <th scope="col" className="px-3 py-2 text-right">Confirmadas</th>
-                    <th scope="col" className="px-3 py-2 text-right">Faltas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.pitches.map((pitch) => (
-                    <tr key={pitch.pitchId} className="border-b">
-                      <th scope="row" className="px-3 py-2 text-left font-medium">
-                        {pitch.name}
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          {sportLabel(pitch.sport)}
-                          {pitch.status === "inactive" ? " · inativo" : ""}
-                        </span>
-                      </th>
-                      <Numbers figures={pitch} />
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-muted/30 font-medium">
-                    <th scope="row" className="px-3 py-2 text-left">Total</th>
-                    <Numbers figures={data.total} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <StatisticsTable
+              caption="Ocupação e receita por campo"
+              firstColumn="Campo"
+              rows={data.pitches.map((pitch) => ({
+                key: pitch.pitchId,
+                head: (
+                  <>
+                    {pitch.name}
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {sportLabel(pitch.sport)}
+                      {pitch.status === "inactive" ? " · inativo" : ""}
+                    </span>
+                  </>
+                ),
+                figures: pitch,
+              }))}
+              total={data.total}
+            />
           )}
         </>
       )}

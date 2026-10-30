@@ -93,7 +93,17 @@ export function BookingDetails({ clubId, bookingId, onClose }: BookingDetailsPro
   };
 
   return (
-    <section aria-label="Detalhes da reserva" className="flex flex-col gap-4 rounded-lg border p-4">
+    <section
+      aria-label="Detalhes da reserva"
+      className="flex flex-col gap-4 rounded-lg border bg-background p-4"
+      onKeyDown={(event) => {
+        // Escape closes the details from anywhere inside them (UX-004); the calendar gives focus back to the booking.
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          close();
+        }
+      }}
+    >
       <div className="flex items-start justify-between gap-3">
         <h3 {...headingFocus} className="font-semibold">
           Reserva

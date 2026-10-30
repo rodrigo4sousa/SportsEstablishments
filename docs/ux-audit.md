@@ -331,6 +331,8 @@ Tomadas a 2026-10-30, depois da secção 6, e que valem para os lotes seguintes.
 3. **Navegação do dono e do admin (UX-013), para o lote 3.** As duas coisas: atalhos por clube («Calendário», «Estatísticas») em `/manage`, para chegar em um clique, e um menu no cabeçalho para a navegação entre áreas.
 4. **Calendário (UX-005), para o lote 3.** Em mobile, um campo de cada vez com seletor (a grelha completa só confunde em 390 px). Em desktop, página mais larga só para o calendário, não para toda a área do dono, para não mexer em formulários que ficam bem estreitos (`PAGE_WIDTH` já tem a largura `wide` para isso).
 5. **Página do clube (UX-010), para o lote 2.** Os slots passam para cima dos contactos. A barra fixa de reserva em mobile só entra se for barata (esforço S ou M); senão fica de fora.
+6. **Lista de reservas em mobile (UX-022), depois do lote 2.** Aceita-se a altura de 215 px por reserva: com 20 reservas a página caiu para 4 600 px, o jogador raramente tem tantas, e densificar mexe num componente que já está claro, com pouco ganho.
+7. **Contactos na página do clube em desktop (UX-010), depois do lote 2.** Sem coluna lateral: a coluna tem 768 px e os contactos no fim são o sítio habitual. Fica como está.
 
 ## 9. Estado dos lotes
 
@@ -398,3 +400,30 @@ Também feito: uma introdução na página inicial (duas frases, e a ligação p
 - Lote 4: UX-027, UX-029, UX-030 (cor de marca e restante identidade).
 - Mais densidade em mobile na lista de reservas (cerca de 215 px por reserva); a coluna lateral de contactos em desktop; o foco ao fechar os detalhes do calendário (UX-002, dono).
 - Os separadores de `/manage` e `/admin` continuam sem menu (UX-013, lote 3).
+
+### Lote 3 · Área do dono (feito)
+
+Medido na app a correr (`docker compose` com os dados de demonstração, o clube «Padel Foz Clube» com seis campos), desktop 1440 px e mobile 390 px (emulação com toque), teclado e axe, como nos lotes anteriores. Os ecrãs do dono: lista, edição do clube, campos, horário, bloqueios, faixas de preço, calendário diário e semanal, nova reserva, detalhes, falta, cancelamento, estatísticas gerais e do clube, e o dono sem clubes.
+
+| Achado | Estado | Notas |
+| --- | --- | --- |
+| UX-013 navegação | **Feito para o dono** | O mesmo menu «Conta» do jogador (`AccountMenu`, partilhado) no cabeçalho do dono, com «Os meus clubes» e «Estatísticas»; em `/manage` cada clube tem «Calendário», «Estatísticas» e «Editar» (do `/manage` ao calendário num toque; os nomes acessíveis começam pela palavra visível e dizem o clube). O admin usa o mesmo menu, sem ligações próprias (só tem uma página): fica como está. |
+| UX-005 calendário | **Feito** | Página própria mais larga (`PAGE_WIDTH.calendar`, `max-w-7xl`, só no calendário; o cabeçalho continua estreito como o resto da área). Seis campos cabem em 1440 px sem scroll (antes: scroll com três campos). Em mobile, um campo de cada vez com o seletor «Campo», guardado no endereço (`?pitch=`); a vista semanal já era de um campo. Não se fez a coluna das horas fixa nem a sombra de scroll. |
+| UX-004 detalhes | **Feito** | Em desktop os detalhes ficam ao lado da grelha (`lg:sticky`), à vista (a 16 px do topo); em mobile ficam por cima da grelha (a 393 px do topo, antes 1 370 px). Escape e «Fechar» fecham e devolvem o foco à caixa da reserva (`data-booking-id`). |
+| UX-016 nomes | **Feito** | A caixa da reserva já não tem `aria-label`: o nome é o texto visível (quem, horas, estado, «Criada pelo clube»). Axe `label-content-name-mismatch`: 264 nós em 14 capturas para 0. |
+| UX-006 estatísticas | **Feito** | Em mobile cada campo (ou clube) é um cartão com os seis números e o nome de cada coluna ao lado, a receita incluída (`StatisticsTable`, com papéis de tabela explícitos); em `sm` ou mais é a tabela. O contentor é uma região com nome e `tabIndex=0` (`ScrollRegion`, também nas grelhas do calendário). Axe `scrollable-region-focusable`: 1 para 0. |
+| UX-012 nome do clube | **Feito** | O nome do clube aparece na edição e no calendário (`ClubName`, a mesma consulta da página do clube) e já estava nas estatísticas. Os títulos do separador não levam o nome (a API do calendário não o devolve e o título vem do servidor): fica como está. |
+| UX-023 edição do clube | **Parcial** | «Dados do clube» e «Campos» são secções com título; os cinco botões de cada campo quebram em linhas e têm 44 px em mobile; «Desativar» tem o estilo destrutivo. Não se fez o menu de mais ações nem as âncoras. |
+| UX-002 (ecrãs do dono) | **Feito** | Os formulários do campo abrem com o foco e devolvem-no a «Adicionar campo» ou ao «Editar» do campo; os botões de gravar recuperam o foco depois de gravar (clube, campo, horário, bloqueio, faixa); o cancelamento e a falta já tinham o foco no resultado. |
+| UX-011 / UX-020 (dono) | **Feito** | Esqueletos na lista de clubes, na edição, nos campos, no calendário e nas estatísticas; estados vazios com ação. «slot» passou a «horário» em todo o texto dos ecrãs do dono (preço por horário, duração do horário, horários gerados, mensagens). |
+
+**Axe nos ecrãs do dono** (as duas larguras): 36 capturas, 36 sem nenhuma violação. Na auditoria, as regras que eram do dono eram `label-content-name-mismatch` (264 nós em 14 capturas) e `scrollable-region-focusable` (1 nó); as duas desapareceram. Nenhum erro na consola nem violação de CSP; layout shift 0 nas capturas do dono.
+
+**Toque nos botões de cada campo:** na auditoria, o `tap()` de «Horário», «Bloqueios» e «Faixas de preço» falhava na emulação de mobile («intercepts pointer events»). A causa era a linha de cinco botões, que não quebrava e saía do ecrã; agora quebra, os botões têm 44 px e o toque abre cada painel (`aria-expanded`). A emulação não substitui um telemóvel: falta confirmar com os dedos, o teclado virtual no formulário «Nova reserva» e o menu «Conta», num telemóvel real (lote 4).
+
+**Teclado:** no cabeçalho do dono a ordem é «Área do dono», «Os meus clubes», «Estatísticas», «Sair»; em mobile Enter abre «Conta», Tab vai para «Os meus clubes» e Escape fecha e devolve o foco ao botão. Abrir uma reserva leva o foco ao título «Reserva»; Escape devolve-o à caixa.
+
+**Fica para outros lotes**
+- Lote 4: UX-027, UX-029, UX-030, e a repetição da auditoria no admin.
+- UX-023: menu de mais ações por campo e âncoras entre as secções; coluna das horas fixa no calendário.
+- O título do separador com o nome do clube nas páginas do dono.

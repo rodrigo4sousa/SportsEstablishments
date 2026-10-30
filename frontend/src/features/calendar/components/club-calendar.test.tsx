@@ -116,6 +116,8 @@ describe("ClubCalendar", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-05-04T10:00:00Z"));
     resetNavigation(`/manage/clubs/${CLUB}/calendar`);
+    // The club's name above the calendar (UX-012) is one more request, unrelated to what these tests are about.
+    server.use(http.get(`/api/manage/clubs/${CLUB}`, () => HttpResponse.json({ id: CLUB, slug: "clube-teste", name: "Clube Teste", address: "Rua 1", locality: "Porto", phone: "912345678", contactEmail: "geral@clube.pt", cancellationWindowHours: 24, timeZone: "Europe/Lisbon" })));
   });
 
   afterEach(() => {
@@ -145,7 +147,7 @@ describe("ClubCalendar", () => {
 
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
-      const button = await screen.findByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" });
+      const button = await screen.findByRole("button", { name: "Rita Jogadora 10:00 – 11:00 Confirmada" });
       expect(within(column("Padel 1")).getByRole("button", { name: /Rita Jogadora/ })).toBe(button);
       expect(within(column("Ténis 1")).queryByRole("button", { name: /Rita Jogadora/ })).not.toBeInTheDocument();
       expect(button).toHaveTextContent("Rita Jogadora");
@@ -199,7 +201,7 @@ describe("ClubCalendar", () => {
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
       const confirmed = await screen.findByRole("button", { name: /Rita Jogadora/ });
-      const noShow = screen.getByRole("button", { name: "Bruno Jogador, 10:00 – 11:00, Falta" });
+      const noShow = screen.getByRole("button", { name: "Bruno Jogador 10:00 – 11:00 Falta" });
       expect(confirmed.className).toContain("emerald");
       expect(noShow.className).toContain("amber");
       expect(noShow).toHaveTextContent("Falta");
@@ -318,9 +320,9 @@ describe("ClubCalendar", () => {
       expect(topOf(first)).toBeCloseTo(96);
       expect(topOf(second)).toBeCloseTo(160);
       expect(topOf(morning)).toBeCloseTo(640);
-      expect(first).toHaveAccessibleName("Primeira, 01:30 (verão) – 01:00 (inverno), Confirmada");
-      expect(second).toHaveAccessibleName("Segunda, 01:30 (inverno) – 02:00, Confirmada");
-      expect(morning).toHaveAccessibleName("Manhã, 09:00 – 10:00, Confirmada");
+      expect(first).toHaveAccessibleName("Primeira 01:30 (verão) – 01:00 (inverno) Confirmada");
+      expect(second).toHaveAccessibleName("Segunda 01:30 (inverno) – 02:00 Confirmada");
+      expect(morning).toHaveAccessibleName("Manhã 09:00 – 10:00 Confirmada");
       expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("domingo, 25 de outubro (25/10/2026)");
     });
 
@@ -358,7 +360,7 @@ describe("ClubCalendar", () => {
       expect(labels.at(-1)).toBe("23:00");
       expect(topOf(early)).toBeCloseTo(64); // the second row
       expect(topOf(morning)).toBeCloseTo(9 * 64);
-      expect(early).toHaveAccessibleName("Cedo, 02:00 – 03:00, Confirmada");
+      expect(early).toHaveAccessibleName("Cedo 02:00 – 03:00 Confirmada");
       expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("domingo, 29 de março (29/03/2026)");
     });
 
@@ -484,8 +486,8 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(screen.getByLabelText("Mostrar reservas canceladas"));
 
-      expect(await screen.findByRole("button", { name: "Ana Cancelada, 11:00 – 12:00, Cancelada pelo jogador" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Rui Cancelado, 12:00 – 13:00, Cancelada pelo clube" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Ana Cancelada 11:00 – 12:00 Cancelada pelo jogador" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Rui Cancelado 12:00 – 13:00 Cancelada pelo clube" })).toBeInTheDocument();
       expect(asked.at(-1)?.get("includeCancelled")).toBe("true");
       expect(currentPath()).toBe(`/manage/clubs/${CLUB}/calendar?cancelled=1`);
       expect(screen.getByRole("button", { name: /Ana Cancelada/ }).className).toContain("line-through");
@@ -998,5 +1000,101 @@ describe("ClubCalendar", () => {
       expect((await screen.findAllByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).length).toBeGreaterThan(0);
       expect(within(panel).getByRole("button", { name: "Marcar falta" })).toBeEnabled();
     });
+  });
+});
+
+describe("ClubCalendar on a phone and the open booking (UX-004, UX-005, UX-016)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-05-04T10:00:00Z"));
+    resetNavigation(`/manage/clubs/${CLUB}/calendar`);
+    server.use(http.get(`/api/manage/clubs/${CLUB}`, () => HttpResponse.json({ id: CLUB, slug: "clube-teste", name: "Clube Teste", address: "Rua 1", locality: "Porto", phone: "912345678", contactEmail: "geral@clube.pt", cancellationWindowHours: 24, timeZone: "Europe/Lisbon" })));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("names the club above the calendar (UX-012)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    expect(await screen.findByText("Clube Teste")).toBeInTheDocument();
+  });
+
+  it("shows one pitch on a phone, the first by default, and every pitch from sm up (UX-005)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    await screen.findByRole("group", { name: "Padel 1" });
+    expect(column("Padel 1")).not.toHaveClass("hidden");
+    expect(column("Padel 1")).toHaveClass("sm:block");
+    expect(column("Ténis 1")).toHaveClass("hidden", "sm:block");
+  });
+
+  it("lets the phone choose the pitch with the «Campo» list, kept in the address", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+    await screen.findByRole("group", { name: "Padel 1" });
+
+    await userEvent.selectOptions(screen.getByLabelText("Campo"), screen.getByRole("option", { name: /Ténis 1/ }));
+
+    expect(currentPath()).toContain(`pitch=${tennis.id}`);
+    await waitFor(() => expect(column("Padel 1")).toHaveClass("hidden"));
+    expect(column("Ténis 1")).not.toHaveClass("hidden");
+  });
+
+  it("makes the scrolling grid reachable with the keyboard and names it (UX-016, scrollable-region-focusable)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    const region = await screen.findByRole("region", { name: "Calendário do dia" });
+    expect(region).toHaveAttribute("tabindex", "0");
+  });
+
+  it("names a booking by what it shows, so the visible text is part of its name (UX-016)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    const box = await screen.findByRole("button", { name: /Rita Jogadora/ });
+    expect(box).not.toHaveAttribute("aria-label");
+    expect(box).toHaveAccessibleName("Rita Jogadora 10:00 – 11:00 Confirmada");
+  });
+
+  it("puts the details beside the grid on a wide screen and first on a phone (UX-004)", async () => {
+    resetNavigation(`/manage/clubs/${CLUB}/calendar?booking=${FIRST}`);
+    serveCalendar({ bookings: [booking()] });
+    server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    const panel = await screen.findByRole("region", { name: "Detalhes da reserva" });
+    expect(panel.parentElement).toHaveClass("order-first", "lg:sticky", "lg:order-none");
+  });
+
+  it("closes the details with Escape and gives focus back to the booking that was open (UX-004)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+    await userEvent.click(await screen.findByRole("button", { name: /Rita Jogadora/ }));
+    const panel = await screen.findByRole("region", { name: "Detalhes da reserva" });
+    await within(panel).findByText("Rita Jogadora");
+
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Detalhes da reserva" })).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /Rita Jogadora/ })).toHaveFocus();
+  });
+
+  it("gives focus back to the booking when «Fechar» is pressed too", async () => {
+    serveCalendar({ bookings: [booking()] });
+    server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+    await userEvent.click(await screen.findByRole("button", { name: /Rita Jogadora/ }));
+    const panel = await screen.findByRole("region", { name: "Detalhes da reserva" });
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Fechar" }));
+
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Detalhes da reserva" })).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /Rita Jogadora/ })).toHaveFocus();
   });
 });

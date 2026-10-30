@@ -128,7 +128,7 @@ describe("OwnerStatistics", () => {
     renderWithProviders(<OwnerStatistics />);
 
     expect(await screen.findByText(/Ainda não tens clubes/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Cria o primeiro" })).toHaveAttribute("href", "/manage/clubs/new");
+    expect(screen.getByRole("link", { name: "Criar o primeiro clube" })).toHaveAttribute("href", "/manage/clubs/new");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
@@ -166,5 +166,28 @@ describe("OwnerStatistics", () => {
 
   it("the default range helper is the last 30 days", () => {
     expect(defaultRange(new Date("2026-05-13T10:00:00Z")).to).toBe("2026-05-13");
+  });
+
+  it("keeps every figure, revenue included, as a labelled cell, so a phone can stack them instead of scrolling sideways (UX-006)", async () => {
+    serve();
+    renderWithProviders(<OwnerStatistics />);
+
+    const row = within(await screen.findByRole("table", { name: "Ocupação e receita por clube" })).getByRole("row", { name: /Clube da Foz/ });
+
+    const labels = within(row)
+      .getAllByRole("cell")
+      .map((cell) => cell.getAttribute("data-label"));
+    expect(labels).toEqual(["Horas reservadas", "Horas abertas", "Ocupação", "Receita", "Confirmadas", "Faltas"]);
+    // From sm up it is a table; below, the rows are blocks (cards), and the scrolling region around it is still named.
+    expect(table()).toHaveClass("max-sm:block");
+    expect(row).toHaveClass("max-sm:block", "max-sm:border");
+    expect(screen.getByRole("region", { name: "Ocupação e receita por clube" })).toHaveAttribute("tabindex", "0");
+  });
+
+  it("shows a skeleton with one status message while it loads", () => {
+    serve();
+    renderWithProviders(<OwnerStatistics />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("A carregar as estatísticas…");
   });
 });

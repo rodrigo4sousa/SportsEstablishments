@@ -60,10 +60,10 @@ describe("PitchSection", () => {
 
     const items = await findPitchItems();
     expect(items.map((item) => text(item).replace(/Horário.*$/, "").trim())).toEqual([
-      "Campo 1Futsal · 12,50 € por slot",
-      "Campo 2Futebol 7 · 8,00 € por slot",
-      "Campo 3Ténis · 0,50 € por slot",
-      "Campo 4Padel · 18,75 € por slot",
+      "Campo 1Futsal · 12,50 € por horário",
+      "Campo 2Futebol 7 · 8,00 € por horário",
+      "Campo 3Ténis · 0,50 € por horário",
+      "Campo 4Padel · 18,75 € por horário",
     ]);
   });
 
@@ -170,11 +170,11 @@ describe("PitchSection", () => {
     const form = screen.getByRole("form", { name: "Adicionar campo" });
     await user.type(within(form).getByLabelText(/nome do campo/i), "Campo Novo");
     await user.selectOptions(within(form).getByLabelText(/desporto/i), "padel");
-    await user.type(within(form).getByLabelText(/preço por slot/i), "20");
+    await user.type(within(form).getByLabelText(/preço por horário/i), "20");
     await user.click(within(form).getByRole("button", { name: "Adicionar campo" }));
 
     expect(await screen.findByText("Campo Novo")).toBeInTheDocument();
-    expect(text(pitchItems()[0])).toContain("Padel · 20,00 € por slot");
+    expect(text(pitchItems()[0])).toContain("Padel · 20,00 € por horário");
     await waitFor(() => expect(screen.queryByRole("form")).not.toBeInTheDocument());
   });
 
@@ -194,12 +194,12 @@ describe("PitchSection", () => {
     await user.click(await screen.findByRole("button", { name: "Editar Campo 1" }));
     const form = screen.getByRole("form", { name: "Editar campo" });
     expect(within(form).getByLabelText(/nome do campo/i)).toHaveValue("Campo 1");
-    expect(within(form).getByLabelText(/preço por slot/i)).toHaveValue("12,50");
-    await user.clear(within(form).getByLabelText(/preço por slot/i));
-    await user.type(within(form).getByLabelText(/preço por slot/i), "15,5");
+    expect(within(form).getByLabelText(/preço por horário/i)).toHaveValue("12,50");
+    await user.clear(within(form).getByLabelText(/preço por horário/i));
+    await user.type(within(form).getByLabelText(/preço por horário/i), "15,5");
     await user.click(within(form).getByRole("button", { name: "Guardar campo" }));
 
-    await waitFor(() => expect(text(pitchItems()[0])).toContain("15,50 € por slot"));
+    await waitFor(() => expect(text(pitchItems()[0])).toContain("15,50 € por horário"));
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });
 
@@ -220,7 +220,7 @@ describe("PitchSection", () => {
     const form = screen.getByRole("form", { name: "Adicionar campo" });
     await user.type(within(form).getByLabelText(/nome do campo/i), "Campo 1");
     await user.selectOptions(within(form).getByLabelText(/desporto/i), "futsal");
-    await user.type(within(form).getByLabelText(/preço por slot/i), "10");
+    await user.type(within(form).getByLabelText(/preço por horário/i), "10");
     await user.click(within(form).getByRole("button", { name: "Adicionar campo" }));
 
     await waitFor(() => expect(within(form).getByLabelText(/nome do campo/i)).toHaveAccessibleDescription("Já existe um campo com este nome neste clube."));
@@ -266,7 +266,7 @@ describe("PitchSection", () => {
     await user.click(await screen.findByRole("button", { name: "Horário de Campo 1" }));
     expect(await screen.findByRole("heading", { name: "Horário de Campo 1" })).toBeInTheDocument();
     expect(await screen.findByRole("form", { name: "Horário do campo" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Pré-visualização dos slots" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pré-visualização dos horários" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Horário de Campo 1" })).toHaveAttribute("aria-expanded", "true");
 
     await user.click(screen.getByRole("button", { name: "Horário de Campo 2" }));
@@ -341,5 +341,41 @@ describe("PitchSection", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Tentar novamente" }));
 
     expect(await screen.findByText("Campo 1")).toBeInTheDocument();
+  });
+
+  describe("focus and touch (UX-002, UX-004)", () => {
+    it("moves focus to the form when it opens and back to «Adicionar campo» when it is cancelled", async () => {
+      server.use(http.get(listUrl, () => page([pitch(1)])));
+      renderWithProviders(<PitchSection clubId={clubId} />);
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole("button", { name: "Adicionar campo" }));
+      expect(screen.getByRole("form", { name: "Adicionar campo" })).toHaveFocus();
+
+      await user.click(screen.getByRole("button", { name: "Cancelar" }));
+      expect(screen.getByRole("button", { name: "Adicionar campo" })).toHaveFocus();
+    });
+
+    it("gives focus back to «Editar» of the pitch that was edited", async () => {
+      server.use(http.get(listUrl, () => page([pitch(1), pitch(2)])));
+      renderWithProviders(<PitchSection clubId={clubId} />);
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole("button", { name: "Editar Campo 2" }));
+      expect(screen.getByRole("form", { name: "Editar campo" })).toHaveFocus();
+      await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+      expect(screen.getByRole("button", { name: "Editar Campo 2" })).toHaveFocus();
+    });
+
+    it("lets the buttons of a pitch wrap and be 44 px tall on a phone, so none is pushed off the screen", async () => {
+      server.use(http.get(listUrl, () => page([pitch(1)])));
+      renderWithProviders(<PitchSection clubId={clubId} />);
+
+      const schedule = await screen.findByRole("button", { name: "Horário de Campo 1" });
+      expect(schedule.parentElement).toHaveClass("flex-wrap");
+      expect(schedule.className).toContain("h-11");
+      expect(schedule).toHaveTextContent("Horário");
+    });
   });
 });

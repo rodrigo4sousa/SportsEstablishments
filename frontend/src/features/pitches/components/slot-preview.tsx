@@ -39,7 +39,7 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
   } else if (slots.isPending) {
     result = (
       <p role="status" className="text-muted-foreground">
-        A carregar os slots…
+        A carregar os horários…
       </p>
     );
   } else if (slots.isError) {
@@ -53,14 +53,14 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
       </div>
     );
   } else if (slots.data.slots.length === 0) {
-    result = <p className="text-muted-foreground">Sem slots neste dia: o campo está fechado ou o horário não chega para um slot.</p>;
+    result = <p className="text-muted-foreground">Sem horários neste dia: o campo está fechado ou as horas de abertura não chegam para uma reserva.</p>;
   } else {
     result = (
       <>
         <p className="text-sm text-muted-foreground">
-          {formatLisbonLongDate(slots.data.slots[0].startsAt)} · {slots.data.slots.length} slots de {slots.data.slotDurationMinutes} minutos
+          {formatLisbonLongDate(slots.data.slots[0].startsAt)} · {slots.data.slots.length} horários de {slots.data.slotDurationMinutes} minutos
         </p>
-        <ul aria-label="Slots gerados" className="flex flex-wrap gap-2">
+        <ul aria-label="Horários gerados" className="flex flex-wrap gap-2">
           {slots.data.slots.map((slot) => (
             <li
               key={slot.startsAt}
@@ -89,8 +89,8 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
   }
 
   return (
-    <section aria-label="Pré-visualização dos slots" className="flex flex-col gap-3">
-      <h4 className="font-medium">Pré-visualização dos slots</h4>
+    <section aria-label="Pré-visualização dos horários" className="flex flex-col gap-3">
+      <h4 className="font-medium">Pré-visualização dos horários</h4>
       <div className="flex flex-col gap-2">
         <Label htmlFor={inputId}>Data</Label>
         <Input
@@ -106,7 +106,7 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
         />
       </div>
       {result}
-      <p className="text-sm text-muted-foreground">Mostra os slots que o horário gera; os bloqueios e as reservas aparecem marcados.</p>
+      <p className="text-sm text-muted-foreground">Mostra os horários que as horas de abertura geram; os bloqueios e as reservas aparecem marcados.</p>
     </section>
   );
 }

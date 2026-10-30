@@ -50,7 +50,7 @@ describe("SlotPreview", () => {
     expect(dateField()).toHaveValue("2026-10-25");
     expect(dateField()).toHaveAttribute("min", "2026-10-25");
     expect(dateField()).toHaveAttribute("max", "2026-11-24");
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
     expect(asked).toBe("2026-10-25");
   });
 
@@ -63,11 +63,11 @@ describe("SlotPreview", () => {
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
     chosen("2026-10-27");
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     // 27 October is after the clocks went back: Lisbon is on UTC.
     expect(texts()).toEqual(["09:00 – 10:30 · 20,00 €", "10:30 – 12:00 · 20,00 €"]);
-    expect(screen.getByText(/2 slots de 90 minutos/)).toBeInTheDocument();
+    expect(screen.getByText(/2 horários de 90 minutos/)).toBeInTheDocument();
   });
 
   it("labels the repeated October hour (verão) and (inverno) on the clock-change day", async () => {
@@ -85,7 +85,7 @@ describe("SlotPreview", () => {
     );
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(texts()).toEqual([
       "00:00 – 01:00 (verão) · 20,00 €",
@@ -94,7 +94,7 @@ describe("SlotPreview", () => {
       "02:00 – 03:00 · 20,00 €",
       "03:00 – 04:00 · 20,00 €",
     ]);
-    expect(screen.getByText(/5 slots de 60 minutos/)).toBeInTheDocument();
+    expect(screen.getByText(/5 horários de 60 minutos/)).toBeInTheDocument();
   });
 
   it("shows Lisbon time whatever the browser time zone is", async () => {
@@ -102,7 +102,7 @@ describe("SlotPreview", () => {
     server.use(http.get(url, () => slots("2026-10-25", 60, ["2026-10-25T00:00:00Z", "2026-10-25T01:00:00Z"])));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(texts()[0]).toContain("01:00 (verão)");
   });
@@ -126,7 +126,7 @@ describe("SlotPreview", () => {
     );
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     const items = screen.getAllByRole("listitem");
     expect(items.map((item) => item.hasAttribute("data-blocked"))).toEqual([false, true, true, true, false]);
@@ -152,7 +152,7 @@ describe("SlotPreview", () => {
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
     chosen("2026-10-27");
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(texts()).toEqual(["17:00 – 18:00 · 20,00 €", "18:00 – 19:00 · 32,50 €", "19:00 – 20:00 · 32,50 € Reservado"]);
   });
@@ -175,7 +175,7 @@ describe("SlotPreview", () => {
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
     chosen("2026-10-27");
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     // 27 October is after the clocks went back: Lisbon is on UTC.
     expect(texts()).toEqual(["09:00 – 10:00 · 20,00 €", "10:00 – 11:00 · 20,00 € Reservado", "11:00 – 12:00 · 20,00 € Bloqueado", "12:00 – 13:00 · 20,00 € Reservado Bloqueado"]);
@@ -190,7 +190,7 @@ describe("SlotPreview", () => {
     server.use(http.get(url, () => slots("2026-10-27", 60, ["2026-10-27T09:00:00Z", "2026-10-27T10:00:00Z"])));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
     chosen("2026-10-27");
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(screen.getByText(/os bloqueios e as reservas aparecem marcados/)).toBeInTheDocument();
     expect(screen.queryByText(/as reservas ainda não são tidas em conta/)).not.toBeInTheDocument();
@@ -201,7 +201,7 @@ describe("SlotPreview", () => {
     server.use(http.get(url, () => slots("2026-10-25", 60, ["2026-10-25T09:00:00Z", "2026-10-25T10:00:00Z"])));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(screen.queryByText("Bloqueado")).not.toBeInTheDocument();
   });
@@ -210,8 +210,8 @@ describe("SlotPreview", () => {
     server.use(http.get(url, () => HttpResponse.json({ date: "2026-10-26", slotDurationMinutes: 60, slots: [] })));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
 
-    expect(await screen.findByText(/Sem slots neste dia/)).toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: "Slots gerados" })).not.toBeInTheDocument();
+    expect(await screen.findByText(/Sem horários neste dia/)).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Horários gerados" })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -227,13 +227,13 @@ describe("SlotPreview", () => {
       }),
     );
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     chosen(date);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Escolhe uma data de hoje até 30 dias à frente.");
     expect(dateField()).toHaveAttribute("aria-invalid", "true");
-    expect(screen.queryByRole("list", { name: "Slots gerados" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Horários gerados" })).not.toBeInTheDocument();
     expect(asked).toEqual(["2026-10-25"]);
   });
 
@@ -242,7 +242,7 @@ describe("SlotPreview", () => {
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
     chosen(date);
 
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -250,7 +250,7 @@ describe("SlotPreview", () => {
   it("asks for a date when the field is cleared", async () => {
     server.use(http.get(url, () => slots("2026-10-25", 60, ["2026-10-25T09:00:00Z", "2026-10-25T10:00:00Z"])));
     renderWithProviders(<SlotPreview clubId={clubId} pitchId={pitchId} />);
-    await screen.findByRole("list", { name: "Slots gerados" });
+    await screen.findByRole("list", { name: "Horários gerados" });
 
     chosen("");
 
@@ -267,6 +267,6 @@ describe("SlotPreview", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Ocorreu um erro inesperado. Tenta novamente mais tarde.");
     fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
 
-    await waitFor(() => expect(screen.getByRole("list", { name: "Slots gerados" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("list", { name: "Horários gerados" })).toBeInTheDocument());
   });
 });

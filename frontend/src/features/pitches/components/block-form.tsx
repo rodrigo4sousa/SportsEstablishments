@@ -13,6 +13,7 @@ import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-e
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { createBlock, blocksQueryKey, pitchesQueryKey, slotsQueryKey, type BlockRequest } from "../api";
 import { TIME_STEP_MINUTES } from "../schedule";
+import { useRestoreFocus } from "@/lib/focus";
 import { BLOCK_REASON_MAX_LENGTH, blockSchema, type BlockFormData, type BlockFormValues } from "../schemas/block";
 
 const FIELDS = ["startDate", "startTime", "endDate", "endTime", "reason"] as const satisfies ReadonlyArray<keyof BlockFormValues>;
@@ -75,6 +76,9 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
       }
     },
   });
+
+  // UX-002: a disabled button drops focus while saving; it gets it back when the save ends.
+  const submitButton = useRestoreFocus<HTMLButtonElement>(save.isPending);
 
   const id = (field: string) => `block-${pitchId}-${field}`;
   const message = (...fields: Array<(typeof FIELDS)[number]>) => fields.map((field) => errors[field]?.message).find(Boolean);
@@ -169,7 +173,7 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={save.isPending}>
+        <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : "Criar bloqueio"}
         </Button>
         <Button type="button" variant="ghost" onClick={onDone}>

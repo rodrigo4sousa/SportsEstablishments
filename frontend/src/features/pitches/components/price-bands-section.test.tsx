@@ -59,7 +59,7 @@ describe("PriceBandsSection", () => {
 
     renderWithProviders(<PriceBandsSection clubId={clubId} pitchId={pitchId} onGone={onGone} />);
 
-    expect(await screen.findByText(/todos os slots custam o preço base/)).toBeInTheDocument();
+    expect(await screen.findByText(/todos os horários custam o preço base/)).toBeInTheDocument();
   });
 
   it("lists each band with its weekdays (pt-PT, Monday first), hours and price", async () => {
@@ -87,7 +87,7 @@ describe("PriceBandsSection", () => {
     await user.click(within(form).getByRole("checkbox", { name: "Segunda-feira" }));
     await user.type(within(form).getByLabelText("Início"), "18:00");
     await user.type(within(form).getByLabelText("Fim"), "22:00");
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "30,5");
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "30,5");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
 
     await waitFor(() => expect(posted).toEqual([{ days: ["monday", "friday"], start: "18:00", end: "22:00", price: 30.5 }]));
@@ -105,14 +105,14 @@ describe("PriceBandsSection", () => {
     expect(await within(form).findByText("Escolhe pelo menos um dia da semana.")).toBeInTheDocument();
     expect(within(form).getByText("Indica a hora de início da faixa.")).toBeInTheDocument();
     expect(within(form).getByText("Indica a hora de fim da faixa.")).toBeInTheDocument();
-    expect(within(form).getByText("Indica o preço por slot.")).toBeInTheDocument();
+    expect(within(form).getByText("Indica o preço por horário.")).toBeInTheDocument();
 
     await user.type(within(form).getByLabelText("Início"), "22:00");
     await user.type(within(form).getByLabelText("Fim"), "18:00");
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "0");
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "0");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
     expect(await within(form).findByText(/O fim tem de ser depois do início/)).toBeInTheDocument();
-    expect(within(form).getByText("O preço por slot tem de ser maior que 0 €.")).toBeInTheDocument();
+    expect(within(form).getByText("O preço por horário tem de ser maior que 0 €.")).toBeInTheDocument();
 
     // An end of 00:00 is midnight, so it is after any start.
     await user.clear(within(form).getByLabelText("Fim"));
@@ -132,12 +132,12 @@ describe("PriceBandsSection", () => {
     await user.click(within(form).getByRole("checkbox", { name: "Sábado" }));
     await user.type(within(form).getByLabelText("Início"), "18:00");
     await user.type(within(form).getByLabelText("Fim"), "22:00");
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "30");
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "30");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
 
     expect(await within(form).findByText("O preço não pode passar de 500 €.")).toBeInTheDocument();
     expect(within(form).getByText("Escolhe pelo menos um dia da semana.")).toBeInTheDocument();
-    expect(within(form).getByLabelText("Preço por slot (€)")).toHaveAttribute("aria-invalid", "true");
+    expect(within(form).getByLabelText("Preço por horário (€)")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("shows an overlap above the buttons, not on a field, and keeps what was typed", async () => {
@@ -150,7 +150,7 @@ describe("PriceBandsSection", () => {
     await user.click(within(form).getByRole("checkbox", { name: "Segunda-feira" }));
     await user.type(within(form).getByLabelText("Início"), "19:00");
     await user.type(within(form).getByLabelText("Fim"), "21:00");
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "35");
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "35");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
 
     const alert = await within(form).findByRole("alert");
@@ -175,7 +175,7 @@ describe("PriceBandsSection", () => {
     await user.click(within(form).getByRole("checkbox", { name: "Terça-feira" }));
     await user.type(within(form).getByLabelText("Início"), "10:00");
     await user.type(within(form).getByLabelText("Fim"), "11:00");
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "20");
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "20");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
 
     expect(await within(form).findByRole("alert")).toHaveTextContent("Um campo pode ter no máximo 20 faixas de preço.");
@@ -200,9 +200,9 @@ describe("PriceBandsSection", () => {
     expect(within(form).getByRole("checkbox", { name: "Sexta-feira" })).toBeChecked();
     expect(within(form).getByRole("checkbox", { name: "Terça-feira" })).not.toBeChecked();
     expect(within(form).getByLabelText("Início")).toHaveValue("18:00");
-    expect(within(form).getByLabelText("Preço por slot (€)")).toHaveValue("30,00");
-    await user.clear(within(form).getByLabelText("Preço por slot (€)"));
-    await user.type(within(form).getByLabelText("Preço por slot (€)"), "33");
+    expect(within(form).getByLabelText("Preço por horário (€)")).toHaveValue("30,00");
+    await user.clear(within(form).getByLabelText("Preço por horário (€)"));
+    await user.type(within(form).getByLabelText("Preço por horário (€)"), "33");
     await user.click(within(form).getByRole("button", { name: "Guardar faixa" }));
 
     await waitFor(() => expect(put).toEqual([{ days: ["monday", "friday"], start: "18:00", end: "22:00", price: 33 }]));
@@ -234,7 +234,7 @@ describe("PriceBandsSection", () => {
     await user.click(within(screen.getByRole("group", { name: "Confirmar remoção" })).getByRole("button", { name: "Confirmar remoção" }));
 
     await waitFor(() => expect(deleted).toBe(1));
-    expect(await screen.findByText(/todos os slots custam o preço base/)).toBeInTheDocument();
+    expect(await screen.findByText(/todos os horários custam o preço base/)).toBeInTheDocument();
   });
 
   it("reloads the list when the band was already gone", async () => {
@@ -251,7 +251,7 @@ describe("PriceBandsSection", () => {
     await user.click(await screen.findByRole("button", { name: "Remover faixa 18:00–22:00" }));
     await user.click(within(screen.getByRole("group", { name: "Confirmar remoção" })).getByRole("button", { name: "Confirmar remoção" }));
 
-    expect(await screen.findByText(/todos os slots custam o preço base/)).toBeInTheDocument();
+    expect(await screen.findByText(/todos os horários custam o preço base/)).toBeInTheDocument();
   });
 
   it("shows a message with a retry when the bands cannot be loaded", async () => {
@@ -264,7 +264,7 @@ describe("PriceBandsSection", () => {
     fail = false;
     await user.click(within(alert).getByRole("button", { name: "Tentar novamente" }));
 
-    expect(await screen.findByText(/todos os slots custam o preço base/)).toBeInTheDocument();
+    expect(await screen.findByText(/todos os horários custam o preço base/)).toBeInTheDocument();
   });
 
   it("turns the new-band button off at twenty bands", async () => {

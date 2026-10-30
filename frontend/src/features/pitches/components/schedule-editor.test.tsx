@@ -71,7 +71,7 @@ describe("ScheduleEditor", () => {
   it("offers 30, 60 and 90 minutes for the slot length and starts with the pitch's", async () => {
     await loaded(schedule({ slotDurationMinutes: 90 }));
 
-    const select = screen.getByLabelText("Duração do slot") as HTMLSelectElement;
+    const select = screen.getByLabelText("Duração do horário") as HTMLSelectElement;
     expect(Array.from(select.options).map((option) => [option.value, option.text])).toEqual([
       ["30", "30 minutos"],
       ["60", "60 minutos"],
@@ -111,7 +111,7 @@ describe("ScheduleEditor", () => {
       }),
     );
     const { user } = await loaded();
-    await user.selectOptions(screen.getByLabelText("Duração do slot"), "90");
+    await user.selectOptions(screen.getByLabelText("Duração do horário"), "90");
     await user.click(within(row("Segunda-feira")).getByRole("checkbox", { name: "Fechado" }));
     await setTime(user, closes("Segunda-feira"), "23:30");
     await user.click(within(row("Domingo")).getByRole("checkbox", { name: "Fechado" }));
@@ -199,7 +199,7 @@ describe("ScheduleEditor", () => {
     server.use(
       http.put(url, () =>
         problem(400, "validation_failed", {
-          slotDurationMinutes: ["A duração do slot tem de ser 30, 60 ou 90 minutos."],
+          slotDurationMinutes: ["A duração do horário tem de ser 30, 60 ou 90 minutos."],
           "tuesday.opens": ["As horas vão de meia em meia hora, por exemplo 09:00 ou 09:30."],
           "thursday.closes": ["A hora de fecho tem de ser depois da abertura."],
           friday: ["Um dia fechado não tem horas: tira as horas de sexta-feira ou abre o dia."],
@@ -210,7 +210,7 @@ describe("ScheduleEditor", () => {
 
     await user.click(screen.getByRole("button", { name: "Guardar horário" }));
 
-    await waitFor(() => expect(screen.getByLabelText("Duração do slot")).toHaveAccessibleDescription("A duração do slot tem de ser 30, 60 ou 90 minutos."));
+    await waitFor(() => expect(screen.getByLabelText("Duração do horário")).toHaveAccessibleDescription("A duração do horário tem de ser 30, 60 ou 90 minutos."));
     expect(opens("Terça-feira")).toHaveAccessibleDescription("As horas vão de meia em meia hora, por exemplo 09:00 ou 09:30.");
     expect(closes("Terça-feira")).not.toHaveAttribute("aria-invalid");
     expect(closes("Quinta-feira")).toHaveAccessibleDescription("A hora de fecho tem de ser depois da abertura.");

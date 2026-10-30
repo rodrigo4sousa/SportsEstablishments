@@ -122,6 +122,8 @@ describe("ClubCalendar, weekly view", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-05-04T10:00:00Z"));
     resetNavigation(BASE);
+    // The club's name above the calendar (UX-012) is one more request, unrelated to what these tests are about.
+    server.use(http.get(`/api/manage/clubs/${CLUB}`, () => HttpResponse.json({ id: CLUB, slug: "clube-teste", name: "Clube Teste", address: "Rua 1", locality: "Porto", phone: "912345678", contactEmail: "geral@clube.pt", cancellationWindowHours: 24, timeZone: "Europe/Lisbon" })));
   });
 
   afterEach(() => {
@@ -136,7 +138,8 @@ describe("ClubCalendar, weekly view", () => {
       await screen.findByRole("group", { name: "Padel 1" });
       expect(screen.getByRole("button", { name: "Vista diária" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "Vista semanal" })).toHaveAttribute("aria-pressed", "false");
-      expect(screen.queryByLabelText("Campo")).not.toBeInTheDocument();
+      // The pitch choice is for a phone (the daily view shows every pitch from `sm` up), so it is hidden there (UX-005).
+      expect(screen.getByLabelText("Campo").parentElement).toHaveClass("sm:hidden");
       expect(asked[0].get("from")).toBe("2026-05-07");
       expect(asked[0].get("to")).toBe("2026-05-07");
 
@@ -151,7 +154,7 @@ describe("ClubCalendar, weekly view", () => {
       expect(WEEK_HEADING()).toHaveTextContent("segunda-feira, 4 de maio – domingo, 10 de maio (04/05/2026 – 10/05/2026)");
     });
 
-    it("goes back to the daily view with «Vista diária», on the same date and with no pitch in the address", async () => {
+    it("goes back to the daily view with «Vista diária», on the same date, keeping the pitch in the address (a phone shows it)", async () => {
       resetNavigation(`${BASE}?view=week&date=2026-05-07&pitch=${TENNIS}`);
       serveCalendar();
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
@@ -160,7 +163,7 @@ describe("ClubCalendar, weekly view", () => {
       await userEvent.click(screen.getByRole("button", { name: "Vista diária" }));
 
       await screen.findByRole("group", { name: "Padel 1" });
-      expect(currentPath()).toBe(`${BASE}?date=2026-05-07`);
+      expect(currentPath()).toBe(`${BASE}?date=2026-05-07&pitch=${TENNIS}`);
     });
 
     it("keeps the cancelled toggle when the view changes", async () => {
@@ -194,7 +197,7 @@ describe("ClubCalendar, weekly view", () => {
       }
       expect(screen.getAllByRole("group").filter((group) => group.hasAttribute("data-date"))).toHaveLength(7);
       // Tuesday has the booking, Thursday the block, and the other pitch's booking is not here.
-      expect(within(dayColumn(names[1])).getByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" })).toBeInTheDocument();
+      expect(within(dayColumn(names[1])).getByRole("button", { name: "Rita Jogadora 10:00 – 11:00 Confirmada" })).toBeInTheDocument();
       expect(within(dayColumn(names[3])).getByRole("group", { name: "Bloqueio, 11:00 – 12:00, Manutenção da rede" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Bruno Jogador/ })).not.toBeInTheDocument();
       expect(within(dayColumn(names[0])).queryByRole("button", { name: /Rita Jogadora/ })).not.toBeInTheDocument();
@@ -433,7 +436,7 @@ describe("ClubCalendar, weekly view", () => {
 
       await userEvent.click(screen.getByLabelText("Mostrar reservas canceladas"));
 
-      expect(await screen.findByRole("button", { name: "Ana Cancelada, 10:00 – 11:00, Cancelada pelo clube" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Ana Cancelada 10:00 – 11:00 Cancelada pelo clube" })).toBeInTheDocument();
       expect(asked.at(-1)?.get("includeCancelled")).toBe("true");
       expect(currentPath()).toBe(`${BASE}?view=week&cancelled=1`);
     });
@@ -503,9 +506,9 @@ describe("ClubCalendar, weekly view", () => {
       expect(topOf(first)).toBeCloseTo(96); // 90 minutes into the day
       expect(topOf(second)).toBeCloseTo(160); // 150 minutes: an hour later, not half an hour
       expect(topOf(morning)).toBeCloseTo(640); // 09:00 WET is 600 minutes into this 25-hour day
-      expect(first).toHaveAccessibleName("Primeira, 01:30 (verão) – 01:00 (inverno), Confirmada");
-      expect(second).toHaveAccessibleName("Segunda, 01:30 (inverno) – 02:00, Confirmada");
-      expect(morning).toHaveAccessibleName("Manhã, 09:00 – 10:00, Confirmada");
+      expect(first).toHaveAccessibleName("Primeira 01:30 (verão) – 01:00 (inverno) Confirmada");
+      expect(second).toHaveAccessibleName("Segunda 01:30 (inverno) – 02:00 Confirmada");
+      expect(morning).toHaveAccessibleName("Manhã 09:00 – 10:00 Confirmada");
     });
 
     it("draws the same clock hour an hour lower on the Sunday than on the Saturday, because the day is longer", async () => {
@@ -521,8 +524,8 @@ describe("ClubCalendar, weekly view", () => {
       const saturday = await screen.findByRole("button", { name: /Sábado/ });
       const sunday = screen.getByRole("button", { name: /Domingo/ });
 
-      expect(saturday).toHaveAccessibleName("Sábado, 09:00 – 10:00, Confirmada");
-      expect(sunday).toHaveAccessibleName("Domingo, 09:00 – 10:00, Confirmada");
+      expect(saturday).toHaveAccessibleName("Sábado 09:00 – 10:00 Confirmada");
+      expect(sunday).toHaveAccessibleName("Domingo 09:00 – 10:00 Confirmada");
       expect(topOf(sunday) - topOf(saturday)).toBeCloseTo(64);
     });
 
@@ -555,7 +558,7 @@ describe("ClubCalendar, weekly view", () => {
       expect(within(dayColumn("Domingo, 29/03/2026")).getByText("29/03/2026 · 23 h")).toBeInTheDocument();
       expect(screen.getByRole("note")).toHaveTextContent("29/03/2026, com 23 horas");
       expect(topOf(early)).toBeCloseTo(64);
-      expect(early).toHaveAccessibleName("Cedo, 02:00 – 03:00, Confirmada");
+      expect(early).toHaveAccessibleName("Cedo 02:00 – 03:00 Confirmada");
     });
   });
 

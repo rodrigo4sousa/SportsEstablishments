@@ -1,3 +1,4 @@
+import { ScrollRegion } from "@/components/scroll-region";
 import { WEEKDAYS } from "@/features/pitches/schedule";
 import { formatLisbonDate, formatLisbonSlotTime, lisbonInstantAtMinute, weekdayIndex } from "@/lib/datetime";
 import { HOUR_HEIGHT_PX, heightOf, type WeekLayout } from "../layout";
@@ -27,7 +28,7 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <ScrollRegion label="Calendário da semana">
       <div className="flex min-w-max">
         <div className="w-20 shrink-0 border-r">
           <div className="h-14 border-b" aria-hidden="true" />
@@ -112,7 +113,7 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
           );
         })}
       </div>
-    </div>
+    </ScrollRegion>
   );
 }
 

@@ -22,6 +22,7 @@ import {
 } from "../api";
 import { priceInputValue } from "../price";
 import { TIME_STEP_MINUTES, WEEKDAYS } from "../schedule";
+import { useRestoreFocus } from "@/lib/focus";
 import { priceBandSchema, type PriceBandFormData, type PriceBandFormValues } from "../schemas/price-band";
 
 const FIELDS = ["days", "start", "end", "price"] as const satisfies ReadonlyArray<keyof PriceBandFormValues>;
@@ -84,6 +85,9 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
     },
   });
 
+  // UX-002: a disabled button drops focus while saving; it gets it back when the save ends.
+  const submitButton = useRestoreFocus<HTMLButtonElement>(save.isPending);
+
   const id = (field: string) => `price-band-${band?.id ?? "new"}-${field}`;
   const describedBy = (field: (typeof FIELDS)[number]) => (errors[field] ? `${id(field)}-error` : undefined);
   const clearFormError = () => setFormError(null);
@@ -134,7 +138,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
           </div>
         ))}
         <div className="flex flex-col gap-2">
-          <Label htmlFor={id("price")}>Preço por slot (€)</Label>
+          <Label htmlFor={id("price")}>Preço por horário (€)</Label>
           <Input
             id={id("price")}
             inputMode="decimal"
@@ -148,7 +152,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        Horas do clube, de meia em meia hora. Vale para os slots que começam dentro da faixa; o fim 00:00 é a meia-noite.
+        Horas do clube, de meia em meia hora. Vale para os horários que começam dentro da faixa; o fim 00:00 é a meia-noite.
       </p>
 
       {formError ? (
@@ -158,7 +162,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={save.isPending}>
+        <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : band ? "Guardar faixa" : "Criar faixa"}
         </Button>
         <Button type="button" variant="ghost" onClick={onDone}>
