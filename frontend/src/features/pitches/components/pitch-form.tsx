@@ -8,6 +8,7 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { useFocusOn, useRestoreFocus } from "@/lib/focus";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
@@ -45,6 +46,8 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
     defaultValues: pitch ? valuesOf(pitch) : NEW_PITCH,
   });
   const { errors } = form.formState;
+  // UX-002: the form that appears gets focus; the submit button gets it back after the save (a disabled button drops it).
+  const formFocus = useFocusOn<HTMLFormElement>();
 
   const save = useMutation({
     mutationFn: (request: PitchRequest) => (pitch ? updatePitch(clubId, pitch.id, request) : createPitch(clubId, request)),
@@ -70,12 +73,15 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
     },
   });
 
+  const submitButton = useRestoreFocus<HTMLButtonElement>(save.isPending);
+
   const describedBy = (field: FieldName) => (errors[field] ? `pitch-${field}-error` : undefined);
   const invalid = (field: FieldName) => (errors[field] ? true : undefined);
 
   return (
     <form
       noValidate
+      {...formFocus}
       aria-label={pitch ? "Editar campo" : "Adicionar campo"}
       className="flex flex-col gap-5 rounded-md border p-4"
       onSubmit={form.handleSubmit((values) => save.mutate(values))}
@@ -104,7 +110,7 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
 
       <FormField
         id="pitch-pricePerSlot"
-        label="Preço por slot (€)"
+        label="Preço por horário (€)"
         hint="Por exemplo 12,50."
         error={errors.pricePerSlot?.message}
       >
@@ -119,10 +125,10 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={save.isPending}>
+        <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : pitch ? "Guardar campo" : "Adicionar campo"}
         </Button>
-        <Button type="button" variant="ghost" onClick={onDone}>
+        <Button type="button" size="cta" variant="ghost" onClick={onDone}>
           Cancelar
         </Button>
       </div>

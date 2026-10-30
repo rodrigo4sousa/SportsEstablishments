@@ -6,11 +6,11 @@ export const PRICE_MAX = 500;
 export const PRICE_DECIMALS = 2;
 
 export const PRICE_MESSAGES = {
-  required: "Indica o preço por slot.",
+  required: "Indica o preço por horário.",
   invalid: "Indica um preço válido, por exemplo 12,50.",
-  notPositive: "O preço por slot tem de ser maior que 0 €.",
-  tooHigh: `O preço por slot não pode passar de ${PRICE_MAX} €.`,
-  decimals: "O preço por slot pode ter no máximo duas casas decimais.",
+  notPositive: "O preço por horário tem de ser maior que 0 €.",
+  tooHigh: `O preço por horário não pode passar de ${PRICE_MAX} €.`,
+  decimals: "O preço por horário pode ter no máximo duas casas decimais.",
 } as const;
 
 export type PriceResult = { ok: true; value: number } | { ok: false; message: string };

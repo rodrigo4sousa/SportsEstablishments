@@ -6,7 +6,7 @@ import { SLOT_DURATIONS, TIME_STEP_MINUTES, WEEKDAYS, type WeekdayKey } from "..
  * Messages match the API's PitchScheduleRequestValidator.
  */
 export const SCHEDULE_MESSAGES = {
-  duration: "A duração do slot tem de ser 30, 60 ou 90 minutos.",
+  duration: "A duração do horário tem de ser 30, 60 ou 90 minutos.",
   opensRequired: "Indica a hora de abertura.",
   closesRequired: "Indica a hora de fecho.",
   invalidTime: "Indica a hora no formato HH:mm, por exemplo 09:00.",

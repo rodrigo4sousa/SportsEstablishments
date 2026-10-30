@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { LoadingRegion } from "@/components/loading-region";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { useRestoreFocus } from "@/lib/focus";
 import { PITCHES_PAGE_SIZE, deactivatePitch, fetchPitches, pitchListQueryKey, pitchesQueryKey, reactivatePitch, type Pitch } from "../api";
 import { formatPrice } from "../price";
 import { sportLabel } from "../sports";
@@ -58,13 +62,30 @@ export function PitchSection({ clubId }: { clubId: string }) {
 
   const closePanel = useCallback(() => setPanel(null), []);
 
+  // UX-002: the form replaces «Adicionar campo» (or opens under the list for «Editar»); when it closes, focus goes back to the control
+  // that opened it, not to <body>.
+  const addButton = useRestoreFocus<HTMLButtonElement>(editing?.kind === "new");
+  const editedPitch = useRef<string | null>(null);
+  useEffect(() => {
+    if (editing?.kind === "edit") {
+      editedPitch.current = editing.pitch.id;
+    } else if (editing === null && editedPitch.current !== null) {
+      const id = editedPitch.current;
+      editedPitch.current = null;
+      const active = document.activeElement;
+      if (!active || active === document.body) {
+        document.querySelector<HTMLElement>(`[data-edit-pitch="${id}"]`)?.focus();
+      }
+    }
+  }, [editing]);
+
   const heading = (
     <div className="flex items-center justify-between gap-4">
       <h2 id="pitches-heading" className="text-xl font-semibold tracking-tight">
         Campos
       </h2>
       {editing === null ? (
-        <Button type="button" onClick={() => setEditing({ kind: "new" })}>
+        <Button ref={addButton} type="button" size="cta" onClick={() => setEditing({ kind: "new" })}>
           Adicionar campo
         </Button>
       ) : null}
@@ -74,9 +95,15 @@ export function PitchSection({ clubId }: { clubId: string }) {
   let list;
   if (pitches.isPending) {
     list = (
-      <p role="status" className="text-muted-foreground">
-        A carregar os campos…
-      </p>
+      <LoadingRegion label="A carregar os campos…" className="flex flex-col divide-y rounded-md border">
+        {[0, 1].map((row) => (
+          <div key={row} className="flex flex-col gap-3 px-4 py-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-56 max-w-full" />
+            <Skeleton className="h-11 w-full sm:h-8 sm:w-96" />
+          </div>
+        ))}
+      </LoadingRegion>
     );
   } else if (pitches.isError) {
     const code = pitches.error instanceof ApiError ? pitches.error.code : "unknown_error";
@@ -89,7 +116,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
       </div>
     );
   } else if (pitches.data.totalCount === 0) {
-    list = <p className="text-muted-foreground">Este clube ainda não tem campos. Adiciona o primeiro para o poderes configurar.</p>;
+    list = <EmptyState title="Este clube ainda não tem campos." description="Adiciona o primeiro para o poderes configurar." />;
   } else {
     const { items, totalCount } = pitches.data;
     const pageCount = Math.max(1, Math.ceil(totalCount / PITCHES_PAGE_SIZE));
@@ -107,14 +134,14 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   ) : null}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {sportLabel(pitch.sport)} · {formatPrice(pitch.pricePerSlot)} por slot
+                  {sportLabel(pitch.sport)} · {formatPrice(pitch.pricePerSlot)} por horário
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "schedule"}
                   aria-label={`Horário de ${pitch.name}`}
                   onClick={() => togglePanel(pitch.id, "schedule")}
@@ -124,7 +151,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "blocks"}
                   aria-label={`Bloqueios de ${pitch.name}`}
                   onClick={() => togglePanel(pitch.id, "blocks")}
@@ -134,7 +161,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "prices"}
                   aria-label={`Faixas de preço de ${pitch.name}`}
                   onClick={() => togglePanel(pitch.id, "prices")}
@@ -144,8 +171,9 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="cta"
                   aria-label={`Editar ${pitch.name}`}
+                  data-edit-pitch={pitch.id}
                   onClick={() => setEditing({ kind: "edit", pitch })}
                 >
                   Editar
@@ -153,7 +181,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="cta"
                   disabled={toggle.isPending}
                   aria-label={`${pitch.status === "active" ? "Desativar" : "Reativar"} ${pitch.name}`}
                   onClick={() => toggle.mutate({ pitch, activate: pitch.status === "inactive" })}

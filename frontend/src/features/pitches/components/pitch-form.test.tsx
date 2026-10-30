@@ -36,8 +36,8 @@ async function fillIn(values: { name?: string; sport?: string; price?: string })
   }
   if (values.sport !== undefined) await user.selectOptions(field(/desporto/i), values.sport);
   if (values.price !== undefined) {
-    await user.clear(field(/preço por slot/i));
-    if (values.price) await user.type(field(/preço por slot/i), values.price);
+    await user.clear(field(/preço por horário/i));
+    if (values.price) await user.type(field(/preço por horário/i), values.price);
   }
   return user;
 }
@@ -79,15 +79,15 @@ describe("PitchForm (new pitch)", () => {
 
     expectFieldError(/nome do campo/i, "Indica o nome do campo.");
     expectFieldError(/desporto/i, "Indica o desporto do campo.");
-    expectFieldError(/preço por slot/i, "Indica o preço por slot.");
+    expectFieldError(/preço por horário/i, "Indica o preço por horário.");
     expect(requests).toBe(0);
     expect(onDone).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["0", "O preço por slot tem de ser maior que 0 €."],
-    ["12,555", "O preço por slot pode ter no máximo duas casas decimais."],
-    ["500,01", "O preço por slot não pode passar de 500 €."],
+    ["0", "O preço por horário tem de ser maior que 0 €."],
+    ["12,555", "O preço por horário pode ter no máximo duas casas decimais."],
+    ["500,01", "O preço por horário não pode passar de 500 €."],
     ["abc", "Indica um preço válido, por exemplo 12,50."],
   ])("rejects the price %j on the price field only", async (price, message) => {
     renderWithProviders(<PitchForm clubId={clubId} onDone={onDone} />);
@@ -95,7 +95,7 @@ describe("PitchForm (new pitch)", () => {
 
     await user.click(screen.getByRole("button", { name: "Adicionar campo" }));
 
-    expectFieldError(/preço por slot/i, message);
+    expectFieldError(/preço por horário/i, message);
     expect(field(/nome do campo/i)).not.toHaveAttribute("aria-invalid");
     expect(field(/desporto/i)).not.toHaveAttribute("aria-invalid");
   });
@@ -149,7 +149,7 @@ describe("PitchForm (new pitch)", () => {
     expect(field(/nome do campo/i)).toHaveFocus();
     expect(onDone).not.toHaveBeenCalled();
     // The values typed are still there to correct.
-    expect(field(/preço por slot/i)).toHaveValue("12,50");
+    expect(field(/preço por horário/i)).toHaveValue("12,50");
   });
 
   it("maps API errors on the sport and price fields too", async () => {
@@ -157,7 +157,7 @@ describe("PitchForm (new pitch)", () => {
       http.post(`/api/manage/clubs/${clubId}/pitches`, () =>
         problem(400, "validation_failed", {
           sport: ["Escolhe um desporto da lista: futsal, futebol 7, padel ou ténis."],
-          pricePerSlot: ["O preço por slot não pode passar de 500 €."],
+          pricePerSlot: ["O preço por horário não pode passar de 500 €."],
         }),
       ),
     );
@@ -167,7 +167,7 @@ describe("PitchForm (new pitch)", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar campo" }));
 
     await waitFor(() => expectFieldError(/desporto/i, "Escolhe um desporto da lista"));
-    expectFieldError(/preço por slot/i, "O preço por slot não pode passar de 500 €.");
+    expectFieldError(/preço por horário/i, "O preço por horário não pode passar de 500 €.");
   });
 
   it("shows a toast for an unexpected error and keeps the form", async () => {
@@ -200,7 +200,7 @@ describe("PitchForm (existing pitch)", () => {
 
     expect(field(/nome do campo/i)).toHaveValue("Campo 1");
     expect(field(/desporto/i)).toHaveValue("futsal");
-    expect(field(/preço por slot/i)).toHaveValue("12,50");
+    expect(field(/preço por horário/i)).toHaveValue("12,50");
     expect(screen.getByRole("form", { name: "Editar campo" })).toBeInTheDocument();
   });
 

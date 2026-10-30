@@ -15,6 +15,7 @@ import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-e
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { fetchSchedule, pitchesQueryKey, saveSchedule, scheduleQueryKey, slotsQueryKey, type DayHours, type PitchSchedule } from "../api";
 import { SLOT_DURATIONS, TIME_STEP_MINUTES, WEEKDAYS, type WeekdayKey } from "../schedule";
+import { useRestoreFocus } from "@/lib/focus";
 import { scheduleSchema, type ScheduleFormData, type ScheduleFormValues } from "../schemas/schedule";
 
 const DEFAULT_OPENS = "09:00";
@@ -107,6 +108,9 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
     },
   });
 
+  // UX-002: a disabled button drops focus while saving; it gets it back when the save ends.
+  const submitButton = useRestoreFocus<HTMLButtonElement>(save.isPending);
+
   return (
     <form
       noValidate
@@ -115,7 +119,7 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
       onSubmit={form.handleSubmit((values) => save.mutate(requestOf(values)))}
     >
       <div className="flex flex-col gap-2">
-        <Label htmlFor={`slot-duration-${pitchId}`}>Duração do slot</Label>
+        <Label htmlFor={`slot-duration-${pitchId}`}>Duração do horário</Label>
         <NativeSelect
           id={`slot-duration-${pitchId}`}
           className="sm:max-w-48"
@@ -218,7 +222,7 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
       <p className="text-sm text-muted-foreground">Horas de Lisboa, de meia em meia hora. Fecho às 00:00 é meia-noite.</p>
 
       <div>
-        <Button type="submit" disabled={save.isPending}>
+        <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : "Guardar horário"}
         </Button>
       </div>

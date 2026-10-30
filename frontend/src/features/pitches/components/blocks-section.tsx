@@ -110,7 +110,7 @@ export function BlocksSection({ clubId, pitchId, onGone }: { clubId: string; pit
                 </div>
                 {confirming === block.id ? (
                   <div role="group" aria-label="Confirmar remoção" className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2">
-                    <p className="text-sm">Remover este bloqueio? Os slots ficam livres outra vez.</p>
+                    <p className="text-sm">Remover este bloqueio? Os horários ficam livres outra vez.</p>
                     <Button type="button" size="sm" variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate(block)}>
                       {remove.isPending ? "A remover…" : "Confirmar remoção"}
                     </Button>
