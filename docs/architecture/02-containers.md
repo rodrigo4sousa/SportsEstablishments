@@ -26,7 +26,7 @@ Fonte: [02-containers-prod.puml](diagrams/02-containers-prod.puml). **Planeado (
 | C-WEB | Next.js 16 (App Router, imagem `standalone`), porta 3000 | Serve as áreas do jogador, do dono e do admin. Os Server Components chamam a API pelo URL interno, a passar o cookie do utilizador; os Client Components chamam `/api/*` na mesma origem. Reencaminha `/api/*` para a API (WEB-REWRITE). | Nenhum dado: não acede à base de dados. |
 | C-API | .NET 10, ASP.NET Core, porta 8080 (5080 no anfitrião, só em desenvolvimento) | Única dona das regras de negócio, da autenticação (JWT e refresh em cookies), da autorização por perfil e por dono, dos erros ProblemDetails e do rate limiting. Verifica o `Origin` dos pedidos que alteram dados. | Todas as regras e todo o acesso a C-DB. |
 | C-WORKER | `BackgroundService` no processo da API | Lê o outbox, compõe e envia os emails com novas tentativas; usa `SKIP LOCKED`, por isso pode correr em várias instâncias. | O envio dos emails (o outbox em si está em C-DB). |
-| C-DB | PostgreSQL 18.6 (desenvolvimento); PostgreSQL gerido (produção) | Guarda os dados, impõe as regras que não podem falhar (sem reservas confirmadas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | Os dados e o esquema. |
+| C-DB | PostgreSQL 18.6 (desenvolvimento); PostgreSQL gerido (produção, planeado (T06)) | Guarda os dados, impõe as regras que não podem falhar (sem reservas confirmadas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | Os dados e o esquema. |
 
 C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arrancar o servidor, por isso não tem caixa própria nestes diagramas.
 
@@ -52,5 +52,5 @@ C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arr
 
 - **Hoje o proxy reverso é o Next.js, não o Caddy.** Em desenvolvimento e no compose é C-WEB que reencaminha `/api/*`. O desenho antigo de produção (Caddy numa máquina virtual, em `docs/stack.md`) não é o plano atual: no plano do Render, o Next.js continua a ser o proxy e o Caddy não aparece (ver a nota no fim do [inventário](00-inventory.md)).
 - **O IP do cliente.** A API só confia em `X-Forwarded-For` de proxies configurados (`ForwardedHeaders:KnownProxies`), e nunca do contentor Next.js, porque o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Com o Next.js como único proxy, a API só vê o endereço de C-WEB como IP do cliente e todos os utilizadores partilham o mesmo limite. Como resolver isto no Render fica para a T06; este diagrama não afirma nenhuma solução.
-- O worker corre no processo da API: em produção a API também envia emails e tem de ter pelo menos uma instância sempre a correr.
+- O worker corre no processo da API: em produção (planeado (T06)) a API também envia emails e tem de ter pelo menos uma instância sempre a correr.
 - As migrações e o seed do admin correm no arranque da API em desenvolvimento. Como se aplicam em produção (utilizador da base de dados, migration bundle) é da T06.

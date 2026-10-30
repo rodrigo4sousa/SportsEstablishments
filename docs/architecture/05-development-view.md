@@ -187,7 +187,7 @@ A ordem segue as dependências: cada passo assenta no anterior. Os commits de sq
 
 Diferenças entre o código e outros documentos, só registadas aqui (esta parte não altera código, testes nem os outros documentos):
 
-1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra `Caddyfile` e `deploy.yml` na árvore do repositório; nenhum dos dois ficheiros existe (são da T06), e as ADRs que a mesma secção promete ainda não existem além do índice.
+1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra `Caddyfile` e `deploy.yml` na árvore do repositório; nenhum dos dois ficheiros existe (são da T06). A mesma secção promete ADRs «em `docs/`»: estão em `docs/architecture/adr/` (0001 a 0009).
 2. O `README.md` («Continuous integration») descreve só os jobs de back end e de front end e não menciona o job `diagrams`; a sua secção «Repository layout» está desatualizada (diz «(later) email, outbox», lista só `src/app/register/` e `docs/ backlog and stack documents`, e não menciona `scripts/` nem `.github/`).
 3. `frontend/Dockerfile` copia `/app/public`, que não existe no repositório; o próprio `Dockerfile` cria a pasta vazia (`mkdir -p public`) e explica-o num comentário. Não é erro.
 4. A `main` não tem proteção de branch no GitHub; o `README.md` («Continuous integration») só explica como a ativar, e o `docs/stack.md` e o `AGENTS.md` já o dizem como é. O README não é alterado nesta parte.

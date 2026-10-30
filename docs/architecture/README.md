@@ -55,9 +55,9 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 
 ## Legenda e notação
 
-**Ferramenta.** Os diagramas são escritos em [PlantUML](https://plantuml.com) com a biblioteca [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) e **desenhados para SVG**. O texto (`.puml`) é a fonte e muda no mesmo pull request que o código; o SVG gerado também vai para o repositório, para os diagramas se verem no GitHub e nos documentos sem ninguém ter de instalar nada. Em cada ficheiro Markdown, o diagrama é uma imagem (`![Título](diagrams/02-containers.svg)`) seguida da sua legenda.
+**Ferramenta.** Os diagramas são escritos em [PlantUML](https://plantuml.com) com a biblioteca [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) e **desenhados para SVG**. O texto (`.puml`) é a fonte e muda no mesmo pull request que o código; o SVG gerado também vai para o repositório, para os diagramas se verem no GitHub e nos documentos sem ninguém ter de instalar nada. Em cada ficheiro Markdown, o diagrama é uma imagem (`![Contentores em desenvolvimento](diagrams/02-containers-dev.svg)`) seguida da sua legenda.
 
-**Onde ficam.** Em `docs/architecture/diagrams/`, lado a lado: `NN-nome.puml` e `NN-nome.svg`, com o número do documento a que pertencem (`02-containers.puml` para `02-containers.md`; vários diagramas no mesmo documento levam um sufixo, `03-logical-api-bookings.puml`).
+**Onde ficam.** Em `docs/architecture/diagrams/`, lado a lado: `NN-nome.puml` e `NN-nome.svg`, com o número do documento a que pertencem (`02-containers-dev.puml` para `02-containers.md`; vários diagramas no mesmo documento levam um sufixo, `03-logical-api-bookings.puml`).
 
 **Como editar e voltar a desenhar.**
 

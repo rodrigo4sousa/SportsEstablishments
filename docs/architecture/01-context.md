@@ -37,5 +37,5 @@ O CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e não a
 
 ## Notas
 
-- O Render aparece como sistema externo para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende dele.
+- O Render (planeado (T06)) aparece como sistema externo para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende dele.
 - O envio de email nunca bloqueia uma reserva: a aplicação grava o email num outbox e envia-o depois (ver [04-process-view.md](04-process-view.md)).
