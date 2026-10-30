@@ -126,6 +126,8 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-05-04T10:00:00Z"));
     resetNavigation(BASE);
+    // The club's name above the calendar (UX-012) is one more request, unrelated to what these tests are about.
+    server.use(http.get(`/api/manage/clubs/${CLUB}`, () => HttpResponse.json({ id: CLUB, slug: "clube-teste", name: "Clube Teste", address: "Rua 1", locality: "Porto", phone: "912345678", contactEmail: "geral@clube.pt", cancellationWindowHours: 24, timeZone: "Europe/Lisbon" })));
   });
 
   afterEach(() => {
@@ -343,9 +345,9 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       expect(bodies).toEqual([{ pitchId: PADEL, startsAt: "2026-05-06T10:00:00Z", customerName: "Maria Cliente", customerPhone: "912345678" }]);
       expect(screen.queryByRole("form", { name: "Nova reserva" })).not.toBeInTheDocument();
       // The calendar went to the day of the booking, with the details open.
-      expect(currentPath()).toBe(`${BASE}?date=2026-05-06&booking=${NEW_ID}`);
+      expect(currentPath()).toBe(`${BASE}?date=2026-05-06&pitch=${PADEL}&booking=${NEW_ID}`);
       expect(await screen.findByRole("heading", { level: 2, name: /quarta-feira, 6 de maio/ })).toBeInTheDocument();
-      const box = await screen.findByRole("button", { name: "Maria Cliente, 11:00 – 12:00, Confirmada, criada pelo clube" });
+      const box = await screen.findByRole("button", { name: "Maria Cliente 11:00 – 12:00 Confirmada · Criada pelo clube" });
       expect(within(column("Padel 1")).getByRole("button", { name: /Maria Cliente/ })).toBe(box);
       expect(box).toHaveTextContent("Criada pelo clube");
       const panel = detailsPanel();
@@ -360,7 +362,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       expect(await screen.findByText("Reserva criada para Maria Cliente.")).toBeInTheDocument();
 
       expect(currentPath()).toBe(`${BASE}?view=week&date=2026-05-06&pitch=${PADEL}&booking=${NEW_ID}`);
-      const box = await screen.findByRole("button", { name: /Maria Cliente, 11:00 – 12:00, Confirmada, criada pelo clube/ });
+      const box = await screen.findByRole("button", { name: /Maria Cliente 11:00 – 12:00 Confirmada · Criada pelo clube/ });
       expect(within(dayColumn("Quarta-feira, 06/05/2026")).getByRole("button", { name: /Maria Cliente/ })).toBe(box);
     });
 
@@ -406,8 +408,8 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       serve({ bookings: [booking(), customerBooking({ startsAt: "2026-05-05T10:00:00Z", endsAt: "2026-05-05T11:00:00Z", pitchId: TENNIS })] });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
-      const customer = await screen.findByRole("button", { name: "Maria Cliente, 11:00 – 12:00, Confirmada, criada pelo clube" });
-      const player = screen.getByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" });
+      const customer = await screen.findByRole("button", { name: "Maria Cliente 11:00 – 12:00 Confirmada · Criada pelo clube" });
+      const player = screen.getByRole("button", { name: "Rita Jogadora 10:00 – 11:00 Confirmada" });
 
       expect(customer).toHaveTextContent("Maria Cliente");
       expect(customer).toHaveTextContent("Criada pelo clube");
@@ -423,8 +425,8 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       serve({ bookings: [booking(), customerBooking()] });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
-      const customer = await screen.findByRole("button", { name: "Maria Cliente, 11:00 – 12:00, Confirmada, criada pelo clube" });
-      const player = screen.getByRole("button", { name: "Rita Jogadora, 10:00 – 11:00, Confirmada" });
+      const customer = await screen.findByRole("button", { name: "Maria Cliente 11:00 – 12:00 Confirmada · Criada pelo clube" });
+      const player = screen.getByRole("button", { name: "Rita Jogadora 10:00 – 11:00 Confirmada" });
 
       expect(within(dayColumn("Terça-feira, 05/05/2026")).getByRole("button", { name: /Maria Cliente/ })).toBe(customer);
       expect(customer).toHaveTextContent("Criada pelo clube");
@@ -436,7 +438,7 @@ describe("ClubCalendar, bookings for customers (US13)", () => {
       serve({ bookings: [customerBooking({ status: "cancelled_by_club" })] });
       renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
-      const box = await screen.findByRole("button", { name: "Maria Cliente, 11:00 – 12:00, Cancelada pelo clube, criada pelo clube" });
+      const box = await screen.findByRole("button", { name: "Maria Cliente 11:00 – 12:00 Cancelada pelo clube · Criada pelo clube" });
 
       expect(box).toHaveTextContent("Cancelada pelo clube · Criada pelo clube");
     });

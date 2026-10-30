@@ -9,11 +9,11 @@ export type CalendarMode = "day" | "week";
 
 /** What the calendar shows, as the address holds it: `?view=week&date=2026-10-25&pitch=<id>&cancelled=1&booking=<id>`. */
 export type CalendarView = {
-  /** One day with every pitch (the default), or one pitch for a week. */
+  /** One day with every pitch (the default; on a phone one pitch at a time), or one pitch for a week. */
   mode: CalendarMode;
   /** The Lisbon day shown ("YYYY-MM-DD"); in the weekly view, any day of the week shown. */
   date: string;
-  /** The pitch of the weekly view; null means the first one. Only kept in the weekly view. */
+  /** The pitch of the weekly view, and the pitch shown on a phone in the daily view; null means the first one. */
   pitch: string | null;
   /** Show cancelled bookings too (off by default). */
   includeCancelled: boolean;
@@ -34,7 +34,7 @@ export function viewFromParams(params: URLSearchParams, today: string): Calendar
   return {
     mode,
     date: isCalendarDate(date) ? date : today,
-    pitch: mode === "week" && isGuid(pitch) ? pitch : null,
+    pitch: isGuid(pitch) ? pitch : null,
     includeCancelled: params.get("cancelled") === "1",
     booking: isGuid(booking) ? booking : null,
   };
@@ -45,7 +45,7 @@ export function viewHref(pathname: string, view: CalendarView, today: string): s
   const params = new URLSearchParams();
   if (view.mode === "week") params.set("view", "week");
   if (view.date !== today) params.set("date", view.date);
-  if (view.mode === "week" && view.pitch) params.set("pitch", view.pitch);
+  if (view.pitch) params.set("pitch", view.pitch);
   if (view.includeCancelled) params.set("cancelled", "1");
   if (view.booking) params.set("booking", view.booking);
   const query = params.toString();

@@ -1,3 +1,4 @@
+import { ScrollRegion } from "@/components/scroll-region";
 import { statusLabel } from "@/features/my-bookings/status";
 import { sportLabel } from "@/features/pitches/sports";
 import { formatLisbonSlotTime } from "@/lib/datetime";
@@ -31,6 +32,8 @@ type DayGridProps = {
   onOpenBooking: (bookingId: string) => void;
   /** Without it the grid is read-only. */
   newBooking?: NewBookingAction;
+  /** The pitch a phone shows (UX-006): there the grid is one column wide, from `sm` up every pitch is shown. Default: the first. */
+  selectedPitchId?: string | null;
 };
 
 /** The position of an item inside its column: by real elapsed minutes, and side by side with what overlaps it. */
@@ -48,13 +51,14 @@ function positionOf(item: PlacedItem, gridStartMinute: number) {
  * its reason. Times go through `formatLisbonSlotTime`, so the repeated hour of 25 October reads «01:00 (verão)» and
  * «01:00 (inverno)».
  */
-export function DayGrid({ layout, selectedId, onOpenBooking, newBooking }: DayGridProps) {
+export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selectedPitchId }: DayGridProps) {
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
+  const phonePitchId = layout.columns.some((column) => column.pitch.id === selectedPitchId) ? selectedPitchId : layout.columns[0]?.pitch.id;
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <div className="flex min-w-max">
-        <div className="w-24 shrink-0 border-r">
+    <ScrollRegion label="Calendário do dia">
+      <div className="flex sm:min-w-max">
+        <div className="w-16 shrink-0 border-r sm:w-24">
           <div className="h-14 border-b" aria-hidden="true" />
           <ol aria-label="Horas" className="relative" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (
@@ -71,7 +75,7 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking }: DayGr
         </div>
 
         {layout.columns.map((column) => (
-          <div key={column.pitch.id} role="group" aria-label={column.pitch.name} className="w-44 shrink-0 border-r last:border-r-0">
+          <div key={column.pitch.id} role="group" aria-label={column.pitch.name} className={`${column.pitch.id === phonePitchId ? "min-w-0 flex-1" : "hidden"} border-r sm:block sm:w-44 sm:flex-none sm:shrink-0 last:border-r-0`}>
             <div className="flex h-14 flex-col justify-center border-b px-2">
               <p className="truncate text-sm font-medium">{column.pitch.name}</p>
               <p className="truncate text-xs text-muted-foreground">
@@ -115,7 +119,7 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking }: DayGr
           </div>
         ))}
       </div>
-    </div>
+    </ScrollRegion>
   );
 }
 
@@ -144,7 +148,10 @@ export function times(startsAt: string, endsAt: string): string {
   return `${formatLisbonSlotTime(startsAt)} – ${formatLisbonSlotTime(endsAt)}`;
 }
 
-/** A booking in a column: a button that opens its details. Shared by the daily and the weekly view. */
+/**
+ * A booking in a column: a button that opens its details. Shared by the daily and the weekly view. Its name is its visible text
+ * (booker, times, status, origin), with no `aria-label` of its own, so what is read is what is seen (UX-016).
+ */
 export function BookingBox({
   item,
   gridStartMinute,
@@ -166,15 +173,15 @@ export function BookingBox({
       data-kind="booking"
       data-minute-start={item.startMinute}
       data-minute-end={item.endMinute}
-      aria-label={`${booking.bookerName}, ${times(booking.startsAt, booking.endsAt)}, ${label}${origin ? `, ${origin.toLowerCase()}` : ""}`}
+      data-booking-id={item.id}
       data-created-by-club={booking.createdByClub || undefined}
       aria-pressed={selected}
       onClick={onOpen}
       className={`absolute flex flex-col overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight focus-visible:z-10 focus-visible:-outline-offset-2 ${STATUS_STYLES[booking.status] ?? STATUS_STYLES.confirmed} ${booking.createdByClub ? "border-l-4 border-l-sky-600" : ""} ${selected ? "ring-2 ring-foreground" : ""}`}
       style={positionOf(item, gridStartMinute)}
     >
-      <span className="truncate font-medium">{booking.bookerName}</span>
-      <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>
+      <span className="truncate font-medium">{booking.bookerName}</span>{" "}
+      <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>{" "}
       <span className="truncate">
         {label}
         {origin ? ` · ${origin}` : ""}

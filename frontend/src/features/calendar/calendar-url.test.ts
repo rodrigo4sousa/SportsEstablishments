@@ -69,17 +69,18 @@ describe("the weekly view in the address", () => {
     expect(viewFromParams(params(`view=${value}`), TODAY).mode).toBe("day");
   });
 
-  it("ignores a pitch that is not a GUID, and a pitch in the daily view", () => {
+  it("ignores a pitch that is not a GUID, and keeps one in the daily view (the phone shows one pitch at a time)", () => {
     expect(viewFromParams(params("view=week&pitch=../x"), TODAY).pitch).toBeNull();
-    expect(viewFromParams(params(`pitch=${PITCH}`), TODAY).pitch).toBeNull();
+    expect(viewFromParams(params(`pitch=${PITCH}`), TODAY).pitch).toBe(PITCH);
   });
 
-  it("writes the view and the pitch only for the weekly view, and today is not written", () => {
+  it("writes the view and the pitch, and today is not written", () => {
     const week = { mode: "week" as const, date: TODAY, pitch: PITCH, includeCancelled: false, booking: null };
 
     expect(viewHref("/c", week, TODAY)).toBe(`/c?view=week&pitch=${PITCH}`);
     expect(viewHref("/c", { ...week, date: "2026-10-25", includeCancelled: true }, TODAY)).toBe(`/c?view=week&date=2026-10-25&pitch=${PITCH}&cancelled=1`);
-    expect(viewHref("/c", { ...week, mode: "day" }, TODAY)).toBe("/c");
+    expect(viewHref("/c", { ...week, mode: "day" }, TODAY)).toBe(`/c?pitch=${PITCH}`);
+    expect(viewHref("/c", { ...week, mode: "day", pitch: null }, TODAY)).toBe("/c");
   });
 
   it("round-trips through viewFromParams", () => {
