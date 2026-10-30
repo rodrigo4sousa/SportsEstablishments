@@ -1,0 +1,31 @@
+' plantuml-version: 1.2026.8
+@startuml 02-containers-dev
+!include <C4/C4_Container>
+
+title Contentores · desenvolvimento (docker compose)
+
+LAYOUT_TOP_DOWN()
+HIDE_STEREOTYPE()
+
+Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Corre os Client Components; guarda os cookies httpOnly de sessão.")
+
+System_Boundary(COMPOSE, "docker compose (nome: sportsbooking)") {
+  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16, Node.js, porta 3000", "Serve as páginas e reencaminha /api/* para a API (WEB-REWRITE); é o proxy reverso de hoje.")
+  Container_Boundary(B_API, "Processo da API (porta 8080; 5080 no anfitrião)") {
+    Container(C_API, "C-API · API ASP.NET Core", ".NET 10, controllers", "Regras de negócio, autenticação por cookies, acesso à base de dados.")
+    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService", "Lê o outbox e envia os emails com novas tentativas.")
+  }
+  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL 18.6, porta 5432", "Todos os dados, as regras que não podem falhar e as chaves do Data Protection.")
+}
+
+System_Ext(X_MAILPIT, "X-MAILPIT · Mailpit", "SMTP 1025, interface web 8025")
+
+Rel(C_BROWSER, C_WEB, "Abre páginas e chama /api/*", "HTTP, porta 3000, cookies")
+Rel(C_WEB, C_API, "Reencaminha /api/* e lê a API nos Server Components", "HTTP, api:8080")
+Rel(C_BROWSER, C_API, "Swagger e chamadas diretas (ferramentas)", "HTTP, porta 5080")
+Rel(C_API, C_DB, "Lê e escreve", "SQL, Npgsql")
+Rel(C_WORKER, C_DB, "Lê o outbox e marca o resultado", "SQL")
+Rel(C_WORKER, X_MAILPIT, "Envia o email", "SMTP, porta 1025")
+
+SHOW_LEGEND()
+@enduml

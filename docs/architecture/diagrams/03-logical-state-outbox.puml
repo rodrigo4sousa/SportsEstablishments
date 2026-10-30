@@ -1,0 +1,34 @@
+' plantuml-version: 1.2026.8
+@startuml 03-logical-state-outbox
+title Estados de uma mensagem do outbox (D-OUTBOX) · OutboxMessage
+
+hide empty description
+skinparam state {
+  BackgroundColor White
+  BorderColor #1168BD
+  ArrowColor #555555
+}
+
+state Pendente : IsPending\nSentAt, FailedAt e SkippedAt vazios\ndevida quando NextAttemptAt ≤ agora
+state Enviada : SentAt
+state Ignorada : SkippedAt\nnão é uma falha
+state Falhada : FailedAt\nnunca mais tentada
+
+[*] --> Pendente : OutboxMessage.Create(type, payload, now, dueAt?)\nna transação da alteração (BookingEmailOutbox, PasswordResetStore)
+Pendente --> Enviada : MarkSent(now)\nIEmailSender.SendAsync teve sucesso
+Pendente --> Pendente : RecordFailure(error, now, retry) → false\n[Attempts < MaxAttempts]\nNextAttemptAt = now + DelayAfter(Attempts)
+Pendente --> Falhada : RecordFailure(…) → true\n[Attempts ≥ MaxAttempts]
+Pendente --> Falhada : GiveUp(error, now)\nsem destinatário (recipient_not_found)\nou erro ao ler/compor
+Pendente --> Ignorada : Skip(reason, now)\nlembrete: booking_not_confirmed, booking_started\naviso ao dono: owner_deactivated
+Enviada --> [*]
+Ignorada --> [*]
+Falhada --> [*]
+
+note bottom of Pendente
+  Só OutboxProcessor.ProcessDueAsync muda o estado
+  (FOR UPDATE SKIP LOCKED, uma transação por lote).
+  ck_outbox_messages_one_outcome: no máximo um de
+  sent_at, failed_at, skipped_at. Entrega «pelo menos uma vez».
+end note
+
+@enduml

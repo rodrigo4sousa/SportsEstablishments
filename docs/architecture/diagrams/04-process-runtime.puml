@@ -1,0 +1,29 @@
+' plantuml-version: 1.2026.8
+@startuml 04-process-runtime
+!include <C4/C4_Container>
+
+title Vista de processo · processos e fios de execução (desenvolvimento e compose)
+
+LAYOUT_LEFT_RIGHT()
+HIDE_STEREOTYPE()
+
+Person(P_OPS, "P-OPS · Operador", "Corre os comandos de linha.")
+Container(C_BROWSER, "C-BROWSER · Browser", "Um fio de JavaScript por separador", "Client Components e TanStack Query; os separadores partilham os cookies httpOnly e coordenam o refresh com navigator.locks.")
+Container(C_WEB, "C-WEB · Next.js", "Processo Node.js (ciclo de eventos)", "Server Components e guardas em paralelo (assíncronos); proxy.ts; rewrites de /api/*.")
+Container(C_API, "C-API · API ASP.NET Core", "Processo .NET 10, Kestrel, thread pool", "Pedidos em paralelo; cada um no seu scope de DI, com o seu AppDbContext e a sua ligação do pool.")
+Container(C_WORKER, "C-WORKER · Worker do outbox", "BackgroundService no processo da API", "Um ciclo por instância: uma passagem de cada vez, scope próprio, espera no TimeProvider.")
+Container(C_CLI, "C-CLI · seed-demo, set-admin-password", "O mesmo executável, outro processo", "Migrações, seed do admin, o comando e sai; não arranca o Kestrel nem o worker.")
+ContainerDb(C_DB, "C-DB · PostgreSQL", "PostgreSQL 18.6, um processo por ligação", "Transações READ COMMITTED, trincos de linha, exclusion constraint, índices únicos.")
+System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "Mailpit (X-MAILPIT) em desenvolvimento.")
+
+Rel(C_BROWSER, C_WEB, "Pede páginas e chama /api/* (mesma origem)", "HTTP, cookies")
+Rel(C_WEB, C_API, "Reencaminha /api/* (WEB-REWRITE); Server Components chamam /api/auth/me e a página do clube", "HTTP, API_INTERNAL_URL")
+Rel(C_API, C_WORKER, "Aloja no mesmo processo; arranca e para com o host", "AddHostedService")
+Rel(C_API, C_DB, "Lê e escreve em transações curtas", "SQL (Npgsql)")
+Rel(C_WORKER, C_DB, "Reclama um lote e grava o resultado", "FOR UPDATE SKIP LOCKED")
+Rel(C_WORKER, X_SMTP, "Envia, uma ligação por mensagem (assíncrono)", "SMTP (MailKit)")
+Rel(P_OPS, C_CLI, "Corre", "docker compose run --rm api …")
+Rel(C_CLI, C_DB, "Migrações, seed do admin e o comando", "SQL")
+
+SHOW_LEGEND()
+@enduml

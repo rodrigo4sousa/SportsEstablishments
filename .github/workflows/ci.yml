@@ -83,3 +83,24 @@ jobs:
 
       # Dev-only tooling (eslint-config-next) currently has advisories with no fix; production dependencies must be clean.
       - run: npm audit --omit=dev --audit-level=high
+
+  diagrams:
+    name: Docs (architecture diagrams)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The PlantUML image tag is pinned in the header of every .puml; the script reads it, so the CI and a local render
+      # always use the same version.
+      - name: Render the diagrams
+        run: scripts/render-diagrams.sh
+
+      # git status also catches a diagram whose .svg was never committed.
+      - name: Rendered diagrams match the committed SVGs
+        run: |
+          if [ -n "$(git status --porcelain -- docs/architecture/diagrams)" ]; then
+            git status --short -- docs/architecture/diagrams
+            git diff --stat -- docs/architecture/diagrams
+            echo "::error::The .svg files are out of date. Run scripts/render-diagrams.sh (or .ps1) and commit them."
+            exit 1
+          fi
