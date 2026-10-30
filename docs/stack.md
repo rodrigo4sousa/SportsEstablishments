@@ -41,13 +41,13 @@ Clean Architecture em quatro projetos, com as dependências a apontar só para d
 ```text
 backend/
   src/
-    Reservas.Domain/          entidades, regras de negócio, sem dependências
-    Reservas.Application/     casos de uso (serviços), DTOs, validadores, interfaces
-    Reservas.Infrastructure/  EF Core, migrações, Identity, JWT, email, outbox
-    Reservas.Api/             controllers, autenticação, ProblemDetails, composição da DI
+    SportsBooking.Domain/          entidades, regras de negócio, sem dependências
+    SportsBooking.Application/     casos de uso (serviços), DTOs, validadores, interfaces
+    SportsBooking.Infrastructure/  EF Core, migrações, Identity, JWT, email, outbox
+    SportsBooking.Api/             controllers, autenticação, ProblemDetails, composição da DI
   tests/
-    Reservas.UnitTests/
-    Reservas.IntegrationTests/
+    SportsBooking.UnitTests/
+    SportsBooking.IntegrationTests/
 ```
  
 **Pragmatismo, sem cerimónia a mais**
