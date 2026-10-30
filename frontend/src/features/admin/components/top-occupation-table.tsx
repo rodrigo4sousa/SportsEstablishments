@@ -57,7 +57,8 @@ export function TopOccupationTable({ period }: { period: PeriodQuery }) {
       <p role="status" className="text-sm text-muted-foreground">
         De {formatDateKey(data.from)} a {formatDateKey(data.to)}.
       </p>
-      <ScrollRegion label="Clubes com maior ocupação">
+      {/* Not the section's own name (axe: landmark-unique). */}
+      <ScrollRegion label="Tabela dos clubes com maior ocupação">
         <table role="table" className="w-full text-sm max-sm:block">
           <caption className="sr-only">Clubes com maior ocupação</caption>
           <thead role="rowgroup" className="border-b bg-muted/50 text-left max-sm:sr-only">

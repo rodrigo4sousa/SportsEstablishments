@@ -172,7 +172,7 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
         </p>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : "Criar bloqueio"}
         </Button>
