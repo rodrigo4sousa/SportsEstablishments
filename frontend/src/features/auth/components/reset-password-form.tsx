@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { RateLimitMessage } from "@/components/rate-limit-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { confirmPasswordReset } from "../api";
 import { resetPasswordSchema, type ResetPasswordData, type ResetPasswordValues } from "../schemas/reset-password";
 
@@ -51,6 +53,7 @@ export function ResetPasswordForm() {
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
+  const retry = useRetryAfter();
 
   const reset = useMutation({
     mutationFn: (values: ResetPasswordData) => confirmPasswordReset({ email, token, newPassword: values.newPassword }),
@@ -61,6 +64,12 @@ export function ResetPasswordForm() {
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
         toast.error(unexpectedErrorMessage(error));
+        return;
+      }
+      if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
+        // UX-018: it says how long to wait, so say it, count it down, and keep the button off until then.
+        form.clearErrors("root");
+        retry.start(error.retryAfterSeconds);
         return;
       }
       if (error.code === "validation_failed" && error.fieldErrors.newPassword?.length) {
@@ -100,7 +109,10 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form noValidate aria-label="Definir a nova palavra-passe" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => reset.mutate(values))}>
+    <form noValidate aria-label="Definir a nova palavra-passe" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
+        retry.clear();
+        reset.mutate(values);
+      })}>
       {errors.root?.message ? (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors.root.message}
@@ -144,7 +156,9 @@ export function ResetPasswordForm() {
         ) : null}
       </div>
 
-      <Button type="submit" disabled={reset.isPending}>
+      <RateLimitMessage retry={retry} />
+
+      <Button type="submit" disabled={reset.isPending || retry.waiting}>
         {reset.isPending ? "A guardar…" : "Definir palavra-passe"}
       </Button>
     </form>

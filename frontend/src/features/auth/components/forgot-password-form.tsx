@@ -5,12 +5,14 @@ import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { RateLimitMessage } from "@/components/rate-limit-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { requestPasswordReset } from "../api";
 import { forgotPasswordSchema, type ForgotPasswordData, type ForgotPasswordValues } from "../schemas/forgot-password";
 
@@ -31,12 +33,19 @@ export function ForgotPasswordForm() {
     defaultValues: { email: "" },
   });
   const { errors } = form.formState;
+  const retry = useRetryAfter();
 
   const ask = useMutation({
     mutationFn: (values: ForgotPasswordData) => requestPasswordReset(values.email),
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
         toast.error(unexpectedErrorMessage(error));
+        return;
+      }
+      if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
+        // UX-018: it says how long to wait, so say it, count it down, and keep the button off until then.
+        form.clearErrors("root");
+        retry.start(error.retryAfterSeconds);
         return;
       }
       if (error.code === "validation_failed" && error.fieldErrors.email?.length) {
@@ -81,7 +90,10 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form noValidate aria-label="Recuperar palavra-passe" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => ask.mutate(values))}>
+    <form noValidate aria-label="Recuperar palavra-passe" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
+        retry.clear();
+        ask.mutate(values);
+      })}>
       {errors.root?.message ? (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors.root.message}
@@ -106,7 +118,9 @@ export function ForgotPasswordForm() {
         ) : null}
       </div>
 
-      <Button type="submit" disabled={ask.isPending}>
+      <RateLimitMessage retry={retry} />
+
+      <Button type="submit" disabled={ask.isPending || retry.waiting}>
         {ask.isPending ? "A enviar…" : "Enviar ligação"}
       </Button>
       <p className="text-sm text-muted-foreground">
