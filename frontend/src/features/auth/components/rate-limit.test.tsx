@@ -100,7 +100,7 @@ describe.each(CASES)("the $name form after a 429", (form) => {
     const timer = await screen.findByRole("timer");
     expect(timer).toHaveTextContent("3 segundos");
     const message = timer.closest("p");
-    expect(message).toHaveTextContent("Fizeste demasiados pedidos seguidos. Podes tentar de novo dentro de 3 segundos.");
+    expect(message).toHaveTextContent("Fizeste demasiados pedidos seguidos. Podes tentar novamente dentro de 3 segundos.");
     expect(message).toHaveFocus();
     // It has focus, so it is not also a live region (UX-002).
     expect(message).not.toHaveAttribute("role");
@@ -122,8 +122,8 @@ describe.each(CASES)("the $name form after a 429", (form) => {
     });
 
     expect(screen.queryByRole("timer")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Já podes tentar de novo.").length).toBeGreaterThan(0);
-    expect(screen.getByRole("status")).toHaveTextContent("Já podes tentar de novo.");
+    expect(screen.getAllByText("Já podes tentar novamente.").length).toBeGreaterThan(0);
+    expect(screen.getByRole("status")).toHaveTextContent("Já podes tentar novamente.");
     expect(screen.getByRole("button", { name: form.button })).toBeEnabled();
   });
 

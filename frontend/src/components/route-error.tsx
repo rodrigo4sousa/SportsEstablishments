@@ -27,7 +27,7 @@ export function RouteError({ error, retry }: RouteErrorProps) {
       <h1 {...focus} className="text-xl font-semibold">
         Ocorreu um erro inesperado.
       </h1>
-      <p className="text-muted-foreground">Não foi possível mostrar esta página. Tenta outra vez; se continuar, volta ao início.</p>
+      <p className="text-muted-foreground">Não foi possível mostrar esta página. Tenta novamente; se continuar, volta ao início.</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => retry()}>Tentar novamente</Button>
         <Button asChild variant="outline">

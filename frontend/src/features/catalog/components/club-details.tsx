@@ -59,10 +59,10 @@ export function ClubPitches({ club }: { club: PublicClub }) {
               </span>
               <span className="tabular-nums">
                 {pitch.hasPriceBands ? "Preço base: " : ""}
-                {formatPrice(pitch.pricePerSlot)} por slot
+                {formatPrice(pitch.pricePerSlot)} por horário
               </span>
               {pitch.hasPriceBands ? (
-                <span className="basis-full text-sm text-muted-foreground">Alguns horários têm outro preço; o preço de cada horário aparece na escolha do slot.</span>
+                <span className="basis-full text-sm text-muted-foreground">Alguns horários têm outro preço; o preço de cada horário aparece na escolha do horário.</span>
               ) : null}
             </li>
           ))}

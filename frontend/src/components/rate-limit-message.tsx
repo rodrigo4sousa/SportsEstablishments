@@ -25,21 +25,21 @@ export function RateLimitMessage({ retry }: { retry: RetryAfter }) {
         >
           {retry.waiting ? (
             <>
-              Fizeste demasiados pedidos seguidos. Podes tentar de novo dentro de{" "}
+              Fizeste demasiados pedidos seguidos. Podes tentar novamente dentro de{" "}
               <span role="timer" className="font-medium tabular-nums">
                 {retry.remaining} {retry.remaining === 1 ? "segundo" : "segundos"}
               </span>
               .
             </>
           ) : (
-            "Já podes tentar de novo."
+            "Já podes tentar novamente."
           )}
         </p>
       ) : null}
       {/* Mounted when the wait starts, empty, so the words that fill it when the wait ends are announced. */}
       {retry.startedAt !== null ? (
         <span role="status" className="sr-only">
-          {retry.expired ? "Já podes tentar de novo." : ""}
+          {retry.expired ? "Já podes tentar novamente." : ""}
         </span>
       ) : null}
     </>
