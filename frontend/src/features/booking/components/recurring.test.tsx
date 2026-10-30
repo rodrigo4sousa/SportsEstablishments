@@ -194,7 +194,9 @@ describe("weekly bookings on the club page (US20)", () => {
     renderWithProviders(<ClubBooking club={club} />);
     await userEvent.click(await screen.findByRole("button", { name: "Confirmar 3 reservas" }));
 
-    const result = await screen.findByRole("status", { name: "3 reservas confirmadas" });
+    const result = await screen.findByRole("region", { name: "3 reservas confirmadas" });
+    expect(within(result).getByRole("heading", { name: "3 reservas confirmadas" })).toHaveFocus();
+    expect(result).not.toHaveAttribute("role");
 
     expect(creates).toEqual([{ pitchId: padel, startsAt: FIRST, weeks: 4 }]);
     expect(within(result).getAllByRole("listitem").map(text)).toEqual([
@@ -220,7 +222,7 @@ describe("weekly bookings on the club page (US20)", () => {
     renderWithProviders(<ClubBooking club={club} />);
     await userEvent.click(await screen.findByRole("button", { name: "Confirmar 2 reservas" }));
 
-    const result = await screen.findByRole("status", { name: "2 reservas confirmadas" });
+    const result = await screen.findByRole("region", { name: "2 reservas confirmadas" });
 
     expect(within(result).queryByText("Ficaram de fora:")).not.toBeInTheDocument();
   });
@@ -236,8 +238,8 @@ describe("weekly bookings on the club page (US20)", () => {
     renderWithProviders(<ClubBooking club={club} />);
     await userEvent.click(await screen.findByRole("button", { name: "Confirmar 2 reservas" }));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Nenhuma das datas escolhidas está disponível, por isso não foi feita nenhuma reserva.");
+    const alert = await screen.findByText("Nenhuma das datas escolhidas está disponível, por isso não foi feita nenhuma reserva.");
+    expect(alert).toHaveFocus();
     const dates = await screen.findByRole("list", { name: "Datas que ficaram de fora" });
     expect(within(dates).getAllByRole("listitem").map(text)).toEqual([
       "segunda-feira, 4 de maio, 10:00 – 11:00: já está reservado",

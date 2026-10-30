@@ -8,8 +8,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
+import { NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { requestPasswordReset } from "../api";
 import { forgotPasswordSchema, type ForgotPasswordData, type ForgotPasswordValues } from "../schemas/forgot-password";
 
@@ -34,8 +35,8 @@ export function ForgotPasswordForm() {
   const ask = useMutation({
     mutationFn: (values: ForgotPasswordData) => requestPasswordReset(values.email),
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error, { handlesNetworkError: true })) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && error.fieldErrors.email?.length) {

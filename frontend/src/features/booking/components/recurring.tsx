@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { formatPrice } from "@/features/pitches/price";
 import { formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
+import { useFocusOn } from "@/lib/focus";
 import { occurrenceReason, type Occurrence, type RecurringResult, type SkippedDate } from "../api";
 import { MAX_WEEKS } from "../selection";
 
@@ -71,9 +74,11 @@ function SkippedList({ skipped }: { skipped: readonly SkippedDate[] }) {
 
 /** US20: what the series made, and what was left out and why. */
 export function RecurringConfirmation({ result, onDismiss }: { result: RecurringResult; onDismiss: () => void }) {
+  // Same rule as the single confirmation: focus moves to the heading, and the section is not a live region (UX-002).
+  const focus = useFocusOn<HTMLHeadingElement>();
   return (
-    <section role="status" aria-labelledby="series-confirmed" className="flex flex-col gap-4 rounded-lg border border-emerald-600/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
-      <h3 id="series-confirmed" className="font-semibold">
+    <section aria-labelledby="series-confirmed" className="flex flex-col gap-4 rounded-lg border border-emerald-600/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
+      <h3 id="series-confirmed" {...focus} className="font-semibold">
         {result.created.length === 1 ? "1 reserva confirmada" : `${result.created.length} reservas confirmadas`}
       </h3>
       <ul aria-label="Reservas feitas" className="flex flex-col gap-1 text-sm">

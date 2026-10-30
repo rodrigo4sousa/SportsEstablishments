@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { currentPath, resetNavigation } from "@/test/navigation";
 import { server } from "@/test/msw";
@@ -320,7 +320,12 @@ describe("MyBookings", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
 
-      expect(await screen.findByText("Reserva cancelada. O horário voltou a ficar livre.")).toHaveAttribute("role", "status");
+      // The result takes focus, which also brings it into view wherever the booking was in the list; it is not a live region,
+      // or the screen reader would read it twice (UX-002, UX-003).
+      const notice = await screen.findByText("Reserva cancelada. O horário voltou a ficar livre.");
+      expect(notice).toHaveFocus();
+      expect(notice).not.toHaveAttribute("role");
+      expect(notice).not.toHaveAttribute("aria-live");
       expect(cancelled).toEqual([FIRST_ID]);
       await screen.findByText("Não tens reservas próximas. Pesquisa um clube para reservar um campo.");
       expect(asked).toHaveLength(2);
@@ -407,7 +412,7 @@ describe("MyBookings", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent("O prazo para cancelar esta reserva já terminou.");
+      expect(await screen.findByText("O prazo para cancelar esta reserva já terminou.")).toHaveFocus();
       // The confirmation is closed and the list, loaded again, now shows the button disabled with the explanation.
       expect(screen.queryByRole("group", { name: "Confirmar cancelamento" })).not.toBeInTheDocument();
       await waitFor(() => expect(screen.getByRole("button", { name: "Cancelar reserva" })).toBeDisabled());
@@ -424,7 +429,7 @@ describe("MyBookings", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
 
-      await screen.findByRole("alert");
+      await screen.findByText("O prazo para cancelar esta reserva já terminou.");
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["my-bookings"] });
       expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ["catalog"] });
     });
@@ -440,11 +445,11 @@ describe("MyBookings", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent(message);
+      expect(await screen.findByText(message)).toHaveFocus();
       await waitFor(() => expect(asked).toHaveLength(2));
     });
 
-    it("shows a toast, not a made-up message, for a failure that is not the API's", async () => {
+    it("shows a toast, not a message above the list, when the server cannot be reached (UX-019)", async () => {
       serveList(() => page([booking()]));
       server.use(http.post(`/api/bookings/${FIRST_ID}/cancel`, () => HttpResponse.error()));
       renderWithProviders(<MyBookings />);
@@ -452,9 +457,36 @@ describe("MyBookings", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
 
-      // A network failure is an ApiError with its own code, shown as a message above the list.
-      expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível contactar o servidor.");
+      expect(await screen.findByText("Não foi possível contactar o servidor. Verifica a ligação e tenta novamente.")).toBeInTheDocument();
+      // Nothing is written in the list itself, and focus is back on the button that was pressed first.
+      expect(screen.getByRole("tabpanel").querySelector("[data-kind]")).toBeNull();
+      expect(document.querySelector("[data-kind]")).toBeNull();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Cancelar reserva" })).toHaveFocus());
+    });
+
+    it("shows a toast for a 500, not a message above the list (UX-019)", async () => {
+      serveList(() => page([booking()]));
+      server.use(http.post(`/api/bookings/${FIRST_ID}/cancel`, () => problem(500, "internal_error")));
+      renderWithProviders(<MyBookings />);
+      await userEvent.click(await screen.findByRole("button", { name: "Cancelar reserva" }));
+
+      await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
+
+      expect(await screen.findByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).toBeInTheDocument();
+      expect(document.querySelector("[data-kind]")).toBeNull();
       expect(screen.getByRole("button", { name: "Cancelar reserva" })).toBeEnabled();
+    });
+
+    it("moves focus to the question when asking, and back to the button when the booking is kept (UX-002)", async () => {
+      serveList(() => page([booking()]));
+      renderWithProviders(<MyBookings />);
+      const ask = await screen.findByRole("button", { name: "Cancelar reserva" });
+
+      await userEvent.click(ask);
+      expect(screen.getByRole("group", { name: "Confirmar cancelamento" })).toHaveFocus();
+
+      await userEvent.click(screen.getByRole("button", { name: "Manter reserva" }));
+      expect(screen.getByRole("button", { name: "Cancelar reserva" })).toHaveFocus();
     });
 
     it("sends the player to the login page when the session ended while deciding", async () => {
@@ -486,6 +518,37 @@ describe("MyBookings", () => {
 
       expect(screen.getAllByRole("group", { name: "Confirmar cancelamento" })).toHaveLength(1);
       expect(within(items()[1]).getByRole("group", { name: "Confirmar cancelamento" })).toBeInTheDocument();
+    });
+  });
+
+
+  describe("structure and loading (UX-017, UX-020)", () => {
+    it("has an h2 between the page title and the booking cards, so the headings do not skip a level", async () => {
+      serveList(() => page([booking()]));
+      renderWithProviders(<MyBookings />);
+
+      await screen.findByRole("list", { name: "Reservas" });
+
+      expect(screen.getByRole("heading", { level: 2, name: "Reservas próximas" })).toBeInTheDocument();
+      expect(within(items()[0]).getByRole("heading", { level: 3 })).toBeInTheDocument();
+    });
+
+    it("shows the shape of the list while it loads, and says what is loading once", async () => {
+      server.use(http.get("/api/me/bookings", async () => {
+        await delay("infinite");
+        return page([]);
+      }));
+      renderWithProviders(<MyBookings />);
+
+      expect(await screen.findByRole("status")).toHaveTextContent("A carregar as reservas…");
+      expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(1);
+    });
+
+    it("says there is nothing, with the shared empty state, when there are no bookings", async () => {
+      serveList(() => page([]));
+      renderWithProviders(<MyBookings />);
+
+      expect(await screen.findByText("Não tens reservas próximas. Pesquisa um clube para reservar um campo.")).toBeInTheDocument();
     });
   });
 });

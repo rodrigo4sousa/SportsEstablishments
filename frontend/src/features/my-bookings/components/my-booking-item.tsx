@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/features/pitches/price";
 import { sportLabel } from "@/features/pitches/sports";
 import { formatLisbonDate, formatLisbonDateTime, formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
+import { useFocusOn, useRestoreFocus } from "@/lib/focus";
 import { statusLabel } from "../status";
 import type { MyBooking } from "../types";
 
@@ -28,6 +31,9 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, on
   const isConfirmed = booking.status === "confirmed";
   const deadline = booking.cancellationDeadline;
   const explanationId = `cancel-info-${booking.id}`;
+  // UX-002: asking replaces the «Cancelar reserva» button, so focus goes to the question; keeping the booking puts it back.
+  const confirmationFocus = useFocusOn<HTMLDivElement>(confirming);
+  const askButton = useRestoreFocus<HTMLButtonElement>(confirming);
 
   return (
     <li aria-label={`${booking.clubName}, ${booking.pitchName}`} className="flex flex-col gap-3 rounded-lg border p-4">
@@ -75,7 +81,7 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, on
 
       {isConfirmed && cancellable ? (
         confirming ? (
-          <div role="group" aria-label="Confirmar cancelamento" className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+          <div role="group" aria-label="Confirmar cancelamento" {...confirmationFocus} className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
             <p className="text-sm">Queres mesmo cancelar esta reserva? O horário volta a ficar livre para outros jogadores.</p>
             <div className="flex flex-wrap items-center gap-3">
               <Button type="button" variant="destructive" disabled={cancelling} onClick={onConfirmCancel}>
@@ -88,7 +94,7 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, on
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" disabled={!booking.canCancel} aria-describedby={explanationId} onClick={onAskToCancel}>
+            <Button ref={askButton} type="button" variant="outline" disabled={!booking.canCancel} aria-describedby={explanationId} onClick={onAskToCancel}>
               Cancelar reserva
             </Button>
             <p id={explanationId} className="text-sm text-muted-foreground">

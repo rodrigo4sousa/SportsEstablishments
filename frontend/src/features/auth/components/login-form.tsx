@@ -8,8 +8,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
+import { NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, login } from "../api";
 import { loginSchema, type LoginFormData, type LoginFormValues } from "../schemas/login";
@@ -43,8 +44,8 @@ export function LoginForm({ next }: LoginFormProps) {
       router.replace(safeNext(next, account.profile));
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error, { handlesNetworkError: true })) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed") {
@@ -58,6 +59,8 @@ export function LoginForm({ next }: LoginFormProps) {
       }
       if (FORM_LEVEL_CODES.has(error.code)) {
         form.resetField("password");
+        // The submit button was disabled while the request ran and lost focus: send it to the field to try again (UX-002).
+        form.setFocus("password");
         form.setError("root", { message: errorMessage(error.code) });
         return;
       }

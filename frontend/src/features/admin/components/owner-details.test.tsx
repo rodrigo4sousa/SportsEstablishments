@@ -289,7 +289,7 @@ describe("OwnerDetails", () => {
       await user.type(screen.getByLabelText("Motivo da desativação"), "Também eu");
       await user.click(screen.getByRole("button", { name: "Confirmar desativação" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent("Este dono já está desativado.");
+      expect(await screen.findByText("Este dono já está desativado.")).toHaveFocus();
       expect(await screen.findByRole("button", { name: "Reativar dono" })).toBeInTheDocument();
       expect(await screen.findByRole("list", { name: "Histórico de estados" })).toBeInTheDocument();
     });
@@ -371,7 +371,7 @@ describe("OwnerDetails", () => {
       await user.type(screen.getByLabelText("Motivo da reativação"), "Motivo");
       await user.click(screen.getByRole("button", { name: "Confirmar reativação" }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent("Este dono não está desativado.");
+      expect(await screen.findByText("Este dono não está desativado.")).toHaveFocus();
       expect(await screen.findByRole("button", { name: "Desativar dono" })).toBeInTheDocument();
     });
   });

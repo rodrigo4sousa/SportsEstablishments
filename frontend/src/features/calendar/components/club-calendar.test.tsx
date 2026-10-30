@@ -544,6 +544,17 @@ describe("ClubCalendar", () => {
       expect(within(panel).getByRole("button", { name: "Cancelar reserva" })).toBeInTheDocument();
     });
 
+    it("moves focus to the details when a booking is opened, so they are in view wherever the grid left them (UX-002, UX-004)", async () => {
+      serveCalendar({ bookings: [booking()] });
+      server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
+      renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+      await userEvent.click(await screen.findByRole("button", { name: /Rita Jogadora/ }));
+
+      const panel = await screen.findByRole("region", { name: "Detalhes da reserva" });
+      expect(within(panel).getByRole("heading", { name: "Reserva" })).toHaveFocus();
+    });
+
     it("opens the booking the address names and closes it with «Fechar»", async () => {
       resetNavigation(`/manage/clubs/${CLUB}/calendar?booking=${FIRST}`);
       serveCalendar({ bookings: [booking()] });
@@ -642,6 +653,33 @@ describe("ClubCalendar", () => {
       expect(posted).toBe(0);
     });
 
+    it("opens the form with focus on the reason, and keeping the booking puts focus back on the button (UX-002)", async () => {
+      server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
+      const { panel } = await openBooking();
+
+      expect(reasonField()).toHaveFocus();
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Manter reserva" }));
+
+      expect(within(panel).getByRole("button", { name: "Cancelar reserva" })).toHaveFocus();
+    });
+
+    it("shows a toast, and no message in the details, when the server fails (UX-019)", async () => {
+      server.use(
+        http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())),
+        http.post(`/api/manage/clubs/${CLUB}/bookings/${FIRST}/cancel`, () => problem(500, "internal_error")),
+      );
+      const { panel } = await openBooking();
+      await userEvent.type(reasonField(), "Avaria da rede");
+
+      await userEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
+
+      expect(await screen.findByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).toBeInTheDocument();
+      expect(panel.querySelector("[data-kind]")).toBeNull();
+      // The form stays, with what the owner typed, so they can try again.
+      expect(reasonField()).toHaveValue("Avaria da rede");
+    });
+
     it.each(["", "   "])("blocks an empty reason («%s») without calling the API", async (text) => {
       server.use(http.get(`/api/manage/clubs/${CLUB}/bookings/${FIRST}`, () => HttpResponse.json(details())));
       let posted = 0;
@@ -708,7 +746,10 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
 
-      expect(await within(panel).findByText("Reserva cancelada. O horário voltou a ficar livre.")).toHaveAttribute("role", "status");
+      // The result takes focus where the form was (UX-002), and is not also a live region.
+      const notice = await within(panel).findByText("Reserva cancelada. O horário voltou a ficar livre.");
+      expect(notice).toHaveFocus();
+      expect(notice).not.toHaveAttribute("role");
       expect(bodies).toEqual([{ reason: "Campo em obras" }]);
       expect(await within(panel).findByText("Cancelada pelo clube")).toBeInTheDocument();
       expect(within(panel).getByText("Campo em obras")).toBeInTheDocument();
@@ -766,12 +807,12 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
 
-      expect(await within(panel).findByRole("alert")).toHaveTextContent(message);
+      expect(await within(panel).findByText(message)).toHaveFocus();
       // The form is gone, and the message stays even though the reloaded booking no longer offers it.
       await waitFor(() => expect(gets).toBeGreaterThan(1));
       await waitFor(() => expect(asked.length).toBeGreaterThan(askedBefore));
       expect(within(panel).queryByRole("form", { name: "Cancelar reserva" })).not.toBeInTheDocument();
-      expect(within(panel).getByRole("alert")).toHaveTextContent(message);
+      expect(within(panel).getByText(message)).toBeInTheDocument();
     });
 
     it("puts the API's validation message on the reason field", async () => {
@@ -892,7 +933,7 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(within(panel).getByRole("button", { name: "Marcar falta" }));
 
-      expect(await within(panel).findByText("Falta marcada.")).toHaveAttribute("role", "status");
+      expect(await within(panel).findByText("Falta marcada.")).toHaveFocus();
       expect(within(panel).getByRole("button", { name: "Anular falta" })).toBeInTheDocument();
       expect(within(panel).queryByRole("button", { name: "Marcar falta" })).not.toBeInTheDocument();
       expect(within(panel).getByText("2 faltas nos teus clubes")).toBeInTheDocument();
@@ -934,7 +975,7 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(within(panel).getByRole("button", { name: "Anular falta" }));
 
-      expect(await within(panel).findByRole("alert")).toHaveTextContent("Não foi possível anular a falta: outra reserva confirmada já ocupa este horário.");
+      expect(await within(panel).findByText("Não foi possível anular a falta: outra reserva confirmada já ocupa este horário.")).toHaveFocus();
       expect(within(panel).getByRole("button", { name: "Anular falta" })).toBeEnabled();
       expect(within(panel).getByText("Falta")).toBeInTheDocument();
     });

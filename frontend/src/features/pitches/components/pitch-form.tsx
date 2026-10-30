@@ -8,8 +8,8 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { createPitch, pitchesQueryKey, updatePitch, type Pitch, type PitchRequest } from "../api";
 import { PITCH_NAME_MAX_LENGTH, pitchSchema, type PitchFormData, type PitchFormValues } from "../schemas/pitch";
@@ -54,8 +54,8 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
       onDone();
     },
     onError: async (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {

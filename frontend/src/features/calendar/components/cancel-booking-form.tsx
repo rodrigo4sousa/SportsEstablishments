@@ -2,12 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { calendarBookingQueryKey, calendarQueryKey, cancelClubBooking } from "../api";
 import { CANCEL_REASON_MAX_LENGTH, cancelBookingSchema, type CancelBookingData, type CancelBookingValues } from "../schemas/cancel-booking";
@@ -37,6 +38,12 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
   const form = useForm<CancelBookingValues, unknown, CancelBookingData>({ resolver: zodResolver(cancelBookingSchema), defaultValues: { reason: "" } });
   const { errors } = form.formState;
 
+  // UX-002: the form replaces the button that opened it, so focus goes to its first field.
+  const { setFocus } = form;
+  useEffect(() => {
+    setFocus("reason");
+  }, [setFocus]);
+
   const cancel = useMutation({
     mutationFn: (reason: string) => cancelClubBooking(clubId, booking.id, reason),
     onSuccess: async (cancelled) => {
@@ -45,8 +52,8 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
       onCancelled(cancelled);
     },
     onError: async (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, ["reason"])) {
@@ -83,7 +90,7 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
           rows={3}
           aria-invalid={errors.reason ? true : undefined}
           aria-describedby={errors.reason ? `${reasonId}-error` : `${reasonId}-hint`}
-          className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30"
+          className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs placeholder:text-muted-foreground focus-visible:border-ring aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30"
           {...form.register("reason")}
         />
       </FormField>

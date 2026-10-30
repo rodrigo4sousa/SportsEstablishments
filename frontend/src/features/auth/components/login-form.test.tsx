@@ -108,6 +108,26 @@ describe("LoginForm", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("puts focus back on the password field after a refusal, so the next try needs no search (UX-002)", async () => {
+    server.use(http.post("/api/auth/login", () => problem(401, "invalid_credentials")));
+    renderWithProviders(<LoginForm next={null} />);
+
+    await signIn();
+
+    await screen.findByRole("alert");
+    expect(screen.getByLabelText(/palavra-passe/i)).toHaveFocus();
+  });
+
+  it("shows a toast for a 500, with no message inside the form (UX-019)", async () => {
+    server.use(http.post("/api/auth/login", () => problem(500, "internal_error")));
+    renderWithProviders(<LoginForm next={null} />);
+
+    await signIn();
+
+    expect(await screen.findByText("Ocorreu um erro inesperado. Tenta novamente mais tarde.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("shows the too-many-requests message for a 429", async () => {
     server.use(http.post("/api/auth/login", () => problem(429, "too_many_requests")));
     renderWithProviders(<LoginForm next={null} />);

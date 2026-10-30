@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { confirmPasswordReset } from "../api";
 import { resetPasswordSchema, type ResetPasswordData, type ResetPasswordValues } from "../schemas/reset-password";
 
@@ -58,8 +59,8 @@ export function ResetPasswordForm() {
       form.reset(EMPTY_FORM);
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error, { handlesNetworkError: true })) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && error.fieldErrors.newPassword?.length) {

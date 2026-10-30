@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { fetchSchedule, pitchesQueryKey, saveSchedule, scheduleQueryKey, slotsQueryKey, type DayHours, type PitchSchedule } from "../api";
 import { SLOT_DURATIONS, TIME_STEP_MINUTES, WEEKDAYS, type WeekdayKey } from "../schedule";
@@ -91,8 +92,8 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
       toast.success("Horário guardado.");
     },
     onError: async (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && showApiFieldErrors(form, formErrors(error.fieldErrors), FIELDS)) {

@@ -15,6 +15,7 @@ import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedul
 import { sportLabel } from "@/features/pitches/sports";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
+import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { formatLisbonSlotTime, isDateKey } from "@/lib/datetime";
 import { calendarQueryKey, createClubBooking } from "../api";
@@ -107,8 +108,8 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
       onCreated(booking);
     },
     onError: async (error) => {
-      if (!(error instanceof ApiError)) {
-        toast.error(errorMessage("unknown_error"));
+      if (!isExpectedApiError(error)) {
+        toast.error(unexpectedErrorMessage(error));
         return;
       }
       if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
@@ -208,7 +209,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
                       setFormError(null);
                       form.setValue("startsAt", slot.startsAt, { shouldValidate: form.formState.isSubmitted });
                     }}
-                    className={`rounded-md border px-3 py-1 text-sm tabular-nums outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-dashed disabled:bg-muted disabled:text-muted-foreground ${
+                    className={`rounded-md border px-3 py-1 text-sm tabular-nums disabled:cursor-not-allowed disabled:border-dashed disabled:bg-muted disabled:text-muted-foreground ${
                       startsAt === slot.startsAt ? "border-foreground bg-foreground text-background" : "hover:bg-accent"
                     }`}
                   >
