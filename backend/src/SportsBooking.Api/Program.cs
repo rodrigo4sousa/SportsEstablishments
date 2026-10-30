@@ -10,6 +10,9 @@ using SportsBooking.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// No `Server: Kestrel` header: it tells a client nothing it needs.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // The build-time OpenAPI generator starts the app without real configuration or a database.
 var isOpenApiGeneration = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 if (isOpenApiGeneration)
@@ -42,6 +45,7 @@ var app = builder.Build();
 
 // First: the client IP (rate limiting) comes from X-Forwarded-For only when a trusted proxy sent it.
 app.UseForwardedHeaders();
+app.UseResponseSecurityHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseOriginCheck();
