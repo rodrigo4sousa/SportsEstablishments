@@ -9,6 +9,17 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 - Limite de pedidos dos endpoints públicos de leitura: mantém-se 120 pedidos por minuto e por IP (`RateLimiting:Public`), a rever na T06, porque em produção a API só vê o endereço do serviço Next.js até o `X-Forwarded-For` ser reescrito (ver os critérios da T06).
 - **Provisório (ADR 0009, proposta):** o critério da T06 que pede `ForwardedHeaders__KnownProxies__0` com o endereço do Caddy lê-se, no plano do Render sem Caddy, como «o endereço (ou a rede privada) do serviço Next.js, e só depois de o Next.js reescrever `X-Forwarded-For` com o IP dado pela borda do Render». Até essa mudança de código existir, não se configura nenhum proxy de confiança. Ver `docs/architecture/06-physical-view.md`, secção 4.4.
 
+## Melhorias de UX (auditoria)
+
+A auditoria de UX e acessibilidade (`docs/ux-audit.md`, 30 achados em quatro lotes) não é uma história: as correções entram em branches `feat/ux-batch-N-...` próprias, sem mudar regras de negócio nem a API. O estado de cada achado está na secção 9 do relatório.
+
+- **Lote 1, fundações: feito.** Foco visível, contraste nos tokens, foco depois das ações, 404 e páginas de erro em pt-PT, títulos, esqueletos, estados vazios, toast para erros inesperados. Os achados que ficaram para outros lotes estão listados no relatório.
+- **Decidido (direção visual):** tema neutro, sem cor de marca por agora; uma introdução curta na página inicial entra no lote 4 (UX-030).
+- **Decidido (navegação, lote 3):** atalhos por clube («Calendário», «Estatísticas») em `/manage` e um menu no cabeçalho do dono e do admin (UX-013).
+- **Decidido (calendário, lote 3):** em mobile, um campo de cada vez com seletor; em desktop, página mais larga só para o calendário (UX-005).
+- **Decidido (página do clube, lote 2):** os slots passam para cima dos contactos; a barra fixa de reserva em mobile só entra se o esforço for S ou M (UX-010).
+- **Erro corrigido, US19 e outros ecrãs (UX-019):** os erros inesperados (500, falha de rede, qualquer coisa que não seja uma resposta 4xx da API) iam para uma mensagem na página, por vezes fora de vista, em vez do toast que o AGENTS.md descreve (`isExpectedApiError` e `unexpectedErrorMessage` em `lib/api/expected-error.ts`). Agora vão para o toast; só o login, a recuperação de palavra-passe, a nova palavra-passe e a reserva continuam a descrever «sem ligação» dentro do formulário, de propósito.
+
 ## Convenções e regras de negócio
  
 **Formato.** Cada história segue «Como \<perfil>, quero \<ação>, para \<benefício>», com critérios de aceitação testáveis. **M** = MVP, **D** = depois do MVP.
@@ -454,6 +465,7 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
 - A API recusa cancelamentos fora da janela, mesmo que o pedido não venha do front end.
 - A reserva cancelada passa a «Cancelada pelo jogador» e o slot volta a ficar livre.
 - Estado: feita. Back end e interface (a página `/bookings`, «As minhas reservas»). O email de cancelamento é da US22 (o email de cancelamento indica quem cancelou); a US19 não envia emails.
+- Decidido (auditoria de UX, lote 1): um erro inesperado ao cancelar (500 ou falha de rede) mostra um toast, não uma mensagem no topo da lista; o resultado do cancelamento (sucesso ou recusa da API) recebe o foco, por isso fica à vista e é lido uma só vez pelo leitor de ecrã. Não é um aviso ao vivo.
 - Decidido (confirmado):
   - `scope` é obrigatório na lista das minhas reservas: em falta ou desconhecido é 400 em `scope`.
   - «Anteriores» são as reservas que já acabaram mais as canceladas (pelo jogador ou pelo clube) e as marcadas como falta, da mais recente para a mais antiga; «Próximas» são as confirmadas que ainda não acabaram, da mais antiga para a mais recente, e uma reserva em curso conta como próxima. Em ambas a ordem é pelo início e depois pelo id.
