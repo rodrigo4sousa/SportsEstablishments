@@ -137,7 +137,7 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p>{publicErrorMessage(code)}</p>
-        <Button type="button" variant="outline" onClick={onRetry}>
+        <Button type="button" size="cta" variant="outline" onClick={onRetry}>
           Tentar novamente
         </Button>
       </div>
@@ -159,7 +159,7 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
     return (
       <div role="status" className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground">Esta página não tem resultados.</p>
-        <Button type="button" variant="outline" onClick={() => onPage(1)}>
+        <Button type="button" size="cta" variant="outline" onClick={() => onPage(1)}>
           Voltar à primeira página
         </Button>
       </div>
@@ -180,13 +180,13 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
       </ul>
       {pages > 1 ? (
         <nav aria-label="Páginas" className="flex items-center justify-between gap-3">
-          <Button type="button" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          <Button type="button" size="cta" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
             Anterior
           </Button>
           <p className="text-sm text-muted-foreground">
             Página {page} de {pages}
           </p>
-          <Button type="button" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+          <Button type="button" size="cta" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
             Seguinte
           </Button>
         </nav>
@@ -195,12 +195,19 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   );
 }
 
+/**
+ * UX-009: the whole card opens the club, not just its name. The link is the name (so a screen reader reads one clear link per
+ * club) and its ::after covers the card; the focus ring is drawn around the card, not around the words.
+ */
 function ClubResult({ club, filters }: { club: ClubSearchItem; filters: SearchFilters }) {
   return (
-    <li className="flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+    <li className="relative flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-1">
         <h3 className="font-medium">
-          <Link href={clubHref(club.slug, filters)} className="underline-offset-4 hover:underline">
+          <Link
+            href={clubHref(club.slug, filters)}
+            className="underline-offset-4 after:absolute after:inset-0 after:rounded-lg hover:underline focus-visible:outline-transparent focus-visible:after:outline-2 focus-visible:after:outline-solid focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
+          >
             {club.name}
           </Link>
         </h3>

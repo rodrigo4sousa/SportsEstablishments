@@ -172,6 +172,21 @@ export function addDaysToDateKey(dateKey: string, days: number): string {
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
+/**
+ * The heading of a day in a list of bookings: "Hoje · sexta-feira, 30 de outubro", "Amanhã · …", "Ontem · …", or just the long date, with the year
+ * only when it is not this year. The Lisbon day of `instant` against the Lisbon day of `now`, so near midnight the browser's own day cannot mislead.
+ */
+export function formatLisbonDayHeading(instant: Instant, now: Date = new Date()): string {
+  const key = lisbonDateKey(instant);
+  const today = lisbonToday(now);
+  const year = key.slice(0, 4);
+  const long = year === today.slice(0, 4) ? formatLisbonLongDate(instant) : `${formatLisbonLongDate(instant)} de ${year}`;
+  if (key === today) return `Hoje · ${long}`;
+  if (key === addDaysToDateKey(today, 1)) return `Amanhã · ${long}`;
+  if (key === addDaysToDateKey(today, -1)) return `Ontem · ${long}`;
+  return long;
+}
+
 /** Now in Lisbon as "YYYY-MM-DDTHH:mm" (the format of the owner's date-time fields), to compare with what was typed. */
 export function lisbonNowLocal(now: Date = new Date()): string {
   return `${lisbonDateKey(now)}T${formatLisbonTime(now)}`;

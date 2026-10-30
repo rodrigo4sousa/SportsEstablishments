@@ -19,6 +19,8 @@ export class ApiError extends Error {
     readonly traceId?: string,
     /** The ProblemDetails members beyond the standard ones (e.g. `skipped` of `series_unavailable`); read what you expect, nothing else. */
     readonly extensions: Readonly<Record<string, unknown>> = {},
+    /** From the `Retry-After` header of a 429: how many seconds to wait. Unset when the header is missing or is not a number of seconds. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(`API request failed: ${status} ${code}`);
     this.name = "ApiError";
@@ -97,7 +99,18 @@ async function toApiError(response: Response): Promise<ApiError> {
     (problem?.errors as Record<string, string[]> | undefined) ?? {},
     problem?.traceId,
     (problem ?? {}) as Record<string, unknown>,
+    retryAfterSeconds(response),
   );
+}
+
+/** `Retry-After` as a whole number of seconds (the form the API sends); an HTTP date or nonsense is ignored. */
+function retryAfterSeconds(response: Response): number | undefined {
+  const value = response.headers.get("Retry-After")?.trim();
+  if (!value || !/^\d{1,5}$/.test(value)) {
+    return undefined;
+  }
+  const seconds = Number(value);
+  return seconds >= 1 ? seconds : undefined;
 }
 
 /**

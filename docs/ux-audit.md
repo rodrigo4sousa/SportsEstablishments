@@ -368,3 +368,33 @@ Medido na app a correr, com os mesmos scripts e a mesma conta de demonstração 
 Capturas sem nenhuma violação: 59 de 102 antes, 78 de 93 depois (corrida final; as duas séries não têm exatamente as mesmas capturas, por isso o que conta são as contagens por regra). Nenhuma violação de CSP nem erro na consola em nenhum dos fluxos.
 
 **Encontrado durante o lote:** o `transition-all` do botão fazia o anel de foco aparecer a desvanecer (corrigido); gravar o clube deixa o foco no `<body>` (fica com UX-002, lote 3). Do lote 2 ficam também UX-009, UX-010, UX-015, UX-018, UX-021, UX-022, UX-025, UX-026.
+
+### Lote 2 · Fluxo do jogador (feito)
+
+Medido na app a correr, como no lote 1 (desktop e mobile, teclado e axe, as contas de demonstração), nos ecrãs do visitante e do jogador: pesquisa, clube, horários, reservar, repetição semanal, «As minhas reservas», cancelar, entrar, criar conta e recuperar a palavra-passe.
+
+| Achado | Estado | Notas |
+| --- | --- | --- |
+| UX-003 aviso fora de vista | **Feito** | Uma recusa do cancelamento aparece na linha da reserva a que diz respeito, com foco; o sucesso aparece por cima da lista, na mesma região, com foco (a reserva já saiu da lista). |
+| UX-009 resultados | **Feito** | A ligação é o nome do clube e o seu `::after` cobre o cartão; o anel de foco desenha-se à volta do cartão; cartão com `hover`. Os botões do paginador têm 44 px em mobile. |
+| UX-010 página do clube | **Feito** | A ordem é a ligação de voltar, o nome e a morada, os horários, os campos e os contactos. Uma linha diz como reservar. **Barra de reserva fixa em mobile: feita**, esforço **M** (meio dia a um dia, só `position: sticky`, sem dependências, sem tocar na API): os botões são um irmão do cartão do resumo, não um filho, e colam-se ao fundo do ecrã enquanto a secção está à vista, com o que reservam por cima; de `sm` para cima são a linha de botões por baixo do resumo. Medido em 390 px: depois de escolher um horário a barra está nos últimos 97 px do ecrã. A coluna lateral de contactos em desktop **não** foi feita (a coluna tem 768 px). |
+| UX-015 separadores | **Feito** | Duas ligações numa `<nav>` com `aria-current`; um clique normal troca pelo endereço, um clique com Ctrl ou Cmd abre num separador novo. |
+| UX-018 tempo de espera | **Feito** | `Retry-After` no `ApiError`; os quatro formulários com limite contam os segundos (um `timer`, não anunciado a cada segundo), desativam o botão e dizem quando se pode voltar a tentar. Visto na app: «60 segundos», botão desativado, foco na mensagem. |
+| UX-021 cabeçalho em mobile | **Feito** | A marca numa linha e um botão «Conta» que abre o mesmo conteúdo (saudação, «As minhas reservas» só para jogadores, «Sair»); teclado: Enter abre, Tab percorre, Escape fecha e devolve o foco, sair com Tab fecha. O cabeçalho passou de duas linhas (73 px) a uma (69 px, o botão tem 44 px). O visitante mantém «Entrar» e «Criar conta» (cabem). |
+| UX-022 lista de reservas | **Feito** | Uma lista por dia, com o dia como título («Hoje · …», «Amanhã · …», o ano só se não for este) e uma linha compacta por reserva. Com 20 reservas, a página passou de cerca de 6 900 px a cerca de 4 600 px em mobile, e de cerca de 4 800 px a 3 500 px em desktop. Em mobile cada linha continua a ocupar cerca de 215 px porque o estado, o botão e o prazo ficam em linhas próprias; uma versão mais densa fica por decidir. |
+| UX-025 horários indisponíveis | **Feito** | Riscados, sem a transparência, e uma legenda («Livre», «Indisponível (riscado)»), que não diz porquê. |
+| UX-026 preço na escolha do campo | **Feito** | Um campo com faixas já não mostra um preço na escolha (cada horário mostra o seu). |
+| UX-002 (ecrãs do jogador) | **Feito** | Reservar, a recusa de uma reserva, a série, perguntar e manter o cancelamento, o resultado, as páginas de conta e a recusa do login (batch 1) deixam o foco no sítio certo; nenhum fluxo do jogador larga o foco no `<body>`. |
+| UX-011 / UX-020 (ecrãs do jogador) | **Feito** | Todos os títulos do jogador têm nome próprio (o clube leva o seu nome). O esqueleto dos horários tem a forma da lista (as duas linhas por cima e cerca de um dia de horários, na mesma grelha), porque com os horários primeiro a página abaixo saltava (deslocamento 0,14). |
+
+Também feito: uma introdução na página inicial (duas frases, e a ligação para criar uma conta de dono), a confirmação a dizer o que acontece a seguir (o email e onde cancelar), botões de ação principais com 44 px em mobile (`Button size="cta"`), e a revisão do texto: «por horário» em vez de «por slot» onde a página já diz «horário», e «tentar novamente» em todas as mensagens de repetição.
+
+**Axe nos ecrãs do visitante e do jogador** (as duas larguras): 31 de 52 capturas sem violações na auditoria, 51 de 51 no lote 1 e 51 de 51 agora. As regras da auditoria, em nós: `color-contrast` 17 para 0, `heading-order` 14 para 0, `landmark-one-main` 2 para 0, `region` 4 para 0. O axe não vê quase nada do que mudou neste lote (a ordem da página, o tamanho dos alvos, o menu, a lista por dia): isso foi conferido com as medições e as capturas acima e com os testes. Nenhum erro na consola nem violação de CSP; o deslocamento de layout máximo é 0,037 (só mudanças pedidas pelo utilizador).
+
+**Teclado, de ponta a ponta no desktop:** Tab até ao primeiro horário passou de 13 para 11 paragens; depois de reservar o foco está no título da confirmação, com o anel visível; os dois botões de reservar são alcançados na ordem do ecrã.
+
+**Fica para outros lotes**
+- Lote 3 (dono): `slot` e «por slot» nos ecrãs do dono (UX-023 e o texto de `PitchSection`), e tudo o que o relatório lhe atribui.
+- Lote 4: UX-027, UX-029, UX-030 (cor de marca e restante identidade).
+- Mais densidade em mobile na lista de reservas (cerca de 215 px por reserva); a coluna lateral de contactos em desktop; o foco ao fechar os detalhes do calendário (UX-002, dono).
+- Os separadores de `/manage` e `/admin` continuam sem menu (UX-013, lote 3).

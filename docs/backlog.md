@@ -14,6 +14,7 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 A auditoria de UX e acessibilidade (`docs/ux-audit.md`, 30 achados em quatro lotes) não é uma história: as correções entram em branches `feat/ux-batch-N-...` próprias, sem mudar regras de negócio nem a API. O estado de cada achado está na secção 9 do relatório.
 
 - **Lote 1, fundações: feito.** Foco visível, contraste nos tokens, foco depois das ações, 404 e páginas de erro em pt-PT, títulos, esqueletos, estados vazios, toast para erros inesperados. Os achados que ficaram para outros lotes estão listados no relatório.
+- **Lote 2, fluxo do jogador: feito** (relatório, secção 9): a página do clube com os horários primeiro e, em mobile, uma barra com a ação principal (`position: sticky`, sem dependências), os resultados da pesquisa como ligações inteiras, a lista de reservas por dia, o cabeçalho de mobile com um menu «Conta», o tempo de espera depois de um 429 (`Retry-After`), a introdução na página inicial, e a legenda dos horários. O texto da página do clube diz «por horário» (e não «por slot») ao lado de «horário»; os ecrãs do dono mantêm «slot» até ao lote 3.
 - **Decidido (direção visual):** tema neutro, sem cor de marca por agora; uma introdução curta na página inicial entra no lote 4 (UX-030).
 - **Decidido (navegação, lote 3):** atalhos por clube («Calendário», «Estatísticas») em `/manage` e um menu no cabeçalho do dono e do admin (UX-013).
 - **Decidido (calendário, lote 3):** em mobile, um campo de cada vez com seletor; em desktop, página mais larga só para o calendário (UX-005).
@@ -234,10 +235,10 @@ Como dono, quero definir preços diferentes por faixa horária, para cobrar mais
   - O preço de um slot (`Pitch.PriceForSlot`) é o da faixa que contém a **hora local de início** do slot nesse dia da semana (início incluído, fim excluído); fora de qualquer faixa, o preço base. Um slot que atravessa o fim de uma faixa (ex.: 90 minutos a partir das 21:00 numa faixa até às 22:00) fica com o preço da faixa onde começa. Na hora repetida de 25 de outubro, os dois slots das 01:00 têm o mesmo preço (conta a hora local).
   - Faixas do mesmo campo não se sobrepõem se partilharem um dia da semana e as horas se cruzarem; faixas que se tocam (uma acaba quando a outra começa) são aceites. Sobreposição: 409 `price_band_overlap`; os outros erros são 400 `validation_failed` com mensagem por campo (`days`, `start`, `end`, `price`). Criar, alterar e apagar correm sob o trinco do campo (`IPitchLock`), o mesmo das reservas.
   - As faixas são configuração, não histórico: apagar é apagar a linha (`DELETE …/price-bands/{bandId}`, 204). Alterar ou apagar faixas nunca toca nas reservas existentes, que guardam o preço com que foram feitas.
-  - A pesquisa (US16) continua sem mostrar preços. A página do clube mostra o preço base («Preço base: 18,50 € por slot») e uma nota quando o campo tem faixas (`hasPriceBands`); o preço de cada slot vem em `price` nos slots públicos e na pré-visualização do dono.
+  - A pesquisa (US16) continua sem mostrar preços. A página do clube mostra o preço base («Preço base: 18,50 € por horário») e uma nota quando o campo tem faixas (`hasPriceBands`); o preço de cada slot vem em `price` nos slots públicos e na pré-visualização do dono.
   - Os dias da semana viajam na API como nomes em inglês (`monday` … `sunday`), como as chaves do horário; a interface mostra-os em pt-PT, a começar na segunda-feira.
   - Só a sobreposição (409 `price_band_overlap`), o limite (422 `price_band_limit_reached`) e o «não encontrada» (404 `price_band_not_found`) têm código próprio; os erros de campo (dias vazios, fim antes do início, hora fora do passo, preço fora dos limites) são 400 `validation_failed` com a mensagem em `days`, `start`, `end` ou `price`.
-  - Texto da página do clube: o preço do campo aparece como «Preço base: 18,50 € por slot» e, por baixo, «Alguns horários têm outro preço; o preço de cada horário aparece na escolha do slot.» quando o campo tem faixas.
+  - Texto da página do clube: o preço do campo aparece como «Preço base: 18,50 € por horário» e, por baixo, «Alguns horários têm outro preço; o preço de cada horário aparece na escolha do horário.» quando o campo tem faixas.
 ## Épico 3 — Operação do clube
  
 ### US11 · Calendário de reservas · M · 8 pontos
@@ -474,6 +475,7 @@ Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os 
   - `booking_not_confirmed` verifica-se antes da janela, por isso a resposta de uma reserva já cancelada não depende do relógio.
   - Cancelar responde 200 com a reserva já cancelada (`cancelled_by_player`).
   - As reservas de um clube que entretanto ficou escondido continuam na lista do jogador.
+  - «Próximas» e «Anteriores» são duas ligações numa navegação (com `aria-current`, e cada uma com o seu endereço; antes tinham o papel de separadores, sem se comportarem como tal). A lista agrupa as reservas por dia, com o dia como título («Hoje · …», «Amanhã · …»), e cada reserva é uma linha compacta (hora e clube, depois campo, preço e série). Uma recusa do cancelamento aparece na linha da reserva; o sucesso aparece por cima da lista, na mesma região, e recebe o foco (auditoria de UX, lote 2).
   - O separador e a página da lista ficam no endereço (`?tab=past&page=2`; «Próximas» e a página 1 são o valor por omissão), por isso um recarregamento ou o botão de voltar mantêm o sítio.
   - O botão «Cancelar reserva» só segue o `canCancel` da API: quem decide se ainda se pode cancelar é a API, nunca o cálculo no navegador.
   - A mensagem do 422 `outside_cancellation_window` não leva o prazo (o front end só vê o código); o prazo vê-se na lista, que se recarrega logo a seguir.

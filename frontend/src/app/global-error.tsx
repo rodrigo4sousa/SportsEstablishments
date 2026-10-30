@@ -15,7 +15,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
         <title>Erro · Reservas de Campos</title>
         <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-start justify-center gap-4 px-4 py-12">
           <h1 className="text-2xl font-semibold tracking-tight">Ocorreu um erro inesperado.</h1>
-          <p className="text-muted-foreground">Não foi possível mostrar a aplicação. Tenta outra vez; se continuar, volta mais tarde.</p>
+          <p className="text-muted-foreground">Não foi possível mostrar a aplicação. Tenta novamente; se continuar, volta mais tarde.</p>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"

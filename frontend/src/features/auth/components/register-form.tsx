@@ -5,11 +5,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { RateLimitMessage } from "@/components/rate-limit-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/form-field";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
@@ -51,6 +53,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
+  const retry = useRetryAfter();
 
   const registration = useMutation({
     mutationFn: (request: RegisterAccountRequest) => registerAccount(variant, request),
@@ -63,6 +66,12 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
     onError: (error) => {
       if (!isExpectedApiError(error)) {
         toast.error(unexpectedErrorMessage(error));
+        return;
+      }
+      if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
+        // UX-018: it says how long to wait, so say it, count it down, and keep the button off until then.
+        form.clearErrors("root");
+        retry.start(error.retryAfterSeconds);
         return;
       }
       if (error.code === "email_taken") {
@@ -85,7 +94,10 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
       noValidate
       aria-label={FORM_LABELS[variant]}
       className="flex flex-col gap-5"
-      onSubmit={form.handleSubmit((values) => registration.mutate(values))}
+      onSubmit={form.handleSubmit((values) => {
+        retry.clear();
+        registration.mutate(values);
+      })}
     >
       <FormField id="register-name" label="Nome" error={errors.name?.message}>
         <Input
@@ -137,7 +149,9 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
         />
       </FormField>
 
-      <Button type="submit" disabled={registration.isPending}>
+      <RateLimitMessage retry={retry} />
+
+      <Button type="submit" disabled={registration.isPending || retry.waiting}>
         {registration.isPending ? "A criar conta…" : "Criar conta"}
       </Button>
     </form>

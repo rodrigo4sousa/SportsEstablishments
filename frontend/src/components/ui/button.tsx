@@ -24,6 +24,8 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        // UX (batch 2): the main action of a flow is at least 44px tall on a phone (WCAG 2.5.8), the usual size from `sm` up.
+        cta: "h-11 px-5 has-[>svg]:px-4 sm:h-9 sm:px-4 sm:has-[>svg]:px-3",
         icon: "size-9",
         "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8",

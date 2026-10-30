@@ -5,12 +5,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { RateLimitMessage } from "@/components/rate-limit-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NETWORK_ERROR } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, login } from "../api";
 import { loginSchema, type LoginFormData, type LoginFormValues } from "../schemas/login";
@@ -34,6 +36,7 @@ export function LoginForm({ next }: LoginFormProps) {
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
+  const retry = useRetryAfter();
 
   const signIn = useMutation({
     mutationFn: login,
@@ -46,6 +49,12 @@ export function LoginForm({ next }: LoginFormProps) {
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
         toast.error(unexpectedErrorMessage(error));
+        return;
+      }
+      if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
+        // UX-018: it says how long to wait, so say it, count it down, and keep the button off until then.
+        form.clearErrors("root");
+        retry.start(error.retryAfterSeconds);
         return;
       }
       if (error.code === "validation_failed") {
@@ -71,7 +80,10 @@ export function LoginForm({ next }: LoginFormProps) {
   const describedBy = (field: "email" | "password") => (errors[field] ? `login-${field}-error` : undefined);
 
   return (
-    <form noValidate aria-label="Entrar" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => signIn.mutate(values))}>
+    <form noValidate aria-label="Entrar" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
+        retry.clear();
+        signIn.mutate(values);
+      })}>
       {errors.root?.message ? (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors.root.message}
@@ -113,7 +125,9 @@ export function LoginForm({ next }: LoginFormProps) {
         ) : null}
       </div>
 
-      <Button type="submit" disabled={signIn.isPending}>
+      <RateLimitMessage retry={retry} />
+
+      <Button type="submit" disabled={signIn.isPending || retry.waiting}>
         {signIn.isPending ? "A entrar…" : "Entrar"}
       </Button>
     </form>

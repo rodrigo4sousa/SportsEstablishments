@@ -181,6 +181,31 @@ describe("ClubSearch", () => {
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(1);
   });
 
+  it("opens the club from anywhere on its card, not only from its name (UX-009)", async () => {
+    serveSearch();
+
+    renderWithProviders(<ClubSearch />);
+
+    const link = await screen.findByRole("link", { name: "Clube da Foz" });
+    // One link per club, named by the club; its ::after covers the card, which is `relative`.
+    expect(link.className).toContain("after:absolute");
+    expect(link.className).toContain("after:inset-0");
+    const card = link.closest("li");
+    expect(card?.className).toContain("relative");
+    expect(card?.className).toContain("hover:bg-accent");
+    expect(card?.querySelectorAll("a")).toHaveLength(1);
+  });
+
+  it("draws the focus ring around the card, not around the name (UX-009)", async () => {
+    serveSearch();
+
+    renderWithProviders(<ClubSearch />);
+
+    const link = await screen.findByRole("link", { name: "Clube da Foz" });
+    expect(link.className).toContain("focus-visible:after:outline-2");
+    expect(link.className).toContain("focus-visible:outline-transparent");
+  });
+
   it("says so clearly when nothing is found", async () => {
     serveSearch(() => page([]));
 

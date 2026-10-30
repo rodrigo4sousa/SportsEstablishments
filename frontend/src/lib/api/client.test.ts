@@ -75,6 +75,31 @@ describe("apiJson", () => {
   });
 });
 
+describe("Retry-After on an error (UX-018)", () => {
+  function tooMany(header: string | null) {
+    server.use(
+      http.get("/api/clubs", () =>
+        HttpResponse.json(
+          { status: 429, title: "Erro", code: "too_many_requests", traceId: "t" },
+          { status: 429, headers: { "Content-Type": "application/problem+json", ...(header === null ? {} : { "Retry-After": header }) } },
+        ),
+      ),
+    );
+  }
+
+  it("keeps the seconds the API asks to wait", async () => {
+    tooMany("42");
+
+    expect((await caught(apiJson("/api/clubs"))).retryAfterSeconds).toBe(42);
+  });
+
+  it.each([null, "0", "-5", "abc", "Wed, 21 Oct 2026 07:28:00 GMT", "1.5", "123456"])("ignores %s: the form then says only to wait a little", async (header) => {
+    tooMany(header);
+
+    expect((await caught(apiJson("/api/clubs"))).retryAfterSeconds).toBeUndefined();
+  });
+});
+
 describe("401 handling", () => {
   it("refreshes the session once and repeats the request", async () => {
     let meCalls = 0;

@@ -36,7 +36,7 @@ export function BookingDetailList({ details }: { details: BookingDetails }) {
 
 type BookingSummaryProps = {
   details: BookingDetails;
-  /** What the player can do next: confirm, sign in, or nothing. */
+  /** What can still be chosen about this booking (the weekly repetition), and what it would book. */
   children: ReactNode;
 };
 
@@ -50,6 +50,36 @@ export function BookingSummary({ details, children }: BookingSummaryProps) {
       <BookingDetailList details={details} />
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </section>
+  );
+}
+
+type BookingActionsProps = {
+  details: BookingDetails;
+  /** What the player can do next: confirm, choose another slot, sign in. */
+  children: ReactNode;
+};
+
+/**
+ * What to do with the chosen slot. On a phone it is a bar that sticks to the bottom of the screen for as long as the booking
+ * section is in view (UX-010): after choosing a slot in a long list, the main button is already on screen, with what it books
+ * on top of it. From `sm` up it is simply the row of buttons under the summary. It is a sibling of the summary card, not inside
+ * it: a sticky element cannot leave the box it is in.
+ */
+export function BookingActions({ details, children }: BookingActionsProps) {
+  return (
+    <div
+      data-slot="booking-actions"
+      className="sticky bottom-0 z-30 -mx-4 flex flex-col gap-2 border-t bg-background px-4 py-3 sm:static sm:z-auto sm:mx-0 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
+    >
+      {/* The summary above already says it all; this repeats it for the eye only, where the button is. */}
+      <p aria-hidden="true" className="text-sm sm:hidden">
+        <span className="font-medium tabular-nums">
+          {formatLisbonSlotTime(details.startsAt)} – {formatLisbonSlotTime(details.endsAt)}
+        </span>{" "}
+        · <span className="tabular-nums">{formatPrice(details.price)}</span>
+      </p>
+      <div className="flex flex-wrap items-center gap-3">{children}</div>
+    </div>
   );
 }
 
@@ -70,11 +100,12 @@ export function BookingConfirmation({ details, onDismiss, dismissLabel }: Bookin
         Reserva confirmada
       </h3>
       <BookingDetailList details={details} />
+      <p className="text-sm text-muted-foreground">Enviámos-te um email de confirmação. Podes cancelar a reserva em «As minhas reservas», até ao prazo do clube.</p>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <Link href="/bookings" className="text-sm font-medium underline underline-offset-4">
+        <Link href="/bookings" className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0">
           Ver as minhas reservas
         </Link>
-        <button type="button" onClick={onDismiss} className="text-sm underline underline-offset-4">
+        <button type="button" onClick={onDismiss} className="min-h-11 text-sm underline underline-offset-4 sm:min-h-0">
           {dismissLabel}
         </button>
       </div>
