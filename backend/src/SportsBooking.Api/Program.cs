@@ -66,7 +66,8 @@ if (!isOpenApiGeneration)
     // Invalid settings (e.g. a partial admin seed) stop the API before it touches the database.
     app.Services.GetRequiredService<IStartupValidator>().Validate();
 
-    // Production applies migrations with a migration bundle at deploy time, before the API starts.
+    // Migrations run here in Development, or when Database:ApplyMigrationsOnStartup is set. How production applies them is a T06
+    // decision (ADR 0009, proposed): the plan is a step before the API starts, but no migration bundle exists yet.
     if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     {
         await app.Services.MigrateDatabaseAsync();
