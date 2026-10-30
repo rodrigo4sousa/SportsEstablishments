@@ -195,7 +195,7 @@ Fonte: [03-logical-code-slots.puml](diagrams/03-logical-code-slots.puml).
 
 - **Ficheiro.** Esta vista junta o que antes estava previsto em `03-components.md` e `04-domain.md` (que estavam vazios).
 - **Ids novos.** As camadas (`L-`) e as partes dos componentes mais carregados (`API-BOOK-*`, `API-AUTH-*`, `API-NOTIF-*`) foram acrescentadas ao inventário com esta vista.
-- **Desvios encontrados entre documentos e código** (não corrigidos aqui, porque esta vista não muda código):
-  - `docs/stack.md` dá como exemplo `booking.Cancel(motivo, agora)`; os métodos reais são `CancelByPlayer(window, now)` e `CancelByClub(reason, now)`.
-  - O AGENTS.md diz que uma conta desativada é `AppUser.Deactivate(now)`; em produção a desativação é o `UPDATE` condicional de `OwnerStatusStore`, e `AppUser.Deactivate` só é usado nos testes.
-  - O comentário de `PitchPriceBand` refere `Pitch.AddPriceBand` e `Pitch.ChangePriceBand`; os métodos chamam-se `TryAddPriceBand` e `TryChangePriceBand`.
+- **Desvios encontrados entre documentos e código** (os de documentos já estão corrigidos; o do comentário fica para uma branch de código):
+  - `docs/stack.md` dava como exemplo `booking.Cancel(motivo, agora)`; os métodos reais são `CancelByPlayer(window, now)` e `CancelByClub(reason, now)`. **Corrigido.**
+  - O AGENTS.md dizia que uma conta desativada é `AppUser.Deactivate(now)`; em produção a desativação é o `UPDATE` condicional de `OwnerStatusStore`, e `AppUser.Deactivate` só é usado nos testes. **Corrigido.**
+  - O comentário de `PitchPriceBand` refere `Pitch.AddPriceBand` e `Pitch.ChangePriceBand`; os métodos chamam-se `TryAddPriceBand` e `TryChangePriceBand`. **Por corrigir** (comentário de código, fora desta branch).

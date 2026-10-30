@@ -124,7 +124,7 @@ Fonte: [05-dev-ci.puml](diagrams/05-dev-ci.puml).
 
 **Porque é que o SDK .NET não vem de `actions/setup-dotnet`.** Os downloads dessa action passam por `aka.ms` até `dotnetorigin.blob.core.windows.net`, que responde 409 (`PublicAccessNotPermitted`; [actions/setup-dotnet#794](https://github.com/actions/setup-dotnet/issues/794)). O passo descarrega `dotnet-install.sh` de `builds.dotnet.microsoft.com` e instala a versão exata de `global.json` (`--jsonfile global.json`, `--azure-feed https://builds.dotnet.microsoft.com/dotnet`); uma versão exata dispensa a pesquisa no `aka.ms`. Quando o problema for resolvido pode voltar-se à action (confirmar que o registo da instalação já não menciona `dotnetorigin`).
 
-**Os testes de integração precisam de Docker**, que os runners `ubuntu-latest` têm; localmente, sem Docker, todos falham a ligar (parece haver centenas de falhas). **Não há testes end-to-end no CI.** A proteção da `main` (PR com o CI verde, squash) está nas definições do GitHub, fora do repositório; o README indica os jobs `backend` e `frontend` como verificações obrigatórias.
+**Os testes de integração precisam de Docker**, que os runners `ubuntu-latest` têm; localmente, sem Docker, todos falham a ligar (parece haver centenas de falhas). **Não há testes end-to-end no CI.** A `main` **não tem proteção de branch** no GitHub (verificado em 2026-10-30: a API responde «Branch not protected»), por isso nada obriga o CI a estar verde: confirma-se à mão, antes de cada merge, que os três jobs passaram.
 
 **Em local.** O que o CI faz repete-se com `dotnet build backend/SportsBooking.slnx`, `dotnet test backend/SportsBooking.slnx` e, em `frontend/`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run gen:api`; os diagramas com `scripts/render-diagrams.sh` (ou `.ps1`), que só precisa de Docker.
 
@@ -158,11 +158,11 @@ Os «métodos» vêm de `dotnet <SportsBooking.*Tests.dll> -list methods`; os «
 
 ## 6. Convenções
 
-**Git.** `main` está protegida: só recebe pull requests com o CI verde, com **squash merge**, uma branch por história (`feat/US18-short-name`, `chore/T01-...` para as técnicas, `docs/...`, `ci/...`), a sair da `main`. Os commits seguem Conventional Commits com o id da história: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`, `docs(architecture): ...`. Cada bug ganha primeiro um teste que o reproduz, e só depois a correção. A história de `main` tem um commit por história (squash); os primeiros cinco pull requests (#1 a #5) ficaram com commits de merge.
+**Git.** A regra é que a `main` só recebe pull requests com o CI verde, com **squash merge**; não está imposta por proteção de branch, e o CI verde confirma-se à mão antes de cada merge. Uma branch por história (`feat/US18-short-name`, `chore/T01-...` para as técnicas, `docs/...`, `ci/...`), a sair da `main`. Os commits seguem Conventional Commits com o id da história: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`, `docs(architecture): ...`. Cada bug ganha primeiro um teste que o reproduz, e só depois a correção. A história de `main` tem um commit por história (squash); os primeiros cinco pull requests (#1 a #5) ficaram com commits de merge.
 
 **Código e texto.** Código, identificadores, commits e branches em inglês; texto da interface e mensagens de erro da API em pt-PT. Os documentos de arquitetura estão em pt-PT, com os nomes do código em inglês.
 
-**ADRs.** As decisões importantes ficam em `docs/architecture/adr/` (`NNNN-titulo-curto.md`; uma ADR aceite não se reescreve, é substituída por outra). O [índice](adr/README.md) tem o estado de cada uma; a 0009 (alvo de implantação) está proposta e as outras oito estão por escrever.
+**ADRs.** As decisões importantes ficam em `docs/architecture/adr/` (`NNNN-titulo-curto.md`; uma ADR aceite não se reescreve, é substituída por outra). O [índice](adr/README.md) tem o estado de cada uma; as ADRs 0001 a 0008 estão aceites e a 0009 (alvo de implantação) está proposta.
 
 **Migrações.** Gera-se com `dotnet ef migrations add <Nome> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`, a partir de `backend/`. Nunca se edita uma migração já aplicada; acrescenta-se outra (há 21). A pasta está marcada como `generated_code`. SQL à mão (a `bookings_no_overlap`, índices parciais) entra na própria migração.
 
@@ -190,4 +190,4 @@ Diferenças entre o código e outros documentos, só registadas aqui (esta parte
 1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra `Caddyfile` e `deploy.yml` na árvore do repositório; nenhum dos dois ficheiros existe (são da T06), e as ADRs que a mesma secção promete ainda não existem além do índice.
 2. O `README.md` («Continuous integration») descreve só os jobs de back end e de front end e não menciona o job `diagrams`; a sua secção «Repository layout» está desatualizada (diz «(later) email, outbox», lista só `src/app/register/` e `docs/ backlog and stack documents`, e não menciona `scripts/` nem `.github/`).
 3. `frontend/Dockerfile` copia `/app/public`, que não existe no repositório; o próprio `Dockerfile` cria a pasta vazia (`mkdir -p public`) e explica-o num comentário. Não é erro.
-4. A proteção da `main` e a obrigatoriedade das verificações não se podem confirmar a partir do repositório.
+4. A `main` não tem proteção de branch no GitHub; o `README.md` («Continuous integration») só explica como a ativar, e o `docs/stack.md` e o `AGENTS.md` já o dizem como é. O README não é alterado nesta parte.

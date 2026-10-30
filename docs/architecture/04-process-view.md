@@ -225,8 +225,8 @@ Fonte: [04-process-owner-deactivation.puml](diagrams/04-process-owner-deactivati
 
 - **Ficheiro.** Esta vista substitui o `05-runtime.md` previsto (que estava vazio); a correspondência no [README](README.md) foi atualizada.
 - **Ids.** Nenhum id novo; todos os participantes e passos dos diagramas estão no [inventário](00-inventory.md). O segundo separador do browser é o mesmo elemento (WEB-API-CLIENT) com um alias com sufixo.
-- **Desvios encontrados entre documentos e código** (não corrigidos aqui, porque esta vista não muda código):
-  - `docs/stack.md` diz que o `proxy.ts` atua «só para `/manage` e `/admin`» e que os guardas vivem nos layouts dessas duas áreas; o código também cobre `/bookings` (matcher do `proxy.ts` e `PlayerGuard`), como diz o AGENTS.md.
-  - `docs/stack.md` fala de rate limiting «nas rotas `/api/auth/*`»; o código limita login, os dois registos, refresh e os dois passos da recuperação (não o logout nem o `/me`) e também as leituras públicas (`ClubsController`, `LocalitiesController`).
-  - Nenhum documento diz a ordem do pipeline. No código, a verificação do `Origin` vem **antes** do rate limiting (e o tratamento de exceções antes dos dois).
-  - O logout com um refresh token já usado revoga todas as sessões da conta (`SessionService.EndAsync`), e o refresh de uma conta desativada também; `docs/stack.md` só descreve a revogação total na reutilização durante o refresh.
+- **Desvios encontrados entre documentos e código** (todos corrigidos nos documentos):
+  - `docs/stack.md` dizia que o `proxy.ts` atua «só para `/manage` e `/admin`» e que os guardas vivem nos layouts dessas duas áreas; o código também cobre `/bookings` (matcher do `proxy.ts` e `PlayerGuard`). **Corrigido.**
+  - `docs/stack.md` falava de rate limiting «nas rotas `/api/auth/*`»; o código limita login, os dois registos, refresh e os dois passos da recuperação (não o logout nem o `/me`) e também as leituras públicas (`ClubsController`, `LocalitiesController`). **Corrigido.**
+  - Nenhum documento dizia a ordem do pipeline. No código, a verificação do `Origin` vem **antes** do rate limiting (e o tratamento de exceções antes dos dois); está dita na secção 1.
+  - O logout com um refresh token já usado revoga todas as sessões da conta (`SessionService.EndAsync`), e o refresh de uma conta desativada também; `docs/stack.md` só descrevia a revogação total na reutilização durante o refresh. **Corrigido.**

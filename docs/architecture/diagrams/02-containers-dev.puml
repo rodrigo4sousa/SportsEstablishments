@@ -21,7 +21,7 @@ System_Boundary(COMPOSE, "docker compose (nome: sportsbooking)") {
 System_Ext(X_MAILPIT, "X-MAILPIT · Mailpit", "SMTP 1025, interface web 8025")
 
 Rel(C_BROWSER, C_WEB, "Abre páginas e chama /api/*", "HTTP, porta 3000, cookies")
-Rel(C_WEB, C_API, "Reencaminha /api/* e lê a API nos Server Components", "HTTP, http://api:8080")
+Rel(C_WEB, C_API, "Reencaminha /api/* e lê a API nos Server Components", "HTTP, api:8080")
 Rel(C_BROWSER, C_API, "Swagger e chamadas diretas (ferramentas)", "HTTP, porta 5080")
 Rel(C_API, C_DB, "Lê e escreve", "SQL, Npgsql")
 Rel(C_WORKER, C_DB, "Lê o outbox e marca o resultado", "SQL")
