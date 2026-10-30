@@ -183,6 +183,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   variant="outline"
                   size="cta"
                   disabled={toggle.isPending}
+                  className={pitch.status === "active" ? "border-destructive/40 text-destructive hover:text-destructive" : undefined}
                   aria-label={`${pitch.status === "active" ? "Desativar" : "Reativar"} ${pitch.name}`}
                   onClick={() => toggle.mutate({ pitch, activate: pitch.status === "inactive" })}
                 >

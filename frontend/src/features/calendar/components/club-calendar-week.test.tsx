@@ -138,7 +138,7 @@ describe("ClubCalendar, weekly view", () => {
       await screen.findByRole("group", { name: "Padel 1" });
       expect(screen.getByRole("button", { name: "Vista diária" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "Vista semanal" })).toHaveAttribute("aria-pressed", "false");
-      // The pitch choice is for a phone (the daily view shows every pitch from `sm` up), so it is hidden there (UX-006).
+      // The pitch choice is for a phone (the daily view shows every pitch from `sm` up), so it is hidden there (UX-005).
       expect(screen.getByLabelText("Campo").parentElement).toHaveClass("sm:hidden");
       expect(asked[0].get("from")).toBe("2026-05-07");
       expect(asked[0].get("to")).toBe("2026-05-07");

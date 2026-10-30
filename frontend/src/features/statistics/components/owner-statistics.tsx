@@ -137,7 +137,7 @@ type StatisticsTableProps = {
 
 /**
  * The table of both statistics screens. From `sm` up it is a table. On a phone seven columns do not fit, and a table that scrolls
- * sideways hides the revenue (UX-023), so each row becomes a card with the name on top and the six figures under it, each with its
+ * sideways hides the revenue (UX-006), so each row becomes a card with the name on top and the six figures under it, each with its
  * column's name beside it. It is the same elements, restyled, with explicit table roles so assistive technology still reads a table
  * when the display is no longer a table.
  */

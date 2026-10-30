@@ -1003,7 +1003,7 @@ describe("ClubCalendar", () => {
   });
 });
 
-describe("ClubCalendar on a phone and the open booking (UX-004, UX-006, UX-016)", () => {
+describe("ClubCalendar on a phone and the open booking (UX-004, UX-005, UX-016)", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-05-04T10:00:00Z"));
@@ -1022,7 +1022,7 @@ describe("ClubCalendar on a phone and the open booking (UX-004, UX-006, UX-016)"
     expect(await screen.findByText("Clube Teste")).toBeInTheDocument();
   });
 
-  it("shows one pitch on a phone, the first by default, and every pitch from sm up (UX-006)", async () => {
+  it("shows one pitch on a phone, the first by default, and every pitch from sm up (UX-005)", async () => {
     serveCalendar({ bookings: [booking()] });
     renderWithProviders(<ClubCalendar clubId={CLUB} />);
 

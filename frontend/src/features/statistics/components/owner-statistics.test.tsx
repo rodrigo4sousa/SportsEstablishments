@@ -168,7 +168,7 @@ describe("OwnerStatistics", () => {
     expect(defaultRange(new Date("2026-05-13T10:00:00Z")).to).toBe("2026-05-13");
   });
 
-  it("keeps every figure, revenue included, as a labelled cell, so a phone can stack them instead of scrolling sideways (UX-023)", async () => {
+  it("keeps every figure, revenue included, as a labelled cell, so a phone can stack them instead of scrolling sideways (UX-006)", async () => {
     serve();
     renderWithProviders(<OwnerStatistics />);
 

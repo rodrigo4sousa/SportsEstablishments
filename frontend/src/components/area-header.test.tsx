@@ -38,7 +38,7 @@ describe("page widths (UX-028)", () => {
   });
 });
 
-describe("the area menu (UX-005)", () => {
+describe("the area menu (UX-013)", () => {
   const links = [
     { href: "/manage", label: "Os meus clubes" },
     { href: "/manage/statistics", label: "Estatísticas" },
@@ -70,5 +70,18 @@ describe("the area menu (UX-005)", () => {
     await user.keyboard("{Escape}");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveFocus();
+  });
+});
+
+describe("the calendar width (UX-005)", () => {
+  it("is wider than the admin's, so six pitch columns of 176 px and the hours fit at 1440 px", () => {
+    const { container } = renderWithProviders(
+      <PageShell title="Calendário" width="calendar">
+        corpo
+      </PageShell>,
+    );
+
+    expect(container.querySelector("section")?.className).toContain(PAGE_WIDTH.calendar);
+    expect(PAGE_WIDTH.calendar).toBe("max-w-7xl");
   });
 });

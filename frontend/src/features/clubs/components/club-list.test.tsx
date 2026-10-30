@@ -86,7 +86,7 @@ describe("ClubList", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("puts the calendar, the statistics and the editing of each club one tap away (UX-005)", async () => {
+  it("puts the calendar, the statistics and the editing of each club one tap away (UX-013)", async () => {
     server.use(
       http.get("/api/manage/clubs", () => page([club(1), club(2)], 1, 2)),
     );

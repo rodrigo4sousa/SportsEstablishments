@@ -18,7 +18,7 @@ export default async function Page({ params }: PageProps<"/manage/clubs/[id]/cal
   }
 
   return (
-    <PageShell title="Calendário" width="wide">
+    <PageShell title="Calendário" width="calendar">
       {/* The day, the cancelled toggle and the open booking are read from the URL in the browser (`useSearchParams`), which Cache Components wants inside a boundary. */}
       <Suspense fallback={<RouteLoading />}>
         <ClubCalendar clubId={id} />

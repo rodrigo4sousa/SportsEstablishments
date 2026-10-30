@@ -32,7 +32,7 @@ type DayGridProps = {
   onOpenBooking: (bookingId: string) => void;
   /** Without it the grid is read-only. */
   newBooking?: NewBookingAction;
-  /** The pitch a phone shows (UX-006): there the grid is one column wide, from `sm` up every pitch is shown. Default: the first. */
+  /** The pitch a phone shows (UX-005): there the grid is one column wide, from `sm` up every pitch is shown. Default: the first. */
   selectedPitchId?: string | null;
 };
 

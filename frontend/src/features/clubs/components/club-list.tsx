@@ -72,7 +72,7 @@ export function ClubList() {
                 {club.locality} · {club.address}
               </p>
             </div>
-            {/* The calendar is what an owner opens most, so it is one tap from here (UX-005). The names carry the club for screen readers and start with the visible word. */}
+            {/* The calendar is what an owner opens most, so it is one tap from here (UX-013). The names carry the club for screen readers and start with the visible word. */}
             <div className="flex flex-wrap gap-2">
               <Button asChild size="cta" className="flex-1 sm:flex-none">
                 <Link href={`/manage/clubs/${club.id}/calendar`} aria-label={`Calendário de ${club.name}`}>

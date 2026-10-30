@@ -8,7 +8,7 @@ type AreaHeaderProps = {
   accountName: string;
   /** The width of the area's pages, so the header lines up with them (UX-028). */
   width?: PageWidth;
-  /** The area's main pages, in the account menu (UX-005). */
+  /** The area's main pages, in the account menu (UX-013). */
   links?: AccountMenuLink[];
 };
 

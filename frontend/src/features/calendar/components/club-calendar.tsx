@@ -232,7 +232,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
         </div>
 
         {data && data.pitches.length > 0 ? (
-          // The week is one pitch, and on a phone so is the day (UX-006); a wider screen shows every pitch of the day, so no choice is needed there.
+          // The week is one pitch, and on a phone so is the day (UX-005); a wider screen shows every pitch of the day, so no choice is needed there.
           <div className={`flex flex-col gap-1 ${weekly ? "" : "sm:hidden"}`}>
             <Label htmlFor="calendar-pitch" className="text-sm">
               Campo

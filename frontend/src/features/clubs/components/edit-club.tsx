@@ -61,7 +61,12 @@ export function EditClub({ clubId }: { clubId: string }) {
           </Button>
         </div>
       </div>
-      <ClubForm club={club.data} />
+      <section aria-labelledby="club-data-heading" className="flex flex-col gap-4">
+        <h2 id="club-data-heading" className="text-xl font-semibold tracking-tight">
+          Dados do clube
+        </h2>
+        <ClubForm club={club.data} />
+      </section>
       <PitchSection clubId={club.data.id} />
     </div>
   );
