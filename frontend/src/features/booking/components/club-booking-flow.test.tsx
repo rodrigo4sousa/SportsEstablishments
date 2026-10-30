@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account } from "@/features/auth/api";
 import type { PublicClub, PublicSlot } from "@/features/catalog/types";
@@ -141,6 +141,26 @@ describe("ClubBooking: booking a slot", () => {
 
       await waitFor(() => expect(summary()).not.toBeInTheDocument());
       expect(currentPath()).not.toContain("slot=");
+    });
+
+    it("shows the shape of the slots while they load, in the same grid, so the page below does not jump (UX-020)", async () => {
+      resetNavigation(FIRST_URL);
+      server.use(
+        http.get("/api/auth/me", () => problem(401, "unauthorized")),
+        http.post("/api/auth/refresh", () => problem(401, "invalid_refresh_token")),
+        http.get("/api/clubs/clube-da-foz/pitches/:pitchId/slots", async () => {
+          await delay("infinite");
+          return HttpResponse.json({ date: "2026-05-04", slots: [] });
+        }),
+      );
+      renderWithProviders(<ClubBooking club={club} />);
+
+      const loading = await screen.findByRole("status");
+      expect(loading).toHaveTextContent("A carregar os horários…");
+      const blocks = loading.querySelectorAll('[data-slot="skeleton"]');
+      // The two lines above the list (the date and the legend), and about a day of slots.
+      expect(blocks.length).toBeGreaterThanOrEqual(14);
+      expect(loading.querySelector(".grid")?.className).toContain("md:grid-cols-4");
     });
 
     it("keeps the main button on screen on a phone: the actions are a bar that sticks to the bottom, outside the summary card (UX-010)", async () => {

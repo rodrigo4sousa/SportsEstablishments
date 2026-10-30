@@ -221,10 +221,16 @@ export function ClubBooking({ club }: { club: PublicClub }) {
           {selection.date === "" ? "Escolhe uma data." : DATE_OUT_OF_WINDOW}
         </p>
       ) : slots.isPending ? (
-        <LoadingRegion label="A carregar os horários…" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((key) => (
-            <Skeleton key={key} className="h-16 w-full" />
-          ))}
+        // The shape of the loaded list (the date, the legend, and about a day of slots in the same grid), so what comes after it on the page
+        // (the pitches and the contacts) does not jump when the slots arrive.
+        <LoadingRegion label="A carregar os horários…" className="flex flex-col gap-4">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-5 w-56" />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {Array.from({ length: 16 }, (_, key) => (
+              <Skeleton key={key} className="h-[62px] w-full" />
+            ))}
+          </div>
         </LoadingRegion>
       ) : slots.isError ? (
         <div role="alert" className="flex flex-col items-start gap-3">
