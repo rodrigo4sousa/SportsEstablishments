@@ -30,7 +30,8 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
   return (
     <ScrollRegion label="Calendário da semana">
       <div className="flex min-w-max">
-        <div className="w-20 shrink-0 border-r">
+        {/* The hours stay in view when the days scroll sideways (UX-005). */}
+        <div className="sticky left-0 z-20 w-20 shrink-0 border-r bg-background">
           <div className="h-14 border-b" aria-hidden="true" />
           <ol aria-label="Horas" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (

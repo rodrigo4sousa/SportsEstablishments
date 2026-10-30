@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LoadingRegion } from "@/components/loading-region";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDocumentTitle } from "@/lib/document-title";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { PitchSection } from "@/features/pitches/components/pitch-section";
@@ -21,6 +22,8 @@ export function EditClub({ clubId }: { clubId: string }) {
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  useDocumentTitle("Editar clube", club.data?.name);
 
   if (club.isPending) {
     return (

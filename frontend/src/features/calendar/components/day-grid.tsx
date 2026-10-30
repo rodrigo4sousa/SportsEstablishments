@@ -58,7 +58,8 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
   return (
     <ScrollRegion label="Calendário do dia">
       <div className="flex sm:min-w-max">
-        <div className="w-16 shrink-0 border-r sm:w-24">
+        {/* The hours stay in view when the pitches scroll sideways (UX-005). */}
+        <div className="sticky left-0 z-20 w-16 shrink-0 border-r bg-background sm:w-24">
           <div className="h-14 border-b" aria-hidden="true" />
           <ol aria-label="Horas" className="relative" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (

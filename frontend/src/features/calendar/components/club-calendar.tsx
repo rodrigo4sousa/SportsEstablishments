@@ -170,7 +170,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
         >
           ← Voltar ao clube
         </Link>
-        <ClubName clubId={clubId} />
+        <ClubName clubId={clubId} page="Calendário" />
       </div>
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
