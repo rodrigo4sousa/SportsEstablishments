@@ -26,7 +26,7 @@ import { loginUrl } from "@/lib/auth/redirects";
 import { formatDateKeyLong } from "@/lib/datetime";
 import { createBooking, createRecurring, previewRecurring, skippedOf, type Booking, type RecurringResult, type SkippedDate } from "../api";
 import { resolveSelection, sameInstant, selectionHref, type SelectionPatch } from "../selection";
-import { BookingConfirmation, BookingSummary } from "./booking-summary";
+import { BookingActions, BookingConfirmation, BookingSummary } from "./booking-summary";
 import { RecurringConfirmation, RecurringNoneBooked, RecurringPreviewList, WeeksSelect } from "./recurring";
 import { SlotList } from "./slot-list";
 
@@ -156,6 +156,9 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       <h2 id="club-slots" className="text-lg font-semibold">
         Horários
       </h2>
+      <p className="text-sm text-muted-foreground">
+        {cannotBook ? "Escolhe o campo e o dia para ver os horários." : "Escolhe o campo e o dia, depois um horário livre, e confirma a reserva."}
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
@@ -163,7 +166,9 @@ export function ClubBooking({ club }: { club: PublicClub }) {
           <NativeSelect id="booking-pitch" value={pitch.id} onChange={(event) => pick({ pitch: event.target.value, slot: null })}>
             {club.pitches.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
-                {candidate.name} · {sportLabel(candidate.sport)} · {formatPrice(candidate.pricePerSlot)}
+                {/* With price bands, one price would mislead (UX-026): each slot shows its own. */}
+                {candidate.name} · {sportLabel(candidate.sport)}
+                {candidate.hasPriceBands ? "" : ` · ${formatPrice(candidate.pricePerSlot)}`}
               </option>
             ))}
           </NativeSelect>
@@ -245,71 +250,79 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       {cannotBook ? (
         <p className="text-sm text-muted-foreground">Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.</p>
       ) : chosenFree ? (
-        <BookingSummary
-          details={{ clubName: club.name, pitchName: pitch.name, startsAt: chosenFree.startsAt, endsAt: chosenFree.endsAt, price: chosenFree.price }}
-        >
-          <WeeksSelect weeks={selection.weeks} disabled={book.isPending || repeat.isPending} onChange={(weeks) => pick({ weeks: weeks > 1 ? String(weeks) : null })} />
-          {isPlayer && selection.weeks > 1 ? (
-            recurringPreview.isPending ? (
-              <p role="status" className="basis-full text-sm text-muted-foreground">
-                A ver quais das datas estão livres…
-              </p>
-            ) : recurringPreview.isError ? (
-              <div role="alert" className="flex basis-full flex-col items-start gap-2">
-                <p className="text-sm">{publicErrorMessage(recurringPreview.error instanceof ApiError ? recurringPreview.error.code : "unknown_error")}</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => void recurringPreview.refetch()}>
-                  Tentar novamente
-                </Button>
-              </div>
-            ) : (
-              <div className="basis-full">
-                <RecurringPreviewList occurrences={recurringPreview.data.occurrences} />
-              </div>
-            )
-          ) : null}
-          {isPlayer ? (
-            <>
-              {selection.weeks > 1 ? (
-                <Button
-                  type="button"
-                  disabled={repeat.isPending || !recurringPreview.isSuccess || freeDates === 0}
-                  onClick={() => {
-                    setFailure(null);
-                    setNoneBooked([]);
-                    repeat.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt, weeks: selection.weeks });
-                  }}
-                >
-                  {repeat.isPending ? "A reservar…" : freeDates === 1 ? "Confirmar 1 reserva" : `Confirmar ${freeDates || ""} reservas`.replace("  ", " ")}
-                </Button>
+        <>
+          <BookingSummary
+            details={{ clubName: club.name, pitchName: pitch.name, startsAt: chosenFree.startsAt, endsAt: chosenFree.endsAt, price: chosenFree.price }}
+          >
+            <WeeksSelect weeks={selection.weeks} disabled={book.isPending || repeat.isPending} onChange={(weeks) => pick({ weeks: weeks > 1 ? String(weeks) : null })} />
+            {isPlayer && selection.weeks > 1 ? (
+              recurringPreview.isPending ? (
+                <p role="status" className="basis-full text-sm text-muted-foreground">
+                  A ver quais das datas estão livres…
+                </p>
+              ) : recurringPreview.isError ? (
+                <div role="alert" className="flex basis-full flex-col items-start gap-2">
+                  <p className="text-sm">{publicErrorMessage(recurringPreview.error instanceof ApiError ? recurringPreview.error.code : "unknown_error")}</p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => void recurringPreview.refetch()}>
+                    Tentar novamente
+                  </Button>
+                </div>
               ) : (
-                <Button
-                  type="button"
-                  disabled={book.isPending}
-                  onClick={() => {
-                    setFailure(null);
-                    book.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt });
-                  }}
-                >
-                  {book.isPending ? "A reservar…" : "Confirmar reserva"}
+                <div className="basis-full">
+                  <RecurringPreviewList occurrences={recurringPreview.data.occurrences} />
+                </div>
+              )
+            ) : null}
+          </BookingSummary>
+          <BookingActions
+            details={{ clubName: club.name, pitchName: pitch.name, startsAt: chosenFree.startsAt, endsAt: chosenFree.endsAt, price: chosenFree.price }}
+          >
+            {isPlayer ? (
+              <>
+                {selection.weeks > 1 ? (
+                  <Button
+                    type="button"
+                    size="cta"
+                    disabled={repeat.isPending || !recurringPreview.isSuccess || freeDates === 0}
+                    onClick={() => {
+                      setFailure(null);
+                      setNoneBooked([]);
+                      repeat.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt, weeks: selection.weeks });
+                    }}
+                  >
+                    {repeat.isPending ? "A reservar…" : freeDates === 1 ? "Confirmar 1 reserva" : `Confirmar ${freeDates || ""} reservas`.replace("  ", " ")}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="cta"
+                    disabled={book.isPending}
+                    onClick={() => {
+                      setFailure(null);
+                      book.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt });
+                    }}
+                  >
+                    {book.isPending ? "A reservar…" : "Confirmar reserva"}
+                  </Button>
+                )}
+                <Button type="button" size="cta" variant="outline" disabled={book.isPending || repeat.isPending} onClick={() => pick({ slot: null })}>
+                  Escolher outro horário
                 </Button>
-              )}
-              <Button type="button" variant="outline" disabled={book.isPending || repeat.isPending} onClick={() => pick({ slot: null })}>
-                Cancelar
+              </>
+            ) : session === "checking" ? (
+              <Button type="button" size="cta" disabled>
+                A verificar a sessão…
               </Button>
-            </>
-          ) : session === "checking" ? (
-            <Button type="button" disabled>
-              A verificar a sessão…
-            </Button>
-          ) : (
-            <>
-              <Button asChild>
-                <Link href={loginUrl(returnPath)}>Entrar para reservar</Link>
-              </Button>
-              <p className="text-sm text-muted-foreground">Depois de entrares, voltas a este horário.</p>
-            </>
-          )}
-        </BookingSummary>
+            ) : (
+              <>
+                <Button asChild size="cta">
+                  <Link href={loginUrl(returnPath)}>Entrar para reservar</Link>
+                </Button>
+                <p className="text-sm text-muted-foreground">Depois de entrares, voltas a este horário.</p>
+              </>
+            )}
+          </BookingActions>
+        </>
       ) : null}
     </section>
   );

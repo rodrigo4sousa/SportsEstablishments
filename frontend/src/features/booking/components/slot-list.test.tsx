@@ -33,6 +33,29 @@ describe("SlotList", () => {
     expect(items.map(text)).toEqual(["09:00 – 10:00 20,00 €", "10:00 – 11:00 35,50 €", "11:00 – 12:00 35,50 €", "12:00 – 13:00 20,00 €"]);
   });
 
+  it("has a legend for the two looks, which says that a slot is unavailable and never why (UX-025)", () => {
+    render(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
+
+    expect(screen.getByText("Livre")).toBeInTheDocument();
+    expect(screen.getByText("Indisponível (riscado)")).toBeInTheDocument();
+  });
+
+  it("strikes the time of an unavailable slot, and keeps its text as dark as muted text allows instead of fading it (UX-025)", () => {
+    render(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
+
+    const [free, unavailable] = screen.getAllByRole("button");
+    expect(unavailable.querySelector(".line-through")).not.toBeNull();
+    expect(free.querySelector(".line-through")).toBeNull();
+    expect(unavailable.className).not.toMatch(/opacity/);
+  });
+
+  it("shows the same legend and looks to someone who can only look (an owner or an admin)", () => {
+    render(<SlotList slots={slots} selected={null} interactive={false} onSelect={() => {}} />);
+
+    expect(screen.getByText("Indisponível (riscado)")).toBeInTheDocument();
+    expect(document.querySelector('[data-available="false"]')?.className).not.toMatch(/opacity/);
+  });
+
   it("makes free slots buttons and shows the others disabled, with no reason", async () => {
     const onSelect = vi.fn();
     render(<SlotList slots={slots} selected={null} interactive onSelect={onSelect} />);
@@ -43,7 +66,7 @@ describe("SlotList", () => {
     expect(other).toBeEnabled();
     // Nothing says why: no "reservado", "bloqueado", "fechado" or "começou" anywhere.
     expect(text(unavailable)).toBe("10:00 – 11:00 18,50 €");
-    expect(screen.queryByText(/reservad|bloquead|fechad|começ|indispon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/reservad|bloquead|fechad|começ/i)).not.toBeInTheDocument();
 
     await userEvent.click(unavailable);
     expect(onSelect).not.toHaveBeenCalled();

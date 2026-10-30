@@ -127,7 +127,7 @@ describe("ClubBooking: booking a slot", () => {
       expect(currentPath()).toBe(`${BASE}?date=2026-05-04&pitch=${padel}&slot=${encodeURIComponent(SECOND)}`);
     });
 
-    it("changes to another slot, and closes with Cancelar", async () => {
+    it("changes to another slot, and closes with «Escolher outro horário»", async () => {
       serve({ me: account("Player"), slots: () => [slot(FIRST), slot(SECOND)] });
       renderWithProviders(<ClubBooking club={club} />);
       await screen.findByRole("list", { name: "Horários" });
@@ -137,10 +137,51 @@ describe("ClubBooking: booking a slot", () => {
       await userEvent.click(slotButton("11:00"));
       await waitFor(() => expect(details(screen.getByRole("region", { name: "Resumo da reserva" })).Hora).toBe("11:00 – 12:00"));
 
-      await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+      await userEvent.click(screen.getByRole("button", { name: "Escolher outro horário" }));
 
       await waitFor(() => expect(summary()).not.toBeInTheDocument());
       expect(currentPath()).not.toContain("slot=");
+    });
+
+    it("keeps the main button on screen on a phone: the actions are a bar that sticks to the bottom, outside the summary card (UX-010)", async () => {
+      resetNavigation(FIRST_URL);
+      serve({ me: account("Player"), slots: () => [slot(FIRST), slot(SECOND)] });
+      renderWithProviders(<ClubBooking club={club} />);
+
+      const confirm = await screen.findByRole("button", { name: "Confirmar reserva" });
+
+      const bar = confirm.closest('[data-slot="booking-actions"]');
+      expect(bar).not.toBeNull();
+      // Sticky to the bottom edge below `sm`, a plain row from `sm` up; and a sibling of the summary, not inside it, because a sticky
+      // element cannot leave the box it is in.
+      expect(bar?.className).toMatch(/\bsticky\b/);
+      expect(bar?.className).toMatch(/\bbottom-0\b/);
+      expect(bar?.className).toMatch(/\bsm:static\b/);
+      expect(summary()).not.toContainElement(bar as HTMLElement);
+      // What it books is repeated on the bar for the eye, and hidden from screen readers (the summary says it once).
+      const line = bar?.querySelector("p[aria-hidden='true']");
+      expect(line).toHaveTextContent("10:00 – 11:00 · 18,50 €");
+    });
+
+    it("makes the main actions at least 44px tall on a phone", async () => {
+      resetNavigation(FIRST_URL);
+      serve({ me: account("Player"), slots: () => [slot(FIRST)] });
+      renderWithProviders(<ClubBooking club={club} />);
+
+      for (const name of ["Confirmar reserva", "Escolher outro horário"]) {
+        expect((await screen.findByRole("button", { name })).className).toContain("h-11");
+      }
+    });
+
+    it("gives a visitor the sign-in button in the same bar", async () => {
+      resetNavigation(FIRST_URL);
+      serve({ me: null, slots: () => [slot(FIRST)] });
+      renderWithProviders(<ClubBooking club={club} />);
+
+      const signIn = await screen.findByRole("link", { name: "Entrar para reservar" });
+
+      expect(signIn.closest('[data-slot="booking-actions"]')).not.toBeNull();
+      expect(signIn.className).toContain("h-11");
     });
 
     it("closes when the pitch or the date changes, because the slot belongs to them", async () => {
@@ -225,6 +266,8 @@ describe("ClubBooking: booking a slot", () => {
       // UX-002: the confirm button is gone, so focus goes to the heading; the section is not also a live region (read twice).
       expect(within(confirmation).getByRole("heading", { name: "Reserva confirmada" })).toHaveFocus();
       expect(confirmation).not.toHaveAttribute("role");
+      // What happens next is said: the email, and where to cancel.
+      expect(within(confirmation).getByText(/Enviámos-te um email de confirmação\. Podes cancelar a reserva em «As minhas reservas»/)).toBeInTheDocument();
       // US19: the confirmation leads to "As minhas reservas", and the new booking makes that list stale.
       expect(within(confirmation).getByRole("link", { name: "Ver as minhas reservas" })).toHaveAttribute("href", "/bookings");
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["my-bookings"] });
@@ -267,7 +310,7 @@ describe("ClubBooking: booking a slot", () => {
       await userEvent.click(button);
 
       expect(await screen.findByRole("button", { name: "A reservar…" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Escolher outro horário" })).toBeDisabled();
       release?.();
       await screen.findByRole("region", { name: "Reserva confirmada" });
       expect(bookings).toHaveLength(1);
