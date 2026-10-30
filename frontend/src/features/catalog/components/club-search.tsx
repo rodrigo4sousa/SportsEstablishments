@@ -137,7 +137,7 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p>{publicErrorMessage(code)}</p>
-        <Button type="button" variant="outline" onClick={onRetry}>
+        <Button type="button" size="cta" variant="outline" onClick={onRetry}>
           Tentar novamente
         </Button>
       </div>
@@ -159,7 +159,7 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
     return (
       <div role="status" className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground">Esta página não tem resultados.</p>
-        <Button type="button" variant="outline" onClick={() => onPage(1)}>
+        <Button type="button" size="cta" variant="outline" onClick={() => onPage(1)}>
           Voltar à primeira página
         </Button>
       </div>
@@ -180,13 +180,13 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
       </ul>
       {pages > 1 ? (
         <nav aria-label="Páginas" className="flex items-center justify-between gap-3">
-          <Button type="button" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          <Button type="button" size="cta" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
             Anterior
           </Button>
           <p className="text-sm text-muted-foreground">
             Página {page} de {pages}
           </p>
-          <Button type="button" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+          <Button type="button" size="cta" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
             Seguinte
           </Button>
         </nav>

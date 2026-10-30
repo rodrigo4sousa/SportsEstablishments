@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { currentPath, resetNavigation } from "@/test/navigation";
 import { server } from "@/test/msw";
 import { renderWithProviders } from "@/test/render";
@@ -54,25 +54,28 @@ function serveList(respond: (query: URLSearchParams) => Response) {
   return asked;
 }
 
-const panel = () => screen.getByRole("tabpanel");
-const items = () => within(screen.getByRole("list", { name: "Reservas" })).getAllByRole("listitem");
+const panel = () => screen.getByRole("region", { name: /^Reservas (próximas|anteriores)$/ });
+const items = () => within(panel()).getAllByRole("listitem");
+const tab = (name: string) => screen.getByRole("link", { name });
 
-/** The label → value lines of one booking (the text between them may contain non-breaking spaces). */
-function details(item: HTMLElement): Record<string, string> {
-  const result: Record<string, string> = {};
-  item.querySelectorAll("dt").forEach((term) => {
-    result[term.textContent ?? ""] = (term.nextElementSibling?.textContent ?? "").replace(/\s/g, " ");
-  });
-  return result;
+/** What one compact row says: when, and the line under it (pitch, sport, price, series). The day is the heading of its group. */
+function row(item: HTMLElement): { time: string; details: string } {
+  const squash = (text: string | null | undefined) => (text ?? "").replace(/\s/g, " ");
+  return { time: squash(item.querySelector('[data-slot="booking-time"]')?.textContent), details: squash(item.querySelector('[data-slot="booking-details"]')?.textContent) };
 }
 
 describe("MyBookings", () => {
   beforeEach(() => {
     resetNavigation("/bookings");
+    // Only the date is fake (30 June 2026, noon in Lisbon), so the day headings do not depend on when the suite runs.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-06-30T11:00:00Z") });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe("the list", () => {
-    it("opens on «Próximas» and shows club, pitch, date, time, price and status of each booking", async () => {
+    it("opens on «Próximas» and shows club, pitch, time, price and status of each booking, under the heading of its day (UX-022)", async () => {
       const asked = serveList(() => page([booking()]));
 
       renderWithProviders(<MyBookings />);
@@ -84,17 +87,34 @@ describe("MyBookings", () => {
       });
       expect(asked[0].get("scope")).toBe("upcoming");
       expect(asked[0].has("page")).toBe(false);
-      expect(screen.getByRole("tab", { name: "Próximas" })).toHaveAttribute("aria-selected", "true");
-      expect(screen.getByRole("tab", { name: "Anteriores" })).toHaveAttribute("aria-selected", "false");
+      expect(tab("Próximas")).toHaveAttribute("aria-current", "page");
+      expect(tab("Anteriores")).not.toHaveAttribute("aria-current");
       expect(within(item).getByRole("link", { name: "Clube da Foz" })).toHaveAttribute("href", "/clubs/clube-da-foz");
-      expect(within(item).getByText("Padel 1 · Padel")).toBeInTheDocument();
-      expect(details(item)).toEqual({
-        Data: "sábado, 4 de julho (04/07/2026)",
-        Hora: "18:00 – 19:00",
-        Preço: "18,50 €",
-      });
+      expect(row(item)).toEqual({ time: "18:00 – 19:00", details: "Padel 1 · Padel · 18,50 €" });
+      // The day is said once, as the heading of the list; the row does not repeat it, nor the numeric date.
+      expect(screen.getByRole("heading", { level: 3, name: "sábado, 4 de julho" })).toBeInTheDocument();
+      expect(within(item).queryByText(/julho|04\/07/)).not.toBeInTheDocument();
       expect(within(item).getByText("Confirmada")).toBeInTheDocument();
       expect(screen.getByText("1 reserva")).toBeInTheDocument();
+    });
+
+    it("heads the day «Hoje» or «Amanhã» and groups the bookings of the same day in one list (UX-022)", async () => {
+      serveList(() =>
+        page([
+          booking({ id: FIRST_ID, startsAt: "2026-06-30T17:00:00Z", endsAt: "2026-06-30T18:00:00Z" }),
+          booking({ id: SECOND_ID, startsAt: "2026-06-30T18:00:00Z", endsAt: "2026-06-30T19:00:00Z" }),
+          booking({ id: "0199f7a0-0000-7000-8000-0000000000b3", startsAt: "2026-07-01T17:00:00Z", endsAt: "2026-07-01T18:00:00Z" }),
+          booking({ id: "0199f7a0-0000-7000-8000-0000000000b4", startsAt: "2026-07-02T17:00:00Z", endsAt: "2026-07-02T18:00:00Z" }),
+        ]),
+      );
+
+      renderWithProviders(<MyBookings />);
+
+      await waitFor(() => expect(items()).toHaveLength(4));
+      const headings = screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent);
+      expect(headings).toEqual(["Hoje · terça-feira, 30 de junho", "Amanhã · quarta-feira, 1 de julho", "quinta-feira, 2 de julho"]);
+      const today = screen.getByRole("list", { name: "Hoje · terça-feira, 30 de junho" });
+      expect(within(today).getAllByRole("listitem")).toHaveLength(2);
     });
 
     it("says which booking of a weekly series each is («2 de 4»), and nothing for a single booking (US20)", async () => {
@@ -110,7 +130,7 @@ describe("MyBookings", () => {
       renderWithProviders(<MyBookings />);
 
       await waitFor(() => expect(items()).toHaveLength(3));
-      expect(items().map((item) => details(item)["Reserva semanal"])).toEqual(["1 de 4", "2 de 4", undefined]);
+      expect(items().map((item) => /Reserva semanal: (\d de \d)/.exec(row(item).details)?.[1])).toEqual(["1 de 4", "2 de 4", undefined]);
     });
 
     it("shows the times in Lisbon time whatever the browser's time zone, and marks the repeated October hour", async () => {
@@ -125,8 +145,8 @@ describe("MyBookings", () => {
       renderWithProviders(<MyBookings />);
 
       await waitFor(() => expect(items()).toHaveLength(2));
-      expect(details(items()[0]).Hora).toBe("01:30 (verão) – 01:00 (inverno)");
-      expect(details(items()[1]).Hora).toBe("01:30 (inverno) – 02:00");
+      expect(row(items()[0]).time).toBe("01:30 (verão) – 01:00 (inverno)");
+      expect(row(items()[1]).time).toBe("01:30 (inverno) – 02:00");
     });
 
     it("switches to «Anteriores», shows the status in Portuguese and offers no cancelling there", async () => {
@@ -143,13 +163,13 @@ describe("MyBookings", () => {
       renderWithProviders(<MyBookings />);
       await waitFor(() => expect(items()).toHaveLength(1));
 
-      await userEvent.click(screen.getByRole("tab", { name: "Anteriores" }));
+      await userEvent.click(tab("Anteriores"));
 
       await waitFor(() => expect(items()).toHaveLength(4));
       expect(currentPath()).toBe("/bookings?tab=past");
       expect(asked.at(-1)?.get("scope")).toBe("past");
-      expect(screen.getByRole("tab", { name: "Anteriores" })).toHaveAttribute("aria-selected", "true");
-      expect(panel()).toHaveAccessibleName("Anteriores");
+      expect(tab("Anteriores")).toHaveAttribute("aria-current", "page");
+      expect(panel()).toHaveAccessibleName("Reservas anteriores");
       // Screen readers get «Estado: …» (the prefix is visually hidden).
       const labels = items().map((item) => within(item).getByText(/^Estado:/).parentElement?.textContent);
       expect(labels).toEqual(["Estado: Confirmada", "Estado: Cancelada pelo jogador", "Estado: Cancelada pelo clube", "Estado: Falta"]);
@@ -165,7 +185,7 @@ describe("MyBookings", () => {
       await waitFor(() => expect(items()).toHaveLength(1));
       expect(asked[0].get("scope")).toBe("past");
       expect(asked[0].get("page")).toBe("2");
-      expect(screen.getByRole("tab", { name: "Anteriores" })).toHaveAttribute("aria-selected", "true");
+      expect(tab("Anteriores")).toHaveAttribute("aria-current", "page");
       expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
     });
 
@@ -185,7 +205,7 @@ describe("MyBookings", () => {
 
       expect(await screen.findByText("Não tens reservas próximas. Pesquisa um clube para reservar um campo.")).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole("tab", { name: "Anteriores" }));
+      await userEvent.click(tab("Anteriores"));
 
       expect(await screen.findByText("Ainda não tens reservas anteriores.")).toBeInTheDocument();
     });
@@ -260,7 +280,7 @@ describe("MyBookings", () => {
       renderWithProviders(<MyBookings />);
       await screen.findByText("Página 2 de 2");
 
-      await userEvent.click(screen.getByRole("tab", { name: "Anteriores" }));
+      await userEvent.click(tab("Anteriores"));
 
       await waitFor(() => expect(asked.at(-1)?.get("scope")).toBe("past"));
       expect(asked.at(-1)?.has("page")).toBe(false);
@@ -459,7 +479,7 @@ describe("MyBookings", () => {
 
       expect(await screen.findByText("Não foi possível contactar o servidor. Verifica a ligação e tenta novamente.")).toBeInTheDocument();
       // Nothing is written in the list itself, and focus is back on the button that was pressed first.
-      expect(screen.getByRole("tabpanel").querySelector("[data-kind]")).toBeNull();
+      expect(panel().querySelector("[data-kind]")).toBeNull();
       expect(document.querySelector("[data-kind]")).toBeNull();
       await waitFor(() => expect(screen.getByRole("button", { name: "Cancelar reserva" })).toHaveFocus());
     });
@@ -522,15 +542,98 @@ describe("MyBookings", () => {
   });
 
 
+  describe("the choice between «Próximas» and «Anteriores» (UX-015)", () => {
+    it("is two links in a navigation, not tabs: the current one says so, and each has an address of its own", async () => {
+      serveList(() => page([booking()]));
+      renderWithProviders(<MyBookings />);
+      await waitFor(() => expect(items()).toHaveLength(1));
+
+      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("navigation", { name: "Próximas ou anteriores" })).getAllByRole("link")).toHaveLength(2);
+      expect(tab("Próximas")).toHaveAttribute("href", "/bookings");
+      expect(tab("Anteriores")).toHaveAttribute("href", "/bookings?tab=past");
+    });
+
+    it("works with the keyboard like any link: Tab to it, Enter to follow it", async () => {
+      serveList((query) => (query.get("scope") === "past" ? page([pastBooking()]) : page([booking()])));
+      renderWithProviders(<MyBookings />);
+      await waitFor(() => expect(items()).toHaveLength(1));
+
+      tab("Anteriores").focus();
+      await userEvent.keyboard("{Enter}");
+
+      await waitFor(() => expect(currentPath()).toBe("/bookings?tab=past"));
+      expect(tab("Anteriores")).toHaveAttribute("aria-current", "page");
+    });
+
+    it("is at least 44px tall for a finger", async () => {
+      serveList(() => page([booking()]));
+      renderWithProviders(<MyBookings />);
+      await waitFor(() => expect(items()).toHaveLength(1));
+
+      expect(tab("Próximas").className).toContain("min-h-11");
+      expect(tab("Anteriores").className).toContain("min-h-11");
+    });
+  });
+
+  describe("where a result appears (UX-003)", () => {
+    it("shows a refusal in the row of the booking it is about, with focus, and not above the list", async () => {
+      serveList(() => page([booking({ id: FIRST_ID }), booking({ id: SECOND_ID, startsAt: "2026-07-04T19:00:00Z", endsAt: "2026-07-04T20:00:00Z" })]));
+      server.use(http.post(`/api/bookings/${SECOND_ID}/cancel`, () => problem(422, "outside_cancellation_window")));
+      renderWithProviders(<MyBookings />);
+      await waitFor(() => expect(items()).toHaveLength(2));
+
+      await userEvent.click(within(items()[1]).getByRole("button", { name: "Cancelar reserva" }));
+      await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
+
+      const refusal = await within(items()[1]).findByText("O prazo para cancelar esta reserva já terminou.");
+      expect(refusal).toHaveFocus();
+      expect(within(items()[0]).queryByText("O prazo para cancelar esta reserva já terminou.")).not.toBeInTheDocument();
+    });
+
+    it("shows that it worked above the list, in the same region, when the booking has left it", async () => {
+      let done = false;
+      serveList(() => page(done ? [] : [booking()]));
+      server.use(
+        http.post(`/api/bookings/${FIRST_ID}/cancel`, () => {
+          done = true;
+          return HttpResponse.json(booking({ status: "cancelled_by_player", canCancel: false, cancellationDeadline: null }));
+        }),
+      );
+      renderWithProviders(<MyBookings />);
+      await userEvent.click(await screen.findByRole("button", { name: "Cancelar reserva" }));
+
+      await userEvent.click(screen.getByRole("button", { name: "Sim, cancelar reserva" }));
+
+      const notice = await screen.findByText("Reserva cancelada. O horário voltou a ficar livre.");
+      expect(panel()).toContainElement(notice);
+      expect(notice).toHaveFocus();
+    });
+  });
+
+  describe("touch sizes (UX-022)", () => {
+    it("makes the buttons of a booking and of the pager 44px tall on a phone", async () => {
+      serveList(() => page([booking()], { totalCount: 41 }));
+      renderWithProviders(<MyBookings />);
+      await waitFor(() => expect(items()).toHaveLength(1));
+
+      for (const name of ["Cancelar reserva", "Anterior", "Seguinte"]) {
+        expect(screen.getByRole("button", { name }).className).toContain("h-11");
+      }
+    });
+  });
+
   describe("structure and loading (UX-017, UX-020)", () => {
-    it("has an h2 between the page title and the booking cards, so the headings do not skip a level", async () => {
+    it("goes from the h2 of the list to the h3 of each day, with no level skipped (UX-017)", async () => {
       serveList(() => page([booking()]));
       renderWithProviders(<MyBookings />);
 
-      await screen.findByRole("list", { name: "Reservas" });
+      await waitFor(() => expect(items()).toHaveLength(1));
 
+      const levels = screen.getAllByRole("heading").map((heading) => Number(heading.tagName.slice(1)));
+      expect(levels).toEqual([2, 3]);
       expect(screen.getByRole("heading", { level: 2, name: "Reservas próximas" })).toBeInTheDocument();
-      expect(within(items()[0]).getByRole("heading", { level: 3 })).toBeInTheDocument();
     });
 
     it("shows the shape of the list while it loads, and says what is loading once", async () => {

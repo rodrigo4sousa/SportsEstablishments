@@ -10,6 +10,7 @@ import {
   formatLisbonDateTime,
   formatDateKeyLong,
   formatLisbonLongDate,
+  formatLisbonDayHeading,
   formatLisbonSlotTime,
   formatLisbonTime,
   lisbonRepeatedHourLabel,
@@ -301,5 +302,31 @@ describe("date key formatting for the admin charts", () => {
     expect(() => formatDateKey("2026-02-30")).toThrow();
     expect(() => formatDateKeyShort("hoje")).toThrow();
     expect(() => formatDateKeyMonth("2026-13-01")).toThrow();
+  });
+});
+
+describe("the heading of a day in a list of bookings", () => {
+  // 30 October 2026, 12:00 in Lisbon (WEST).
+  const now = new Date("2026-10-30T12:00:00Z");
+
+  it.each([
+    ["2026-10-30T18:00:00Z", "Hoje · sexta-feira, 30 de outubro"],
+    ["2026-10-31T09:00:00Z", "Amanhã · sábado, 31 de outubro"],
+    ["2026-10-29T09:00:00Z", "Ontem · quinta-feira, 29 de outubro"],
+    ["2026-11-04T10:00:00Z", "quarta-feira, 4 de novembro"],
+  ])("writes %s as «%s»", (instant, heading) => {
+    expect(formatLisbonDayHeading(instant, now)).toBe(heading);
+  });
+
+  it("adds the year when it is not this year", () => {
+    expect(formatLisbonDayHeading("2025-03-04T10:00:00Z", now)).toBe("terça-feira, 4 de março de 2025");
+  });
+
+  it("uses the Lisbon day, not the browser's, for both the booking and now (in summer, when Lisbon is UTC+1)", () => {
+    const summer = new Date("2026-07-15T12:00:00Z");
+    // 23:30 UTC on the 15th is already 00:30 on the 16th in Lisbon.
+    expect(formatLisbonDayHeading("2026-07-15T23:30:00Z", summer)).toBe("Amanhã · quinta-feira, 16 de julho");
+    // And someone looking at 23:30 UTC is already on the 16th.
+    expect(formatLisbonDayHeading("2026-07-16T10:00:00Z", new Date("2026-07-15T23:30:00Z"))).toBe("Hoje · quinta-feira, 16 de julho");
   });
 });
