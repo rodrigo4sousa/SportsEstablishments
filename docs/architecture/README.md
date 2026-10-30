@@ -30,7 +30,16 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 | [05-development-view.md](05-development-view.md) | — (organização do código; sem equivalente direto no C4) | De desenvolvimento | Como está organizado o repositório, que projetos e pacotes tem, como se constrói, testa e verifica, e como se acrescenta uma funcionalidade? |
 | [06-physical-view.md](06-physical-view.md) | Diagrama de implantação | Física | Onde corre cada contentor, em desenvolvimento, no CI e em produção (planeada), o que é público e em que se confia? |
 | [07-scenarios.md](07-scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Os casos de uso que atravessam todas as vistas e as validam. |
-| [adr/](adr/README.md) | — | — (justificação transversal) | Porque é que as escolhas importantes são as que são? |
+| [adr/README.md](adr/README.md) | — | — (justificação transversal) | Que decisões estão registadas e em que estado? |
+| [adr/0001](adr/0001-uma-app-tres-areas.md) | — | — | Porque uma só aplicação com três áreas? |
+| [adr/0002](adr/0002-sessao-em-cookies-httponly.md) | — | — | Porque a sessão está em cookies httpOnly e não em localStorage? |
+| [adr/0003](adr/0003-exclusion-constraint-reservas.md) | — | — | Como se garante que não há reservas sobrepostas? |
+| [adr/0004](adr/0004-outbox-para-emails.md) | — | — | Porque os emails passam por um outbox? |
+| [adr/0005](adr/0005-marketplace-unico.md) | — | — | Porque um marketplace e não um site por dono? |
+| [adr/0006](adr/0006-ids-guid-v7.md) | — | — | Porque ids GUID v7? |
+| [adr/0007](adr/0007-slots-calculados.md) | — | — | Porque os slots se calculam em vez de se guardarem? |
+| [adr/0008](adr/0008-chaves-data-protection-na-base-de-dados.md) | — | — | Porque as chaves do Data Protection estão na base de dados? |
+| [adr/0009](adr/0009-alvo-de-implantacao.md) | — | — (proposta) | Onde vai correr em produção (T06)? |
 
 ## Nível de abstração de cada vista
 
@@ -82,7 +91,7 @@ A fonte de verdade das regras é o [backlog](../backlog.md); a das escolhas téc
 
 ## Notas de arquitetura
 
-Factos do código que os diagramas e as ADRs seguintes (P2 a P6) têm de dizer tal como são. Não são erros.
+Factos do código que as vistas, os cenários e as ADRs têm de dizer tal como são. Não são erros.
 
 1. **A API também se alcança diretamente, em desenvolvimento.** Além de passar pelo Next.js, a API está publicada na porta 5080 do compose (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O diagrama de contentores e o de implantação de desenvolvimento mostram as duas entradas (browser → C-WEB → C-API, e browser/ferramentas → C-API em 5080).
 2. **Hoje o proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API. Por isso a API só vê o endereço do contentor Next.js como IP do cliente (relevante para os limites por IP). O Caddy aparece só como planeado (PL-CADDY), e a [ADR 0009](adr/0009-alvo-de-implantacao.md) propõe não o usar: a solução prevista para a T06 está na [vista física](06-physical-view.md#44-o-ip-do-cliente), secção 4.4.

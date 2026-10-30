@@ -10,7 +10,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `SC-` cenários de uso, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
 
 ## 1. Pessoas e atores
 
@@ -238,3 +238,17 @@ Nós e infraestrutura do ambiente que existe hoje, usados pela [vista física](0
 | DEP-DEVHOST | Máquina de desenvolvimento | Nó de implantação | Corre o Docker (Engine ou Desktop), o browser e, opcionalmente, a API e o front end fora do Docker. | `README.md`, `docker-compose.yml` |
 | DEP-COMPOSE-NET | Projeto compose `sportsbooking` e a sua rede | Nó de implantação (rede bridge do Docker) | Liga `postgres`, `mailpit`, `api` e `frontend`, que se chamam pelo nome do serviço; publica as portas 3000, 5080, 5432, 1025 e 8025 no anfitrião. | `docker-compose.yml` (`name: sportsbooking`) |
 | DEP-PGVOLUME | Volume `postgres-data` | Volume do Docker | Guarda os ficheiros do PostgreSQL em `/var/lib/postgresql`; sobrevive a `docker compose down`, apaga-se com `down -v`. | `docker-compose.yml` (`volumes`) |
+
+## 11. Cenários
+
+Os casos de uso da [vista de cenários](07-scenarios.md). Cada um liga elementos e diagramas das outras vistas; não há elementos novos nos diagramas.
+
+| Id | Nome | Tipo | Atores | Onde aparece |
+| --- | --- | --- | --- | --- |
+| SC-01 | Visitante pesquisa e reserva um slot | Cenário | P-VIS, P-JOG | US16, US17, US18; [07-scenarios.md](07-scenarios.md) |
+| SC-02 | Dono configura clube, campos, horários e preços | Cenário | P-DONO | US02, US06 a US10; idem |
+| SC-03 | Dono cancela uma reserva no calendário | Cenário | P-DONO, P-JOG | US11, US12, US22; idem |
+| SC-04 | Reserva semanal com uma data saltada | Cenário | P-JOG | US20; idem |
+| SC-05 | Recuperação da palavra-passe | Cenário | P-VIS (com conta) | US05; idem |
+| SC-06 | Admin desativa um dono | Cenário | P-ADMIN, P-DONO | US29; idem |
+| SC-07 | Corrida pelo mesmo slot | Cenário | P-JOG | T03, US18; idem |
