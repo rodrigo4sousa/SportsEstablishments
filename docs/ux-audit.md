@@ -365,6 +365,6 @@ Medido na app a correr, com os mesmos scripts e a mesma conta de demonstração 
 | `label-content-name-mismatch` | 264 | 264 (UX-016, lote 3) |
 | `scrollable-region-focusable` | 1 | 1 (UX-006, lote 3) |
 
-Capturas sem nenhuma violação: 59 de 102 antes, 83 de 98 depois. Nenhuma violação de CSP nem erro na consola em nenhum dos fluxos.
+Capturas sem nenhuma violação: 59 de 102 antes, 78 de 93 depois (corrida final; as duas séries não têm exatamente as mesmas capturas, por isso o que conta são as contagens por regra). Nenhuma violação de CSP nem erro na consola em nenhum dos fluxos.
 
 **Encontrado durante o lote:** o `transition-all` do botão fazia o anel de foco aparecer a desvanecer (corrigido); gravar o clube deixa o foco no `<body>` (fica com UX-002, lote 3). Do lote 2 ficam também UX-009, UX-010, UX-015, UX-018, UX-021, UX-022, UX-025, UX-026.
