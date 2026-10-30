@@ -261,7 +261,7 @@ Para ir marcando à medida que fica feito.
 - [x] Nada de palavras-passe, tokens nem cookies nos logs. Testado onde o risco existe: o comando do admin, as reservas e os emails (nenhum endereço, corpo ou segredo chega aos logs) e a recuperação de palavra-passe.
 - [x] Admin vê só contagens, nunca nomes ou emails de jogadores. Cada endpoint da área tem um teste que procura o nome, o email e o id de um jogador na resposta.
 - [x] `dotnet list package --vulnerable` e `npm audit` no CI.
-- [ ] Dependabot ligado. **Planeado antes da T06.**
+- [x] Dependabot ligado (`.github/dependabot.yml`: NuGet, npm e GitHub Actions, todas as semanas, uma PR agrupada por ecossistema para as atualizações menores e de correção, com 14 dias de espera para versões novas; as atualizações maiores vêm uma a uma e revêem-se à mão). (T06)
 ## Repositório, Git, CI e deploy
  
 Um só repositório, `main` só alterada por pull requests (sem proteção de branch no GitHub, ver abaixo) e deploy automático de tudo o que passa no CI.
