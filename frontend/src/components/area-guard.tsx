@@ -1,12 +1,22 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { AccountMenuLink } from "@/components/account-menu";
 import { AreaHeader } from "@/components/area-header";
 import { Main } from "@/components/main";
 import type { PageWidth } from "@/components/page-width";
 import { areaDecision, profileHome, type Profile } from "@/lib/auth/redirects";
 import { REQUEST_PATH_HEADER } from "@/lib/auth/request-path";
 import { getSessionAccount } from "@/lib/server/session";
+
+const AREA_LINKS: Record<Profile, AccountMenuLink[]> = {
+  Player: [],
+  Owner: [
+    { href: "/manage", label: "Os meus clubes" },
+    { href: "/manage/statistics", label: "Estatísticas" },
+  ],
+  Admin: [],
+};
 
 type AreaGuardProps = {
   profile: Profile;
@@ -32,7 +42,7 @@ export async function AreaGuard({ profile, title, width, children }: AreaGuardPr
 
   return (
     <>
-      <AreaHeader title={title} homeHref={profileHome(profile)} accountName={decision.account.name} width={width} />
+      <AreaHeader title={title} homeHref={profileHome(profile)} accountName={decision.account.name} width={width} links={AREA_LINKS[profile]} />
       <Main>{children}</Main>
     </>
   );
