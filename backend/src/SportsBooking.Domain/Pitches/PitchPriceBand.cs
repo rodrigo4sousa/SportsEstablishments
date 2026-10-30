@@ -9,7 +9,7 @@ public sealed record PriceBandDetails(IReadOnlySet<DayOfWeek> Days, TimeOnly Sta
 /// US10: a price for the slots of a pitch that start inside a time range on some weekdays, in the club's local time (T04).
 /// <see cref="Ends"/> of 00:00 is midnight at the end of the day; bands do not run past midnight, like opening hours. A band is
 /// configuration, not history (a booking keeps its own price), so it is changed and removed for real. Changed only through
-/// <see cref="Pitch.AddPriceBand"/>, <see cref="Pitch.ChangePriceBand"/> and <see cref="Pitch.RemovePriceBand"/>.
+/// <see cref="Pitch.TryAddPriceBand"/>, <see cref="Pitch.TryChangePriceBand"/> and <see cref="Pitch.RemovePriceBand"/>.
 /// </summary>
 public sealed class PitchPriceBand
 {

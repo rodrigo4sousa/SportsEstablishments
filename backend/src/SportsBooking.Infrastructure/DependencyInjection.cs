@@ -171,7 +171,7 @@ public static class DependencyInjection
         });
     }
 
-    /// <summary>Applies pending EF Core migrations. Development only; production uses a migration bundle.</summary>
+    /// <summary>Applies pending EF Core migrations. Development, or when <c>Database:ApplyMigrationsOnStartup</c> is set. How production applies them is decided in T06 (ADR 0009, proposed); no migration bundle exists yet.</summary>
     public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();

@@ -2,7 +2,7 @@
 
 <!-- Vista 4+1: de desenvolvimento (implementação). Sem equivalente direto no C4. Ver README.md. -->
 
-Como o código está organizado para quem o escreve: as pastas do repositório, os projetos do back end e as suas referências, as pastas do front end, o que o CI verifica, como se testa e como se acrescenta uma funcionalidade. Tudo foi conferido com os ficheiros do repositório (`.csproj`, `Directory.Packages.props`, `package.json`, `ci.yml`) em 2026-10-29, no commit `9b45eed`; os ids estão no [inventário](00-inventory.md) (secção 9 para os `DEV-`).
+Como o código está organizado para quem o escreve: as pastas do repositório, os projetos do back end e as suas referências, as pastas do front end, o que o CI verifica, como se testa e como se acrescenta uma funcionalidade. Tudo foi conferido com os ficheiros do repositório (`.csproj`, `Directory.Packages.props`, `package.json`, `ci.yml`) em 2026-10-29, no commit `f4057ca`; os ids estão no [inventário](00-inventory.md) (secção 9 para os `DEV-`).
 
 ## 1. Estrutura do repositório
 
@@ -139,13 +139,13 @@ Duas camadas automáticas no back end, uma no front end, e verificação manual 
 | Componentes do front end | DEV-TEST-WEB | Vitest 5.0.5 (jsdom), Testing Library, MSW 3.0.2 | Comportamento da UI com a API simulada: erros por campo, mensagens por `code`, URL como estado, layout do calendário, funções puras (`datetime`, `redirects`, `selection`) | A API real, o browser real, os cookies httpOnly. |
 | Verificação manual | — | Browser, `docker compose`, Mailpit | Fluxos críticos de ponta a ponta antes do merge. | Não se repete automaticamente. |
 
-**Contagens** (2026-10-29, `9b45eed`, `Release`, verificadas ao correr os testes):
+**Contagens** (2026-10-30, `f4057ca` com o pull request de endurecimento pré-deploy da T06, `Release`, verificadas ao correr os testes):
 
 | Conjunto | Casos executados | Métodos de teste | Notas |
 | --- | --- | --- | --- |
 | Unitários do back end | 549 | 291 em 39 classes | `dotnet test --project backend/tests/SportsBooking.UnitTests`; os `[Theory]` contam uma vez por linha de dados. |
-| Integração do back end | 826 | 589 em 48 classes | Cerca de 2 min 40 s, com Docker. |
-| Front end | 986 | — | 63 ficheiros de teste; cerca de 100 s. |
+| Integração do back end | 831 | 593 em 49 classes | Cerca de 2 min 40 s, com Docker. |
+| Front end | 995 | — | 64 ficheiros de teste; cerca de 100 s. |
 
 Os «métodos» vêm de `dotnet <SportsBooking.*Tests.dll> -list methods`; os «casos» do resumo do `dotnet test` e do `vitest run`.
 
@@ -188,6 +188,6 @@ A ordem segue as dependências: cada passo assenta no anterior. Os commits de sq
 Diferenças entre o código e outros documentos, só registadas aqui (esta parte não altera código, testes nem os outros documentos):
 
 1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra `Caddyfile` e `deploy.yml` na árvore do repositório; nenhum dos dois ficheiros existe (são da T06). A mesma secção promete ADRs «em `docs/`»: estão em `docs/architecture/adr/` (0001 a 0009).
-2. O `README.md` («Continuous integration») descreve só os jobs de back end e de front end e não menciona o job `diagrams`; a sua secção «Repository layout» está desatualizada (diz «(later) email, outbox», lista só `src/app/register/` e `docs/ backlog and stack documents`, e não menciona `scripts/` nem `.github/`).
+2. O `README.md` da raiz foi reescrito (pull request #29) e já descreve os três jobs de CI, incluindo `diagrams`, e a estrutura atual do repositório; esta nota fica só como registo.
 3. `frontend/Dockerfile` copia `/app/public`, que não existe no repositório; o próprio `Dockerfile` cria a pasta vazia (`mkdir -p public`) e explica-o num comentário. Não é erro.
-4. A `main` não tem proteção de branch no GitHub; o `README.md` («Continuous integration») só explica como a ativar, e o `docs/stack.md` e o `AGENTS.md` já o dizem como é. O README não é alterado nesta parte.
+4. A `main` não tem proteção de branch no GitHub; o `README.md`, o `docs/stack.md` e o `AGENTS.md` dizem-no como é, e o CI verde confirma-se à mão antes de cada merge.

@@ -195,7 +195,7 @@ Fonte: [03-logical-code-slots.puml](diagrams/03-logical-code-slots.puml).
 
 - **Ficheiro.** Esta vista junta o que antes estava previsto em `03-components.md` e `04-domain.md` (que estavam vazios).
 - **Ids novos.** As camadas (`L-`) e as partes dos componentes mais carregados (`API-BOOK-*`, `API-AUTH-*`, `API-NOTIF-*`) foram acrescentadas ao inventário com esta vista.
-- **Desvios encontrados entre documentos e código** (os de documentos já estão corrigidos; o do comentário fica para uma branch de código):
+- **Desvios encontrados entre documentos e código** (todos corrigidos):
   - `docs/stack.md` dava como exemplo `booking.Cancel(motivo, agora)`; os métodos reais são `CancelByPlayer(window, now)` e `CancelByClub(reason, now)`. **Corrigido.**
   - O AGENTS.md dizia que uma conta desativada é `AppUser.Deactivate(now)`; em produção a desativação é o `UPDATE` condicional de `OwnerStatusStore`, e `AppUser.Deactivate` só é usado nos testes. **Corrigido.**
-  - O comentário de `PitchPriceBand` refere `Pitch.AddPriceBand` e `Pitch.ChangePriceBand`; os métodos chamam-se `TryAddPriceBand` e `TryChangePriceBand`. **Por corrigir** (comentário de código, fora desta branch).
+  - O comentário de `PitchPriceBand` referia `Pitch.AddPriceBand` e `Pitch.ChangePriceBand`; os métodos chamam-se `TryAddPriceBand` e `TryChangePriceBand`. **Corrigido** (pull request de endurecimento pré-deploy, T06).

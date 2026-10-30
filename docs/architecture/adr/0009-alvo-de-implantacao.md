@@ -42,7 +42,7 @@ Cada uma tem o que verificar na [vista física, secção 5](../06-physical-view.
 4. **Migrações:** aplicadas por um passo com a ligação do dono do esquema antes de a nova versão ficar ativa (job do GitHub Actions, proposto por manter a credencial de DDL fora do Render, ou pre-deploy do Render); a API liga-se como utilizador da aplicação, sem DDL.
 5. **Email:** domínio próprio autenticado no Brevo (DKIM, DMARC).
 6. **Cópias:** cópias diárias (plano do Supabase ou `pg_dump` agendado), tratadas como segredo, porque levam as chaves do Data Protection.
-7. **Antes da T06:** Dependabot (PL-DEPENDABOT) e cabeçalhos de segurança (PL-SECHEADERS), já previstos no backlog.
+7. **Antes da T06:** Dependabot (PL-DEPENDABOT) e cabeçalhos de segurança (PL-SECHEADERS), já previstos no backlog. **Feitos**; falta ligar o HSTS (`ENABLE_HSTS=true` no build do serviço web) quando houver HTTPS.
 
 Se uma condição não se puder cumprir a um custo aceitável, esta ADR volta a ser discutida antes de implantar.
 

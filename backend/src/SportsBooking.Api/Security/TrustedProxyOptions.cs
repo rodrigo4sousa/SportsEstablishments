@@ -6,7 +6,8 @@ namespace SportsBooking.Api.Security;
 /// <summary>
 /// Reverse proxies whose <c>X-Forwarded-For</c> is believed (US03). None by default: the client address is then the
 /// connection's, and a forwarded header sent by anyone else is ignored, so it cannot change the rate-limit partition.
-/// Production trusts only Caddy (<c>ForwardedHeaders__KnownProxies__0</c> or <c>ForwardedHeaders__KnownNetworks__0</c>).
+/// No proxy is trusted today. Production is planned (T06, ADR 0009, proposed) to trust only the Next.js service, and only after it
+/// rewrites <c>X-Forwarded-For</c> (<c>ForwardedHeaders__KnownProxies__0</c> or <c>ForwardedHeaders__KnownNetworks__0</c>); until then leave both empty.
 /// </summary>
 internal sealed class TrustedProxyOptions
 {

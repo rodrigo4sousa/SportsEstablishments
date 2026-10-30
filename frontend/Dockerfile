@@ -15,7 +15,11 @@ RUN mkdir -p public
 # docker-compose.yml owns it (as build argument, and as environment for server code at run time).
 ARG API_INTERNAL_URL
 RUN test -n "$API_INTERNAL_URL" || (echo "Build argument API_INTERNAL_URL is required (docker-compose.yml sets it)." >&2; exit 1)
+# HSTS is a build setting too (the headers are written into the build). It stays off unless the site is served over HTTPS:
+# pass --build-arg ENABLE_HSTS=true (docker-compose.yml leaves it off).
+ARG ENABLE_HSTS=false
 ENV API_INTERNAL_URL=$API_INTERNAL_URL \
+    ENABLE_HSTS=$ENABLE_HSTS \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

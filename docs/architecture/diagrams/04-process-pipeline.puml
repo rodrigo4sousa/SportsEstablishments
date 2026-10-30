@@ -15,6 +15,9 @@ end note
 :CC-RATE · UseForwardedHeaders
 o IP do cliente vem de X-Forwarded-For só quando a ligação
 vem de ForwardedHeaders:KnownProxies / KnownNetworks;
+:CC-HEADERS · UseResponseSecurityHeaders
+X-Content-Type-Options: nosniff em todas as respostas,
+também nos erros e nas recusas que vêm a seguir;
 :CC-PROBLEM · UseExceptionHandler e UseStatusCodePages
 envolvem tudo o que vem a seguir;
 if (CC-ORIGIN · UseOriginCheck

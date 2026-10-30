@@ -17,7 +17,7 @@ rectangle "AddAccounts · Identity, IAccountStore, seed do admin,\nData Protecti
 rectangle "AddSessions · JwtOptions, ISessionService,\nPublicSiteOptions, IPasswordResetStore, AccountEmailBuilder" as ADDSES
 rectangle "AddEmail · EmailOptions, OutboxOptions, IEmailSender,\nOutboxProcessor, OutboxDispatcher (HostedService)" as ADDMAIL
 rectangle "L-API · extensões próprias\nAddApiProblemDetails, AddOriginCheck, AddApiRateLimiting,\nAddCookieJwtAuthentication\n(AddControllers e AddOpenApi são do framework)" as ADDAPI
-rectangle "Pipeline e arranque\nUseForwardedHeaders, UseExceptionHandler, UseOriginCheck,\nUseRateLimiter, UseAuthentication, UseAuthorization;\nvalida as opções, migra, seed do admin, comandos, MapControllers" as PIPE
+rectangle "Pipeline e arranque\nUseForwardedHeaders, UseResponseSecurityHeaders,\nUseExceptionHandler, UseOriginCheck,\nUseRateLimiter, UseAuthentication, UseAuthorization;\nvalida as opções, migra, seed do admin, comandos, MapControllers" as PIPE
 
 PROG --> ADDAPP : 1.º
 PROG --> ADDINF : 2.º
