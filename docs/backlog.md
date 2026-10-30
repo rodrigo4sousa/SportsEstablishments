@@ -7,6 +7,7 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 ## Pontos a rever no T06
 
 - Limite de pedidos dos endpoints públicos de leitura: mantém-se 120 pedidos por minuto e por IP (`RateLimiting:Public`), a rever na T06, porque em produção a API só vê o endereço do serviço Next.js até o `X-Forwarded-For` ser reescrito (ver os critérios da T06).
+- **Provisório (ADR 0009, proposta):** o critério da T06 que pede `ForwardedHeaders__KnownProxies__0` com o endereço do Caddy lê-se, no plano do Render sem Caddy, como «o endereço (ou a rede privada) do serviço Next.js, e só depois de o Next.js reescrever `X-Forwarded-For` com o IP dado pela borda do Render». Até essa mudança de código existir, não se configura nenhum proxy de confiança. Ver `docs/architecture/06-physical-view.md`, secção 4.4.
 
 ## Convenções e regras de negócio
  

@@ -18,7 +18,7 @@ Fonte: [05-dev-repo.puml](diagrams/05-dev-repo.puml).
 | `frontend/` | DEV-FRONTEND | A aplicação Next.js, a configuração (`next.config.ts`, `vitest.config.mts`, `eslint.config.mjs`, `tsconfig.json`, `components.json`) e o `Dockerfile`. |
 | `frontend/src/` | WEB-* | `app/`, `components/`, `features/`, `lib/`, `test/` e `proxy.ts` (secção 3). |
 | `docs/` | DEV-DOCS | `backlog.md` e `stack.md` (fontes de verdade, em pt-PT) e a arquitetura. |
-| `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (por ora só o índice) e `diagrams/` com os `.puml` e os `.svg` lado a lado. |
+| `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (o índice e as ADRs escritas) e `diagrams/` com os `.puml` e os `.svg` lado a lado. |
 | `scripts/` | DEV-SCRIPTS | `render-diagrams.sh` e `render-diagrams.ps1`. |
 | `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, o único workflow. |
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |
@@ -162,7 +162,7 @@ Os «métodos» vêm de `dotnet <SportsBooking.*Tests.dll> -list methods`; os «
 
 **Código e texto.** Código, identificadores, commits e branches em inglês; texto da interface e mensagens de erro da API em pt-PT. Os documentos de arquitetura estão em pt-PT, com os nomes do código em inglês.
 
-**ADRs.** As decisões importantes ficam em `docs/architecture/adr/` (`NNNN-titulo-curto.md`; uma ADR aceite não se reescreve, é substituída por outra). Hoje só existe o [índice](adr/README.md), com nove ADRs por escrever.
+**ADRs.** As decisões importantes ficam em `docs/architecture/adr/` (`NNNN-titulo-curto.md`; uma ADR aceite não se reescreve, é substituída por outra). O [índice](adr/README.md) tem o estado de cada uma; a 0009 (alvo de implantação) está proposta e as outras oito estão por escrever.
 
 **Migrações.** Gera-se com `dotnet ef migrations add <Nome> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`, a partir de `backend/`. Nunca se edita uma migração já aplicada; acrescenta-se outra (há 21). A pasta está marcada como `generated_code`. SQL à mão (a `bookings_no_overlap`, índices parciais) entra na própria migração.
 

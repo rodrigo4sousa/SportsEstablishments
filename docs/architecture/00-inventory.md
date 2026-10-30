@@ -10,7 +10,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
 
 ## 1. Pessoas e atores
 
@@ -198,8 +198,14 @@ Não usar estes ids nos diagramas do estado atual; só nas vistas de implantaç�
 | PL-RENDER-WEB | Serviço web público do Render | Nó de implantação | Corre C-WEB; é a única entrada pública (HTTPS) e reencaminha `/api/*` para a API. | Idem |
 | PL-RENDER-API | Serviço privado do Render | Nó de implantação | Corre C-API com C-WORKER, sem URL público; só se alcança pela rede interna do Render. | Idem |
 | PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção. | Idem |
+| PL-RENDER-EDGE | Borda do Render | Infraestrutura gerida (proxy de entrada) | Termina o TLS do domínio próprio, encaminha para PL-RENDER-WEB e dá o IP do cliente num cabeçalho (qual, a confirmar). | [Vista física](06-physical-view.md), [ADR 0009](adr/0009-alvo-de-implantacao.md) |
+| PL-RENDER-NET | Rede privada do Render | Rede | Liga os serviços da mesma conta e região; é o único caminho até PL-RENDER-API. | Idem |
+| PL-SUPAPOOL | Pooler de ligações do Supabase | Infraestrutura gerida | Supavisor em modo sessão (porta 5432), entre a API e a base de dados; o modo transação fica excluído. | Idem |
+| PL-DNS | DNS do domínio próprio | Sistema externo | Aponta o domínio para o Render e tem os registos de autenticação do Brevo (SPF, DKIM, DMARC). | Idem |
+| PL-DEPENDABOT | Dependabot | Configuração | `.github/dependabot.yml` para NuGet, npm e GitHub Actions; antes da T06. | `docs/backlog.md` (T06), `docs/stack.md` (checklist de segurança) |
+| PL-SECHEADERS | Cabeçalhos de segurança | Configuração e código | `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy` (e o HSTS, a decidir onde) nas respostas do site; antes da T06. | Idem |
 
-**Nota (plano de produção).** `docs/stack.md` e `docs/backlog.md` (T06) descrevem uma máquina virtual com Caddy (PL-HOST, PL-CADDY, PL-GHCR, PL-DEPLOY, PL-MIGBUNDLE). O plano atual, com PL-RENDER, PL-RENDER-WEB, PL-RENDER-API, PL-SUPABASE e PL-BREVO, não tem Caddy: o Next.js (C-WEB) continua a ser o proxy reverso. Os dois ainda não estão reconciliados nesses documentos; os ids antigos ficam até a T06 decidir.
+**Nota (plano de produção).** `docs/stack.md` e `docs/backlog.md` (T06) descrevem uma máquina virtual com Caddy (PL-HOST, PL-CADDY, PL-GHCR, PL-DEPLOY, PL-MIGBUNDLE). O plano atual, com PL-RENDER, PL-RENDER-WEB, PL-RENDER-API, PL-SUPABASE e PL-BREVO, não tem Caddy: o Next.js (C-WEB) continua a ser o proxy reverso. A [ADR 0009](adr/0009-alvo-de-implantacao.md) (proposta) escolhe o plano do Render e diz que partes da Stack substitui; os ids antigos ficam até ela ser aceite.
 
 ## 9. Vista de desenvolvimento
 
@@ -222,3 +228,13 @@ Elementos que só a [vista de desenvolvimento](05-development-view.md) usa: past
 | DEV-CI-BACKEND | Job `backend` | Job de CI | «Backend (build + tests)». | `.github/workflows/ci.yml` |
 | DEV-CI-FRONTEND | Job `frontend` | Job de CI | «Frontend (lint, typecheck, tests, build)». | `.github/workflows/ci.yml` |
 | DEV-CI-DIAGRAMS | Job `diagrams` | Job de CI | «Docs (architecture diagrams)»: desenha e compara os SVG. | `.github/workflows/ci.yml` |
+
+## 10. Vista física (implantação de hoje)
+
+Nós e infraestrutura do ambiente que existe hoje, usados pela [vista física](06-physical-view.md). Os de produção são `PL-` (secção 8).
+
+| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| --- | --- | --- | --- | --- |
+| DEP-DEVHOST | Máquina de desenvolvimento | Nó de implantação | Corre o Docker (Engine ou Desktop), o browser e, opcionalmente, a API e o front end fora do Docker. | `README.md`, `docker-compose.yml` |
+| DEP-COMPOSE-NET | Projeto compose `sportsbooking` e a sua rede | Nó de implantação (rede bridge do Docker) | Liga `postgres`, `mailpit`, `api` e `frontend`, que se chamam pelo nome do serviço; publica as portas 3000, 5080, 5432, 1025 e 8025 no anfitrião. | `docker-compose.yml` (`name: sportsbooking`) |
+| DEP-PGVOLUME | Volume `postgres-data` | Volume do Docker | Guarda os ficheiros do PostgreSQL em `/var/lib/postgresql`; sobrevive a `docker compose down`, apaga-se com `down -v`. | `docker-compose.yml` (`volumes`) |

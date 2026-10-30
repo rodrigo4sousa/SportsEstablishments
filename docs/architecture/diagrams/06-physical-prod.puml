@@ -1,0 +1,46 @@
+' plantuml-version: 1.2026.8
+@startuml 06-physical-prod
+!include <C4/C4_Deployment>
+
+title Implantação · produção, planeado (T06)
+
+LAYOUT_TOP_DOWN()
+HIDE_STEREOTYPE()
+AddElementTag("planeado", $borderStyle=DashedLine(), $legendText="planeado (T06)")
+
+Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Vê uma só origem, https://<domínio>; cookies first-party.")
+System_Ext(PL_DNS, "PL-DNS · DNS do domínio próprio", "Aponta o domínio para o Render; registos SPF, DKIM e DMARC do Brevo.", $tags="planeado")
+System_Ext(X_GHA, "X-GHA · GitHub Actions", "CI; na T06 também aplica as migrações ou dispara o deploy (a decidir).")
+
+Deployment_Node(PL_RENDER, "PL-RENDER · Render (uma região)", "Plataforma de alojamento", $tags="planeado") {
+  Container(PL_RENDER_EDGE, "PL-RENDER-EDGE · Borda do Render", "Gerida pelo Render", "TLS e certificado do domínio; acrescenta o IP do cliente em X-Forwarded-For (a confirmar).", $tags="planeado")
+  Deployment_Node(PL_RENDER_NET, "PL-RENDER-NET · Rede privada do Render", "Serviços da mesma conta e região", $tags="planeado") {
+    Deployment_Node(PL_RENDER_WEB, "PL-RENDER-WEB · Serviço web público", "Imagem de frontend/Dockerfile", $tags="planeado") {
+      Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16 standalone", "Única entrada pública. Reencaminha /api/* para a API; reescreve X-Forwarded-For (T06, por fazer).", $tags="planeado")
+    }
+    Deployment_Node(PL_RENDER_API, "PL-RENDER-API · Serviço privado, sem URL público", "Imagem de backend/Dockerfile; sempre ligado", $tags="planeado") {
+      Container(C_API, "C-API · API ASP.NET Core", ".NET 10, porta 8080", "Production; sem migrações no arranque.", $tags="planeado")
+      Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService no processo de C-API", "Precisa de uma instância sempre a correr.", $tags="planeado")
+    }
+  }
+}
+
+Deployment_Node(PL_SUPABASE, "PL-SUPABASE · Supabase", "PostgreSQL gerido", $tags="planeado") {
+  Container(PL_SUPAPOOL, "PL-SUPAPOOL · Pooler de ligações", "Supavisor, modo sessão (porta 5432)", "Modo de transação excluído (a confirmar).", $tags="planeado")
+  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL gerido", "Dados, btree_gist, chaves do Data Protection; dois utilizadores (PL-DBUSERS).", $tags="planeado")
+}
+
+System_Ext(PL_BREVO, "PL-BREVO · Brevo", "SMTP de produção; remetente no domínio próprio.", $tags="planeado")
+
+Rel(C_BROWSER, PL_DNS, "Resolve o domínio", "DNS")
+Rel(C_BROWSER, PL_RENDER_EDGE, "Abre páginas e chama /api/*", "HTTPS, cookies")
+Rel(PL_RENDER_EDGE, C_WEB, "Encaminha o pedido", "HTTP")
+Rel(C_WEB, C_API, "Reencaminha /api/* e lê a API nos Server Components", "HTTP, rede privada, API_INTERNAL_URL")
+Rel(C_API, PL_SUPAPOOL, "Lê e escreve como utilizador da aplicação", "SQL, TLS")
+Rel(C_WORKER, PL_SUPAPOOL, "Reclama o outbox e grava o resultado", "SQL, TLS")
+Rel(PL_SUPAPOOL, C_DB, "Liga", "PostgreSQL")
+Rel(C_WORKER, PL_BREVO, "Envia o email", "SMTP, porta 587, StartTls")
+Rel(X_GHA, C_DB, "Aplica as migrações como dono do esquema (uma das opções)", "SQL, TLS")
+
+SHOW_LEGEND()
+@enduml
