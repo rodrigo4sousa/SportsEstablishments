@@ -64,7 +64,7 @@ backend/
 **Regras de código**
  
 - Controllers finos: recebem o DTO, chamam o serviço e devolvem a resposta. Nada de EF Core nos controllers.
-- As entidades protegem as suas regras: setters privados e métodos com intenção, como `booking.Cancel(motivo, agora)`.
+- As entidades protegem as suas regras: setters privados e métodos com intenção, como `booking.CancelByPlayer(window, now)` e `booking.CancelByClub(reason, now)`, que devolvem o resultado (`CancellationOutcome`, `ClubCancellationOutcome`) e só mudam o estado quando a regra o permite.
 - Falhas esperadas (slot ocupado, fora da janela) são resultados devolvidos pelo serviço, não exceções; exceções ficam para o inesperado.
 - `async` em todo o caminho, com `CancellationToken` até ao EF Core.
 - Nullable reference types ligados e avisos tratados como erros.
@@ -85,7 +85,7 @@ O JavaScript do browser nunca toca nos tokens: ficam em cookies httpOnly, que um
 1. `POST /api/auth/login`: a API valida as credenciais com o Identity e responde com os dois cookies.
 2. Cada pedido leva o `access_token` automaticamente; o JwtBearer do ASP.NET Core lê-o do cookie (evento `OnMessageReceived`).
 3. Com um 401, o cliente chama `POST /api/auth/refresh` uma vez e repete o pedido. Só há um refresh em curso de cada vez: dentro do separador, os pedidos partilham o mesmo refresh; entre separadores, a Web Locks API (`navigator.locks`) deixa um separador de cada vez renovar, e quem obtém o lock repete primeiro o pedido original, porque outro separador pode já ter renovado (os cookies são partilhados). Sem `navigator.locks`, vale só a regra por separador.
-4. Cada refresh roda o token: o antigo fica inválido e sai um novo. Se um token já usado voltar a aparecer, todos os tokens desse utilizador são revogados (sinal de roubo).
+4. Cada refresh roda o token: o antigo fica inválido e sai um novo. Se um token já usado voltar a aparecer no refresh, todos os tokens desse utilizador são revogados (sinal de roubo); o mesmo acontece quando o `POST /api/auth/logout` recebe um token já usado, e quando o refresh é pedido para uma conta desativada.
 5. `POST /api/auth/logout` revoga o refresh token na BD e apaga os dois cookies.
 **Mesma origem, obrigatório**
  
@@ -95,14 +95,14 @@ O front end e a API têm de estar no mesmo site: o Caddy (em produção) ou os r
  
 - Os Server Components leem o cookie com `cookies()` e passam o cabeçalho `Cookie` quando chamam a API.
 - Os Server Components não conseguem escrever cookies, e o servidor nunca renova a sessão. Decidido (US03): o cookie `refresh_token` tem `Path=/api/auth`, por isso os pedidos de páginas não o levam e o Next.js não tem como fazer refresh. Não há renovação de tokens no `proxy.ts`; os refreshes vêm sempre do browser.
-- Os guardas do servidor vivem nos layouts das áreas (`/manage` para o Dono, `/admin` para o Admin): um helper em `lib/server` (`import 'server-only'`) chama `GET /api/auth/me` no URL interno da API com o cabeçalho `Cookie` do utilizador e `cache: 'no-store'`. Sem sessão válida → `/login?next=<caminho da área>`; sessão de outro perfil → a área desse utilizador. Com `cacheComponents`, o guarda lê cookies, por isso fica dentro de um `<Suspense>`. As páginas públicas (`/`, pesquisa, páginas de clube) ficam abertas a todos.
-- O `proxy.ts` (`src/proxy.ts`) só põe o caminho pedido (com a query) no cabeçalho de pedido `x-pathname`, sempre por cima de qualquer valor enviado pelo cliente, e só para `/manage` e `/admin`. Os guardas leem-no para construir `next=<caminho completo>`, que passa por `safeNext`. Não renova tokens, não redireciona e não decide acessos.
+- Os guardas do servidor vivem nos layouts das áreas (`/manage` para o Dono, `/admin` para o Admin) e, para as reservas do jogador, no layout de `/bookings` (`PlayerGuard`): um helper em `lib/server` (`import 'server-only'`) chama `GET /api/auth/me` no URL interno da API com o cabeçalho `Cookie` do utilizador e `cache: 'no-store'`. Sem sessão válida → `/login?next=<caminho da área>`; sessão de outro perfil → a área desse utilizador. Com `cacheComponents`, o guarda lê cookies, por isso fica dentro de um `<Suspense>`. As páginas públicas (`/`, pesquisa, páginas de clube) ficam abertas a todos.
+- O `proxy.ts` (`src/proxy.ts`) só põe o caminho pedido (com a query) no cabeçalho de pedido `x-pathname`, sempre por cima de qualquer valor enviado pelo cliente, e só para `/manage`, `/admin` e `/bookings`. Os guardas leem-no para construir `next=<caminho completo>`, que passa por `safeNext`. Não renova tokens, não redireciona e não decide acessos.
 - Um access token expirado leva ao `/login?next=...`. A página de login tenta primeiro, no browser, um `POST /api/auth/refresh` silencioso: com 204 segue para `next` (se for um caminho relativo da área do utilizador; senão, a página inicial do perfil), caso contrário mostra o formulário.
 - Os guardas são só uma conveniência (redirecionamentos). Quem decide o acesso é sempre a API (401/403).
 **CSRF e força bruta**
  
 - Como o browser envia os cookies sozinho, os pedidos que alteram dados precisam de proteção: o SameSite=Lax bloqueia POST vindos de outros sites, e a API rejeita POST, PUT, PATCH e DELETE cujo cabeçalho `Origin` não seja o do site.
-- Bloqueio de conta do Identity depois de várias tentativas falhadas e rate limiting (middleware nativo) nas rotas `/api/auth/*`.
+- Bloqueio de conta do Identity depois de várias tentativas falhadas e rate limiting (middleware nativo) por IP no login, nos dois registos, no refresh e nos dois passos da recuperação de palavra-passe (não no logout nem no `GET /api/auth/me`) e nos endpoints públicos de leitura (pesquisa, localidades, página do clube e slots).
 - Desativar um dono (US29) ou mudar a palavra-passe revoga os refresh tokens; a sessão acaba no máximo quando o access token expira (15 minutos).
 - O `POST /api/auth/refresh` verifica sempre que a conta está ativa antes de emitir tokens; uma conta desativada recebe 401 e não renova a sessão.
 - **Compromisso conhecido:** o access token é um JWT sem estado, validado sem ir à base de dados. Um token já emitido continua válido até expirar (no máximo 15 minutos), mesmo depois de a conta ser desativada. A validade curta e a verificação no refresh limitam essa janela. Não há verificação de conta ativa em cada pedido.
@@ -264,7 +264,7 @@ Para ir marcando à medida que fica feito.
 - [ ] Dependabot ligado. **Planeado antes da T06.**
 ## Repositório, Git, CI e deploy
  
-Um só repositório, `main` protegida e deploy automático de tudo o que passa no CI.
+Um só repositório, `main` só alterada por pull requests (sem proteção de branch no GitHub, ver abaixo) e deploy automático de tudo o que passa no CI.
  
 ```text
 /
@@ -278,7 +278,7 @@ Um só repositório, `main` protegida e deploy automático de tudo o que passa n
  
 **Git**
  
-- `main` protegida: só recebe pull requests com o CI verde, mesmo trabalhando sozinho.
+- A regra é que a `main` só recebe pull requests com o CI verde, mesmo trabalhando sozinho. **Hoje não há proteção de branch na `main`** (nenhuma regra nas definições do GitHub): o CI verde confirma-se à mão antes de cada merge.
 - Branches curtas com o ID da história (`feat/US18-reservar-slot`) e squash merge.
 - Commits no formato Conventional Commits (`feat:`, `fix:`, `test:`), com o ID da história.
 - Decisões importantes em ADRs curtos em `docs/` (uma app em vez de duas, cookies em vez de localStorage, a exclusion constraint).
