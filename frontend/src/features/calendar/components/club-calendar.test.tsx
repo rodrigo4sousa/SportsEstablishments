@@ -1055,6 +1055,15 @@ describe("ClubCalendar on a phone and the open booking (UX-004, UX-005, UX-016)"
     expect(hours.parentElement).toHaveClass("sticky", "left-0", "bg-background");
   });
 
+  it("lets the pitch columns share the width from sm up, with a minimum, so the booking text is not cut (UX-005)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    await screen.findByRole("group", { name: "Padel 1" });
+
+    expect(column("Padel 1")).toHaveClass("sm:min-w-44", "sm:flex-1");
+  });
+
   it("makes the scrolling grid reachable with the keyboard and names it (UX-016, scrollable-region-focusable)", async () => {
     serveCalendar({ bookings: [booking()] });
     renderWithProviders(<ClubCalendar clubId={CLUB} />);
