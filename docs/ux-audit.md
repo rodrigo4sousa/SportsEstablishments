@@ -333,6 +333,7 @@ Tomadas a 2026-10-30, depois da secção 6, e que valem para os lotes seguintes.
 5. **Página do clube (UX-010), para o lote 2.** Os slots passam para cima dos contactos. A barra fixa de reserva em mobile só entra se for barata (esforço S ou M); senão fica de fora.
 6. **Lista de reservas em mobile (UX-022), depois do lote 2.** Aceita-se a altura de 215 px por reserva: com 20 reservas a página caiu para 4 600 px, o jogador raramente tem tantas, e densificar mexe num componente que já está claro, com pouco ganho.
 7. **Contactos na página do clube em desktop (UX-010), depois do lote 2.** Sem coluna lateral: a coluna tem 768 px e os contactos no fim são o sítio habitual. Fica como está.
+8. **Calendário do dono, depois do lote 3.** O cabeçalho continua estreito e a página do calendário larga: alinhá-los pioraria a página. O teste num telemóvel real (os três botões de cada campo, o teclado virtual em «Nova reserva» e o menu «Conta») faz-se quando o deploy existir. A coluna fixa das horas e o nome do clube nos títulos passam para o lote 4.
 
 ## 9. Estado dos lotes
 
@@ -427,3 +428,36 @@ Medido na app a correr (`docker compose` com os dados de demonstração, o clube
 - Lote 4: UX-027, UX-029, UX-030, e a repetição da auditoria no admin.
 - UX-023: menu de mais ações por campo e âncoras entre as secções; coluna das horas fixa no calendário.
 - O título do separador com o nome do clube nas páginas do dono.
+
+### Lote 4 · Admin e passagem final (feito)
+
+Medido na app a correr (`docker compose`, dados de demonstração, build de produção), nos três perfis e nas páginas globais, a 1440 px e a 390 px, mais 200 % de zoom (720 px de largura útil) e reflow a 320 px nas 23 páginas principais, com teclado e axe.
+
+| Achado | Estado | Notas |
+| --- | --- | --- |
+| UX-027 gráficos do admin | **Feito** | `--chart-1` passou de 1,5:1 para 3:1 com a página e as duas séries distinguem-se por luminosidade (≥ 2:1 entre si), testado nos dois temas (`theme-contrast.test.ts`). Cada barra diz o seu número (até 12 períodos), a legenda tem texto escuro e os dados de cada gráfico estão numa tabela que qualquer pessoa abre («Ver os números numa tabela», um `<details>`), já não só para leitores de ecrã. |
+| UX-029 tabela de donos | **Feito** | Os nomes são ligações sublinhadas (também a tabela dos clubes com maior ocupação); os cabeçalhos ordenáveis têm área maior; em mobile os donos e os clubes com maior ocupação são cartões com cada número legendado (antes, a tabela escondia a ocupação à direita) e a ordem dos donos escolhe-se numa lista «Ordenar por». Os totais passam a duas colunas em mobile. |
+| Página do dono e desativação | **Feito** | Esqueletos e estado vazio; o botão de desativar tem 44 px em mobile; o resultado da desativação e da reativação recebe o foco e fica à vista (medido a 419 px do topo em desktop e 236 px em mobile), com o histórico atualizado. |
+| UX-005 (diferido do lote 3) | **Feito** | A coluna das horas fica fixa (`sticky`) quando os campos deslizam; as colunas dos campos e dos dias partilham a largura com um mínimo, por isso o texto das reservas deixa de ser cortado («Criada pelo clube» inteiro). O cabeçalho dos campos não fica fixo ao scroll vertical: a grelha cresce com a página e não tem scroll vertical próprio. |
+| UX-012 (diferido do lote 3) | **Feito** | O título do separador leva o nome do clube no calendário, nas estatísticas do clube e na edição, e o nome do dono na página do dono (`useDocumentTitle`, depois de o nome ser conhecido; a página do servidor continua com o título genérico). |
+| UX-028 larguras | **Feito** | O cabeçalho estreito e a página larga do calendário ficam como estão (decisão 8). |
+| UX-030 identidade visual | **Parcial, por decisão** | Mantém-se o tema neutro (decisão 1). Há introdução na página inicial desde o lote 2, com a ligação para registar um clube; sem cor de marca, ícones nem imagem. |
+| UX-023 edição do clube | **Parcial** | Ver o lote 3: faltam o menu de mais ações e as âncoras entre secções. |
+
+**Passagem final de acessibilidade, todos os perfis.**
+- **Axe:** 90 capturas (51 ecrãs, nas duas larguras), 90 sem nenhuma violação; mais as 23 páginas principais (visitante, jogador, dono e admin, incluindo a página de um dono) a 1440 px, a 200 % de zoom e a 320 px: 69 de 69 sem violações. Nenhuma página com scroll horizontal da página inteira, nem a 320 px; o maior layout shift é 0,008. A primeira corrida do lote encontrou, e o lote corrigiu, uma violação do axe (`landmark-unique`: a região da tabela do top de clubes repetia o nome da sua secção) e dois pontos de reflow que o axe não vê (o cabeçalho público e as filas de botões de alguns formulários passavam dos 320 px, WCAG 1.4.10).
+- **Antes e depois, no projeto inteiro:** auditoria original, 59 de 102 capturas sem violações (6 regras: `color-contrast` 48 nós, `label-content-name-mismatch` 264, `heading-order` 14, `region` 4, `landmark-one-main` 2, `scrollable-region-focusable` 1); agora, 90 de 90, nenhuma regra.
+- **Teclado:** percorridas com Tab a página inicial, a página do clube, o login, a lista de clubes do dono, a edição do clube, o calendário, as estatísticas e o painel do admin (45 a 60 paragens cada): nenhuma paragem sem anel de foco visível, nenhuma fora do ecrã, nenhuma armadilha (as paragens em `<body>` são a volta à barra do browser).
+- **Títulos e marcos:** cada página tem um `<title>` próprio, um `h1` e um `main`.
+- **Movimento reduzido:** com `prefers-reduced-motion: reduce`, os 18 esqueletos de uma página não têm animação (sem a preferência, têm); não há outras animações em ciclo.
+- **Zoom e reflow:** a 200 % de zoom e a 320 px nada fica cortado nem exige scroll horizontal da página (o calendário e as tabelas largas deslizam dentro de uma região com nome e foco).
+- **Tema escuro:** não existe. `globals.css` tem os tokens `.dark`, mas nada aplica a classe nem o `prefers-color-scheme` e não há interruptor, por isso a aplicação é sempre clara. Não se acrescentou; fica para decisão.
+- **Regiões vivas:** os resultados que o utilizador provoca recebem o foco (`ResultNotice`) e não são regiões vivas; as mensagens que aparecem sem mudar o foco (erros de campo, horários que desaparecem) mantêm a região viva.
+
+**Estado final dos 30 achados:** 28 feitos e 2 parciais (UX-023, UX-030); nenhum por fazer. Do que ficou de fora: o menu de mais ações e as âncoras da edição do clube (UX-023), o cabeçalho fixo dos campos no calendário, cor de marca (UX-030) e tema escuro.
+
+**O que ainda precisa de um dispositivo ou leitor de ecrã real**
+- Um telemóvel real, quando o deploy existir: o toque nos três botões de cada campo, o teclado virtual no formulário «Nova reserva» e o menu «Conta» (decisão 8). A emulação do browser cobre o tamanho e o toque, não o teclado virtual nem a barra de endereço que encolhe.
+- NVDA e VoiceOver nos fluxos principais (reservar, cancelar, o calendário do dono, a desativação de um dono): o axe e as medições não dizem como as tabelas em cartões, o `<details>` dos gráficos e as regiões com foco são anunciados.
+- Outros motores: tudo foi medido em Chromium; falta Firefox e Safari (anel de foco, `position: sticky` nas colunas do calendário, `<details>`, campos `type=date` em pt-PT).
+- Modo de alto contraste do Windows (`forced-colors`) e ampliação do sistema.
