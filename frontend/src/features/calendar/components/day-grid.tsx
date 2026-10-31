@@ -58,7 +58,8 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
   return (
     <ScrollRegion label="Calendário do dia">
       <div className="flex sm:min-w-max">
-        <div className="w-16 shrink-0 border-r sm:w-24">
+        {/* The hours stay in view when the pitches scroll sideways (UX-005). */}
+        <div className="sticky left-0 z-20 w-16 shrink-0 border-r bg-background sm:w-24">
           <div className="h-14 border-b" aria-hidden="true" />
           <ol aria-label="Horas" className="relative" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (
@@ -75,7 +76,7 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
         </div>
 
         {layout.columns.map((column) => (
-          <div key={column.pitch.id} role="group" aria-label={column.pitch.name} className={`${column.pitch.id === phonePitchId ? "min-w-0 flex-1" : "hidden"} border-r sm:block sm:w-44 sm:flex-none sm:shrink-0 last:border-r-0`}>
+          <div key={column.pitch.id} role="group" aria-label={column.pitch.name} className={`${column.pitch.id === phonePitchId ? "min-w-0 flex-1" : "hidden"} border-r sm:block sm:min-w-44 sm:flex-1 last:border-r-0`}>
             <div className="flex h-14 flex-col justify-center border-b px-2">
               <p className="truncate text-sm font-medium">{column.pitch.name}</p>
               <p className="truncate text-xs text-muted-foreground">

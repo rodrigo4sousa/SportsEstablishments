@@ -11,7 +11,7 @@ type PublicHeaderProps = {
 export function PublicHeader({ account = true }: PublicHeaderProps) {
   return (
     <header className="border-b">
-      <div className={`mx-auto flex w-full ${PAGE_WIDTH.narrow} items-center justify-between gap-4 px-4 py-3`}>
+      <div className={`mx-auto flex w-full ${PAGE_WIDTH.narrow} flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3`}>
         <Link href="/" className="font-semibold tracking-tight whitespace-nowrap">
           Reservas de Campos
         </Link>

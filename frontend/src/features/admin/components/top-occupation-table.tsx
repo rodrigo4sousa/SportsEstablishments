@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { LoadingRegion } from "@/components/loading-region";
+import { ScrollRegion } from "@/components/scroll-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDateKey } from "@/lib/datetime";
@@ -56,39 +57,42 @@ export function TopOccupationTable({ period }: { period: PeriodQuery }) {
       <p role="status" className="text-sm text-muted-foreground">
         De {formatDateKey(data.from)} a {formatDateKey(data.to)}.
       </p>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
+      {/* Not the section's own name (axe: landmark-unique). */}
+      <ScrollRegion label="Tabela dos clubes com maior ocupação">
+        <table role="table" className="w-full text-sm max-sm:block">
           <caption className="sr-only">Clubes com maior ocupação</caption>
-          <thead className="border-b bg-muted/50 text-left">
-            <tr>
-              <th scope="col" className="px-3 py-2 text-right">#</th>
-              <th scope="col" className="px-3 py-2">Clube</th>
-              <th scope="col" className="px-3 py-2">Dono</th>
-              <th scope="col" className="px-3 py-2">Localidade</th>
-              <th scope="col" className="px-3 py-2 text-right">Ocupação</th>
-              <th scope="col" className="px-3 py-2 text-right">Horas reservadas</th>
-              <th scope="col" className="px-3 py-2 text-right">Horas abertas</th>
+          <thead role="rowgroup" className="border-b bg-muted/50 text-left max-sm:sr-only">
+            <tr role="row">
+              <th role="columnheader" scope="col" className="px-3 py-2 text-right">#</th>
+              <th role="columnheader" scope="col" className="px-3 py-2">Clube</th>
+              <th role="columnheader" scope="col" className="px-3 py-2">Dono</th>
+              <th role="columnheader" scope="col" className="px-3 py-2">Localidade</th>
+              <th role="columnheader" scope="col" className="px-3 py-2 text-right">Ocupação</th>
+              <th role="columnheader" scope="col" className="px-3 py-2 text-right">Horas reservadas</th>
+              <th role="columnheader" scope="col" className="px-3 py-2 text-right">Horas abertas</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup" className="max-sm:block max-sm:p-3 max-sm:pb-0">
             {data.clubs.map((club, index) => (
-              <tr key={club.clubId} className="border-b last:border-b-0">
-                <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{index + 1}</td>
-                <th scope="row" className="px-3 py-2 text-left font-medium">
-                  <Link href={`/clubs/${club.slug}`} className="underline-offset-4 hover:underline">
+              <tr key={club.clubId} role="row" className="border-b last:border-b-0 max-sm:mb-3 max-sm:block max-sm:rounded-md max-sm:border max-sm:p-3 max-sm:last:border-b">
+                {/* The rank is its own column from sm up; on a phone it leads the card's title. */}
+                <td role="cell" className="px-3 py-2 text-right tabular-nums text-muted-foreground max-sm:hidden">{index + 1}</td>
+                <th role="rowheader" scope="row" className="px-3 py-2 text-left font-medium max-sm:block max-sm:px-0 max-sm:pt-0 max-sm:text-base">
+                  <span aria-hidden="true" className="tabular-nums text-muted-foreground sm:hidden">{index + 1}. </span>
+                  <Link href={`/clubs/${club.slug}`} className="underline underline-offset-4 decoration-muted-foreground hover:decoration-foreground">
                     {club.clubName}
                   </Link>
                 </th>
-                <td className="px-3 py-2">{club.ownerName}</td>
-                <td className="px-3 py-2">{club.locality}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatOccupation(club.occupation)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatHours(club.bookedHours)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatHours(club.openHours)}</td>
+                <td role="cell" data-label="Dono" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{club.ownerName}</td>
+                <td role="cell" data-label="Localidade" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{club.locality}</td>
+                <td role="cell" data-label="Ocupação" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formatOccupation(club.occupation)}</td>
+                <td role="cell" data-label="Horas reservadas" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formatHours(club.bookedHours)}</td>
+                <td role="cell" data-label="Horas abertas" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formatHours(club.openHours)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

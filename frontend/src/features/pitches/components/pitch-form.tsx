@@ -124,7 +124,7 @@ export function PitchForm({ clubId, pitch, onDone }: PitchFormProps) {
         />
       </FormField>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
           {save.isPending ? "A guardar…" : pitch ? "Guardar campo" : "Adicionar campo"}
         </Button>

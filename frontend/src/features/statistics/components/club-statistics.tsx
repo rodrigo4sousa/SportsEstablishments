@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApiError } from "@/lib/api/client";
 import { loginUrl } from "@/lib/auth/redirects";
+import { useDocumentTitle } from "@/lib/document-title";
 import { formatDateKey } from "@/lib/datetime";
 import { ClubNotFound } from "@/features/clubs/components/club-not-found";
 import { sportLabel } from "@/features/pitches/sports";
@@ -46,6 +47,7 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
   });
   const shown = pitchId === null ? all : one;
   const data = shown.data;
+  useDocumentTitle("Estatísticas", data?.clubName);
 
   const sessionEnded = [all.error, one.error].some((error) => error instanceof ApiError && error.status === 401);
   useEffect(() => {

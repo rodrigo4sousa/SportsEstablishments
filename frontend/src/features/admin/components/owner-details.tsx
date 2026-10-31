@@ -4,11 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EmptyState } from "@/components/empty-state";
+import { LoadingRegion } from "@/components/loading-region";
 import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-messages";
 import { loginUrl } from "@/lib/auth/redirects";
+import { useDocumentTitle } from "@/lib/document-title";
 import { formatLisbonDate, formatLisbonDateTime } from "@/lib/datetime";
 import { useRestoreFocus } from "@/lib/focus";
 import { adminOwnerHistoryQueryKey, adminOwnerQueryKey, fetchAdminOwner, fetchOwnerHistory } from "../api";
@@ -37,6 +41,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const owner = useQuery({ queryKey: adminOwnerQueryKey(ownerId), queryFn: () => fetchAdminOwner(ownerId) });
+  useDocumentTitle("Dono", owner.data?.name);
   const history = useQuery({ queryKey: adminOwnerHistoryQueryKey(ownerId), queryFn: () => fetchOwnerHistory(ownerId), enabled: owner.isSuccess });
 
   // The session ended and could not be renewed: sign in again and come back here.
@@ -48,16 +53,18 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
   }, [sessionEnded, router, pathname]);
 
   const back = (
-    <Link href="/admin" className="text-sm underline-offset-4 hover:underline">
+    <Link href="/admin" className="-my-2 inline-flex min-h-11 w-fit items-center text-sm underline-offset-4 hover:underline sm:min-h-0 sm:py-0">
       ← Donos
     </Link>
   );
 
   if (owner.isPending || sessionEnded) {
     return (
-      <p role="status" className="text-muted-foreground">
-        A carregar o dono…
-      </p>
+      <LoadingRegion label="A carregar o dono…" className="flex flex-col gap-6">
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-11 w-48" />
+      </LoadingRegion>
     );
   }
   if (owner.isError) {
@@ -127,6 +134,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
             <Button
               ref={statusButton}
               type="button"
+              size="cta"
               variant={data.deactivated ? "default" : "destructive"}
               onClick={() => {
                 setNotice(null);
@@ -151,13 +159,11 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
             </Button>
           </div>
         ) : history.isPending ? (
-          <p role="status" className="text-muted-foreground">
-            A carregar o histórico…
-          </p>
+          <LoadingRegion label="A carregar o histórico…">
+            <Skeleton className="h-20 w-full" />
+          </LoadingRegion>
         ) : history.data.length === 0 ? (
-          <p role="status" className="rounded-md border border-dashed px-4 py-6 text-muted-foreground">
-            Este dono nunca foi desativado.
-          </p>
+          <EmptyState title="Este dono nunca foi desativado." />
         ) : (
           <ol aria-label="Histórico de estados" className="flex flex-col gap-3">
             {history.data.map((change) => (

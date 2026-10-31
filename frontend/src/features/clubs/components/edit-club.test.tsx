@@ -49,6 +49,7 @@ describe("EditClub", () => {
     // UX-023, UX-012: the club's details and its pitches are separate sections, and the page says which club it is.
     expect(screen.getByRole("heading", { level: 2, name: "Dados do clube" })).toBeInTheDocument();
     expect(screen.getByText("Clube de Ténis da Foz", { selector: "p" })).toBeInTheDocument();
+    expect(document.title).toBe("Editar clube · Clube de Ténis da Foz · Reservas de Campos");
     // US11: the club's calendar is one click away.
     expect(screen.getByRole("link", { name: "Calendário de reservas" })).toHaveAttribute("href", `/manage/clubs/${id}/calendar`);
     // US14: and so are the club's statistics.

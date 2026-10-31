@@ -30,7 +30,8 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
   return (
     <ScrollRegion label="Calendário da semana">
       <div className="flex min-w-max">
-        <div className="w-20 shrink-0 border-r">
+        {/* The hours stay in view when the days scroll sideways (UX-005). */}
+        <div className="sticky left-0 z-20 w-20 shrink-0 border-r bg-background">
           <div className="h-14 border-b" aria-hidden="true" />
           <ol aria-label="Horas" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (
@@ -50,7 +51,7 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
           const name = weekdayName(day.date);
           const dateText = formatLisbonDate(`${day.date}T12:00:00Z`);
           return (
-            <div key={day.date} role="group" aria-label={`${name}, ${dateText}`} data-date={day.date} className="w-36 shrink-0 border-r last:border-r-0">
+            <div key={day.date} role="group" aria-label={`${name}, ${dateText}`} data-date={day.date} className="min-w-36 flex-1 border-r last:border-r-0">
               <div className="flex h-14 flex-col justify-center border-b px-2">
                 <p className="truncate text-sm font-medium">{name}</p>
                 <p className="truncate text-xs tabular-nums text-muted-foreground">

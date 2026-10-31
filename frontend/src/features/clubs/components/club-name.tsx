@@ -2,14 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDocumentTitle } from "@/lib/document-title";
 import { clubQueryKey, fetchClub } from "../api";
 
 /**
  * The name of the club an owner page is about (UX-012), read through the same query as the club's page, so it is one request
  * for the page. Its height is reserved while it loads, and nothing shows if the club cannot be read (the page says so itself).
  */
-export function ClubName({ clubId }: { clubId: string }) {
+export function ClubName({ clubId, page }: { clubId: string; /** The page it is on, for the tab title: «Calendário», «Estatísticas». */ page: string }) {
   const club = useQuery({ queryKey: clubQueryKey(clubId), queryFn: () => fetchClub(clubId), retry: false });
+
+  useDocumentTitle(page, club.data?.name);
 
   if (club.isPending) {
     return <Skeleton className="h-7 w-48" />;

@@ -1020,6 +1020,8 @@ describe("ClubCalendar on a phone and the open booking (UX-004, UX-005, UX-016)"
     renderWithProviders(<ClubCalendar clubId={CLUB} />);
 
     expect(await screen.findByText("Clube Teste")).toBeInTheDocument();
+    // The tab says which club too (UX-012).
+    await waitFor(() => expect(document.title).toBe("Calendário · Clube Teste · Reservas de Campos"));
   });
 
   it("shows one pitch on a phone, the first by default, and every pitch from sm up (UX-005)", async () => {
@@ -1042,6 +1044,24 @@ describe("ClubCalendar on a phone and the open booking (UX-004, UX-005, UX-016)"
     expect(currentPath()).toContain(`pitch=${tennis.id}`);
     await waitFor(() => expect(column("Padel 1")).toHaveClass("hidden"));
     expect(column("Ténis 1")).not.toHaveClass("hidden");
+  });
+
+  it("keeps the hours column in view while the pitches scroll sideways (UX-005)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    const hours = await screen.findByRole("list", { name: "Horas" });
+
+    expect(hours.parentElement).toHaveClass("sticky", "left-0", "bg-background");
+  });
+
+  it("lets the pitch columns share the width from sm up, with a minimum, so the booking text is not cut (UX-005)", async () => {
+    serveCalendar({ bookings: [booking()] });
+    renderWithProviders(<ClubCalendar clubId={CLUB} />);
+
+    await screen.findByRole("group", { name: "Padel 1" });
+
+    expect(column("Padel 1")).toHaveClass("sm:min-w-44", "sm:flex-1");
   });
 
   it("makes the scrolling grid reachable with the keyboard and names it (UX-016, scrollable-region-focusable)", async () => {
