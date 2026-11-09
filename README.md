@@ -158,7 +158,7 @@ docker compose run --rm api seed-demo                          # with the compos
 dotnet run --project backend/src/SportsBooking.Api -- seed-demo   # API outside Docker (needs: docker compose up -d postgres)
 ```
 
-It exits without starting the server, sends no email, and refuses in Production or when any owner or player already exists. Every demo account has the same **development-only** password, `demo-password-1`; never use it anywhere real.
+It exits without starting the server, sends no email, and refuses when any owner or player already exists. It also refuses in Production unless `DemoData__AllowInProduction=true` is set on that one process. Every demo account has the same **development-only** password, `demo-password-1`; never use it anywhere real.
 
 | Role | Email |
 | --- | --- |
