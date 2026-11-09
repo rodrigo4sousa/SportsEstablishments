@@ -1,0 +1,52 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
+' Version 1.0 - 2026-11-09
+' For: quem vai mudar o código.
+' Decision documented: O que o CI verifica, job a job, antes de se juntar à main.
+' Not drawn: classes, endpoints e regras de negócio.
+@startuml development-ci
+!include ../style.puml
+title Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
+
+start
+:push ou pull_request\nX-GH → X-GHA\nconcurrency: cancela a execução anterior da mesma ref;\npermissions: contents read;
+fork
+  partition "DEV-CI-BACKEND · Backend (build + tests) · ubuntu-latest · wd backend" {
+    :checkout;
+    :Instalar o SDK .NET\ndotnet-install.sh ~-~-jsonfile global.json\n(builds.dotnet.microsoft.com, versão exata);
+    note right
+      Não se usa actions/setup-dotnet: os downloads passam
+      por aka.ms para dotnetorigin.blob.core.windows.net,
+      que responde 409 (actions/setup-dotnet#794).
+      Uma versão exata evita a pesquisa no aka.ms.
+    end note
+    :dotnet tool restore (dotnet-ef);
+    :dotnet restore;
+    :dotnet build -c Release ~-~-no-restore\navisos são erros; regenera o openapi/;
+    :dotnet test -c Release ~-~-no-build\nunitários + integração com Testcontainers (PostgreSQL);
+    :git diff ~-~-exit-code -- src/SportsBooking.Api/openapi\n(OpenAPI atualizado);
+    :dotnet ef migrations has-pending-model-changes\n(modelo EF sem migração em falta);
+    :dotnet package list ~-~-vulnerable ~-~-include-transitive\nfalha se houver "vulnerabilities";
+  }
+fork again
+  partition "DEV-CI-FRONTEND · Frontend (lint, typecheck, tests, build) · ubuntu-latest · wd frontend" {
+    :checkout;
+    :setup-node (node 22, cache npm);
+    :npm ci;
+    :npm run lint;
+    :npm run typecheck\nnext typegen && tsc ~-~-noEmit;
+    :npm test (Vitest);
+    :npm run build;
+    :npm run gen:api\ngit diff ~-~-exit-code -- src/lib/api\n(tipos em dia com o OpenAPI);
+    :npm audit ~-~-omit=dev ~-~-audit-level=high;
+  }
+fork again
+  partition "DEV-CI-DIAGRAMS · Docs (architecture diagrams) · ubuntu-latest" {
+    :checkout;
+    :docs/architecture/render.sh\nimagem plantuml/plantuml:<versão de style.puml>;
+    :git status ~-~-porcelain -- docs/architecture/out\nvazio = SVG em dia (apanha também um .svg nunca commitado);
+  }
+end fork
+:Os três jobs são independentes (sem needs:);
+stop
+
+@enduml

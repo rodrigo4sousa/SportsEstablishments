@@ -1,0 +1,64 @@
+' C4 nível 3 - Componentes da API · visão geral por funcionalidade
+' Version 1.0 - 2026-11-09
+' Not drawn: classes individuais; os componentes de arranque e de linha de comandos (API-ADMINSEED, API-DEMO, API-ADMINPW) estão só no diagrama de contas.
+@startuml 03-components-api-overview
+!include <C4/C4_Component>
+!include ../style.puml
+
+title Componentes da API · visão geral por funcionalidade
+
+LAYOUT_TOP_DOWN()
+
+Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16", "Reencaminha /api/* do browser e lê a API nos Server Components.")
+
+Container_Boundary(C_API, "C-API · API ASP.NET Core") {
+  Component(API_AUTH, "API-AUTH · Contas e sessões", "AuthController, App/Accounts, App/Auth, Inf/Identity, Inf/Auth", "Registo, login, logout, me, refresh, recuperação de palavra-passe.")
+  Component(API_CATALOG, "API-CATALOG · Catálogo público", "ClubsController, LocalitiesController, App/Catalog", "Pesquisa, localidades, página do clube, slots livres. Só leitura, anónimo.")
+  Component(API_BOOK, "API-BOOK · Reservas do jogador", "BookingsController, MeBookingsController", "Uma reserva, série semanal, as minhas reservas, cancelar.")
+  Component(API_CLUBS, "API-CLUBS · Clubes do dono", "ManageClubsController, ClubService", "Criar, listar e editar clubes.")
+  Component(API_PITCHES, "API-PITCHES · Campos", "ManagePitchesController, PitchService, OwnedPitches", "Campos do clube; OwnedPitches é a entrada nos campos do dono.")
+  Component(API_SCHED, "API-SCHED · Horários", "ManagePitchScheduleController, PitchScheduleService", "Horário semanal e pré-visualização dos slots.")
+  Component(API_BLOCKS, "API-BLOCKS · Bloqueios", "ManageBlocksController, BlockService", "Bloquear e remover períodos.")
+  Component(API_PRICE, "API-PRICE · Faixas de preço", "ManagePriceBandsController, PriceBandService", "Faixas de preço por dia e hora.")
+  Component(API_CLUBBOOK, "API-CLUBBOOK · Calendário e reservas do dono", "ManageCalendarController, ManageBookingsController", "Calendário, detalhes, cancelar, reservar para cliente, faltas.")
+  Component(API_STATS, "API-STATS · Estatísticas do dono", "ManageStatisticsController, OccupationService", "Ocupação, horas, receita.")
+  Component(API_ADMIN, "API-ADMIN · Administração", "AdminController, App/Admin, Inf/Admin", "Totais, gráficos, donos, top 10, desativar e reativar.")
+  Component(API_NOTIF, "API-NOTIF · Notificações (outbox)", "App/Notifications, Inf/Notifications", "Põe emails no outbox; compõe-nos quando são enviados.")
+  Component(CC_DAYCAL, "CC-DAYCAL · Slots de um dia e «livre»", "PitchDayCalendar, DaySlot", "O único cálculo dos slots de um dia com bloqueios e reservas.")
+  Component(API_PERSIST, "API-PERSIST · Persistência", "IAppDbContext, AppDbContext", "A vista da Application sobre a base de dados; migrações.")
+}
+
+ContainerDb(C_DB, "C-DB · PostgreSQL", "PostgreSQL 18.6", "Dados, exclusion constraint, triggers.")
+
+Rel(C_WEB, API_CATALOG, $plain("Pesquisa e lê clubes"), "HTTP, JSON")
+Rel(C_WEB, API_BOOK, $plain("Reserva e cancela"), "HTTP, JSON, cookies")
+Rel(C_WEB, API_AUTH, $plain("Entra, sai, renova a sessão"), "HTTP, JSON, cookies")
+
+Rel(API_BOOK, API_CATALOG, $plain("Encontra o campo nos clubes visíveis (pré-visualização da série)"), "VisibleClubs")
+Rel(API_BOOK, API_AUTH, $plain("Confirma que o dono está ativo"), "IAccountStore.IsActiveAsync")
+Rel(API_CLUBBOOK, API_AUTH, $plain("Confirma que o dono está ativo"), "IAccountStore.IsActiveAsync")
+Rel(API_CLUBBOOK, API_PITCHES, $plain("Encontra o campo do clube"), "OwnedPitches")
+Rel(API_SCHED, API_PITCHES, $plain("Encontra o campo do clube"), "OwnedPitches")
+Rel(API_BLOCKS, API_PITCHES, $plain("Encontra o campo do clube"), "OwnedPitches")
+Rel(API_PRICE, API_PITCHES, $plain("Encontra o campo do clube"), "OwnedPitches")
+Rel(API_SCHED, CC_DAYCAL, $plain("Pede os slots do dia"), "SlotsAsync")
+Rel(API_CATALOG, CC_DAYCAL, $plain("Pede os slots do dia"), "SlotsAsync")
+Rel(API_ADMIN, API_STATS, $plain("Usa o mesmo cálculo de ocupação"), "OccupationService")
+Rel(API_BOOK, API_NOTIF, $plain("Põe os emails da reserva no outbox"), "BookingEmailOutbox")
+Rel(API_CLUBBOOK, API_NOTIF, $plain("Põe o email do cancelamento no outbox"), "BookingEmailOutbox")
+Rel(API_AUTH, API_NOTIF, $plain("Põe os emails de conta no outbox"), "OutboxMessage")
+Rel(API_PERSIST, C_DB, $plain("Lê e escreve"), "SQL, Npgsql")
+
+note right of API_PERSIST
+  Todos os componentes leem e escrevem
+  através de API-PERSIST (IAppDbContext)
+  ou de uma store da Infrastructure.
+  Reservas, bloqueios, cancelamentos, faltas,
+  faixas de preço e desativação de campos
+  passam pelo trinco do campo (CC-LOCK).
+  O worker (C-WORKER) envia o que
+  API-NOTIF pôs no outbox.
+end note
+
+SHOW_LEGEND()
+@enduml

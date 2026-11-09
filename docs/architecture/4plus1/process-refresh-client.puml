@@ -1,0 +1,45 @@
+' 4+1 vista de processo - Refresh no browser · Web Lock entre separadores e refresh silencioso em /login
+' Version 1.0 - 2026-11-09
+' For: quem programa e quem depura.
+' Decision documented: Um só separador renova a sessão de cada vez (Web Lock) e o servidor nunca a renova (ADR 0002).
+' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-refresh-client
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Refresh no browser · Web Lock entre separadores e refresh silencioso em /login
+
+Component(WEB_API_CLIENT, "WEB-API-CLIENT · separador A", "apiRequest, retryAfterUnauthorized")
+Component(WEB_API_CLIENT_B, "WEB-API-CLIENT · separador B", "apiRequest, retryAfterUnauthorized")
+Container(C_BROWSER, "C-BROWSER · Browser", "navigator.locks, cookies partilhados")
+Container(C_API, "C-API · API", "/api/*")
+Component(WEB_F_AUTH, "WEB-F-AUTH · Página de login", "LoginScreen, trySilentRefresh")
+
+== Dois separadores recebem 401 ao mesmo tempo (access token expirado) ==
+Rel(WEB_API_CLIENT, C_API, $plain("GET /api/… → 401"))
+Rel(WEB_API_CLIENT_B, C_API, $plain("GET /api/… → 401"))
+Rel(WEB_API_CLIENT, C_BROWSER, $plain("locks.request('sportsbooking-refresh')"))
+Rel(WEB_API_CLIENT_B, C_BROWSER, $plain("locks.request('sportsbooking-refresh'): espera"))
+Rel_Back(WEB_API_CLIENT, C_BROWSER, $plain("Trinco concedido a A"))
+Rel(WEB_API_CLIENT, C_API, $plain("Repete primeiro o pedido original → 401 outra vez"))
+Rel(WEB_API_CLIENT, C_API, $plain("refreshSession(): POST /api/auth/refresh (um só por separador, refreshInFlight)"))
+Rel_Back(WEB_API_CLIENT, C_API, $plain("204 + Set-Cookie (cookies novos, partilhados pelos separadores)"))
+Rel(WEB_API_CLIENT, C_API, $plain("Repete o pedido → 200"))
+Rel(WEB_API_CLIENT, C_BROWSER, $plain("Liberta o trinco"))
+Rel_Back(WEB_API_CLIENT_B, C_BROWSER, $plain("Trinco concedido a B"))
+Rel(WEB_API_CLIENT_B, C_API, $plain("Repete primeiro o pedido original → 200 com os cookies que A renovou: não faz refresh"))
+note over WEB_API_CLIENT, C_API: Sem o trinco, A e B apresentavam o mesmo refresh token; o segundo seria reutilização\ne a API revogava todas as sessões. Sem navigator.locks: só a partilha dentro do separador.\nSe o refresh falhar, o 401 chega a quem chamou (que manda para /login).
+
+== Refresh silencioso em /login (o servidor nunca renova a sessão) ==
+Rel(WEB_F_AUTH, WEB_F_AUTH, $plain("useQuery(['auth','silent-session'])"))
+Rel(WEB_F_AUTH, C_BROWSER, $plain("trySilentRefresh(): locks.request('sportsbooking-refresh', refreshSession)"))
+Rel(WEB_F_AUTH, C_API, $plain("POST /api/auth/refresh"))
+alt 204
+  Rel(WEB_F_AUTH, C_API, $plain("fetchCurrentUser(): GET /api/auth/me → conta"))
+  Rel(WEB_F_AUTH, WEB_F_AUTH, $plain("setQueryData(['auth','me']); router.replace(safeNext(next, profile))"))
+else 401
+  Rel(WEB_F_AUTH, WEB_F_AUTH, $plain("Mostra o LoginForm"))
+end
+
+SHOW_LEGEND()
+@enduml

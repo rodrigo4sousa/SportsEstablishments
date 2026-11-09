@@ -1,0 +1,53 @@
+' 4+1 vista de processo - Dono cancela com motivo (US12) · e um cancelamento do jogador ao mesmo tempo
+' Version 1.0 - 2026-11-09
+' For: quem programa e quem depura.
+' Decision documented: O dono cancela com motivo, sem janela, e o email segue na mesma transação (US12).
+' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-cancel-club
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Dono cancela com motivo (US12) · e um cancelamento do jogador ao mesmo tempo
+
+Component(WEB_F_CALENDAR, "WEB-F-CALENDAR · Calendário", "CancelBookingForm, cancelClubBooking")
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(API_CLUBBOOK, "API-CLUBBOOK · Reservas do dono", "ClubBookingService.CancelAsync")
+  Component(CC_AUTHZ, "CC-AUTHZ · Autorização por dono", "OwnedPitches.ClubIsOwnedAsync, OwnedBookings.Of")
+  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
+  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
+  Component(API_BOOK_MINE, "API-BOOK-MINE · Cancelar (jogador)", "BookingCancellationService.CancelAsync")
+Boundary_End()
+ContainerDb(C_DB, "C-DB · PostgreSQL", "bookings, pitches, clubs, outbox_messages")
+
+Rel(WEB_F_CALENDAR, API_CLUBBOOK, $plain("POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel { reason }"), "apiJson; política Owner")
+Rel(API_CLUBBOOK, CC_AUTHZ, $plain("O clube é do dono da sessão? (404 club_not_found)"))
+Rel(API_CLUBBOOK, CC_AUTHZ, $plain("pitch_id da reserva, só dentro deste clube (404 booking_not_found)"))
+Rel(CC_AUTHZ, C_DB, $plain("Filtra por clubs.owner_id = sessão"), "SELECT")
+Rel(API_CLUBBOOK, API_CLUBBOOK, $plain("Valida reason: obrigatório, aparado, ≤ 200 (400)"))
+group Transação do trinco
+  Rel(API_CLUBBOOK, CC_LOCK, $plain("LockAsync(pitchId)"))
+  Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches … FOR UPDATE"), "SQL")
+  Rel(API_CLUBBOOK, C_DB, $plain("Volta a ler a reserva"), "SELECT bookings")
+  Rel(API_CLUBBOOK, API_CLUBBOOK, $plain("booking.CancelByClub(reason, now) → ClubCancellationOutcome (sem janela)"))
+  alt NotConfirmed
+    Rel_Back(WEB_F_CALENDAR, API_CLUBBOOK, $plain("422 booking_not_confirmed"))
+  else AlreadyStarted (startsAt ≤ now)
+    Rel_Back(WEB_F_CALENDAR, API_CLUBBOOK, $plain("422 booking_already_started"))
+  else Cancelled
+    Rel(API_CLUBBOOK, API_NOTIF_OUTBOX, $plain("EnqueueClubCancellationAsync (nada para um cliente sem conta)"))
+    Rel(API_CLUBBOOK, C_DB, $plain("SaveChanges: UPDATE bookings (CancelledByClub, cancellation_reason, cancelled_at) e INSERT outbox_messages"), "SQL")
+    Rel(CC_LOCK, C_DB, $plain("COMMIT"), "SQL")
+    Rel_Back(WEB_F_CALENDAR, API_CLUBBOOK, $plain("200 ClubBookingResponse"))
+  end
+end
+
+== Dono e jogador cancelam a mesma reserva ao mesmo tempo ==
+
+Rel(API_CLUBBOOK, CC_LOCK, $plain("Dono: LockAsync(pitchId)"))
+Rel(API_BOOK_MINE, CC_LOCK, $plain("Jogador: LockAsync(pitchId), o mesmo trinco"))
+Rel(CC_LOCK, C_DB, $plain("Quem chega primeiro ao FOR UPDATE cancela e faz COMMIT; o outro espera"), "SQL")
+Rel(API_BOOK_MINE, C_DB, $plain("O segundo relê a reserva: já não está Confirmed"), "SELECT bookings")
+Rel_Back(WEB_F_CALENDAR, API_CLUBBOOK, $plain("Um dos dois: 422 booking_not_confirmed; a reserva tem um só estado final e um só email"))
+
+SHOW_LEGEND()
+@enduml

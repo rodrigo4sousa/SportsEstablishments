@@ -1,0 +1,47 @@
+' 4+1 vista lógica - Vista lógica · camadas do back end (Clean Architecture)
+' Version 1.0 - 2026-11-09
+' For: quem programa.
+' Decision documented: Clean Architecture no back end: as dependências apontam só para dentro (Api → Infrastructure → Application → Domain).
+' Not drawn: classes individuais.
+@startuml logical-layers
+!include <C4/C4_Component>
+!include ../style.puml
+
+title Vista lógica · camadas do back end (Clean Architecture)
+
+LAYOUT_TOP_DOWN()
+
+Container_Boundary(C_API, "C-API · API ASP.NET Core") {
+  Component(L_API, "L-API · SportsBooking.Api", "ASP.NET Core, controllers", "Controllers finos, cookies e JWT, políticas por perfil, ProblemDetails, verificação do Origin, rate limiting. Program.cs só compõe.")
+  Component(L_INF, "L-INF · SportsBooking.Infrastructure", "EF Core, Npgsql, Identity, MailKit", "AppDbContext, migrações, stores (I*Store), PitchLock, sessões, Identity, envio SMTP, worker do outbox, comandos.")
+  Component(L_APP, "L-APP · SportsBooking.Application", "FluentValidation, EF Core (DbSet e LINQ, sem Npgsql)", "Serviços por caso de uso, validação, Result/ServiceError, IAppDbContext e as interfaces que a Infrastructure implementa.")
+  Component(L_DOM, "L-DOM · SportsBooking.Domain", "C# sem dependências", "Entidades com setters privados e métodos com intenção; regras de horas, slots e contas.")
+}
+
+Rel(L_API, L_INF, $plain("Referencia e compõe"), "AddInfrastructure(config)")
+Rel(L_API, L_APP, $plain("Chama os serviços"), "AddApplication(), referência transitiva")
+Rel(L_INF, L_APP, $plain("Implementa as interfaces"), "IAppDbContext, IBookingStore, IPitchLock, ISessionService, IEmailSender…")
+Rel(L_APP, L_DOM, $plain("Usa as entidades e as regras"), "referência de projeto")
+
+note right of L_INF
+  **Exceções reais**
+  Entidades persistidas fora do Domain:
+  AppUser (D-USER), RefreshToken (D-REFRESH)
+  e OwnerStatusChange (D-STATUSCHG) na Infrastructure.
+  O gerador de tokens de recuperação do Identity
+  lê o relógio do sistema, não o TimeProvider.
+end note
+
+note right of L_APP
+  **Exceção real**
+  OutboxMessage (D-OUTBOX) é uma entidade
+  persistida que vive na Application.
+end note
+
+note right of L_DOM
+  O Domain não referencia nenhum projeto
+  nem pacote; não conhece EF Core nem HTTP.
+end note
+
+SHOW_LEGEND()
+@enduml

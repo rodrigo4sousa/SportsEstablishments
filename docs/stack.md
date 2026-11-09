@@ -6,7 +6,7 @@ Next.js (App Router) no front end, ASP.NET Core no back end e PostgreSQL, servid
  
 ## Arquitetura
  
-A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/00-inventory.md](architecture/00-inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
+A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/inventory.md](architecture/inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
  
 O browser só fala com o Caddy. Os Server Components chamam a API por dentro, a passar o cookie do utilizador, e nada além da API acede ao PostgreSQL.
  

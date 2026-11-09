@@ -1,0 +1,58 @@
+' 4+1 vista de processo - Worker de emails (US22) · reclamar com SKIP LOCKED, enviar, adiar, desistir
+' Version 1.0 - 2026-11-09
+' For: quem programa e quem depura.
+' Decision documented: O worker reclama as mensagens com SKIP LOCKED, envia, adia ou desiste (ADR 0004).
+' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-outbox
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Worker de emails (US22) · reclamar com SKIP LOCKED, enviar, adiar, desistir
+
+Container_Boundary(C_WORKER, "C-WORKER · Worker do outbox (no processo da API)")
+  Component(API_NOTIF_DISPATCH, "API-NOTIF-DISPATCH · Ciclo", "OutboxDispatcher.ExecuteAsync")
+  Component(API_NOTIF_PROC, "API-NOTIF-PROC · Processar", "OutboxProcessor.ProcessDueAsync")
+  Component(API_NOTIF_COMPOSE, "API-NOTIF-COMPOSE · Compor", "BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer")
+  Component(API_NOTIF_SENDER, "API-NOTIF-SENDER · Enviar", "IEmailSender, SmtpEmailSender")
+Boundary_End()
+Component(CC_TIME, "CC-TIME · Relógio", "TimeProvider")
+ContainerDb(C_DB, "C-DB · PostgreSQL", "outbox_messages, users, bookings")
+System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "")
+
+loop até a API parar (Outbox:Enabled)
+  Rel(API_NOTIF_DISPATCH, API_NOTIF_PROC, $plain("Novo scope; ProcessDueAsync"))
+  group Transação do lote
+    Rel(API_NOTIF_PROC, C_DB, $plain("SELECT * FROM outbox_messages WHERE sent_at, failed_at e skipped_at IS NULL AND next_attempt_at <= now ORDER BY next_attempt_at, id LIMIT 20 FOR UPDATE SKIP LOCKED"), "SQL")
+    note over API_NOTIF_PROC, C_DB: Outra instância (ou passagem) salta as linhas trancadas: nunca reclamam a mesma mensagem.\nOs trincos ficam presos enquanto o lote é enviado.
+    loop cada mensagem
+      Rel(API_NOTIF_PROC, C_DB, $plain("Destinatário atual pelo id do payload (nos avisos, também a reserva)"), "SELECT users")
+      alt sem destinatário, ou a mensagem não se consegue ler
+        Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("GiveUp(recipient_not_found ou o tipo da exceção): failed_at; Warning com id e tipo"))
+      else já não se aplica
+        Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("Skip(motivo): skipped_at (diagrama seguinte)"))
+      else pronta
+        Rel(API_NOTIF_PROC, API_NOTIF_COMPOSE, $plain("Texto e HTML em pt-PT, hora de Lisboa"))
+        Rel(API_NOTIF_PROC, API_NOTIF_SENDER, $plain("SendAsync(email)"))
+        Rel(API_NOTIF_SENDER, X_SMTP, $plain("Uma ligação por mensagem"), "SMTP")
+        alt enviado
+          Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("MarkSent(now)"))
+        else exceção
+          Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("RecordFailure(tipo da exceção, now, retry): attempts + 1; next_attempt_at = now + 1, 2, 4, 8, 16 min (máx. 1 h)"))
+          Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("À 6.ª falha: failed_at e Warning (id e tipo, nunca o endereço)"))
+        end
+      end
+      Rel(API_NOTIF_PROC, C_DB, $plain("SaveChanges do resultado desta mensagem"), "UPDATE outbox_messages")
+    end
+    Rel(API_NOTIF_PROC, C_DB, $plain("COMMIT: os resultados ficam e os trincos saem"), "SQL")
+  end
+  note over API_NOTIF_PROC, X_SMTP: Pelo menos uma vez: se o processo parar depois de enviar e antes do COMMIT, a mensagem volta a sair.
+  alt o lote veio cheio (20)
+    Rel(API_NOTIF_DISPATCH, API_NOTIF_DISPATCH, $plain("Volta logo ao início"))
+  else
+    Rel(API_NOTIF_DISPATCH, CC_TIME, $plain("Task.Delay(10 s, timeProvider)"))
+  end
+end
+note over API_NOTIF_DISPATCH: Uma falha da passagem (base de dados em baixo)\né registada como Error e tenta-se na seguinte.
+
+SHOW_LEGEND()
+@enduml

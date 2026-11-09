@@ -34,5 +34,5 @@ O acesso a cada área é decidido em dois níveis:
 **Más ou a vigiar**
 
 - O código das três áreas vai no mesmo pacote: a separação é por pastas e por convenção, não imposta por projetos.
-- Os guardas lêem cookies, por isso ficam dentro de `<Suspense>` por causa do `cacheComponents`; um redirecionamento é então enviado como `<meta http-equiv="refresh">` e não como 307 ([vista de processo](../04-process-view.md#27-página-de-uma-área-com-guarda-no-servidor)).
+- Os guardas lêem cookies, por isso ficam dentro de `<Suspense>` por causa do `cacheComponents`; um redirecionamento é então enviado como `<meta http-equiv="refresh">` e não como 307 ([vista de processo](../4plus1/process.md#27-página-de-uma-área-com-guarda-no-servidor)).
 - Quem muda uma funcionalidade partilhada (por exemplo `formatPrice`) toca em várias áreas.

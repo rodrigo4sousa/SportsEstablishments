@@ -80,9 +80,9 @@ Search, club page, owner calendar and admin dashboard. All eight screenshots, an
 - **PostgreSQL**, the only data store, also enforces the rule against double bookings.
 - **A background email worker** inside the API process sends messages written to an outbox table in the same transaction as the change that caused them.
 
-<img src="docs/architecture/diagrams/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; Vercel and Render host it and Brevo sends the email in production" width="800">
+<img src="docs/architecture/out/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; Vercel and Render host it and Brevo sends the email in production" width="800">
 
-<img src="docs/architecture/diagrams/02-containers-dev.svg" alt="C4 containers in development: browser, Next.js, ASP.NET Core API with the email worker, PostgreSQL and Mailpit" width="500">
+<img src="docs/architecture/out/02-containers-dev.svg" alt="C4 containers in development: browser, Next.js, ASP.NET Core API with the email worker, PostgreSQL and Mailpit" width="500">
 
 System context (top) and containers in development (bottom). Diagram labels are in Portuguese. The [architecture README](docs/architecture/README.md) is the entry point to all views, with C4 levels 1 to 4, the 4+1 views (logical, process, development, physical and scenarios), an inventory of elements mapped to the code, and a gallery of all 40 diagrams.
 
@@ -198,7 +198,7 @@ dotnet run --project backend/src/SportsBooking.Api   # API on http://localhost:5
 cd frontend && npm install && npm run dev            # web app on http://localhost:3000, /api/* rewritten to :5080
 ```
 
-Settings outside Development (JWT signing key, allowed origins, public site address, SMTP, database roles, trusted proxies) are listed in the [physical view, section 4.7](docs/architecture/06-physical-view.md#47-segredos-e-variáveis-de-ambiente-por-serviço). The API refuses to start when a required setting is missing or invalid. The web app sends HSTS only if its image is built with `--build-arg ENABLE_HSTS=true`, for a site served over HTTPS (off by default). No proxy is trusted for `X-Forwarded-For` today.
+Settings outside Development (JWT signing key, allowed origins, public site address, SMTP, database roles, trusted proxies) are listed in the [physical view, section 4.7](docs/architecture/4plus1/physical.md#47-segredos-e-variáveis-de-ambiente-por-serviço). The API refuses to start when a required setting is missing or invalid. The web app sends HSTS only if its image is built with `--build-arg ENABLE_HSTS=true`, for a site served over HTTPS (off by default). No proxy is trusted for `X-Forwarded-For` today.
 
 ## Running the tests and checks
 
@@ -215,7 +215,7 @@ npm test
 npm run build
 
 # Architecture docs: render all diagrams with the pinned PlantUML image (Docker), then check links and the gallery
-scripts/render-diagrams.sh            # or scripts/render-diagrams.ps1
+docs/architecture/render.sh            # or docs/architecture/render.ps1
 scripts/check-architecture-docs.sh    # or scripts/check-architecture-docs.ps1
 ```
 
@@ -248,7 +248,7 @@ docs/
   backlog.md  stack.md                stories and rules; stack and practices
   architecture/                       C4 and 4+1 views, ADRs, diagrams (.puml sources and rendered .svg)
   images/                             screenshots of the app with demo data
-scripts/                              render the diagrams and check the architecture docs
+scripts/                              check the links and the diagram gallery of the docs
 .github/workflows/ci.yml              continuous integration
 docker-compose.yml                    local stack: PostgreSQL, Mailpit, API, web app
 ```

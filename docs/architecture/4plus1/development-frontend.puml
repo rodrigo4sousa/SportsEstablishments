@@ -1,0 +1,57 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pastas do front end (frontend/src)
+' Version 1.0 - 2026-11-09
+' For: quem vai mudar o código.
+' Decision documented: O código que lê cookies ou o URL interno da API fica atrás da fronteira server-only.
+' Not drawn: classes, endpoints e regras de negócio.
+@startuml development-frontend
+!include ../style.puml
+title Vista de desenvolvimento · pastas do front end (frontend/src)
+
+skinparam defaultTextAlignment left
+
+package "app/ · rotas (Server Components por omissão)" {
+  rectangle "WEB-AREA-PLAYER\n(player)/ · /, /clubs/[slug], /bookings" as AREA_PLAYER
+  rectangle "WEB-AREA-MANAGE\nmanage/ · clubes, calendário, estatísticas" as AREA_MANAGE
+  rectangle "WEB-AREA-ADMIN\nadmin/ · painel, owners/[id]" as AREA_ADMIN
+  rectangle "WEB-AREA-ACCOUNT\nlogin/, register/, forgot-password/, reset-password/" as AREA_ACCOUNT
+}
+
+package "features/<funcionalidade>/ · api.ts, components/, schemas/, testes" {
+  rectangle "WEB-F-AUTH, WEB-F-CATALOG, WEB-F-BOOKING, WEB-F-MYBOOK,\nWEB-F-CLUBS, WEB-F-PITCHES, WEB-F-CALENDAR,\nWEB-F-STATS, WEB-F-ADMIN" as FEATURES
+}
+
+package "components/ · partilhados" {
+  rectangle "WEB-GUARDS\narea-guard, player-guard, guest-only" as GUARDS
+  rectangle "WEB-UI\nui/ (shadcn: button, input, label, native-select, sonner),\nproviders, form-field, route-error, route-loading, …" as UI
+}
+
+package "lib/" {
+  rectangle "WEB-API-CLIENT\nlib/api/client.ts, error-messages.ts, form-errors.ts" as CLIENT
+  rectangle "DEV-WEBTYPES\nlib/api/schema.d.ts (gerado)" as TYPES
+  rectangle "WEB-SERVER\nlib/server/ · import 'server-only'" as SERVER
+  rectangle "WEB-DATETIME\nlib/datetime.ts" as DATETIME
+  rectangle "lib/auth/ · redirects.ts, request-path.ts\nlib/guid.ts, lib/utils.ts" as LIBMISC
+}
+
+rectangle "WEB-PROXY\nsrc/proxy.ts" as PROXY
+rectangle "DEV-TEST-WEB\nsrc/test/ · msw.ts, render.tsx, navigation.tsx, server-only.ts" as TESTSUPPORT
+
+AREA_PLAYER --> FEATURES
+AREA_MANAGE --> FEATURES
+AREA_ADMIN --> FEATURES
+AREA_ACCOUNT --> FEATURES
+AREA_MANAGE --> GUARDS
+AREA_ADMIN --> GUARDS
+AREA_PLAYER --> SERVER : páginas do servidor
+AREA_ADMIN --> SERVER : totais no servidor
+GUARDS --> SERVER
+FEATURES --> CLIENT : pedidos do browser
+FEATURES --> UI
+FEATURES --> DATETIME
+FEATURES --> TYPES : import type
+CLIENT --> TYPES : import type
+SERVER --> TYPES : import type
+GUARDS --> LIBMISC
+TESTSUPPORT ..> SERVER : substitui "server-only" nos testes
+
+@enduml

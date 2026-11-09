@@ -1,0 +1,51 @@
+' 4+1 vista de processo - Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+' Version 1.0 - 2026-11-09
+' For: quem programa e quem depura.
+' Decision documented: A janela de cancelamento lida no momento e o trinco que faz de dois cancelamentos ao mesmo tempo um só (US19).
+' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-cancel-player
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+
+Component(WEB_F_MYBOOK, "WEB-F-MYBOOK · As minhas reservas", "MyBookings, cancelBooking")
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(API_BOOK_MINE, "API-BOOK-MINE · Cancelar", "BookingCancellationService.CancelAsync")
+  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
+  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
+Boundary_End()
+ContainerDb(C_DB, "C-DB · PostgreSQL", "bookings, pitches, clubs, outbox_messages")
+
+Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("POST /api/bookings/{id}/cancel"), "apiJson; política Player")
+Rel(API_BOOK_MINE, C_DB, $plain("pitch_id da reserva, só se for do jogador da sessão (404 booking_not_found)"), "SELECT bookings")
+group Transação do trinco
+  Rel(API_BOOK_MINE, CC_LOCK, $plain("LockAsync(pitchId)"))
+  Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches … FOR UPDATE"), "SQL")
+  Rel(API_BOOK_MINE, C_DB, $plain("Volta a ler a reserva (com tracking)"), "SELECT bookings")
+  Rel(API_BOOK_MINE, C_DB, $plain("A janela do clube agora, nunca a da reserva"), "SELECT clubs.cancellation_window_hours")
+  Rel(API_BOOK_MINE, API_BOOK_MINE, $plain("booking.CancelByPlayer(window, now) → CancellationOutcome"))
+  alt NotConfirmed
+    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("422 booking_not_confirmed (ROLLBACK ao descartar)"))
+  else OutsideWindow (now ≥ startsAt − janela)
+    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("422 outside_cancellation_window, extensão cancellationDeadline (UTC)"))
+  else Cancelled
+    Rel(API_BOOK_MINE, API_NOTIF_OUTBOX, $plain("EnqueuePlayerCancellationAsync(booking)"))
+    Rel(API_BOOK_MINE, C_DB, $plain("SaveChanges: UPDATE bookings (CancelledByPlayer, cancelled_at) e INSERT outbox_messages"), "SQL")
+    Rel(CC_LOCK, C_DB, $plain("COMMIT; o slot volta a estar livre (a constraint só vê Confirmed)"), "SQL")
+    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("200 MyBookingResponse"))
+  end
+end
+
+== Dois cancelamentos da mesma reserva ao mesmo tempo (dois separadores, duplo clique) ==
+
+Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("Pedido A: POST …/cancel"))
+Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("Pedido B: POST …/cancel"))
+Rel(CC_LOCK, C_DB, $plain("A obtém FOR UPDATE; B fica à espera na mesma linha de pitches"), "SQL")
+Rel(API_BOOK_MINE, C_DB, $plain("A: relê Confirmed, cancela, COMMIT"), "SQL")
+Rel(API_BOOK_MINE, C_DB, $plain("B: obtém o trinco e relê a reserva já CancelledByPlayer"), "SQL")
+Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("A: 200"))
+Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("B: 422 booking_not_confirmed (nunca 500, nunca dois emails)"))
+
+SHOW_LEGEND()
+@enduml

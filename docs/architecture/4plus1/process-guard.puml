@@ -1,0 +1,50 @@
+' 4+1 vista de processo - Página de uma área com guarda, desenhada no servidor (US03) · /manage como exemplo
+' Version 1.0 - 2026-11-09
+' For: quem programa e quem depura.
+' Decision documented: As áreas do dono e do admin são guardadas no servidor, dentro de Suspense (ADR 0001).
+' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-guard
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Página de uma área com guarda, desenhada no servidor (US03) · /manage como exemplo
+
+Container(C_BROWSER, "C-BROWSER · Browser", "cookies access_token (Path=/)")
+Container_Boundary(C_WEB, "C-WEB · Next.js")
+  Component(WEB_PROXY, "WEB-PROXY · proxy.ts", "matcher /manage/*, /admin/*, /bookings")
+  Component(WEB_AREA_MANAGE, "WEB-AREA-MANAGE · app/manage/layout.tsx", "Suspense com fallback null")
+  Component(WEB_GUARDS, "WEB-GUARDS · AreaGuard", "areaDecision, safeNext, loginUrl")
+  Component(WEB_SERVER, "WEB-SERVER · lib/server/session.ts", "getSessionAccount")
+Boundary_End()
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(CC_COOKIES, "CC-COOKIES · JwtBearer", "lê o cookie access_token")
+  Component(API_AUTH, "API-AUTH · AuthController.Me", "AccountStore.FindAsync")
+Boundary_End()
+
+Rel(C_BROWSER, WEB_PROXY, $plain("GET /manage/clubs/{id}?… (com os cookies; o refresh_token não vai, é Path=/api/auth)"), "HTTP")
+Rel(WEB_PROXY, WEB_PROXY, $plain("x-pathname = caminho + query (por cima do que o cliente mandou)"))
+Rel(WEB_PROXY, WEB_AREA_MANAGE, $plain("NextResponse.next com o cabeçalho"))
+Rel_Back(C_BROWSER, WEB_AREA_MANAGE, $plain("200: a casca estática começa a ser transmitida (o fallback da Suspense é null)"))
+Rel(WEB_AREA_MANAGE, WEB_GUARDS, $plain("AreaGuard profile=Owner (dentro da Suspense, porque lê cookies)"))
+Rel(WEB_GUARDS, WEB_SERVER, $plain("getSessionAccount()"))
+alt sem cookies
+  Rel_Back(WEB_GUARDS, WEB_SERVER, $plain("null, sem chamar a API"))
+else
+  Rel(WEB_SERVER, CC_COOKIES, $plain("GET {API_INTERNAL_URL}/api/auth/me com o Cookie do utilizador, cache no-store"), "HTTP")
+  Rel(CC_COOKIES, API_AUTH, $plain("Token válido (sem base de dados) → Me"))
+  Rel_Back(WEB_SERVER, API_AUTH, $plain("200 conta, ou 401 (sem sessão ou token expirado)"))
+  Rel_Back(WEB_GUARDS, WEB_SERVER, $plain("conta ou null; outro estado lança erro → error.tsx da área"))
+end
+Rel(WEB_GUARDS, WEB_GUARDS, $plain("headers().get('x-pathname'); areaDecision('Owner', account, requestedPath)"))
+alt sem sessão
+  Rel(WEB_GUARDS, WEB_GUARDS, $plain("redirect(loginUrl(safeNext(requestedPath, 'Owner')))"))
+  Rel_Back(C_BROWSER, WEB_GUARDS, $plain("O status 200 já saiu: o Next.js transmite uma etiqueta meta http-equiv=refresh para /login?next=…"))
+  Rel(C_BROWSER, C_BROWSER, $plain("Segue para /login: GuestOnly e refresh silencioso (diagrama do refresh no browser)"))
+else outro perfil
+  Rel(WEB_GUARDS, WEB_GUARDS, $plain("redirect(profileHome(profile)): '/' ou '/admin', também por meta"))
+else dono
+  Rel_Back(C_BROWSER, WEB_GUARDS, $plain("Transmite AreaHeader e a página no lugar do fallback"))
+end
+
+SHOW_LEGEND()
+@enduml

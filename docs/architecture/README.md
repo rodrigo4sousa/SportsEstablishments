@@ -32,14 +32,14 @@ Não são concorrentes. O C4 dá os níveis de zoom; o 4+1 dá os pontos de vist
 
 | Ficheiro | C4 | Vista 4+1 | Pergunta a que responde | Para quem |
 | --- | --- | --- | --- | --- |
-| [00-inventory.md](00-inventory.md) | — (catálogo) | — (catálogo) | Que elementos existem, com que id, e onde estão no código? | Toda a gente que lê um diagrama e quer chegar ao código |
-| [01-context.md](01-context.md) | Nível 1 · Contexto do sistema | Cenários (contexto de uso) | Quem usa o sistema e com que sistemas externos fala? | Quem avalia, produto, recém-chegados |
-| [02-containers.md](02-containers.md) | Nível 2 · Contentores | De processo (unidades que correm) | De que aplicações e armazenamentos é feito, e como comunicam? | Recém-chegados, quem opera |
-| [03-logical-view.md](03-logical-view.md) | Nível 3 · Componentes e nível 4 · Código | Lógica | Como se organiza o código em camadas e componentes, e que conceitos, invariantes e estados tem o domínio? | Quem programa |
-| [04-process-view.md](04-process-view.md) | Diagramas dinâmicos (em sequência) | De processo | Que processos e fios correm, o que corre ao mesmo tempo, e como colaboram as partes num pedido, numa transação e em segundo plano? | Quem programa e quem depura |
-| [05-development-view.md](05-development-view.md) | — (sem equivalente direto no C4) | De desenvolvimento | Como está organizado o repositório, como se constrói, testa e verifica, e como se acrescenta uma funcionalidade? | Quem vai mudar o código |
-| [06-physical-view.md](06-physical-view.md) | Diagrama de implantação | Física | Onde corre cada contentor (desenvolvimento, CI, produção), o que é público e em que se confia? | Quem opera e faz deploy |
-| [07-scenarios.md](07-scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Que casos de uso atravessam todas as vistas e as validam? | Todos: é o fio que liga as vistas |
+| [inventory.md](inventory.md) | — (catálogo) | — (catálogo) | Que elementos existem, com que id, e onde estão no código? | Toda a gente que lê um diagrama e quer chegar ao código |
+| [c4/README.md](c4/README.md) | Nível 1 · Contexto do sistema | Cenários (contexto de uso) | Quem usa o sistema e com que sistemas externos fala? | Quem avalia, produto, recém-chegados |
+| [c4/README.md](c4/README.md) | Nível 2 · Contentores | De processo (unidades que correm) | De que aplicações e armazenamentos é feito, e como comunicam? | Recém-chegados, quem opera |
+| [4plus1/logical.md](4plus1/logical.md) | Nível 3 · Componentes e nível 4 · Código | Lógica | Como se organiza o código em camadas e componentes, e que conceitos, invariantes e estados tem o domínio? | Quem programa |
+| [4plus1/process.md](4plus1/process.md) | Diagramas dinâmicos (em sequência) | De processo | Que processos e fios correm, o que corre ao mesmo tempo, e como colaboram as partes num pedido, numa transação e em segundo plano? | Quem programa e quem depura |
+| [4plus1/development.md](4plus1/development.md) | — (sem equivalente direto no C4) | De desenvolvimento | Como está organizado o repositório, como se constrói, testa e verifica, e como se acrescenta uma funcionalidade? | Quem vai mudar o código |
+| [4plus1/physical.md](4plus1/physical.md) | Diagrama de implantação | Física | Onde corre cada contentor (desenvolvimento, CI, produção), o que é público e em que se confia? | Quem opera e faz deploy |
+| [4plus1/scenarios.md](4plus1/scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Que casos de uso atravessam todas as vistas e as validam? | Todos: é o fio que liga as vistas |
 | [adr/](adr/README.md) | — | — (justificação transversal) | Que decisões estão registadas, porquê, e em que estado? | Quem quer saber o «porquê» |
 
 As ADRs têm uma tabela própria na [secção 5](#5-as-decisões-adr) deste ficheiro.
@@ -67,202 +67,202 @@ As vistas 4+1 dividem-se por **preocupação**, não por tamanho: a lógica diz 
 
 ## 3. Guia de leitura
 
-Escolhe o percurso pelo que precisas de fazer. Em qualquer um, quando um diagrama mostra um elemento, procura o id no [inventário](00-inventory.md) para saber onde está o código.
+Escolhe o percurso pelo que precisas de fazer. Em qualquer um, quando um diagrama mostra um elemento, procura o id no [inventário](inventory.md) para saber onde está o código.
 
 **5 minutos: perceber o que é.**
-1. [01 · Contexto](01-context.md): quem usa e com que sistemas fala.
-2. [02 · Contentores](02-containers.md): as peças que correm e como comunicam.
+1. [Contexto](c4/README.md): quem usa e com que sistemas fala.
+2. [Contentores](c4/README.md): as peças que correm e como comunicam.
 
 **30 minutos: perceber como funciona.** Os dois anteriores, mais:
-3. [03 · Vista lógica](03-logical-view.md): camadas, componentes da API e do front end, modelo do domínio e máquinas de estados (secções 1 a 5; o código, secção 6, só se for preciso).
-4. [04 · Vista de processo](04-process-view.md): o pipeline de um pedido, a reserva de um slot (2.1) e a concorrência (secção 3).
-5. Um cenário à escolha em [07 · Cenários](07-scenarios.md), por exemplo o SC-07, a corrida pelo mesmo slot.
+3. [Vista lógica](4plus1/logical.md): camadas, componentes da API e do front end, modelo do domínio e máquinas de estados (secções 1 a 5; o código, secção 6, só se for preciso).
+4. [Vista de processo](4plus1/process.md): o pipeline de um pedido, a reserva de um slot (2.1) e a concorrência (secção 3).
+5. Um cenário à escolha em [Cenários](4plus1/scenarios.md), por exemplo o SC-07, a corrida pelo mesmo slot.
 
 **Para mudar o código.**
-1. [05 · Vista de desenvolvimento](05-development-view.md): estrutura, projetos e referências, convenções e «[Como se acrescenta uma funcionalidade](05-development-view.md#como-se-acrescenta-uma-funcionalidade)».
-2. [07 · Cenários](07-scenarios.md): o cenário mais próximo do que vais mexer mostra as vistas e as regras que atravessas.
+1. [Vista de desenvolvimento](4plus1/development.md): estrutura, projetos e referências, convenções e «[Como se acrescenta uma funcionalidade](4plus1/development.md#como-se-acrescenta-uma-funcionalidade)».
+2. [Cenários](4plus1/scenarios.md): o cenário mais próximo do que vais mexer mostra as vistas e as regras que atravessas.
 3. As [ADRs](adr/README.md) das peças que tocas (por exemplo a [0003](adr/0003-exclusion-constraint-reservas.md) antes de mexer em reservas e a [0004](adr/0004-outbox-para-emails.md) antes de mexer em emails).
-4. O [inventário](00-inventory.md) para o caminho exato de cada elemento, e as secções «Notas» de cada vista para os desvios conhecidos.
+4. O [inventário](inventory.md) para o caminho exato de cada elemento, e as secções «Notas» de cada vista para os desvios conhecidos.
 
 **Para fazer deploy (T06).**
-1. [06 · Vista física](06-physical-view.md): o que é público, TLS, uma só origem, o IP do cliente (4.4), a base de dados (4.6), segredos (4.7), migrações (4.8) e os [riscos da T06](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06).
+1. [Vista física](4plus1/physical.md): o que é público, TLS, uma só origem, o IP do cliente (4.4), a base de dados (4.6), segredos (4.7), migrações (4.8) e os [riscos da T06](4plus1/physical.md#5-riscos-e-pontos-em-aberto-para-a-t06).
 2. [ADR 0009 · Alvo de implantação](adr/0009-alvo-de-implantacao.md): a decisão (Vercel, Render, Supabase, Brevo) e o que substitui da Stack. Foi aceite depois do primeiro deploy real.
 
 ## 4. Galeria de diagramas
 
-Os 40 diagramas, pela ordem dos ficheiros, cada um com uma linha de legenda e a ligação à secção que o explica. Os diagramas largos estão reduzidos para caberem na página; abre o `.svg` na pasta [diagrams/](diagrams/) para o ver ao tamanho real (e o `.puml` ao lado é a fonte).
+Os 40 diagramas, pela ordem dos ficheiros, cada um com uma linha de legenda e a ligação à secção que o explica. Os diagramas largos estão reduzidos para caberem na página; abre o `.svg` na pasta [out/](out/) para o ver ao tamanho real (e o `.puml` ao lado é a fonte).
 
 ### 01 · Contexto
 
-![Contexto do sistema](diagrams/01-context.svg)
+![Contexto do sistema](out/01-context.svg)
 
-Quem usa o sistema e os sistemas externos com que fala. Explicado em [01 · Diagrama](01-context.md#diagrama).
+Quem usa o sistema e os sistemas externos com que fala. Explicado em [Contexto · Diagrama](c4/README.md#diagrama-do-contexto).
 
 ### 02 · Contentores
 
-![Contentores em desenvolvimento](diagrams/02-containers-dev.svg)
+![Contentores em desenvolvimento](out/02-containers-dev.svg)
 
-Os contentores do docker compose e as duas entradas em desenvolvimento (pelo Next.js e diretamente na API). Explicado em [02 · Desenvolvimento](02-containers.md#desenvolvimento-docker-compose).
+Os contentores do docker compose e as duas entradas em desenvolvimento (pelo Next.js e diretamente na API). Explicado em [Contentores · Desenvolvimento](c4/README.md#desenvolvimento-docker-compose).
 
-![Contentores em produção (T06)](diagrams/02-containers-prod.svg)
+![Contentores em produção (T06)](out/02-containers-prod.svg)
 
-Os contentores em produção. Explicado em [02 · Produção](02-containers.md#produção-t06).
+Os contentores em produção. Explicado em [Contentores · Produção](c4/README.md#produção-t06).
 
 ### 03 · Vista lógica
 
-![Camadas do back end](diagrams/03-logical-layers.svg)
+![Camadas do back end](out/logical-layers.svg)
 
-As quatro camadas e o sentido das dependências (Api → Infrastructure → Application → Domain). Explicado em [03 · 1. Camadas](03-logical-view.md#1-camadas).
+As quatro camadas e o sentido das dependências (Api → Infrastructure → Application → Domain). Explicado em [Vista lógica · 1. Camadas](4plus1/logical.md#1-camadas).
 
-<img src="diagrams/03-logical-api-overview.svg" alt="Componentes da API, visão geral" width="900">
+<img src="out/03-components-api-overview.svg" alt="Componentes da API, visão geral" width="900">
 
-Os componentes da API por funcionalidade e as peças transversais. Explicado em [03 · Visão geral por funcionalidade](03-logical-view.md#visão-geral-por-funcionalidade).
+Os componentes da API por funcionalidade e as peças transversais. Explicado em [Vista lógica · Visão geral por funcionalidade](4plus1/logical.md#visão-geral-por-funcionalidade).
 
-<img src="diagrams/03-logical-api-bookings.svg" alt="Componentes das reservas" width="900">
+<img src="out/03-components-api-bookings.svg" alt="Componentes das reservas" width="900">
 
-As partes das reservas: uma reserva, série semanal, as minhas reservas e o lado do dono. Explicado em [03 · Reservas](03-logical-view.md#reservas-uma-série-semanal-e-do-dono).
+As partes das reservas: uma reserva, série semanal, as minhas reservas e o lado do dono. Explicado em [Vista lógica · Reservas](4plus1/logical.md#reservas-uma-série-semanal-e-do-dono).
 
-<img src="diagrams/03-logical-api-accounts.svg" alt="Componentes das contas" width="900">
+<img src="out/03-components-api-accounts.svg" alt="Componentes das contas" width="900">
 
-Registo, login, sessões e recuperação de palavra-passe. Explicado em [03 · Contas, sessões e recuperação](03-logical-view.md#contas-sessões-e-recuperação-de-palavra-passe).
+Registo, login, sessões e recuperação de palavra-passe. Explicado em [Vista lógica · Contas, sessões e recuperação](4plus1/logical.md#contas-sessões-e-recuperação-de-palavra-passe).
 
-<img src="diagrams/03-logical-api-notifications.svg" alt="Componentes das notificações" width="900">
+<img src="out/03-components-api-notifications.svg" alt="Componentes das notificações" width="900">
 
-O outbox e o worker: pôr, processar, compor e enviar. Explicado em [03 · Notificações](03-logical-view.md#notificações-outbox-e-worker).
+O outbox e o worker: pôr, processar, compor e enviar. Explicado em [Vista lógica · Notificações](4plus1/logical.md#notificações-outbox-e-worker).
 
-<img src="diagrams/03-logical-web.svg" alt="Componentes do front end" width="900">
+<img src="out/03-components-web.svg" alt="Componentes do front end" width="900">
 
-As rotas, as guardas e os caminhos do front end até à API. Explicado em [03 · Rotas, guardas e caminhos](03-logical-view.md#rotas-guardas-e-caminhos-até-à-api).
+As rotas, as guardas e os caminhos do front end até à API. Explicado em [Vista lógica · Rotas, guardas e caminhos](4plus1/logical.md#rotas-guardas-e-caminhos-até-à-api).
 
-<img src="diagrams/03-logical-web-features.svg" alt="Áreas e funcionalidades do front end" width="800">
+<img src="out/03-components-web-features.svg" alt="Áreas e funcionalidades do front end" width="800">
 
-As áreas do front end e as pastas de funcionalidades de cada uma. Explicado em [03 · Áreas e funcionalidades](03-logical-view.md#áreas-e-funcionalidades).
+As áreas do front end e as pastas de funcionalidades de cada uma. Explicado em [Vista lógica · Áreas e funcionalidades](4plus1/logical.md#áreas-e-funcionalidades).
 
-<img src="diagrams/03-logical-domain-booking.svg" alt="Modelo do domínio: reservas" width="800">
+<img src="out/logical-domain-booking.svg" alt="Modelo do domínio: reservas" width="800">
 
-Clubes, campos, horários, bloqueios, faixas de preço e reservas, com as relações. Explicado em [03 · Clubes, campos, bloqueios e reservas](03-logical-view.md#clubes-campos-bloqueios-e-reservas).
+Clubes, campos, horários, bloqueios, faixas de preço e reservas, com as relações. Explicado em [Vista lógica · Clubes, campos, bloqueios e reservas](4plus1/logical.md#clubes-campos-bloqueios-e-reservas).
 
-<img src="diagrams/03-logical-domain-accounts.svg" alt="Modelo do domínio: contas" width="800">
+<img src="out/logical-domain-accounts.svg" alt="Modelo do domínio: contas" width="800">
 
-Contas, refresh tokens, histórico dos donos e mensagens do outbox, com a camada de cada um. Explicado em [03 · Contas, sessões, histórico e outbox](03-logical-view.md#contas-sessões-histórico-dos-donos-e-outbox).
+Contas, refresh tokens, histórico dos donos e mensagens do outbox, com a camada de cada um. Explicado em [Vista lógica · Contas, sessões, histórico e outbox](4plus1/logical.md#contas-sessões-histórico-dos-donos-e-outbox).
 
-<img src="diagrams/03-logical-state-booking.svg" alt="Estados de uma reserva" width="900">
+<img src="out/logical-state-booking.svg" alt="Estados de uma reserva" width="900">
 
-Os estados de uma reserva e as transições permitidas. Explicado em [03 · Reserva](03-logical-view.md#reserva).
+Os estados de uma reserva e as transições permitidas. Explicado em [Vista lógica · Reserva](4plus1/logical.md#reserva).
 
-<img src="diagrams/03-logical-state-outbox.svg" alt="Estados de uma mensagem do outbox" width="800">
+<img src="out/logical-state-outbox.svg" alt="Estados de uma mensagem do outbox" width="800">
 
-Os estados de uma mensagem: por enviar, enviada, ignorada ou falhada, com novas tentativas. Explicado em [03 · Mensagem do outbox](03-logical-view.md#mensagem-do-outbox).
+Os estados de uma mensagem: por enviar, enviada, ignorada ou falhada, com novas tentativas. Explicado em [Vista lógica · Mensagem do outbox](4plus1/logical.md#mensagem-do-outbox).
 
-<img src="diagrams/03-logical-state-owner.svg" alt="Estados de um dono" width="800">
+<img src="out/logical-state-owner.svg" alt="Estados de um dono" width="800">
 
-Dono ativo e desativado, e quem muda o estado. Explicado em [03 · Dono](03-logical-view.md#dono).
+Dono ativo e desativado, e quem muda o estado. Explicado em [Vista lógica · Dono](4plus1/logical.md#dono).
 
-<img src="diagrams/03-logical-code-booking.svg" alt="Código: Booking" width="900">
+<img src="out/logical-code-booking.svg" alt="Código: Booking" width="900">
 
-Nível 4: a entidade `Booking` e os resultados dos seus métodos. Explicado em [03 · O agregado Booking](03-logical-view.md#o-agregado-booking).
+Nível 4: a entidade `Booking` e os resultados dos seus métodos. Explicado em [Vista lógica · O agregado Booking](4plus1/logical.md#o-agregado-booking).
 
-<img src="diagrams/03-logical-code-slots.svg" alt="Código: slots" width="900">
+<img src="out/logical-code-slots.svg" alt="Código: slots" width="900">
 
-Nível 4: geração de slots, definição de «livre» e preço de um slot. Explicado em [03 · Geração de slots, «livre» e preço](03-logical-view.md#geração-de-slots-livre-e-preço).
+Nível 4: geração de slots, definição de «livre» e preço de um slot. Explicado em [Vista lógica · Geração de slots, «livre» e preço](4plus1/logical.md#geração-de-slots-livre-e-preço).
 
 ### 04 · Vista de processo
 
-<img src="diagrams/04-process-runtime.svg" alt="Processos e fios de execução" width="900">
+<img src="out/process-runtime.svg" alt="Processos e fios de execução" width="900">
 
-O que corre ao mesmo tempo: processos, fios e o worker dentro da API. Explicado em [04 · 1. Processos e fios](04-process-view.md#1-processos-fios-e-o-que-corre-ao-mesmo-tempo).
+O que corre ao mesmo tempo: processos, fios e o worker dentro da API. Explicado em [Vista de processo · 1. Processos e fios](4plus1/process.md#1-processos-fios-e-o-que-corre-ao-mesmo-tempo).
 
-![Pipeline de um pedido na API](diagrams/04-process-pipeline.svg)
+![Pipeline de um pedido na API](out/process-pipeline.svg)
 
-A ordem dos middlewares de um pedido na API. Explicado em [04 · Pipeline de um pedido](04-process-view.md#pipeline-de-um-pedido-na-api).
+A ordem dos middlewares de um pedido na API. Explicado em [Vista de processo · Pipeline de um pedido](4plus1/process.md#pipeline-de-um-pedido-na-api).
 
-<img src="diagrams/04-process-book.svg" alt="Jogador reserva um slot" width="900">
+<img src="out/process-book.svg" alt="Jogador reserva um slot" width="900">
 
-Sequência da reserva de um slot, com o trinco do campo e a exclusion constraint. Explicado em [04 · 2.1 Jogador reserva um slot](04-process-view.md#21-jogador-reserva-um-slot).
+Sequência da reserva de um slot, com o trinco do campo e a exclusion constraint. Explicado em [Vista de processo · 2.1 Jogador reserva um slot](4plus1/process.md#21-jogador-reserva-um-slot).
 
-<img src="diagrams/04-process-series.svg" alt="Série semanal" width="900">
+<img src="out/process-series.svg" alt="Série semanal" width="900">
 
-Sequência da série semanal: uma transação por data e um resumo no fim. Explicado em [04 · 2.2 Série semanal](04-process-view.md#22-série-semanal).
+Sequência da série semanal: uma transação por data e um resumo no fim. Explicado em [Vista de processo · 2.2 Série semanal](4plus1/process.md#22-série-semanal).
 
-<img src="diagrams/04-process-cancel-player.svg" alt="Jogador cancela" width="800">
+<img src="out/process-cancel-player.svg" alt="Jogador cancela" width="800">
 
-O jogador cancela, dentro da janela de cancelamento. Explicado em [04 · 2.3 Pelo jogador](04-process-view.md#pelo-jogador).
+O jogador cancela, dentro da janela de cancelamento. Explicado em [Vista de processo · 2.3 Pelo jogador](4plus1/process.md#pelo-jogador).
 
-<img src="diagrams/04-process-cancel-club.svg" alt="Dono cancela" width="900">
+<img src="out/process-cancel-club.svg" alt="Dono cancela" width="900">
 
-O dono cancela com motivo e o email segue na mesma transação. Explicado em [04 · 2.3 Pelo dono](04-process-view.md#pelo-dono).
+O dono cancela com motivo e o email segue na mesma transação. Explicado em [Vista de processo · 2.3 Pelo dono](4plus1/process.md#pelo-dono).
 
-<img src="diagrams/04-process-login.svg" alt="Login e logout" width="800">
+<img src="out/process-login.svg" alt="Login e logout" width="800">
 
-Login com uma só resposta para qualquer falha, e logout. Explicado em [04 · 2.4 Login e logout](04-process-view.md#login-e-logout).
+Login com uma só resposta para qualquer falha, e logout. Explicado em [Vista de processo · 2.4 Login e logout](4plus1/process.md#login-e-logout).
 
-<img src="diagrams/04-process-refresh.svg" alt="Refresh na API" width="800">
+<img src="out/process-refresh.svg" alt="Refresh na API" width="800">
 
-Refresh com rotação e deteção de reutilização. Explicado em [04 · 2.4 Refresh com rotação](04-process-view.md#refresh-com-rotação-e-deteção-de-reutilização).
+Refresh com rotação e deteção de reutilização. Explicado em [Vista de processo · 2.4 Refresh com rotação](4plus1/process.md#refresh-com-rotação-e-deteção-de-reutilização).
 
-<img src="diagrams/04-process-refresh-client.svg" alt="Refresh no browser" width="800">
+<img src="out/process-refresh-client.svg" alt="Refresh no browser" width="800">
 
-No browser: Web Lock entre separadores e refresh silencioso em `/login`. Explicado em [04 · 2.4 No browser](04-process-view.md#no-browser-web-lock-entre-separadores-e-refresh-silencioso-em-login).
+No browser: Web Lock entre separadores e refresh silencioso em `/login`. Explicado em [Vista de processo · 2.4 No browser](4plus1/process.md#no-browser-web-lock-entre-separadores-e-refresh-silencioso-em-login).
 
-<img src="diagrams/04-process-reset-request.svg" alt="Pedir nova palavra-passe" width="900">
+<img src="out/process-reset-request.svg" alt="Pedir nova palavra-passe" width="900">
 
-Pedir nova palavra-passe: resposta sempre igual e o trabalho fica no outbox. Explicado em [04 · 2.5 Pedido](04-process-view.md#pedido).
+Pedir nova palavra-passe: resposta sempre igual e o trabalho fica no outbox. Explicado em [Vista de processo · 2.5 Pedido](4plus1/process.md#pedido).
 
-<img src="diagrams/04-process-reset-confirm.svg" alt="Definir a nova palavra-passe" width="800">
+<img src="out/process-reset-confirm.svg" alt="Definir a nova palavra-passe" width="800">
 
-Confirmar a nova palavra-passe e revogar as sessões. Explicado em [04 · 2.5 Confirmação](04-process-view.md#confirmação).
+Confirmar a nova palavra-passe e revogar as sessões. Explicado em [Vista de processo · 2.5 Confirmação](4plus1/process.md#confirmação).
 
-<img src="diagrams/04-process-outbox.svg" alt="Worker de emails" width="800">
+<img src="out/process-outbox.svg" alt="Worker de emails" width="800">
 
-O worker reclama, envia, adia ou desiste. Explicado em [04 · 2.6 Reclamar, enviar, adiar, desistir](04-process-view.md#reclamar-enviar-adiar-desistir).
+O worker reclama, envia, adia ou desiste. Explicado em [Vista de processo · 2.6 Reclamar, enviar, adiar, desistir](4plus1/process.md#reclamar-enviar-adiar-desistir).
 
-<img src="diagrams/04-process-outbox-skip.svg" alt="Avisos ao dono e lembretes" width="800">
+<img src="out/process-outbox-skip.svg" alt="Avisos ao dono e lembretes" width="800">
 
-Lembretes e avisos que já não se aplicam são ignorados, não falhados. Explicado em [04 · 2.6 Ignorar o que já não se aplica](04-process-view.md#ignorar-o-que-já-não-se-aplica).
+Lembretes e avisos que já não se aplicam são ignorados, não falhados. Explicado em [Vista de processo · 2.6 Ignorar o que já não se aplica](4plus1/process.md#ignorar-o-que-já-não-se-aplica).
 
-<img src="diagrams/04-process-guard.svg" alt="Página com guarda" width="900">
+<img src="out/process-guard.svg" alt="Página com guarda" width="900">
 
-Uma página de uma área, com a guarda no servidor. Explicado em [04 · 2.7 Página com guarda](04-process-view.md#27-página-de-uma-área-com-guarda-no-servidor).
+Uma página de uma área, com a guarda no servidor. Explicado em [Vista de processo · 2.7 Página com guarda](4plus1/process.md#27-página-de-uma-área-com-guarda-no-servidor).
 
-<img src="diagrams/04-process-owner-deactivation.svg" alt="Desativar um dono" width="800">
+<img src="out/process-owner-deactivation.svg" alt="Desativar um dono" width="800">
 
-O admin desativa um dono numa transação, com o histórico só de acrescentar. Explicado em [04 · 2.8 Desativar um dono](04-process-view.md#28-desativar-um-dono).
+O admin desativa um dono numa transação, com o histórico só de acrescentar. Explicado em [Vista de processo · 2.8 Desativar um dono](4plus1/process.md#28-desativar-um-dono).
 
 ### 05 · Vista de desenvolvimento
 
-<img src="diagrams/05-dev-repo.svg" alt="Estrutura do repositório" width="900">
+<img src="out/development-repo.svg" alt="Estrutura do repositório" width="900">
 
-As pastas do repositório e o que cada uma contém. Explicado em [05 · 1. Estrutura do repositório](05-development-view.md#1-estrutura-do-repositório).
+As pastas do repositório e o que cada uma contém. Explicado em [Vista de desenvolvimento · 1. Estrutura do repositório](4plus1/development.md#1-estrutura-do-repositório).
 
-<img src="diagrams/05-dev-backend.svg" alt="Projetos do back end" width="800">
+<img src="out/development-backend.svg" alt="Projetos do back end" width="800">
 
-Os projetos .NET e as suas referências. Explicado em [05 · Projetos e referências](05-development-view.md#projetos-e-referências).
+Os projetos .NET e as suas referências. Explicado em [Vista de desenvolvimento · Projetos e referências](4plus1/development.md#projetos-e-referências).
 
-<img src="diagrams/05-dev-di.svg" alt="Composição da injeção de dependências" width="900">
+<img src="out/development-di.svg" alt="Composição da injeção de dependências" width="900">
 
-Como cada camada regista os seus serviços e o `Program.cs` só compõe. Explicado em [05 · Injeção de dependências](05-development-view.md#como-a-injeção-de-dependências-é-composta).
+Como cada camada regista os seus serviços e o `Program.cs` só compõe. Explicado em [Vista de desenvolvimento · Injeção de dependências](4plus1/development.md#como-a-injeção-de-dependências-é-composta).
 
-<img src="diagrams/05-dev-frontend.svg" alt="Pastas do front end" width="900">
+<img src="out/development-frontend.svg" alt="Pastas do front end" width="900">
 
-As pastas do front end e a fronteira `server-only`. Explicado em [05 · 3. Front end](05-development-view.md#3-front-end).
+As pastas do front end e a fronteira `server-only`. Explicado em [Vista de desenvolvimento · 3. Front end](4plus1/development.md#3-front-end).
 
-![Do controller aos tipos](diagrams/05-dev-api-types.svg)
+![Do controller aos tipos](out/development-api-types.svg)
 
-Do controller ao OpenAPI e aos tipos TypeScript gerados. Explicado em [05 · Tipos gerados da API](05-development-view.md#tipos-gerados-da-api).
+Do controller ao OpenAPI e aos tipos TypeScript gerados. Explicado em [Vista de desenvolvimento · Tipos gerados da API](4plus1/development.md#tipos-gerados-da-api).
 
-<img src="diagrams/05-dev-ci.svg" alt="Pipeline de CI" width="900">
+<img src="out/development-ci.svg" alt="Pipeline de CI" width="900">
 
-Os jobs de CI e o que cada um verifica. Explicado em [05 · 4. Pipeline de build e qualidade](05-development-view.md#4-pipeline-de-build-e-qualidade).
+Os jobs de CI e o que cada um verifica. Explicado em [Vista de desenvolvimento · 4. Pipeline de build e qualidade](4plus1/development.md#4-pipeline-de-build-e-qualidade).
 
 ### 06 · Vista física
 
-![Implantação em desenvolvimento](diagrams/06-physical-dev.svg)
+![Implantação em desenvolvimento](out/04-deployment-dev.svg)
 
-A máquina de desenvolvimento, a rede do compose, as portas e o volume da base de dados. Explicado em [06 · 1. Desenvolvimento](06-physical-view.md#1-desenvolvimento-docker-compose).
+A máquina de desenvolvimento, a rede do compose, as portas e o volume da base de dados. Explicado em [Vista física · 1. Desenvolvimento](c4/README.md#1-desenvolvimento-docker-compose).
 
-<img src="diagrams/06-physical-prod.svg" alt="Implantação em produção (T06)" width="800">
+<img src="out/04-deployment-prod.svg" alt="Implantação em produção (T06)" width="800">
 
-A implantação em produção (Vercel, Render, Supabase, Brevo e GitHub Actions). Explicado em [06 · 3. Produção](06-physical-view.md#3-produção-t06).
+A implantação em produção (Vercel, Render, Supabase, Brevo e GitHub Actions). Explicado em [Vista física · 3. Produção](c4/README.md#3-produção-t06).
 
 ## 5. As decisões (ADR)
 
@@ -286,9 +286,9 @@ A data é a do registo; nas ADRs 0001 a 0008 a decisão é mais antiga e vem da 
 
 ### 6.1 Legenda
 
-**Ferramenta.** Os diagramas são escritos em [PlantUML](https://plantuml.com) com a biblioteca [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) e **desenhados para SVG**. O texto (`.puml`) é a fonte e muda no mesmo pull request que o código; o SVG gerado também vai para o repositório, para os diagramas se verem no GitHub e nos documentos sem ninguém ter de instalar nada. Em cada ficheiro Markdown, o diagrama é uma imagem Markdown que aponta para o `.svg` da pasta `diagrams/`, seguida da sua legenda.
+**Ferramenta.** Os diagramas são escritos em [PlantUML](https://plantuml.com) com a biblioteca [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) e **desenhados para SVG**. O texto (`.puml`) é a fonte e muda no mesmo pull request que o código; o SVG gerado também vai para o repositório, para os diagramas se verem no GitHub e nos documentos sem ninguém ter de instalar nada. Em cada ficheiro Markdown, o diagrama é uma imagem Markdown que aponta para o `.svg` da pasta `out/`, seguida da sua legenda.
 
-**Cores (as do C4-PlantUML, sem as alterar).**
+**Cores (as do C4-PlantUML, sem as alterar; a paleta atual está em [style.puml](style.puml)).**
 
 | Elemento | Macro | Cor | Forma |
 | --- | --- | --- | --- |
@@ -310,7 +310,7 @@ A data é a do registo; nas ADRs 0001 a 0008 a decisão é mais antiga e vem da 
 
 ### 6.2 Ids obrigatórios
 
-Todo o elemento de um diagrama usa um id do [inventário](00-inventory.md), com o prefixo do seu tipo: `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas, `API-`/`CC-`/`WEB-` componentes, `D-` domínio, `DB-` base de dados, `DEV-` desenvolvimento, `DEP-` implantação de hoje, `SC-` cenários, `PL-` produção. Um id nunca muda nem é reutilizado. Um elemento novo entra primeiro no inventário, no mesmo pull request; um diagrama sem id para um elemento está errado. Os ids `PL-` só aparecem nas vistas de implantação em produção.
+Todo o elemento de um diagrama usa um id do [inventário](inventory.md), com o prefixo do seu tipo: `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas, `API-`/`CC-`/`WEB-` componentes, `D-` domínio, `DB-` base de dados, `DEV-` desenvolvimento, `DEP-` implantação de hoje, `SC-` cenários, `PL-` produção. Um id nunca muda nem é reutilizado. Um elemento novo entra primeiro no inventário, no mesmo pull request; um diagrama sem id para um elemento está errado. Os ids `PL-` só aparecem nas vistas de implantação em produção.
 
 ### 6.3 Atualização
 
@@ -318,21 +318,21 @@ Um pull request que muda um elemento do inventário (cria, remove, muda de respo
 
 ### 6.4 Editar, voltar a desenhar e verificar
 
-Os `.puml` e os `.svg` ficam lado a lado em [diagrams/](diagrams/): `NN-nome.puml` e `NN-nome.svg`, com o número do documento a que pertencem (`02-containers-dev.puml` para `02-containers.md`; vários diagramas no mesmo documento levam um sufixo, `03-logical-api-bookings.puml`).
+Os `.puml` ficam em [c4/](c4/) (os níveis do C4: `02-containers-dev.puml`, `03-components-api-bookings.puml`) e em [4plus1/](4plus1/) (as vistas: `logical-state-booking.puml`, `process-book.puml`, `development-ci.puml`); os `.svg` gerados ficam todos em [out/](out/), com o mesmo nome do `.puml`. Todos incluem [style.puml](style.puml), que tem o estilo comum, e começam por um comentário com o título, a versão, a data e o que não está desenhado (e, nas vistas 4+1, para quem é e que decisão documenta).
 
 1. Edita o `.puml`. Usa a biblioteca incluída no próprio PlantUML (`!include <C4/C4_Container>`, `C4_Component`, `C4_Context`, `C4_Dynamic`, `C4_Deployment`), sem descarregar nada da rede, para o desenho ser sempre o mesmo.
-2. Desenha todos os diagramas (só precisa do Docker) com `scripts/render-diagrams.sh` (bash) ou `scripts/render-diagrams.ps1` (PowerShell, no Windows). Os dois leem a versão do cabeçalho dos `.puml` (`' plantuml-version: X.Y.Z`) e usam a imagem `plantuml/plantuml:X.Y.Z`; recusam-se a correr se os ficheiros indicarem versões diferentes. Para mudar a versão, altera o cabeçalho de **todos** os `.puml`, volta a desenhar e faz commit dos SVG.
+2. Desenha todos os diagramas (só precisa do Docker) com `docs/architecture/render.sh` (bash) ou `docs/architecture/render.ps1` (PowerShell, no Windows). Os dois leem a versão de `style.puml` (linha `' plantuml-version: X.Y.Z`) e usam a imagem `plantuml/plantuml:X.Y.Z`, sem montar nada do computador: o tipo de letra (DejaVu Sans) vem dessa imagem, por isso o SVG é o mesmo em qualquer máquina e no CI. Para mudar a versão, altera essa linha, volta a desenhar e faz commit dos SVG.
 3. Faz commit do `.puml` e do `.svg` juntos. Um SVG que não corresponde ao `.puml` é um erro de revisão.
-4. Um diagrama novo tem de entrar **uma vez** na galeria deste ficheiro. Corre `scripts/check-architecture-docs.sh` (ou `.ps1`): falha se algum `.svg` de `diagrams/` não estiver referenciado exatamente uma vez neste README, se este README referir um ficheiro que não existe, ou se uma ligação relativa de qualquer `.md` desta pasta (incluindo `adr/`) não chegar a um ficheiro. Não verifica as âncoras (`#secção`) nem se os ids dos diagramas existem no inventário: isso é revisão.
+4. Um diagrama novo tem de entrar **uma vez** na galeria deste ficheiro. Corre `scripts/check-architecture-docs.sh` (ou `.ps1`): falha se algum `.svg` de `out/` não estiver referenciado exatamente uma vez neste README, se este README referir um ficheiro que não existe, se algum `.puml` não incluir `../style.puml`, ou se uma ligação relativa de qualquer `.md` de `docs/` ou do `README.md` da raiz não chegar a um ficheiro. Não verifica as âncoras (`#secção`) nem se os ids dos diagramas existem no inventário: isso é revisão.
 
-**Integração contínua.** O job `diagrams` («Docs (architecture diagrams)», `DEV-CI-DIAGRAMS`) faz, por esta ordem: (1) corre `scripts/render-diagrams.sh`; (2) falha se algum `.svg` mudou ou falta, porque o `git status` da pasta deve ficar limpo («drift check»); (3) corre `scripts/check-architecture-docs.sh`.
+**Integração contínua.** O job `diagrams` («Docs (architecture diagrams)», `DEV-CI-DIAGRAMS`) faz, por esta ordem: (1) corre `docs/architecture/render.sh`; (2) falha se algum `.svg` mudou ou falta, porque o `git status` da pasta deve ficar limpo («drift check»); (3) corre `scripts/check-architecture-docs.sh`.
 
 ## Notas de arquitetura
 
 Factos do código que as vistas, os cenários e as ADRs têm de dizer tal como são. Não são erros.
 
 1. **A API também se alcança diretamente, em desenvolvimento.** Além de passar pelo Next.js, a API está publicada na porta 5080 do compose (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O diagrama de contentores e o de implantação de desenvolvimento mostram as duas entradas (browser → C-WEB → C-API, e browser/ferramentas → C-API em 5080).
-2. **O proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API, em desenvolvimento e em produção. O Caddy (PL-CADDY) não foi adotado. O IP do cliente está na [vista física](06-physical-view.md#44-o-ip-do-cliente), secção 4.4.
+2. **O proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API, em desenvolvimento e em produção. O Caddy (PL-CADDY) não foi adotado. O IP do cliente está na [vista física](4plus1/physical.md#44-o-ip-do-cliente), secção 4.4.
 3. **Entidades persistidas fora do Domain.** A conta (`AppUser`, do Identity), o refresh token e a mudança de estado de um dono vivem na Infrastructure, e a mensagem do outbox na Application. No Domain a conta existe só como regras (`Dom/Accounts`: email, nome, telemóvel, palavra-passe, perfis). O diagrama do domínio mostra estes elementos com a camada a que pertencem (`D-USER`, `D-REFRESH`, `D-STATUSCHG`, `D-OUTBOX`).
 4. **Uma exceção ao relógio injetado.** Toda a hora atual vem de `TimeProvider` (CC-TIME), exceto o gerador de tokens de recuperação de palavra-passe do Identity, que lê o relógio do sistema e por isso não se testa com um relógio falso (os testes fabricam tokens antigos no formato do Identity).
 5. **A exclusion constraint só cobre reservas `Confirmed`.** `bookings_no_overlap` (DB-NOOVERLAP) tem `WHERE status = 'Confirmed'`: uma reserva cancelada ou uma falta não ocupa o slot, e anular uma falta (ou qualquer volta a `Confirmed`) só tem sucesso se mais nenhuma reserva confirmada se sobrepuser entretanto; senão a base de dados recusa (23P01 → 409 `slot_taken`).
@@ -343,10 +343,10 @@ Tirados dos próprios documentos (secções «Notas» e «Riscos» de cada vista
 
 ### 7.1 Dependem da T06 e da ADR 0009
 
-- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) foi aceite** em 2026-11-09, depois do primeiro deploy real. Os diagramas `*-prod` e a [secção 3 da vista física](06-physical-view.md#3-produção-t06) mostram o que está em produção (Vercel, Render gratuito com a API pública, Supabase, Brevo, sem Caddy).
+- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) foi aceite** em 2026-11-09, depois do primeiro deploy real. Os diagramas `*-prod` e a [secção 3 da vista física](c4/README.md#3-produção-t06) mostram o que está em produção (Vercel, Render gratuito com a API pública, Supabase, Brevo, sem Caddy).
 - **A Stack ainda descreve outro alvo.** `docs/stack.md` fala numa máquina virtual com Caddy; a ADR 0009 nomeia as secções que substitui. A Stack não foi alterada, exceto os nomes dos projetos do back end.
-- **O IP do cliente é de melhor esforço.** Em produção a API acredita em `X-Forwarded-For` com `ForwardLimit=1`, confirmado no primeiro deploy, e os limites por IP são só de melhor esforço, porque a API é pública ([secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)). O IP nas chamadas dos Server Components não foi reportado.
-- **Os pontos da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** que o primeiro deploy real não confirmou continuam em aberto. Os riscos aceites (arranque a frio, planos gratuitos, entre outros) estão na ADR 0009.
+- **O IP do cliente é de melhor esforço.** Em produção a API acredita em `X-Forwarded-For` com `ForwardLimit=1`, confirmado no primeiro deploy, e os limites por IP são só de melhor esforço, porque a API é pública ([secção 4.4 da vista física](4plus1/physical.md#44-o-ip-do-cliente)). O IP nas chamadas dos Server Components não foi reportado.
+- **Os pontos da [secção 5 da vista física](4plus1/physical.md#5-riscos-e-pontos-em-aberto-para-a-t06)** que o primeiro deploy real não confirmou continuam em aberto. Os riscos aceites (arranque a frio, planos gratuitos, entre outros) estão na ADR 0009.
 - **O worker corre dentro da API**, por isso os emails e lembretes só saem enquanto a API estiver acordada.
 - **Feitos antes da T06:** o `dependabot.yml` e os cabeçalhos de segurança do site e da API (`PL-DEPENDABOT`, `PL-SECHEADERS`). O HSTS liga-se com `ENABLE_HSTS=true` na Vercel. A política de conteúdo (CSP) tem `'unsafe-inline'` em scripts e estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página: um limite conhecido, marcado como «Provisório» no backlog.
 
@@ -362,5 +362,5 @@ Não são erros: o `frontend/Dockerfile` copia uma pasta `public` que não exist
 
 - Foi conferida à mão com o código; não há teste que prove que um diagrama corresponde ao código. O que o CI garante é que os SVG correspondem aos `.puml`, que cada SVG está na galeria e que as ligações relativas chegam a um ficheiro.
 - Os ids dos diagramas e do inventário também só se confirmam em revisão.
-- Os diagramas mais largos ficam ilegíveis quando reduzidos à largura de uma página, sobretudo os quatro de componentes da API (`03-logical-api-bookings`, 4523 px; `03-logical-api-accounts`, 3132 px; `03-logical-api-overview`, 2900 px; `03-logical-api-notifications`, 2484 px); os de sequência de 2200 a 2500 px lêem-se com esforço. Abre o `.svg` ao tamanho real. Dividi-los mais é trabalho futuro.
+- Os diagramas mais largos ficam ilegíveis quando reduzidos à largura de uma página, sobretudo os quatro de componentes da API (`03-components-api-bookings`, 4523 px; `03-components-api-accounts`, 3132 px; `03-components-api-overview`, 2900 px; `03-components-api-notifications`, 2484 px); os de sequência de 2200 a 2500 px lêem-se com esforço. Abre o `.svg` ao tamanho real. Dividi-los mais é trabalho futuro.
 - Os dados de planos e preços de fornecedores (Render, Supabase, Brevo) mudam; os que estão na vista física têm data e fonte.
