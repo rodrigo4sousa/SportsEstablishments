@@ -1,6 +1,6 @@
 # Capturas de ecrã
 
-Oito imagens da aplicação a funcionar com os dados de demonstração (`seed-demo`, ver o [README](../../README.md#executar-localmente)). Servem de apresentação do projeto; não são geradas pelo CI e podem ficar desatualizadas se a interface mudar.
+Oito imagens da aplicação a funcionar com os dados de demonstração (`seed-demo`, ver o [README](../../README.md#run-locally)). Servem de apresentação do projeto; não são geradas pelo CI e podem ficar desatualizadas se a interface mudar.
 
 | Ficheiro | O que mostra | Conta |
 | --- | --- | --- |
