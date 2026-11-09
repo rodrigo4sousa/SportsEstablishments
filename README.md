@@ -5,121 +5,121 @@
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
 
-Aplicação web para reservar campos desportivos (futsal, futebol 7, padel, ténis) em clubes portugueses. Os jogadores pesquisam clubes e reservam horários livres; os donos gerem clubes, campos, horários e reservas; o admin da plataforma vê só números agregados. É uma aplicação Next.js com três áreas sobre uma API ASP.NET Core e uma base PostgreSQL. A interface está em pt-PT; o código e os commits estão em inglês.
+A web application for booking sports pitches and courts (futsal, 7-a-side football, padel, tennis) at clubs in Portugal. Players search clubs and book free slots; owners run their clubs, pitches, schedules and bookings; the platform admin sees only aggregate numbers. It is one Next.js app with three areas on top of an ASP.NET Core API and a PostgreSQL database. The user interface is in European Portuguese (pt-PT), and so are the product name and the UI strings quoted in the docs; the code, the commits and this README are in English.
 
-> **Demo online:** <https://sports-establishments.vercel.app/>. É uma demonstração que pode ser desligada a qualquer momento. A API corre num plano gratuito que adormece sem tráfego, por isso o primeiro pedido pode demorar cerca de um minuto. As contas de demonstração partilham uma palavra-passe pública (ver [Executar localmente](#executar-localmente)): não a uses numa conta real.
+> **Online demo:** <https://sports-establishments.vercel.app/>. It is a demo that may be taken offline at any time. The API runs on a free plan that sleeps when idle, so the first request can take about a minute. The demo accounts share a public password (see [Run locally](#run-locally)): never use it for a real account.
 
-## Capturas de ecrã
+## Screenshots
 
-Com os dados de demonstração. O que cada imagem mostra e como foram feitas: [`docs/images`](docs/images/README.md).
+With the demo data. What each image shows and how they were made: [`docs/images`](docs/images/README.md).
 
-| Pesquisa de clubes | Página do clube | Resumo da reserva semanal | As minhas reservas |
+| Club search | Club page | Weekly booking summary | My bookings |
 |:---:|:---:|:---:|:---:|
-| ![Pesquisa de clubes com filtros de desporto e data](docs/images/screenshot-club-search-results.png) | ![Página do clube com campos, preço base e horários com preços](docs/images/screenshot-club-page-slots-and-prices.png) | ![Resumo da reserva com repetição semanal e pré-visualização das datas](docs/images/screenshot-booking-summary-weekly-repeat.png) | ![As minhas reservas, separador Próximas, com uma série semanal](docs/images/screenshot-my-bookings-upcoming-series.png) |
+| ![Club search with sport and date filters](docs/images/screenshot-club-search-results.png) | ![Club page with pitches, base price and slots with prices](docs/images/screenshot-club-page-slots-and-prices.png) | ![Booking summary with weekly repeat and a preview of the dates](docs/images/screenshot-booking-summary-weekly-repeat.png) | ![My bookings, Upcoming tab, with a weekly series](docs/images/screenshot-my-bookings-upcoming-series.png) |
 
-| Calendário do dono | Estatísticas do clube | Painel do admin | Admin: registos e ocupação |
+| Owner calendar | Club statistics | Admin dashboard | Admin: registrations and occupation |
 |:---:|:---:|:---:|:---:|
-| ![Calendário do dono, vista diária, com reservas, um bloqueio e uma reserva criada pelo clube](docs/images/screenshot-owner-calendar-day.png) | ![Estatísticas de um clube por campo](docs/images/screenshot-owner-statistics-club.png) | ![Painel do admin com totais, gráficos e lista de donos](docs/images/screenshot-admin-dashboard.png) | ![Novos registos por semana e os 10 clubes com maior ocupação](docs/images/screenshot-admin-top-occupation-registrations.png) |
+| ![Owner calendar, day view, with bookings, a block and a booking created by the club](docs/images/screenshot-owner-calendar-day.png) | ![Statistics of a club by pitch](docs/images/screenshot-owner-statistics-club.png) | ![Admin dashboard with totals, charts and the list of owners](docs/images/screenshot-admin-dashboard.png) | ![New registrations per week and the 10 clubs with the highest occupation](docs/images/screenshot-admin-top-occupation-registrations.png) |
 
-## Funcionalidades
+## Features
 
-As histórias e os critérios de aceitação estão no [backlog](docs/backlog.md). Um mercado único: uma conta de jogador serve em todos os clubes de todos os donos.
+The stories and their acceptance criteria are in the [backlog](docs/backlog.md). It is a single marketplace: one player account works at every club of every owner.
 
-**Jogador** (`/`)
+**Player** (`/`)
 
-- Pesquisar clubes por desporto, localidade e data, e ver os horários livres de cada campo com o preço (US16, US17). Sem conta, só se vê; para reservar, entra-se e volta-se à mesma escolha.
-- Registo, login e recuperação da palavra-passe (US01, US03, US05).
-- Reservar um horário, de hoje a 30 dias, com o preço do momento (US18), e repetir a reserva por 2 a 4 semanas (US20).
-- Ver as reservas próximas e passadas e cancelar dentro da janela do clube (US19).
-- Emails: confirmação e cancelamento, lembrete antes da reserva e resumo da série (US21, US22).
+- Search clubs by sport, locality and date, and see each pitch's free slots with their price (US16, US17). Without an account a visitor can only look; to book, they sign in and come back to the same choice.
+- Sign-up, login and password recovery (US01, US03, US05).
+- Book a slot from today up to 30 days ahead, at the price of that moment (US18), and repeat the booking weekly for 2 to 4 weeks (US20).
+- See upcoming and past bookings and cancel within the club's cancellation window (US19).
+- Emails: confirmation and cancellation, a reminder before the booking, and a summary of a series (US21, US22).
 
-**Dono** (`/manage`)
+**Owner** (`/manage`)
 
-- Registo; clubes, campos, horário semanal, duração dos horários, bloqueios e faixas de preço (US02, US06 a US10).
-- Calendário diário e semanal, cancelamento com motivo, reservas para clientes sem conta, marcar faltas (US11 a US13, US15).
-- Ocupação e receita por clube e campo (US14); aviso por email de cada nova reserva (US23).
+- Sign-up; clubs, pitches, weekly opening hours, slot length, blocks and price bands (US02, US06 to US10).
+- A daily and weekly calendar, cancellation with a reason, bookings for customers without an account, and no-show marking (US11 to US13, US15).
+- Occupation and revenue per club and pitch (US14), and an email for each new booking (US23).
 
 **Admin** (`/admin`)
 
-- A conta nasce só de configuração no arranque, nunca por um endpoint (US04).
-- Totais, reservas e registos ao longo do tempo, clubes com maior ocupação e lista de donos (US24 a US28). Nunca vê nomes, emails nem telefones de jogadores.
-- Desativar e reativar donos, com motivo e histórico só de acrescentar (US29).
+- The account is created only from configuration at startup, never through an endpoint (US04).
+- Totals, bookings and registrations over time, the clubs with the highest occupation and the list of owners (US24 to US28). The admin never sees a player's name, email or phone.
+- Deactivate and reactivate owners, with a reason and an append-only history (US29).
 
-## Stack
+## Tech stack
 
-Next.js 16.4 (App Router), React 19.3, TypeScript 5.9, Tailwind CSS 4.3 e shadcn/ui, TanStack Query, React Hook Form e Zod; ASP.NET Core 10 com controllers, EF Core 10 e Npgsql, ASP.NET Core Identity, FluentValidation e MailKit; PostgreSQL 18. Os tipos da API no front end são gerados a partir do OpenAPI. Testes com xUnit v3, Shouldly, Testcontainers, Vitest e MSW. Docker Compose, GitHub Actions e PlantUML. As versões exatas estão em [`frontend/package.json`](frontend/package.json), [`backend/Directory.Packages.props`](backend/Directory.Packages.props), [`global.json`](global.json) e [`docker-compose.yml`](docker-compose.yml); as razões das escolhas, na [Stack](docs/stack.md).
+Next.js 16.4 (App Router), React 19.3, TypeScript 5.9, Tailwind CSS 4.3 and shadcn/ui, TanStack Query, React Hook Form and Zod; ASP.NET Core 10 with controllers, EF Core 10 and Npgsql, ASP.NET Core Identity, FluentValidation and MailKit; PostgreSQL 18. The API types used by the front end are generated from the OpenAPI document. Tests use xUnit v3, Shouldly, Testcontainers, Vitest and MSW. Docker Compose, GitHub Actions and PlantUML. Exact versions are in [`frontend/package.json`](frontend/package.json), [`backend/Directory.Packages.props`](backend/Directory.Packages.props), [`global.json`](global.json) and [`docker-compose.yml`](docker-compose.yml); the reasons for the choices are in the [Stack document](docs/stack.md).
 
-## Arquitetura
+## Architecture
 
-![Contexto: visitante, jogador, dono e admin usam o sistema, que envia email por SMTP](docs/architecture/out/01-context.svg)
+![Context: visitor, player, owner and admin use the system, which sends email over SMTP](docs/architecture/out/01-context.svg)
 
-![Contentores em produção: browser, Next.js na Vercel, API e worker no Render, PostgreSQL no Supabase e Brevo](docs/architecture/out/02-containers-prod.svg)
+![Containers in production: browser, Next.js on Vercel, API and worker on Render, PostgreSQL on Supabase and Brevo](docs/architecture/out/02-containers-prod.svg)
 
-![Implantação em produção: Vercel, Render, Supabase, Brevo e GitHub Actions](docs/architecture/out/04-deployment-prod.svg)
+![Production deployment: Vercel, Render, Supabase, Brevo and GitHub Actions](docs/architecture/out/04-deployment-prod.svg)
 
-Contexto, contentores em produção e implantação em produção. As legendas dos diagramas estão em português. Todas as vistas (C4 e 4+1), o inventário de elementos e as decisões estão em [`docs/architecture`](docs/architecture/README.md).
+Context, containers in production and deployment in production. The diagram labels are in Portuguese. All the views (C4 and 4+1), the element inventory and the decisions are in [`docs/architecture`](docs/architecture/README.md).
 
-As decisões principais:
+The main decisions:
 
-- **Clean Architecture** no back end, em quatro projetos com as dependências só para dentro (Api → Infrastructure → Application → Domain). A Application usa o `IAppDbContext` e não há repositório genérico. Ver a [vista lógica](docs/architecture/4plus1/logical.md).
-- **Sem reservas duplicadas pela base de dados.** Uma exclusion constraint do PostgreSQL (`bookings_no_overlap`) impede duas reservas confirmadas sobrepostas no mesmo campo, e a sua violação vira um 409. Bloquear e reservar tomam antes um trinco na linha do campo. Há um teste com 20 pedidos simultâneos para o mesmo horário. [ADR 0003](docs/architecture/adr/0003-exclusion-constraint-reservas.md).
-- **Emails por outbox.** A mensagem grava-se na mesma transação da reserva ou do cancelamento, e um worker dentro da API envia-a depois, com `SKIP LOCKED` e novas tentativas. [ADR 0004](docs/architecture/adr/0004-outbox-para-emails.md).
-- **Sessão em cookies httpOnly, na mesma origem.** O Next.js reencaminha `/api/*` para a API, por isso o browser só conhece uma origem, os cookies são first-party e não há CORS. Um JWT de 15 minutos e um refresh token rotativo, fora do alcance do JavaScript da página. [ADR 0002](docs/architecture/adr/0002-sessao-em-cookies-httponly.md).
-- **Horários calculados, não guardados**, em blocos de tempo real, certos nos dias de mudança de hora. [ADR 0007](docs/architecture/adr/0007-slots-calculados.md).
+- **Clean Architecture** in the back end, in four projects with dependencies pointing only inwards (Api → Infrastructure → Application → Domain). The Application layer uses `IAppDbContext`; there is no generic repository. See the [logical view](docs/architecture/4plus1/logical.md).
+- **No double bookings, enforced by the database.** A PostgreSQL exclusion constraint (`bookings_no_overlap`) prevents two confirmed bookings of the same pitch from overlapping, and its violation becomes a 409. Blocking and booking first take a lock on the pitch row. A test sends 20 simultaneous requests for the same slot. [ADR 0003](docs/architecture/adr/0003-exclusion-constraint-reservas.md).
+- **Emails through an outbox.** The message is written in the same transaction as the booking or the cancellation, and a worker inside the API sends it later, with `SKIP LOCKED` and retries. [ADR 0004](docs/architecture/adr/0004-outbox-para-emails.md).
+- **Session in httpOnly cookies, on one origin.** Next.js rewrites `/api/*` to the API, so the browser knows a single origin, the cookies are first-party and there is no CORS. A 15-minute JWT and a rotating refresh token, out of reach of the page's JavaScript. [ADR 0002](docs/architecture/adr/0002-sessao-em-cookies-httponly.md).
+- **Slots are computed, not stored**, in blocks of real elapsed time, correct on clock-change days. [ADR 0007](docs/architecture/adr/0007-slots-calculados.md).
 
-## Implantação
+## Deployment
 
-Em produção desde 2026-11-09: o site na Vercel, a API e o worker de emails num serviço do Render, a PostgreSQL no Supabase, o email no Brevo e os pipelines no GitHub Actions. A decisão está na [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) e os passos manuais no [runbook](docs/deployment/runbook.md); as variáveis, em [environment-variables.md](docs/deployment/environment-variables.md). O deploy corre depois do CI verde na `main` e só se a variável `DEPLOY_ENABLED` for `true`.
+In production since 2026-11-09: the site on Vercel, the API and the email worker in one Render service, PostgreSQL on Supabase, email through Brevo and the pipelines on GitHub Actions. The decision is in [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) and the manual steps in the [runbook](docs/deployment/runbook.md); the settings are in [environment-variables.md](docs/deployment/environment-variables.md). The deploy runs after CI is green on `main`, and only if the `DEPLOY_ENABLED` variable is `true`.
 
-Tudo corre em planos gratuitos, e isso tem custos: a API adormece sem tráfego, e o worker só envia emails enquanto ela estiver acordada; o plano gratuito do Supabase não inclui cópias de segurança automáticas; sem domínio próprio, usam-se os endereços `*.vercel.app` e `*.onrender.com`; e os limites por IP são de melhor esforço, porque a API é pública. Os dados são de demonstração.
+Everything runs on free plans, and that has costs: the API sleeps when idle, and the worker only sends emails while it is awake; the Supabase free plan has no automatic backups; without a domain of its own, the `*.vercel.app` and `*.onrender.com` addresses are used; and the per-IP limits are best-effort, because the API is public. The data is demo data.
 
-## Testes
+## Testing
 
-Contados a 2026-11-09:
+Counted on 2026-11-09:
 
-- **Back end:** 1410 testes, todos a passar (`dotnet test backend/SportsBooking.slnx`): 553 unitários e 857 de integração. Os de integração correm contra PostgreSQL 18 real, com Testcontainers; precisam de Docker, e sem ele falham todos. Nenhum usa o EF Core em memória.
-- **Front end:** 1171 testes a passar (`npm test`, em `frontend/`): Vitest, Testing Library e MSW.
-- **Não há testes end-to-end.** As alterações à interface verificam-se à mão no browser, com a stack completa.
+- **Back end:** 1410 tests, all passing (`dotnet test backend/SportsBooking.slnx`): 553 unit and 857 integration. The integration tests run against a real PostgreSQL 18 with Testcontainers; they need Docker, and without it they all fail. None uses the in-memory EF Core provider.
+- **Front end:** 1171 tests passing (`npm test`, in `frontend/`): Vitest, Testing Library and MSW.
+- **There are no end-to-end tests.** UI changes are checked by hand in the browser, against the full stack.
 
 ```bash
-dotnet build backend/SportsBooking.slnx     # os avisos são erros; regenera o OpenAPI
+dotnet build backend/SportsBooking.slnx     # warnings are errors; regenerates the OpenAPI document
 dotnet test backend/SportsBooking.slnx
 cd frontend && npm ci && npm run lint && npm run typecheck && npm test && npm run build
-npm run gen:api                              # em frontend/, depois de um build do back end
+npm run gen:api                              # in frontend/, after a back end build
 ```
 
-O [CI](.github/workflows/ci.yml) corre três jobs em cada push e pull request: o back end (compilação, testes, OpenAPI em dia, modelo EF sem migração em falta, pacotes vulneráveis), o front end (lint, tipos, testes, build, tipos da API em dia, `npm audit` das dependências de produção) e os diagramas (desenha-os e falha se um SVG mudou). A `main` não tem proteção de branch: o resultado do CI confirma-se à mão antes de cada merge.
+[CI](.github/workflows/ci.yml) runs three jobs on every push and pull request: the back end (build, tests, OpenAPI up to date, no EF model change without a migration, vulnerable packages), the front end (lint, types, tests, build, API types up to date, `npm audit` of production dependencies) and the diagrams (renders them and fails if an SVG changed). `main` has no branch protection: the CI result is checked by hand before every merge.
 
-## Executar localmente
+## Run locally
 
-Precisas de Docker com Compose v2.
+You need Docker with Compose v2.
 
 ```bash
-cp .env.example .env          # opcional: valores locais; é aqui que se define o admin
+cp .env.example .env          # optional: local values; this is where the admin is set
 docker compose up --build
 ```
 
-| Serviço | URL |
+| Service | URL |
 | --- | --- |
-| Aplicação | http://localhost:3000 |
+| Web app | http://localhost:3000 |
 | API | http://localhost:5080 (`/health`) |
-| Swagger (só em Development) | http://localhost:5080/swagger |
-| Mailpit (caixa de entrada de desenvolvimento) | http://localhost:8025 |
-| PostgreSQL | `localhost:5432` (utilizador, palavra-passe e base `sportsbooking`) |
+| Swagger (Development only) | http://localhost:5080/swagger |
+| Mailpit (development inbox) | http://localhost:8025 |
+| PostgreSQL | `localhost:5432` (user, password and database `sportsbooking`) |
 
-Em Development a API aplica as migrações no arranque. Os dados ficam no volume da base de dados; `docker compose down -v` apaga-o.
+In Development the API applies the migrations at startup. The data lives in the database volume; `docker compose down -v` deletes it.
 
-**Dados de demonstração.** Com a stack a correr, numa base vazia:
+**Demo data.** With the stack running, on an empty database:
 
 ```bash
 docker compose run --rm api seed-demo
 ```
 
-Cria 5 donos, 60 jogadores, 10 clubes, 43 campos, 5 bloqueios e mais de 10 000 reservas (10 612 a 2026-11-09), à volta do Porto e de Lisboa, sem enviar emails, e recusa-se se já existir um dono ou um jogador. Os endereços são `dono01@example.test` a `dono05@example.test` e `jogador01@example.test` a `jogador60@example.test`, e **todas as contas têm a mesma palavra-passe, `demo-password-1`, que é pública e só serve em desenvolvimento**.
+It creates 5 owners, 60 players, 10 clubs, 43 pitches, 5 blocks and more than 10 000 bookings (10 612 on 2026-11-09), around Porto and Lisboa, without sending any email, and it refuses if an owner or a player already exists. The addresses are `dono01@example.test` to `dono05@example.test` and `jogador01@example.test` to `jogador60@example.test`, and **every account has the same password, `demo-password-1`, which is public and only meant for development**.
 
-**Conta de admin.** Define `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` (8 ou mais caracteres) no `.env`: a API cria o admin no arranque, se ainda não existir. Sem as duas, arranca sem admin e regista um aviso; com só uma, recusa-se a arrancar. O seed nunca altera um admin que já exista, nem cria um segundo, nem promove uma conta de jogador ou de dono.
+**Admin account.** Set `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` (8 or more characters) in `.env`: the API creates the admin at startup, if there is none yet. With neither set it starts without an admin and logs a warning; with only one set it refuses to start. The seed never changes an admin that already exists, never creates a second one, and never promotes a player or an owner account.
 
-**Mudar a palavra-passe do admin.** O comando `set-admin-password` muda-a, termina todas as sessões do admin e sai sem arrancar o servidor. A nova palavra-passe só vem da variável de ambiente `ADMIN_NEW_PASSWORD`, nunca da linha de comandos, e nunca é escrita nem registada. Termina com 0 se mudou e com 1 se recusou e não mudou nada.
+**Changing the admin password.** The `set-admin-password` command changes it, ends all the admin's sessions and exits without starting the server. The new password only comes from the `ADMIN_NEW_PASSWORD` environment variable, never from the command line, and is never printed or logged. It exits with 0 if it changed and with 1 if it refused and changed nothing.
 
 ```bash
 read -rs ADMIN_NEW_PASSWORD && export ADMIN_NEW_PASSWORD
@@ -127,20 +127,20 @@ docker compose run --rm -e ADMIN_NEW_PASSWORD api set-admin-password
 unset ADMIN_NEW_PASSWORD
 ```
 
-As definições de produção (chave do JWT, origens permitidas, SMTP, papéis da base de dados) estão em [environment-variables.md](docs/deployment/environment-variables.md); a API recusa-se a arrancar se faltar uma obrigatória.
+The production settings (JWT key, allowed origins, SMTP, database roles) are in [environment-variables.md](docs/deployment/environment-variables.md); the API refuses to start if a required one is missing.
 
-## Documentação
+## Documentation
 
-Em português.
+The detailed documentation under `docs/` is written in Portuguese.
 
-- [Backlog](docs/backlog.md): histórias, critérios de aceitação, estimativas e regras de negócio.
-- [Stack e práticas](docs/stack.md): a stack, a arquitetura do back end, a autenticação, o front end, os dados, a validação e os erros, os testes e a segurança.
-- [Auditoria de UX](docs/ux-audit.md).
-- [Arquitetura](docs/architecture/README.md): vistas C4 e 4+1, inventário, [decisões (ADR)](docs/architecture/adr/README.md).
-- Implantação: [runbook](docs/deployment/runbook.md), [variáveis de ambiente](docs/deployment/environment-variables.md) e [papéis da base de dados](docs/deployment/supabase-roles.sql).
-- [Capturas de ecrã](docs/images/README.md).
-- [AGENTS.md](AGENTS.md): as regras de arquitetura e de convenções para quem altera o código, incluindo os comandos.
+- [Backlog](docs/backlog.md): stories, acceptance criteria, estimates and business rules.
+- [Stack and practices](docs/stack.md): the stack, the back end architecture, authentication, the front end, data, validation and errors, tests and security.
+- [UX audit](docs/ux-audit.md).
+- [Architecture](docs/architecture/README.md): C4 and 4+1 views, inventory, [decision records (ADR)](docs/architecture/adr/README.md).
+- Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
+- [Screenshots](docs/images/README.md).
+- [AGENTS.md](AGENTS.md): the architecture and convention rules for whoever changes the code, including the commands.
 
-## Licença e créditos
+## License and credits
 
-O repositório não tem ficheiro de licença, por isso não é concedida nenhuma licença. O autor e o contacto estão por preencher. Os nomes de clubes, pessoas e endereços de demonstração são inventados (`example.test`).
+The repository has no license file, so no license is granted. The author and contact are still to be filled in. The names of clubs, people and demo addresses are invented (`example.test`).
