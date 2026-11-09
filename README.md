@@ -36,15 +36,15 @@ The platform is a single marketplace: one player account works at every club of 
 Without an account, a visitor can search clubs by sport, locality and date, open a club page and see each pitch's free slots and prices. Booking needs a player account; after signing in or registering, the visitor returns to the same pitch, date and slot.
 
 <p>
-  <img src="docs/screenshots/01-club-search-results.png" alt="Club search with sport and date filters and a list of clubs with free slots" width="49%">
-  <img src="docs/screenshots/02-club-page-slots-and-prices.png" alt="Club page with pitches, base price and the free slots of one pitch with their prices" width="49%">
+  <img src="docs/images/screenshot-club-search-results.png" alt="Club search with sport and date filters and a list of clubs with free slots" width="49%">
+  <img src="docs/images/screenshot-club-page-slots-and-prices.png" alt="Club page with pitches, base price and the free slots of one pitch with their prices" width="49%">
 </p>
 <p>
-  <img src="docs/screenshots/05-owner-calendar-day.png" alt="Owner calendar, day view with one column per pitch, bookings, a block and a booking created by the club" width="49%">
-  <img src="docs/screenshots/08-admin-top-occupation-registrations.png" alt="Admin dashboard: registrations per week and the ten clubs with the highest occupation" width="49%">
+  <img src="docs/images/screenshot-owner-calendar-day.png" alt="Owner calendar, day view with one column per pitch, bookings, a block and a booking created by the club" width="49%">
+  <img src="docs/images/screenshot-admin-top-occupation-registrations.png" alt="Admin dashboard: registrations per week and the ten clubs with the highest occupation" width="49%">
 </p>
 
-Search, club page, owner calendar and admin dashboard. All eight screenshots, and how they were made, are in [docs/screenshots](docs/screenshots/README.md).
+Search, club page, owner calendar and admin dashboard. All eight screenshots, and how they were made, are in [docs/images](docs/images/README.md).
 
 ## Features by role
 
@@ -247,7 +247,7 @@ frontend/
 docs/
   backlog.md  stack.md                stories and rules; stack and practices
   architecture/                       C4 and 4+1 views, ADRs, diagrams (.puml sources and rendered .svg)
-  screenshots/                        screenshots of the app with demo data
+  images/                             screenshots of the app with demo data
 scripts/                              render the diagrams and check the architecture docs
 .github/workflows/ci.yml              continuous integration
 docker-compose.yml                    local stack: PostgreSQL, Mailpit, API, web app
@@ -262,7 +262,7 @@ The backlog, the Stack document and the architecture documents are in Portuguese
 - [Architecture](docs/architecture/README.md): reading guide, C4 and 4+1 views, element inventory and diagram gallery.
 - [Architecture decision records](docs/architecture/adr/README.md): all nine are accepted; [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) (deployment target) was accepted on 2026-11-09, after the first real deployment.
 - Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
-- [Screenshots](docs/screenshots/README.md): what each image shows and which data it uses.
+- [Screenshots](docs/images/README.md): what each image shows and which data it uses.
 
 ## Status and roadmap
 
