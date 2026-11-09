@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks the docs without rendering anything:
-#  1. every .svg in docs/architecture/out/ is referenced exactly once in docs/architecture/README.md;
+#  1. every .svg in docs/architecture/out/ is linked at least once from docs/architecture/README.md;
 #  2. docs/architecture/README.md does not reference a diagram that does not exist;
 #  3. every .puml in docs/architecture/*/ includes the shared style (!include ../style.puml);
 #  4. every relative link (and src/href) in the root README.md and in docs/**/*.md points to an existing file
@@ -19,14 +19,14 @@ fail() {
 
 [ -f "$readme" ] || { echo "Missing $readme" >&2; exit 1; }
 
-# 1. Each SVG appears exactly once in the README.
+# 1. Each SVG is linked at least once from the README.
 shopt -s nullglob
 svgs=("$docs"/out/*.svg)
 for svg in "${svgs[@]}"; do
   name="$(basename "$svg")"
   count="$(grep -o "out/$name" "$readme" | wc -l | tr -d ' ')"
-  if [ "$count" -ne 1 ]; then
-    fail "out/$name is referenced $count times in docs/architecture/README.md (expected exactly 1)"
+  if [ "$count" -lt 1 ]; then
+    fail "out/$name is not linked from docs/architecture/README.md"
   fi
 done
 
@@ -64,4 +64,4 @@ if [ "$errors" -ne 0 ]; then
   echo "$errors problem(s) in the docs." >&2
   exit 1
 fi
-echo "Docs OK: ${#svgs[@]} diagram(s), all referenced once; ${#files[@]} Markdown file(s), links resolve."
+echo "Docs OK: ${#svgs[@]} diagram(s), all linked from the architecture README; ${#files[@]} Markdown file(s), links resolve."

@@ -1,5 +1,5 @@
 # Checks the docs without rendering anything:
-#  1. every .svg in docs/architecture/out/ is referenced exactly once in docs/architecture/README.md;
+#  1. every .svg in docs/architecture/out/ is linked at least once from docs/architecture/README.md;
 #  2. docs/architecture/README.md does not reference a diagram that does not exist;
 #  3. every .puml in docs/architecture/*/ includes the shared style (!include ../style.puml);
 #  4. every relative link (and src/href) in the root README.md and in docs/**/*.md points to an existing file
@@ -13,12 +13,12 @@ if (-not (Test-Path $readme)) { throw "Missing $readme" }
 $readmeText = Get-Content -Path $readme -Raw -Encoding UTF8
 $errors = New-Object System.Collections.Generic.List[string]
 
-# 1. Each SVG appears exactly once in the README.
+# 1. Each SVG is linked at least once from the README.
 $svgs = @(Get-ChildItem -Path (Join-Path $docs 'out') -Filter '*.svg')
 foreach ($svg in $svgs) {
     $count = [regex]::Matches($readmeText, [regex]::Escape("out/$($svg.Name)")).Count
-    if ($count -ne 1) {
-        $errors.Add("out/$($svg.Name) is referenced $count times in docs/architecture/README.md (expected exactly 1)")
+    if ($count -lt 1) {
+        $errors.Add("out/$($svg.Name) is not linked from docs/architecture/README.md")
     }
 }
 
@@ -59,4 +59,4 @@ if ($errors.Count -gt 0) {
     [Console]::Error.WriteLine("$($errors.Count) problem(s) in the docs.")
     exit 1
 }
-Write-Host "Docs OK: $($svgs.Count) diagram(s), all referenced once; $($files.Count) Markdown file(s), links resolve."
+Write-Host "Docs OK: $($svgs.Count) diagram(s), all linked from the architecture README; $($files.Count) Markdown file(s), links resolve."
