@@ -2,7 +2,7 @@
 
 Alvo: **Next.js na Vercel** (Hobby), **API em Docker no Render** (plano gratuito), **PostgreSQL no Supabase**, **SMTP no Brevo** e **GitHub Actions** para os passos do deploy. O browser só fala com a Vercel; o Next.js reescreve `/api/*` para a API, por isso os cookies são first-party e não há CORS.
 
-Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. Conferido em 2026-11-09; o que depende de um fornecedor está na última secção, com o que foi lido e o que falta confirmar.
+Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. Os passos manuais estão no [runbook](runbook.md). Conferido em 2026-11-09; o que depende de um fornecedor está na última secção, com o que foi lido e o que falta confirmar.
 
 ## O que quer dizer «lida no build»
 
@@ -34,13 +34,13 @@ Serviço web do tipo Docker, com `backend/Dockerfile` e `backend` como contexto.
 | --- | --- | --- | --- | --- |
 | `ASPNETCORE_ENVIRONMENT` | Sim | Liga as regras de produção | `Production` | Fixo |
 | `PORT` | Dada pelo Render | Porta em que a API escuta, em `0.0.0.0` (`8080` se não existir) | `10000` | Render |
-| `ConnectionStrings__Default` | **Sim, a API não arranca sem ela** | Ligação da API à base de dados (segredo) | `Host=<pooler>;Port=5432;Database=postgres;Username=<utilizador da aplicação>;Password=<…>;SSL Mode=Require` | Supabase, modo sessão (porta 5432); nunca o modo transação |
+| `ConnectionStrings__Default` | **Sim, a API não arranca sem ela** | Ligação da API à base de dados, como `sportsbooking_app`, sem direitos de DDL (segredo) | `Host=<pooler>;Port=5432;Database=postgres;Username=sportsbooking_app.<ref>;Password=<…>;SSL Mode=Require;Maximum Pool Size=5` | Supabase, modo sessão (porta 5432), nunca o modo transação. Formato do Npgsql, não `postgresql://`. O pool é pequeno porque o plano gratuito tem 15 ligações |
 | `Jwt__SigningKey` | **Sim, com pelo menos 32 bytes** | Assina os access tokens (segredo) | `<48 bytes aleatórios em base64>` | `openssl rand -base64 48`; só deste ambiente |
 | `Security__AllowedOrigins__0` | **Sim, a API não arranca sem ela** | Única origem que pode fazer POST, PUT, PATCH e DELETE | `https://<projeto>.vercel.app` | O endereço público do site, sem barra final |
 | `PublicSite__BaseUrl` | **Sim** | Endereço do site nas ligações dos emails | `https://<projeto>.vercel.app` | Igual ao anterior |
 | `ForwardedHeaders__TrustAnyProxy` | Sim, para os limites por IP funcionarem | Acredita em `X-Forwarded-For` e `X-Forwarded-Proto` vindos de qualquer ligação (ver abaixo) | `true` | Fixo neste alvo |
 | `ForwardedHeaders__ForwardLimit` | Não (1) | Quantas entradas se leem, da direita para a esquerda | `1` | **Provisório**: ver «Encontrar o `ForwardLimit`» |
-| `AdminSeed__Email`, `AdminSeed__Password` | As duas ou nenhuma | Cria o admin no arranque, se não existir (segredo). Com elas definidas, o arranque precisa da base de dados | `admin@<domínio>`, `<palavra-passe ≥ 8>` | Escolha; sem elas a API arranca e avisa no log |
+| `AdminSeed__Email`, `AdminSeed__Password` | Não definir aqui | O admin é criado pelo `prod-data`. Definidas, a API passaria a precisar da base de dados para arrancar | — | Sem elas, a API avisa no log e arranca |
 | `Email__Host` | Com `Email__FromAddress`, ou nenhuma | Servidor SMTP | `smtp-relay.brevo.com` (**a confirmar na documentação atual do Brevo**) | Brevo |
 | `Email__Port` | Não (587) | Porta SMTP | `2525` (**a confirmar na documentação atual do Brevo**) | O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587 |
 | `Email__Security` | Não (`StartTls`) | `StartTls`, `SslOnConnect` ou `None` | `StartTls` (**a confirmar**, ver a última secção) | Nunca `None` com credenciais reais |
@@ -56,26 +56,24 @@ Serviço web do tipo Docker, com `backend/Dockerfile` e `backend` como contexto.
 
 ## GitHub Actions (segredos)
 
-Os comandos correm a imagem da API contra o Supabase, porque o plano gratuito do Render não tem shell nem one-off jobs. Arrancam o mesmo host, por isso as definições obrigatórias têm de existir, mesmo as que o comando não usa. Os workflows e as restantes credenciais (deploy, migrações) vêm na parte B da T06.
+Os comandos correm no runner contra o Supabase, porque o plano gratuito do Render não tem shell nem one-off jobs. Arrancam o mesmo host da API, por isso as definições obrigatórias têm de existir: os workflows dão-nas, e nenhuma delas é um segredo adicional.
 
 | Nome | Usado por | Para que serve | Forma de exemplo | De onde vem |
 | --- | --- | --- | --- | --- |
-| `ConnectionStrings__Default` | `seed-demo`, `set-admin-password` | Ligação à base de dados (segredo) | Igual à do Render | Supabase |
-| `Jwt__SigningKey`, `Security__AllowedOrigins__0`, `PublicSite__BaseUrl` | Os dois comandos | Só para a validação do arranque | Como no Render | Podem ser os mesmos do Render |
-| `AdminSeed__Email`, `AdminSeed__Password` | Os dois comandos | Criam o admin, se não existir (segredo) | Como no Render | Opcional aqui |
-| `ADMIN_NEW_PASSWORD` | `set-admin-password` | A nova palavra-passe; nunca na linha de comandos (segredo) | `<palavra-passe ≥ 8>` | Escolha |
+| `DB_OWNER_CONNECTION_STRING` | `deploy.yml`, `prod-data.yml` | Ligação como `postgres`, para as migrações e os comandos (segredo) | `Host=<pooler>;Port=5432;Database=postgres;Username=postgres.<ref>;Password=<…>;SSL Mode=Require` | Supabase, modo sessão (porta 5432). O runner não tem IPv6, por isso nunca o anfitrião direto |
+| `RENDER_DEPLOY_HOOK_URL` | `deploy.yml` | Lança o deploy da API (segredo) | `https://api.render.com/deploy/srv-<…>?key=<…>` | Render |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | `deploy.yml` | Publicam o site com a CLI (segredos) | `<token>`, `team_<…>`, `prj_<…>` | Vercel |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | `prod-data.yml` (`set-admin-password`) | Criam o admin, se não existir, e definem a sua palavra-passe, sempre pelo ambiente (segredos) | `admin@<domínio>`, `<palavra-passe ≥ 8>` | Escolha |
 
-Definidos no próprio passo, sem serem segredos: `ASPNETCORE_ENVIRONMENT=Production` e, só no passo do `seed-demo`, `DemoData__AllowInProduction=true`.
+Variáveis do repositório (não são segredos):
 
-```bash
-docker run --rm -e ASPNETCORE_ENVIRONMENT=Production -e ConnectionStrings__Default \
-  -e Jwt__SigningKey -e Security__AllowedOrigins__0 -e PublicSite__BaseUrl \
-  -e DemoData__AllowInProduction=true <imagem> seed-demo
+| Nome | Para que serve | Forma de exemplo |
+| --- | --- | --- |
+| `DEPLOY_ENABLED` | Sem o valor `true`, os dois workflows não fazem nada | `true` |
+| `RENDER_API_URL` | Onde o workflow confirma `/health` | `https://<serviço>.onrender.com` |
+| `SITE_URL` | O smoke e as definições do arranque dos comandos | `https://<projeto>.vercel.app` |
 
-docker run --rm -e ASPNETCORE_ENVIRONMENT=Production -e ConnectionStrings__Default \
-  -e Jwt__SigningKey -e Security__AllowedOrigins__0 -e PublicSite__BaseUrl \
-  -e ADMIN_NEW_PASSWORD <imagem> set-admin-password
-```
+Definidos no próprio workflow: `ASPNETCORE_ENVIRONMENT=Production`, `Security__AllowedOrigins__0` e `PublicSite__BaseUrl` (a partir de `SITE_URL`), `Jwt__SigningKey` (gerada em cada execução e nunca usada) e, só no passo do `seed-demo`, `DemoData__AllowInProduction=true`. As migrações leem `ConnectionStrings__Default` do ambiente, por isso a ligação nunca aparece numa linha de comandos.
 
 Sem `DemoData__AllowInProduction=true`, o `seed-demo` recusa-se em Production (código de saída 1); com ela, continua a recusar uma base de dados que já tenha donos ou jogadores. As contas de demonstração têm a palavra-passe pública do README: qualquer pessoa pode entrar com elas enquanto a demo estiver online.
 
@@ -104,6 +102,8 @@ Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceado
 - **Render** ([Free](https://render.com/docs/free), [Web services](https://render.com/docs/web-services), [Docker](https://render.com/docs/docker), [Health checks](https://render.com/docs/health-checks), [artigo sobre DDoS](https://render.com/articles/how-render-handles-ddos-attacks)): adormece após 15 minutos, acorda em cerca de um minuto; portas 25, 465 e 587 bloqueadas à saída; sem shell nem one-off jobs; `PORT` (por omissão 10000) e `0.0.0.0`; o tráfego passa pela Cloudflare e pelos balanceadores do Render, e a aplicação deve ler `x-forwarded-for`; as variáveis de ambiente passam a argumentos de build.
 - **Brevo** ([SMTP integration](https://developers.brevo.com/docs/smtp-integration)): portas 587 e 2525, e 465 com SSL/TLS; usar uma chave SMTP.
 
+- **Supabase** ([Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4](https://supabase.com/docs/guides/platform/ipv4-address), [Securing the Data API](https://supabase.com/docs/guides/api/securing-your-api)): o anfitrião direto é IPv6, ou IPv4 com um add-on pago; o pooler partilhado é IPv4; o modo sessão usa a porta 5432 e suporta prepared statements; o utilizador é `<papel>.<project-ref>`; `sslmode=require` é o recomendado.
+
 **A confirmar:**
 
 - **Quantas entradas e por que ordem** chegam ao `X-Forwarded-For` no Render, e se ele acrescenta ou substitui o valor recebido: a documentação não diz (ver acima).
@@ -111,4 +111,4 @@ Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceado
 - **Cache da Vercel nos rewrites externos:** ligada por omissão nos projetos novos, respeitando o `Cache-Control` da origem. As respostas JSON da API não enviam esse cabeçalho; confirmar que nenhuma resposta fica em cache.
 - **X-Forwarded-For nos pedidos de uma Vercel Function** a caminho do Render (Server Components): não documentado; o procedimento do `ForwardLimit` aplica-se aqui também.
 - **Brevo:** a página lida não indica o servidor `smtp-relay.brevo.com` e chama «não encriptadas» às portas 587 e 2525, sem falar de STARTTLS. Com `Email__Security=StartTls`, a API recusa enviar se o servidor não oferecer TLS: confirmar antes de usar. Se falhar, as reservas continuam a funcionar e os emails ficam em retentativas.
-- **Render:** o campo do contexto de build do Docker não está na página lida (usar `backend`), e nada diz se o health check HTTP (`/health`) existe no plano gratuito.
+- **Render:** o primeiro build confirma o contexto (Root Directory `backend`); a documentação diz que o caminho do Dockerfile e o contexto são relativos a ele. Nada diz se o health check HTTP (`/health`) existe no plano gratuito.
