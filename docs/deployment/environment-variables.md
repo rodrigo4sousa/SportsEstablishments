@@ -2,7 +2,7 @@
 
 Alvo: **Next.js na Vercel** (Hobby), **API em Docker no Render** (plano gratuito), **PostgreSQL no Supabase**, **SMTP no Brevo** e **GitHub Actions** para os passos do deploy. O browser só fala com a Vercel; o Next.js reescreve `/api/*` para a API, por isso os cookies são first-party e não há CORS.
 
-Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. Os passos manuais estão no [runbook](runbook.md). Conferido em 2026-11-09; o que depende de um fornecedor está na última secção, com o que foi lido e o que falta confirmar.
+Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. Os passos manuais estão no [runbook](runbook.md). Conferido em 2026-11-09; o que depende de um fornecedor está na última secção, com o que foi lido, o que o primeiro deploy real confirmou e o que continua por confirmar.
 
 ## O que quer dizer «lida no build»
 
@@ -39,11 +39,11 @@ Serviço web do tipo Docker, com `backend/Dockerfile` e `backend` como contexto.
 | `Security__AllowedOrigins__0` | **Sim, a API não arranca sem ela** | Única origem que pode fazer POST, PUT, PATCH e DELETE | `https://<projeto>.vercel.app` | O endereço público do site, sem barra final |
 | `PublicSite__BaseUrl` | **Sim** | Endereço do site nas ligações dos emails | `https://<projeto>.vercel.app` | Igual ao anterior |
 | `ForwardedHeaders__TrustAnyProxy` | Sim, para os limites por IP funcionarem | Acredita em `X-Forwarded-For` e `X-Forwarded-Proto` vindos de qualquer ligação (ver abaixo) | `true` | Fixo neste alvo |
-| `ForwardedHeaders__ForwardLimit` | Não (1) | Quantas entradas se leem, da direita para a esquerda | `1` | **Provisório**: ver «Encontrar o `ForwardLimit`» |
+| `ForwardedHeaders__ForwardLimit` | Não (1) | Quantas entradas se leem, da direita para a esquerda | `1` | Confirmado no primeiro deploy (2026-11-09); ver «Encontrar o `ForwardLimit`» se mudares de fornecedor |
 | `AdminSeed__Email`, `AdminSeed__Password` | Não definir aqui | O admin é criado pelo `prod-data`. Definidas, a API passaria a precisar da base de dados para arrancar | — | Sem elas, a API avisa no log e arranca |
-| `Email__Host` | Com `Email__FromAddress`, ou nenhuma | Servidor SMTP | `smtp-relay.brevo.com` (**a confirmar na documentação atual do Brevo**) | Brevo |
-| `Email__Port` | Não (587) | Porta SMTP | `2525` (**a confirmar na documentação atual do Brevo**) | O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587 |
-| `Email__Security` | Não (`StartTls`) | `StartTls`, `SslOnConnect` ou `None` | `StartTls` (**a confirmar**, ver a última secção) | Nunca `None` com credenciais reais |
+| `Email__Host` | Com `Email__FromAddress`, ou nenhuma | Servidor SMTP | `smtp-relay.brevo.com` | Brevo |
+| `Email__Port` | Não (587) | Porta SMTP | `2525` | Funcionou no primeiro deploy. O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587 |
+| `Email__Security` | Não (`StartTls`) | `StartTls`, `SslOnConnect` ou `None` | `StartTls` (funcionou na porta 2525 no primeiro deploy) | Nunca `None` com credenciais reais |
 | `Email__Username`, `Email__Password` | As duas ou nenhuma | Credenciais SMTP (segredo: a chave SMTP, não a chave de API) | `<login SMTP>`, `<chave SMTP>` | Brevo, «SMTP & API» |
 | `Email__FromAddress` | Com `Email__Host`, ou nenhuma | Remetente | `reservas@<domínio verificado>` | Remetente verificado no Brevo |
 | `Email__FromName`, `Email__TimeoutSeconds` | Não | Nome do remetente; limite de cada envio | `Reservas de Campos`, `30` | Opcional |
@@ -81,12 +81,14 @@ Sem `DemoData__AllowInProduction=true`, o `seed-demo` recusa-se em Production (c
 
 **Provisório.** A API é pública no Render, por isso quem lhe ligar diretamente pode enviar o seu próprio `X-Forwarded-For`: o limite por IP é só de melhor esforço, e a proteção real contra adivinhar palavras-passe é o bloqueio de conta do Identity (5 tentativas, 15 minutos).
 
-Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceadores do Render, e isso não está documentado. Para o descobrir, depois do primeiro deploy:
+Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceadores do Render, e isso não está documentado. Para o descobrir, depois de um deploy novo:
 
 1. Com `ForwardedHeaders__ForwardLimit=1`, fazer mais de 10 logins num minuto, no site, a partir da própria ligação, com um email que não exista (para não bloquear nenhuma conta), até receber 429.
 2. Procurar no log do Render a linha `Too many requests from client <endereço> to /api/auth/login`.
 3. Se o endereço for o da própria ligação, está certo. Se for outro (da Vercel, por exemplo), subir o limite em 1 e repetir, com um novo deploy.
 4. Usar o valor mais baixo que dê o endereço certo: quanto maior, mais fácil é forjá-lo.
+
+**Resultado do primeiro deploy (2026-11-09):** o valor que deu o IP certo do cliente foi `1`.
 
 ## Limites conhecidos desta configuração
 
@@ -104,11 +106,16 @@ Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceado
 
 - **Supabase** ([Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4](https://supabase.com/docs/guides/platform/ipv4-address), [Securing the Data API](https://supabase.com/docs/guides/api/securing-your-api)): o anfitrião direto é IPv6, ou IPv4 com um add-on pago; o pooler partilhado é IPv4; o modo sessão usa a porta 5432 e suporta prepared statements; o utilizador é `<papel>.<project-ref>`; `sslmode=require` é o recomendado.
 
-**A confirmar:**
+**Confirmado no primeiro deploy real (2026-11-09):**
 
-- **Quantas entradas e por que ordem** chegam ao `X-Forwarded-For` no Render, e se ele acrescenta ou substitui o valor recebido: a documentação não diz (ver acima).
-- **`Origin` e `Set-Cookie` num rewrite externo da Vercel:** a documentação não fala deles. Conferido localmente com `next start`; confirmar no primeiro deploy (login e um pedido que altere dados).
-- **Cache da Vercel nos rewrites externos:** ligada por omissão nos projetos novos, respeitando o `Cache-Control` da origem. As respostas JSON da API não enviam esse cabeçalho; confirmar que nenhuma resposta fica em cache.
-- **X-Forwarded-For nos pedidos de uma Vercel Function** a caminho do Render (Server Components): não documentado; o procedimento do `ForwardLimit` aplica-se aqui também.
-- **Brevo:** a página lida não indica o servidor `smtp-relay.brevo.com` e chama «não encriptadas» às portas 587 e 2525, sem falar de STARTTLS. Com `Email__Security=StartTls`, a API recusa enviar se o servidor não oferecer TLS: confirmar antes de usar. Se falhar, as reservas continuam a funcionar e os emails ficam em retentativas.
-- **Render:** o primeiro build confirma o contexto (Root Directory `backend`); a documentação diz que o caminho do Dockerfile e o contexto são relativos a ele. Nada diz se o health check HTTP (`/health`) existe no plano gratuito.
+- `ForwardedHeaders__ForwardLimit=1` deu o IP certo do cliente.
+- Brevo: o SMTP na porta 2525 com `StartTls` funcionou.
+- O login e um pedido que altera dados pelo rewrite da Vercel funcionaram, com o `Origin` e o `Set-Cookie`.
+- Cache da Vercel nos rewrites: nada ficou em cache.
+- Render: o Dockerfile, o contexto de build e o health check usados foram os do runbook.
+- Nada mais diferiu do que a documentação dizia.
+
+**Não reportado (continua por confirmar):**
+
+- O `X-Forwarded-For` nas chamadas dos Server Components a caminho do Render: o valor `1` foi confirmado, mas o resultado reportado não as distingue.
+- A versão do PostgreSQL que o Supabase dá aos projetos novos.
