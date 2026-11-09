@@ -68,6 +68,9 @@ public static class DependencyInjection
         services.AddScoped<IOwnerStatusStore, OwnerStatusStore>();
         // T05: only the `seed-demo` command ever asks for it.
         services.AddScoped<DemoDataSeeder>();
+        services.AddOptions<DemoDataOptions>()
+            .Bind(configuration.GetSection(DemoDataOptions.SectionName))
+            .ValidateOnStart();
 
         services.AddAccounts(configuration);
         services.AddSessions(configuration);
