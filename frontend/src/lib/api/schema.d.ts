@@ -3487,6 +3487,7 @@ export interface components {
             name: string;
             email: string;
             password: string;
+            acceptedTermsVersion: string;
             phone?: null | string;
         };
         RegistrationsBucket: {

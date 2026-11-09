@@ -31,8 +31,13 @@ public sealed class AccountRegistrationService(
             return ServiceError.Validation(validation.ToFieldErrors());
         }
 
+        if (!TermsAcceptancePolicy.IsValidVersion(normalized.AcceptedTermsVersion))
+        {
+            return AccountErrors.TermsNotAccepted;
+        }
+
         var account = await accounts.CreateAsync(
-            new NewAccount(normalized.Name, normalized.Email, normalized.Password, normalized.Phone),
+            new NewAccount(normalized.Name, normalized.Email, normalized.Password, normalized.Phone, normalized.AcceptedTermsVersion),
             profile,
             cancellationToken);
         if (account is null)
@@ -56,4 +61,14 @@ public static class AccountErrors
         ErrorCodes.EmailTaken,
         "Email já registado",
         "Já existe uma conta com este email.");
+
+    private const string TermsNotAcceptedMessage = "Para criar conta, tens de aceitar os Termos e Condições e tomar conhecimento da Política de Privacidade.";
+
+    /// <summary>T07: no account without the acceptance of the terms; the field is named so a client can show the message next to it.</summary>
+    public static ServiceError TermsNotAccepted { get; } = new(
+        ErrorKind.Validation,
+        ErrorCodes.TermsNotAccepted,
+        "Termos não aceites",
+        TermsNotAcceptedMessage,
+        new Dictionary<string, string[]> { ["acceptedTermsVersion"] = [TermsNotAcceptedMessage] });
 }

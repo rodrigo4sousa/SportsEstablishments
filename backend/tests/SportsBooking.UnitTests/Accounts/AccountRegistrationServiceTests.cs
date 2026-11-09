@@ -17,10 +17,10 @@ public sealed class AccountRegistrationServiceTests
     [Fact]
     public async Task Valid_request_creates_a_normalized_player_account_and_starts_its_session()
     {
-        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest(" Ana ", " ana@exemplo.pt ", "palavra-passe", "912 345 678"), Ct);
+        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest(" Ana ", " ana@exemplo.pt ", "palavra-passe", " 1.0 ", "912 345 678"), Ct);
 
         result.IsSuccess.ShouldBeTrue();
-        _accounts.Created.ShouldHaveSingleItem().ShouldBe((new NewAccount("Ana", "ana@exemplo.pt", "palavra-passe", "912345678"), Profiles.Player));
+        _accounts.Created.ShouldHaveSingleItem().ShouldBe((new NewAccount("Ana", "ana@exemplo.pt", "palavra-passe", "912345678", "1.0"), Profiles.Player));
         result.Value.Account.Profile.ShouldBe(Profiles.Player);
         _sessions.Started.ShouldHaveSingleItem().ShouldBe((result.Value.Account.Id, Profiles.Player));
         result.Value.Session.ShouldBeSameAs(FakeSessions.Tokens);
@@ -29,10 +29,10 @@ public sealed class AccountRegistrationServiceTests
     [Fact]
     public async Task Owner_registration_creates_the_same_normalized_account_with_the_owner_profile()
     {
-        var result = await Service.RegisterOwnerAsync(new RegisterAccountRequest(" Rui ", " rui@exemplo.pt ", "palavra-passe", "912 345 678"), Ct);
+        var result = await Service.RegisterOwnerAsync(new RegisterAccountRequest(" Rui ", " rui@exemplo.pt ", "palavra-passe", "1.0", "912 345 678"), Ct);
 
         result.IsSuccess.ShouldBeTrue();
-        _accounts.Created.ShouldHaveSingleItem().ShouldBe((new NewAccount("Rui", "rui@exemplo.pt", "palavra-passe", "912345678"), Profiles.Owner));
+        _accounts.Created.ShouldHaveSingleItem().ShouldBe((new NewAccount("Rui", "rui@exemplo.pt", "palavra-passe", "912345678", "1.0"), Profiles.Owner));
         result.Value.Account.Profile.ShouldBe(Profiles.Owner);
         _sessions.Started.ShouldHaveSingleItem().ShouldBe((result.Value.Account.Id, Profiles.Owner));
     }
@@ -40,11 +40,11 @@ public sealed class AccountRegistrationServiceTests
     [Fact]
     public async Task Owner_registration_applies_the_same_validation_and_the_same_taken_email_error()
     {
-        var invalid = await Service.RegisterOwnerAsync(new RegisterAccountRequest("", "rui", "curta"), Ct);
+        var invalid = await Service.RegisterOwnerAsync(new RegisterAccountRequest("", "rui", "curta", "1.0"), Ct);
         invalid.Error.ShouldNotBeNull().FieldErrors.ShouldNotBeNull().Keys.ShouldBe(["name", "email", "password"], ignoreOrder: true);
 
         _accounts.EmailTaken = true;
-        var taken = await Service.RegisterOwnerAsync(new RegisterAccountRequest("Rui", "rui@exemplo.pt", "palavra-passe"), Ct);
+        var taken = await Service.RegisterOwnerAsync(new RegisterAccountRequest("Rui", "rui@exemplo.pt", "palavra-passe", "1.0"), Ct);
 
         taken.Error.ShouldBe(AccountErrors.EmailTaken);
         _accounts.Created.ShouldBeEmpty();
@@ -54,7 +54,7 @@ public sealed class AccountRegistrationServiceTests
     [Fact]
     public async Task Invalid_request_returns_field_errors_and_touches_nothing()
     {
-        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("", "ana", "curta"), Ct);
+        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("", "ana", "curta", "1.0"), Ct);
 
         result.IsSuccess.ShouldBeFalse();
         result.Error.ShouldNotBeNull().Code.ShouldBe(ErrorCodes.ValidationFailed);
@@ -69,12 +69,48 @@ public sealed class AccountRegistrationServiceTests
     {
         _accounts.EmailTaken = true;
 
-        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe"), Ct);
+        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe", "1.0"), Ct);
 
         result.Error.ShouldBe(AccountErrors.EmailTaken);
         result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
         result.Error.Code.ShouldBe("email_taken");
         _sessions.Started.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Without_the_accepted_version_no_account_is_created(string? version)
+    {
+        var player = await Service.RegisterPlayerAsync(new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe", version!), Ct);
+        var owner = await Service.RegisterOwnerAsync(new RegisterAccountRequest("Rui", "rui@exemplo.pt", "palavra-passe", version!), Ct);
+
+        player.Error.ShouldBe(AccountErrors.TermsNotAccepted);
+        owner.Error.ShouldBe(AccountErrors.TermsNotAccepted);
+        player.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        player.Error.Code.ShouldBe("terms_not_accepted");
+        _accounts.Created.ShouldBeEmpty();
+        _sessions.Started.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_version_longer_than_the_column_is_not_an_acceptance()
+    {
+        var version = new string('1', TermsAcceptancePolicy.MaximumVersionLength + 1);
+
+        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe", version), Ct);
+
+        result.Error.ShouldBe(AccountErrors.TermsNotAccepted);
+        _accounts.Created.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Invalid_fields_are_reported_before_the_missing_acceptance()
+    {
+        var result = await Service.RegisterPlayerAsync(new RegisterAccountRequest("", "ana", "curta", ""), Ct);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(ErrorCodes.ValidationFailed);
     }
 
     private sealed class FakeAccountStore : IAccountStore

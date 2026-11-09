@@ -2,18 +2,21 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { RateLimitMessage } from "@/components/rate-limit-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/form-field";
 import { errorMessage } from "@/lib/api/error-messages";
 import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
 import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { showApiFieldErrors } from "@/lib/api/form-errors";
 import { safeNext } from "@/lib/auth/redirects";
+import { LEGAL_VERSION, PRIVACY_PATH, TERMS_PATH } from "@/features/legal/legal-info";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
 import {
   PASSWORD_MIN_LENGTH,
@@ -26,7 +29,7 @@ const FIELDS = ["name", "email", "password", "phone"] as const satisfies Readonl
 
 type FieldName = (typeof FIELDS)[number];
 
-const EMPTY_FORM: RegisterFormValues = { name: "", email: "", password: "", phone: "" };
+const EMPTY_FORM: RegisterFormValues = { name: "", email: "", password: "", phone: "", acceptTerms: false };
 
 type RegisterFormProps = {
   /** Player (US01) or owner (US02) sign-up: the same form, a different endpoint. Defaults to player. */
@@ -78,6 +81,12 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
         form.setError("email", { message: errorMessage(error.code) }, { shouldFocus: true });
         return;
       }
+      if (error.code === "terms_not_accepted") {
+        form.setError("acceptTerms", { message: errorMessage(error.code) });
+        // `shouldFocus` above does nothing for a checkbox in React Hook Form; `setFocus` does.
+        form.setFocus("acceptTerms");
+        return;
+      }
       if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
         return;
       }
@@ -96,7 +105,13 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => {
         retry.clear();
-        registration.mutate(values);
+        registration.mutate({
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          phone: values.phone,
+          acceptedTermsVersion: LEGAL_VERSION,
+        });
       })}
     >
       <FormField id="register-name" label="Nome" error={errors.name?.message}>
@@ -148,6 +163,38 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
           {...form.register("phone")}
         />
       </FormField>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start gap-3">
+          <input
+            id="register-acceptTerms"
+            type="checkbox"
+            required
+            className="mt-0.5 size-4 shrink-0"
+            aria-invalid={errors.acceptTerms ? true : undefined}
+            aria-describedby={`register-acceptTerms-hint${errors.acceptTerms ? " register-acceptTerms-error" : ""}`}
+            {...form.register("acceptTerms")}
+          />
+          <Label htmlFor="register-acceptTerms" className="block leading-snug font-normal">
+            Li e aceito os{" "}
+            <Link href={TERMS_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
+              Termos e Condições
+            </Link>{" "}
+            e tomei conhecimento da{" "}
+            <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
+              Política de Privacidade
+            </Link>
+          </Label>
+        </div>
+        <p id="register-acceptTerms-hint" className="text-sm text-muted-foreground">
+          As ligações abrem num novo separador.
+        </p>
+        {errors.acceptTerms ? (
+          <p id="register-acceptTerms-error" className="text-sm text-destructive">
+            {errors.acceptTerms.message}
+          </p>
+        ) : null}
+      </div>
 
       <RateLimitMessage retry={retry} />
 

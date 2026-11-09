@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { registerSchema, type RegisterFormValues } from "./register";
 
-const valid: RegisterFormValues = { name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "" };
+const valid: RegisterFormValues = { name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "", acceptTerms: true };
 
 function errorsFor(values: Partial<RegisterFormValues>) {
   const result = registerSchema.safeParse({ ...valid, ...values });
@@ -11,12 +11,19 @@ function errorsFor(values: Partial<RegisterFormValues>) {
 
 describe("registerSchema", () => {
   it("accepts a complete form and normalizes it", () => {
-    expect(registerSchema.parse({ name: "  Ana  ", email: " ana@exemplo.pt ", password: " palavra ", phone: "+351 912 345 678" })).toEqual({
+    expect(registerSchema.parse({ name: "  Ana  ", email: " ana@exemplo.pt ", password: " palavra ", phone: "+351 912 345 678", acceptTerms: true })).toEqual({
       name: "Ana",
       email: "ana@exemplo.pt",
       password: " palavra ",
       phone: "+351912345678",
+      acceptTerms: true,
     });
+  });
+
+  it("requires the terms to be accepted", () => {
+    expect(errorsFor({ acceptTerms: false }).acceptTerms).toEqual([
+      "Para criar conta, tens de aceitar os Termos e Condições e tomar conhecimento da Política de Privacidade.",
+    ]);
   });
 
   it("treats a blank phone as not given", () => {

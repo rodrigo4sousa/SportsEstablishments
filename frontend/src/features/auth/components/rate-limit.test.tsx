@@ -42,6 +42,7 @@ const CASES: Case[] = [
       await user.type(screen.getByLabelText(/^nome$/i), "Ana Silva");
       await user.type(screen.getByLabelText(/^email$/i), "ana@exemplo.pt");
       await user.type(screen.getByLabelText(/palavra-passe/i), "palavra-passe");
+      await user.click(screen.getByRole("checkbox", { name: /Termos e Condições/ }));
     },
   },
   {

@@ -22,7 +22,8 @@ public sealed class AuthController(
 {
     /// <summary>
     /// US01: creates a player account and signs the player in (session cookies set). A taken email is a 409
-    /// <c>email_taken</c>; invalid fields are a 400 <c>validation_failed</c> with one message per field.
+    /// <c>email_taken</c>; invalid fields are a 400 <c>validation_failed</c> with one message per field; without the accepted version of
+    /// the terms it is a 400 <c>terms_not_accepted</c> (T07).
     /// </summary>
     [HttpPost("register")]
     [Consumes("application/json")]

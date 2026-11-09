@@ -161,6 +161,17 @@ public sealed class DemoDataTests(ApiFactory factory)
     // ---- Seeding an empty database
 
     [Fact]
+    public async Task The_seeded_accounts_are_not_recorded_as_having_accepted_the_terms()
+    {
+        var (app, _, _) = await SharedAsync();
+        await using var scope = app.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.AsNoTracking();
+
+        (await users.CountAsync(Ct)).ShouldBeGreaterThan(0);
+        (await users.CountAsync(user => user.AcceptedTermsVersion != null || user.TermsAcceptedAt != null, Ct)).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Seeding_an_empty_database_creates_the_expected_accounts_clubs_pitches_and_blocks()
     {
         var (_, summary, data) = await SharedAsync();

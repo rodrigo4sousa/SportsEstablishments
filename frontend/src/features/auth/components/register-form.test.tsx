@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw";
 import { renderWithProviders } from "@/test/render";
+import { LEGAL_VERSION } from "@/features/legal/legal-info";
 import { currentUserQueryKey, type Account } from "../api";
 import { RegisterForm } from "./register-form";
 
@@ -25,12 +26,20 @@ function field(name: RegExp) {
   return screen.getByLabelText(name);
 }
 
-async function fillIn(values: { name?: string; email?: string; password?: string; phone?: string }) {
+const TERMS_LABEL = "Li e aceito os Termos e Condições e tomei conhecimento da Política de Privacidade";
+const TERMS_ERROR = "Para criar conta, tens de aceitar os Termos e Condições e tomar conhecimento da Política de Privacidade.";
+
+function termsBox() {
+  return screen.getByRole("checkbox", { name: TERMS_LABEL });
+}
+
+async function fillIn(values: { name?: string; email?: string; password?: string; phone?: string; terms?: boolean }) {
   const user = userEvent.setup();
   if (values.name !== undefined) await user.type(field(/^nome$/i), values.name);
   if (values.email !== undefined) await user.type(field(/^email$/i), values.email);
   if (values.password !== undefined) await user.type(field(/palavra-passe/i), values.password);
   if (values.phone !== undefined) await user.type(field(/telemóvel/i), values.phone);
+  if (values.terms !== false) await user.click(termsBox());
   return user;
 }
 
@@ -59,13 +68,15 @@ describe("RegisterForm", () => {
     );
     renderWithProviders(<RegisterForm />);
 
-    const user = await fillIn({ email: "ana@", password: "curta", phone: "123" });
+    const user = await fillIn({ email: "ana@", password: "curta", phone: "123", terms: false });
     await submit(user);
 
     expectFieldError(/^nome$/i, "Indica o teu nome.");
     expectFieldError(/^email$/i, "Indica um email válido, por exemplo nome@exemplo.pt.");
     expectFieldError(/palavra-passe/i, "A palavra-passe tem de ter pelo menos 8 caracteres.");
     expectFieldError(/telemóvel/i, "Indica um número de telemóvel válido, com 9 a 15 algarismos.");
+    expect(termsBox()).toHaveAttribute("aria-invalid", "true");
+    expect(termsBox()).toHaveAccessibleDescription(expect.stringContaining(TERMS_ERROR));
     expect(field(/^nome$/i)).toHaveFocus();
     expect(requests).toBe(0);
   });
@@ -84,11 +95,61 @@ describe("RegisterForm", () => {
     await submit(user);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
-    expect(body).toEqual({ name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "912345678" });
+    expect(body).toEqual({ name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION });
     expect(queryClient.getQueryData(currentUserQueryKey)).toEqual(account);
     // The form is cleared, so returning to it never shows the password again.
     expect(field(/palavra-passe/i)).toHaveValue("");
     expect(field(/^email$/i)).toHaveValue("");
+  });
+
+  it("does not call the API until the terms are accepted, and the box takes the focus", async () => {
+    let requests = 0;
+    server.use(
+      http.post("/api/auth/register", () => {
+        requests++;
+        return HttpResponse.json(account, { status: 201 });
+      }),
+    );
+    renderWithProviders(<RegisterForm />);
+
+    const user = await fillIn({ name: "Ana", email: "ana@exemplo.pt", password: "palavra-passe", terms: false });
+    await submit(user);
+
+    expect(await screen.findByText(TERMS_ERROR)).toBeInTheDocument();
+    expect(termsBox()).toHaveFocus();
+    expect(termsBox()).toBeRequired();
+    expect(requests).toBe(0);
+
+    await user.keyboard(" ");
+    expect(termsBox()).toBeChecked();
+    await submit(user);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(requests).toBe(1);
+  });
+
+  it("links to both legal pages from the label, opening them without losing the form", () => {
+    renderWithProviders(<RegisterForm />);
+
+    for (const [name, href] of [
+      ["Termos e Condições", "/terms"],
+      ["Política de Privacidade", "/privacy"],
+    ]) {
+      const link = screen.getByRole("link", { name });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("target", "_blank");
+    }
+  });
+
+  it("shows the API's refusal next to the box", async () => {
+    server.use(http.post("/api/auth/register", () => problem(400, "terms_not_accepted", { acceptedTermsVersion: ["recusado"] })));
+    renderWithProviders(<RegisterForm />);
+
+    const user = await fillIn({ name: "Ana", email: "ana@exemplo.pt", password: "palavra-passe" });
+    await submit(user);
+
+    expect(await screen.findByText(TERMS_ERROR)).toBeInTheDocument();
+    expect(termsBox()).toHaveFocus();
   });
 
   it("sends no phone when it is left blank", async () => {
@@ -270,7 +331,7 @@ describe("RegisterForm for owners", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/manage"));
     // The same fields as the player form, and no profile: the endpoint decides it.
-    expect(body).toEqual({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe", phone: "912345678" });
+    expect(body).toEqual({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION });
     expect(playerEndpointCalls).toBe(0);
     expect(queryClient.getQueryData(currentUserQueryKey)).toEqual(owner);
     expect(field(/palavra-passe/i)).toHaveValue("");

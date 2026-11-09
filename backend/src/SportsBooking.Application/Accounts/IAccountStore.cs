@@ -25,7 +25,7 @@ public interface IAccountStore
 }
 
 /// <summary>A validated, normalized registration.</summary>
-public sealed record NewAccount(string Name, string Email, string Password, string? Phone);
+public sealed record NewAccount(string Name, string Email, string Password, string? Phone, string AcceptedTermsVersion);
 
 /// <summary>The signed-in account, as returned by <c>GET /api/auth/me</c>. <see cref="Profile"/> is Player, Owner or Admin.</summary>
 public sealed record AccountResponse(Guid Id, string Name, string Email, string Profile);

@@ -35,7 +35,7 @@ public sealed class RegisteredAtTests(ApiFactory factory)
         var email = $"nova-{Guid.NewGuid():N}@exemplo.test";
         using var client = app.CreateSiteClient();
 
-        using var response = await client.PostAsJsonAsync(path, new { name = "Conta Nova", email, password = "palavra-passe-segura" }, Ct);
+        using var response = await client.PostAsJsonAsync(path, new { name = "Conta Nova", email, password = "palavra-passe-segura", acceptedTermsVersion = "1.0" }, Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         (await RegisteredAtAsync(app, email)).ShouldBe(now.UtcDateTime);
