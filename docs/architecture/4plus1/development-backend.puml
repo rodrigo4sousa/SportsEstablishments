@@ -1,0 +1,39 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · projetos do back end e referências
+' Version 1.0 - 2026-11-09
+' Para: quem vai mudar o código.
+' Decisão documentada: Um projeto .NET por camada, com referências só para dentro.
+' Não desenhado: classes, endpoints e regras de negócio.
+@startuml development-backend
+!include ../style.puml
+title Vista de desenvolvimento · projetos do back end e referências
+
+package "backend/src" {
+  component "L-API\nSportsBooking.Api\n(Microsoft.NET.Sdk.Web)" as L_API
+  component "L-INF\nSportsBooking.Infrastructure\n(FrameworkReference Microsoft.AspNetCore.App)" as L_INF
+  component "L-APP\nSportsBooking.Application" as L_APP
+  component "L-DOM\nSportsBooking.Domain\n(sem pacotes)" as L_DOM
+}
+
+package "backend/tests" {
+  component "DEV-TEST-UNIT\nSportsBooking.UnitTests" as DEV_TEST_UNIT
+  component "DEV-TEST-INT\nSportsBooking.IntegrationTests" as DEV_TEST_INT
+}
+
+L_API --> L_INF : ProjectReference
+L_INF --> L_APP : ProjectReference
+L_APP --> L_DOM : ProjectReference
+
+DEV_TEST_UNIT --> L_DOM : ProjectReference
+DEV_TEST_UNIT --> L_API : ProjectReference\n(+ InternalsVisibleTo)
+DEV_TEST_INT --> L_API : ProjectReference
+
+note right of L_API
+  Não referencia L-APP nem L-DOM diretamente:
+  chega-lhes por L-INF (referências transitivas).
+end note
+
+note bottom of DEV_TEST_UNIT
+  Chega a L-APP e L-INF pela referência a L-API.
+end note
+
+@enduml

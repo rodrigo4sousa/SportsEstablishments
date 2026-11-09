@@ -1,0 +1,65 @@
+' C4 nível 3 - Componentes do front end · rotas, guardas e caminhos até à API
+' Version 1.0 - 2026-11-09
+' Não desenhado: classes individuais, salvo quando são o próprio componente.
+@startuml 03-components-web
+!include <C4/C4_Component>
+!include ../style.puml
+
+title Componentes do front end · rotas, guardas e caminhos até à API
+
+LAYOUT_TOP_DOWN()
+
+Container(C_BROWSER, "C-BROWSER · Browser", "Browser", "Corre os Client Components; guarda os cookies httpOnly.")
+
+Container_Boundary(C_WEB, "C-WEB · Aplicação Next.js") {
+  Component(WEB_PROXY, "WEB-PROXY · proxy.ts", "Next.js proxy", "Em /manage/*, /admin/* e /bookings escreve o caminho pedido em x-pathname. Não renova sessões.")
+  Component(WEB_AREA_PLAYER, "WEB-AREA-PLAYER · Área do jogador", "app/(player)", "/ (pesquisa no endereço), /clubs/[slug] (escolha ?pitch=&date=&slot=&weeks= no endereço), /bookings.")
+  Component(WEB_AREA_MANAGE, "WEB-AREA-MANAGE · Área do dono", "app/manage", "Clubes, campos, calendário (?date=&view=&pitch=&booking= no endereço), estatísticas.")
+  Component(WEB_AREA_ADMIN, "WEB-AREA-ADMIN · Área do admin", "app/admin", "Painel e página de um dono; filtros no endereço.")
+  Component(WEB_AREA_ACCOUNT, "WEB-AREA-ACCOUNT · Páginas de conta", "app/login, register, forgot-password, reset-password", "Formulários de conta.")
+  Component(WEB_GUARDS, "WEB-GUARDS · Guardas", "AreaGuard, PlayerGuard, GuestOnly, lib/auth/redirects", "Redirecionam por perfil no servidor; a API decide sempre.")
+  Component(WEB_SERVER, "WEB-SERVER · Chamadas no servidor", "lib/server (server-only)", "getSessionAccount (cookie do utilizador), loadPublicClub (sem cookies), loadAdminStats; no-store.")
+  Component(WEB_API_CLIENT, "WEB-API-CLIENT · Cliente da API", "lib/api/client.ts (corre no browser)", "apiRequest/apiJson: ProblemDetails → ApiError; um refresh partilhado no 401 (Web Lock).")
+  Component(WEB_REWRITE, "WEB-REWRITE · Rewrites", "next.config.ts", "/api/* → API_INTERNAL_URL/api/*; cabeçalhos de /reset-password.")
+}
+
+Container(C_API, "C-API · API ASP.NET Core", ".NET 10", "Regras, sessões e dados.")
+
+Rel(C_BROWSER, WEB_PROXY, $plain("Pede uma página de área com guarda"), "HTTP")
+Rel(C_BROWSER, WEB_AREA_PLAYER, $plain("Abre páginas públicas"), "HTTP")
+Rel(C_BROWSER, WEB_AREA_ACCOUNT, $plain("Abre login e registo"), "HTTP")
+Rel(WEB_PROXY, WEB_GUARDS, $plain("Passa o caminho para o regresso depois do login"), "x-pathname")
+Rel(WEB_AREA_MANAGE, WEB_GUARDS, $plain("Layout com AreaGuard (Owner)"), "")
+Rel(WEB_AREA_ADMIN, WEB_GUARDS, $plain("Layout com AreaGuard (Admin)"), "")
+Rel(WEB_AREA_PLAYER, WEB_GUARDS, $plain("/bookings com PlayerGuard"), "")
+Rel(WEB_AREA_ACCOUNT, WEB_GUARDS, $plain("GuestOnly (não em /reset-password)"), "")
+Rel(WEB_GUARDS, WEB_SERVER, $plain("Quem tem sessão?"), "getSessionAccount")
+Rel(WEB_AREA_PLAYER, WEB_SERVER, $plain("Página do clube"), "loadPublicClub")
+Rel(WEB_AREA_ADMIN, WEB_SERVER, $plain("Totais do primeiro desenho"), "loadAdminStats")
+Rel(WEB_AREA_PLAYER, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
+Rel(WEB_AREA_MANAGE, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
+Rel(WEB_AREA_ADMIN, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
+Rel(WEB_AREA_ACCOUNT, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
+Rel(WEB_API_CLIENT, WEB_REWRITE, $plain("fetch de /api/* na mesma origem"), "HTTP, cookies")
+Rel(WEB_REWRITE, C_API, $plain("Reencaminha /api/*"), "HTTP, API_INTERNAL_URL")
+Rel(WEB_SERVER, C_API, $plain("GET /api/auth/me, /api/clubs/{slug}, /api/admin/stats"), "HTTP, API_INTERNAL_URL")
+
+note right of WEB_SERVER
+  **URL interno da API (API_INTERNAL_URL)**
+  Hoje, no compose: http://api:8080
+  (argumento de build para os rewrites
+  e variável de ambiente em execução).
+  **Em produção (T06):** o URL público do
+  serviço da API no Render (PL-RENDER-API).
+end note
+
+note bottom of WEB_API_CLIENT
+  O estado que o utilizador escolhe (passo da
+  reserva, vista do calendário, filtros, páginas)
+  vive no endereço da página (useSearchParams,
+  router.replace), não num store. Os dados da API
+  ficam no TanStack Query.
+end note
+
+SHOW_LEGEND()
+@enduml

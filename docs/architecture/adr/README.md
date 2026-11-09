@@ -1,6 +1,6 @@
 # Registos de decisões de arquitetura (ADR)
 
-Cada ADR regista uma decisão importante: o contexto, a decisão, as alternativas consideradas e as consequências. Uma ADR aceite não se reescreve; se a decisão mudar, escreve-se uma nova que a substitui e a antiga passa a «Substituída por …». Os elementos referidos usam os ids do [inventário](../00-inventory.md).
+Cada ADR regista uma decisão importante: o contexto, a decisão, as alternativas consideradas e as consequências. Uma ADR aceite não se reescreve; se a decisão mudar, escreve-se uma nova que a substitui e a antiga passa a «Substituída por …». Os elementos referidos usam os ids do [inventário](../inventory.md).
 
 Nome dos ficheiros: `NNNN-titulo-curto.md` (por exemplo `0001-uma-app-tres-areas.md`).
 

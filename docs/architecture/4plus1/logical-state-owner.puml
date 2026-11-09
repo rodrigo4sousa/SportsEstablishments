@@ -1,0 +1,27 @@
+' 4+1 vista lógica - Estados de um dono (D-USER com perfil Owner) · users.deactivated_at
+' Version 1.0 - 2026-11-09
+' Para: quem programa.
+' Decisão documentada: Desativar um dono é um UPDATE condicional de users.deactivated_at, com um histórico só de acrescentar (US29).
+' Não desenhado: controllers, HTTP e ecrãs.
+@startuml logical-state-owner
+!include ../style.puml
+title Estados de um dono (D-USER com perfil Owner) · users.deactivated_at
+
+hide empty description
+state Ativo : deactivated_at vazio
+state Desativado : deactivated_at preenchido\nsem login nem refresh\nclubes escondidos, sem novas reservas
+
+[*] --> Ativo : AccountRegistrationService.RegisterOwnerAsync\n(ou o seed-demo)
+Ativo --> Desativado : AdminOwnerStatusService.DeactivateAsync\n→ IOwnerStatusStore.TryChangeAsync(Deactivated)\nUPDATE … WHERE deactivated_at IS NULL\n+ linha em owner_status_changes\n+ revoga os refresh tokens do dono
+Desativado --> Ativo : AdminOwnerStatusService.ReactivateAsync\n→ TryChangeAsync(Reactivated)\nUPDATE … WHERE deactivated_at IS NOT NULL\n+ linha em owner_status_changes
+Ativo --> Ativo : reativar → 422 owner_not_deactivated
+Desativado --> Desativado : desativar → 422 owner_already_deactivated
+
+note right of Desativado
+  Tudo numa transação; o UPDATE condicional decide
+  (0 linhas = já estava assim, nada é escrito).
+  Nenhuma reserva é cancelada. O access token já
+  emitido dura até 15 min (aceite).
+end note
+
+@enduml

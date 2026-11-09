@@ -1,0 +1,49 @@
+' 4+1 vista de processo - Refresh com rotação e deteção de reutilização (US01, US03) · lado da API
+' Version 1.0 - 2026-11-09
+' Para: quem programa e quem depura.
+' Decisão documentada: Rotação do refresh token e revogação de todas as sessões da conta se um token já usado reaparecer (ADR 0002).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-refresh
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Refresh com rotação e deteção de reutilização (US01, US03) · lado da API
+
+Component(WEB_API_CLIENT, "WEB-API-CLIENT · Cliente da API", "refreshSession")
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(API_AUTH, "API-AUTH · Contas e sessões", "AuthController.Refresh")
+  Component(CC_COOKIES, "CC-COOKIES · Sessões e cookies", "SessionService.RefreshAsync, AuthCookies")
+Boundary_End()
+ComponentDb(DB_REFRESH, "DB-REFRESH · refresh_tokens", "Tabela")
+ComponentDb(DB_USERS, "DB-USERS · users, user_roles", "Tabelas")
+
+Rel(WEB_API_CLIENT, API_AUTH, $plain("POST /api/auth/refresh (o cookie refresh_token só vai para /api/auth)"), "fetch; [AllowAnonymous], limite auth-refresh")
+Rel(API_AUTH, CC_COOKIES, $plain("RefreshAsync(cookie)"))
+Rel(CC_COOKIES, DB_REFRESH, $plain("Procura pelo SHA-256 do valor (sem cookie ou sem linha → 401)"), "SELECT … WHERE token_hash = …")
+alt revoked_at preenchido: token já usado
+  Rel(CC_COOKIES, DB_REFRESH, $plain("Log Warning; revoga todos os da conta"), "UPDATE … WHERE user_id = … AND revoked_at IS NULL")
+  Rel_Back(WEB_API_CLIENT, API_AUTH, $plain("401 invalid_refresh_token, cookies apagados"))
+else expirado
+  Rel_Back(WEB_API_CLIENT, API_AUTH, $plain("401 invalid_refresh_token"))
+else válido
+  Rel(CC_COOKIES, DB_USERS, $plain("deactivated_at e o perfil"), "SELECT")
+  alt conta desativada ou sem perfil
+    Rel(CC_COOKIES, DB_REFRESH, $plain("Revoga todos os da conta"), "UPDATE")
+    Rel_Back(WEB_API_CLIENT, API_AUTH, $plain("401 invalid_refresh_token"))
+  else ativa
+    group Transação
+      Rel(CC_COOKIES, DB_REFRESH, $plain("Consome: SET revoked_at = now WHERE id = … AND revoked_at IS NULL"), "ExecuteUpdate")
+      alt 0 linhas: outro pedido usou-o primeiro
+        Rel(CC_COOKIES, DB_REFRESH, $plain("ROLLBACK; revoga todos os da conta (tratado como reutilização)"), "UPDATE")
+        Rel_Back(WEB_API_CLIENT, API_AUTH, $plain("401 invalid_refresh_token"))
+      else 1 linha
+        Rel(CC_COOKIES, DB_REFRESH, $plain("Novo token com o mesmo expires_at (validade absoluta); COMMIT"), "INSERT")
+        Rel(API_AUTH, CC_COOKIES, $plain("AuthCookies.Append (novo JWT de 15 min e novo refresh token)"))
+        Rel_Back(WEB_API_CLIENT, API_AUTH, $plain("204 + Set-Cookie"))
+      end
+    end
+  end
+end
+
+SHOW_LEGEND()
+@enduml

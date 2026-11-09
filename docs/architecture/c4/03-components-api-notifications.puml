@@ -1,0 +1,57 @@
+' C4 nível 3 - Componentes da API · notificações: outbox e worker de emails
+' Version 1.0 - 2026-11-09
+' Não desenhado: classes individuais, salvo quando são o próprio componente.
+@startuml 03-components-api-notifications
+!include <C4/C4_Component>
+!include ../style.puml
+
+title Componentes da API · notificações: outbox e worker de emails
+
+LAYOUT_TOP_DOWN()
+
+Container_Boundary(C_API, "C-API · API ASP.NET Core (pedidos)") {
+  Component(API_BOOK, "API-BOOK · Reservas do jogador", "BookingService, RecurringBookingService, BookingCancellationService", "Reserva, série, cancelamento.")
+  Component(API_CLUBBOOK, "API-CLUBBOOK · Reservas do dono", "ClubBookingService.CancelAsync", "Cancelamento pelo clube (a reserva para cliente não gera email).")
+  Component(API_AUTH_RESET, "API-AUTH-RESET · Recuperação", "PasswordResetStore, AccountEmailBuilder", "Põe na fila; no envio, faz o token e o link.")
+  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox, OutboxMessage.Create", "Junta a mensagem ao IAppDbContext de quem chama; não grava.")
+}
+
+Container_Boundary(C_WORKER, "C-WORKER · Worker de emails (BackgroundService no processo da API)") {
+  Component(API_NOTIF_DISPATCH, "API-NOTIF-DISPATCH · Ciclo do worker", "OutboxDispatcher", "Um scope por passagem; espera o intervalo no TimeProvider; Outbox:Enabled.")
+  Component(API_NOTIF_PROC, "API-NOTIF-PROC · Processar o que está devido", "OutboxProcessor.ProcessDueAsync", "SKIP LOCKED; envia, ignora, desiste ou volta a tentar (OutboxRetry).")
+  Component(API_NOTIF_COMPOSE, "API-NOTIF-COMPOSE · Compor os emails", "BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer", "pt-PT, hora de Lisboa, texto e HTML.")
+  Component(API_NOTIF_SENDER, "API-NOTIF-SENDER · Enviar", "IEmailSender, SmtpEmailSender (MailKit)", "Uma ligação por mensagem.")
+}
+
+Component(CC_DATAPROT, "CC-DATAPROT · Data Protection", "Identity", "Token de recuperação (relógio do sistema).")
+Component(CC_TIME, "CC-TIME · Relógio injetado", "TimeProvider", "A hora de agora e a espera entre passagens.")
+
+Container_Boundary(C_DB, "C-DB · PostgreSQL") {
+  ComponentDb(DB_OUTBOX, "DB-OUTBOX · outbox_messages", "Tabela", "ck_outbox_messages_one_outcome: no máximo um resultado.")
+  ComponentDb(DB_OUTBOXUQ, "DB-OUTBOXUQ · ux_outbox_messages_booking_notification", "Índice único parcial", "Um lembrete e um aviso ao dono por reserva.")
+  ComponentDb(DB_USERS, "DB-USERS · users", "Tabela", "Endereço e nome atuais do destinatário.")
+  ComponentDb(DB_BOOKINGS, "DB-BOOKINGS · bookings", "Tabela", "Estado atual da reserva do lembrete e do aviso.")
+}
+
+System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "Mailpit em desenvolvimento")
+
+Rel(API_BOOK, API_NOTIF_OUTBOX, $plain("Confirmação, aviso ao dono, lembrete, resumo da série, cancelamento"), "mesma transação do trinco")
+Rel(API_CLUBBOOK, API_NOTIF_OUTBOX, $plain("Cancelamento pelo clube, com o motivo"), "mesma transação do trinco")
+Rel(API_AUTH_RESET, DB_OUTBOX, $plain("password_reset (só o id da conta), password_changed"), "INSERT na própria transação")
+Rel(API_NOTIF_OUTBOX, DB_OUTBOX, $plain("Escrita pelo SaveChanges de quem chama"), "INSERT")
+Rel(DB_OUTBOX, DB_OUTBOXUQ, $plain("Verificado em cada INSERT"), "")
+
+Rel(API_NOTIF_DISPATCH, CC_TIME, $plain("Espera o intervalo"), "Task.Delay(…, timeProvider)")
+Rel(API_NOTIF_DISPATCH, API_NOTIF_PROC, $plain("Corre uma passagem (assíncrono)"), "ProcessDueAsync")
+Rel(API_NOTIF_PROC, DB_OUTBOX, $plain("Reclama as devidas e grava o resultado"), "FOR UPDATE SKIP LOCKED")
+Rel(API_NOTIF_PROC, DB_BOOKINGS, $plain("Lê a reserva no momento do envio"), "SQL")
+Rel(API_NOTIF_PROC, DB_USERS, $plain("Lê o destinatário no momento do envio"), "SQL")
+Rel(API_NOTIF_PROC, API_NOTIF_COMPOSE, $plain("Compõe o email de reserva"), "")
+Rel(API_NOTIF_PROC, API_AUTH_RESET, $plain("Compõe o email de conta"), "AccountEmailBuilder.BuildAsync")
+Rel(API_AUTH_RESET, CC_DATAPROT, $plain("Faz o token"), "GeneratePasswordResetTokenAsync")
+Rel(API_AUTH_RESET, API_NOTIF_COMPOSE, $plain("Escreve o texto com o link"), "AccountEmailComposer")
+Rel(API_NOTIF_PROC, API_NOTIF_SENDER, $plain("Envia"), "SendAsync")
+Rel(API_NOTIF_SENDER, X_SMTP, $plain("Envia o email"), "SMTP")
+
+SHOW_LEGEND()
+@enduml

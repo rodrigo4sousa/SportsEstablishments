@@ -1,0 +1,38 @@
+' C4 nível 1 - Contexto do sistema · App de Reservas de Campos
+' Version 1.0 - 2026-11-09
+' Não desenhado: tecnologias, contentores e código; o CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e estão na implantação.
+@startuml 01-context
+!include <C4/C4_Context>
+!include ../style.puml
+
+title Contexto do sistema · App de Reservas de Campos
+
+LAYOUT_TOP_DOWN()
+
+Person(P_VIS, "P-VIS · Visitante", "Pesquisa clubes e vê os horários livres, sem sessão.")
+Person(P_JOG, "P-JOG · Jogador", "Reserva, cancela e vê as suas reservas.")
+Person(P_DONO, "P-DONO · Dono", "Gere clubes, campos, calendário e reservas.")
+Person(P_ADMIN, "P-ADMIN · Admin", "Dono da plataforma: contagens e estado dos donos.")
+Person_Ext(P_CLI, "P-CLI · Cliente sem conta", "Pede ao clube uma reserva; não usa o sistema.")
+Person_Ext(P_OPS, "P-OPS · Operador", "Arranca a aplicação e define a configuração.")
+
+System(SYS, "App de Reservas de Campos", "Mercado único para reservar campos (futsal, futebol 7, padel, ténis) em clubes portugueses.")
+
+System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "Recebe os emails da aplicação. Em desenvolvimento é o X-MAILPIT.")
+System_Ext(PL_BREVO, "PL-BREVO · Brevo", "O servidor SMTP de produção.")
+System_Ext(PL_VERCEL, "PL-VERCEL · Vercel", "Onde o site vai correr.")
+System_Ext(PL_RENDER, "PL-RENDER · Render", "Onde a API vai correr.")
+
+Rel(P_VIS, SYS, $plain("Pesquisa clubes e horários"), "HTTPS")
+Rel(P_JOG, SYS, $plain("Reserva e cancela slots"), "HTTPS")
+Rel(P_DONO, SYS, $plain("Gere clubes e reservas"), "HTTPS")
+Rel(P_ADMIN, SYS, $plain("Consulta números e desativa donos"), "HTTPS")
+Rel(P_CLI, P_DONO, $plain("Pede uma reserva"), "Telefone ou presença")
+Rel(P_OPS, SYS, $plain("Configura e corre comandos"), "Variáveis de ambiente, linha de comandos")
+Rel(SYS, X_SMTP, $plain("Envia emails de reservas e contas"), "SMTP")
+Rel(PL_BREVO, X_SMTP, $plain("É o X-SMTP em produção"), "")
+Rel_Back(PL_VERCEL, SYS, $plain("Aloja o site"), "")
+Rel_Back(PL_RENDER, SYS, $plain("Aloja a API"), "")
+
+SHOW_LEGEND()
+@enduml

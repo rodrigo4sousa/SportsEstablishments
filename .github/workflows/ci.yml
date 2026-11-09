@@ -90,18 +90,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The PlantUML image tag is pinned in the header of every .puml; the script reads it, so the CI and a local render
-      # always use the same version.
+      # The PlantUML image tag is pinned in docs/architecture/style.puml; the script reads it, so the CI and a local render
+      # always use the same version, and the font (DejaVu Sans) comes from that image.
       - name: Render the diagrams
-        run: scripts/render-diagrams.sh
+        run: docs/architecture/render.sh
 
       # git status also catches a diagram whose .svg was never committed.
       - name: Rendered diagrams match the committed SVGs
         run: |
-          if [ -n "$(git status --porcelain -- docs/architecture/diagrams)" ]; then
-            git status --short -- docs/architecture/diagrams
-            git diff --stat -- docs/architecture/diagrams
-            echo "::error::The .svg files are out of date. Run scripts/render-diagrams.sh (or .ps1) and commit them."
+          if [ -n "$(git status --porcelain -- docs/architecture/out)" ]; then
+            git status --short -- docs/architecture/out
+            git diff --stat -- docs/architecture/out
+            echo "::error::The .svg files are out of date. Run docs/architecture/render.sh (or render.ps1) and commit them."
             exit 1
           fi
 

@@ -1,0 +1,30 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · do controller aos tipos do front end
+' Version 1.0 - 2026-11-09
+' Para: quem vai mudar o código.
+' Decisão documentada: Os tipos da API no front end são gerados a partir do OpenAPI, nunca escritos à mão, e o CI verifica a deriva.
+' Não desenhado: classes, endpoints e regras de negócio.
+@startuml development-api-types
+!include ../style.puml
+title Vista de desenvolvimento · do controller aos tipos do front end
+
+start
+:Mudar um controller ou um DTO\n(L-API, L-APP);
+:dotnet build backend/SportsBooking.slnx\nMicrosoft.Extensions.ApiDescription.Server\ngera o documento OpenAPI;
+note right
+  O gerador arranca a aplicação como GetDocument.Insider
+  e Program.cs dá-lhe definições de substituição.
+end note
+:CC-OPENAPI\nbackend/src/SportsBooking.Api/openapi/sportsbooking-api.json;
+:cd frontend && npm run gen:api\nopenapi-typescript 7.13.0;
+:DEV-WEBTYPES\nfrontend/src/lib/api/schema.d.ts;
+:Os módulos de features/ e lib/ usam\nimport type { components } from "@/lib/api/schema";
+:Commit dos dois ficheiros gerados;
+if (CI: o documento ou os tipos mudariam?) then (sim)
+  :CI falha: git diff ~-~-exit-code;
+  stop
+else (não)
+  :CI verde;
+  stop
+endif
+
+@enduml

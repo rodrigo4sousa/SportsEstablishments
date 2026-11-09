@@ -1,0 +1,94 @@
+' Shared visual style, included by every diagram (after the C4 include in C4 diagrams).
+' plantuml-version: 1.2026.8
+' The line above pins the PlantUML image used by render.sh, render.ps1 and the CI (plantuml/plantuml:<version>).
+' FONT: DejaVu Sans ships in that image, and the render scripts mount nothing from the host. Text is measured with
+' the font found in the container, so the same image gives the same SVG on every machine and in the CI.
+
+skinparam backgroundColor #FFFFFE
+skinparam shadowing false
+skinparam defaultFontName DejaVu Sans
+skinparam NoteBackgroundColor #FAFAFA
+skinparam NoteBorderColor #9CA3AF
+!if %function_exists("UpdateElementStyle")
+HIDE_STEREOTYPE()
+HIDE_PERSON_SPRITE()
+
+UpdateElementStyle("person",             $bgColor="#E8F1FB", $fontColor="#1F2933", $borderColor="#6B95C4")
+UpdateElementStyle("system",             $bgColor="#D6E6F7", $fontColor="#1F2933", $borderColor="#4F82B8")
+UpdateElementStyle("container",          $bgColor="#D6E6F7", $fontColor="#1F2933", $borderColor="#4F82B8")
+UpdateElementStyle("component",          $bgColor="#E4EEF9", $fontColor="#1F2933", $borderColor="#6B95C4")
+UpdateElementStyle("external_system",    $bgColor="#F3F4F6", $fontColor="#374151", $borderColor="#9CA3AF")
+UpdateElementStyle("external_container", $bgColor="#F3F4F6", $fontColor="#374151", $borderColor="#9CA3AF")
+UpdateElementStyle("external_component", $bgColor="#F3F4F6", $fontColor="#374151", $borderColor="#9CA3AF")
+UpdateRelStyle($textColor="#374151", $lineColor="#6B7280")
+
+AddElementTag("planned", $bgColor="#FAFAFA", $fontColor="#6B7280", $borderColor="#9CA3AF", $borderStyle=DashedLine(), $legendText="PLANNED")
+AddRelTag("planned", $textColor="#6B7280", $lineColor="#9CA3AF", $lineStyle=DashedLine(), $legendText="PLANNED relationship")
+!else
+skinparam ArrowColor #6B7280
+skinparam ArrowFontColor #374151
+skinparam ArrowThickness 1
+skinparam DefaultFontColor #1F2933
+skinparam TitleFontColor #1F2933
+skinparam classAttributeIconSize 0
+hide circle
+skinparam ClassBackgroundColor #E4EEF9
+skinparam ClassBorderColor #6B95C4
+skinparam ClassHeaderBackgroundColor #D6E6F7
+skinparam StereotypeCBackgroundColor #FFFFFF
+skinparam StereotypeEBackgroundColor #FFFFFF
+skinparam ParticipantBackgroundColor #E4EEF9
+skinparam ParticipantBorderColor #6B95C4
+skinparam ParticipantBackgroundColor<<external>> #F3F4F6
+skinparam ParticipantBorderColor<<external>> #9CA3AF
+skinparam ParticipantFontColor<<external>> #374151
+skinparam ActorBackgroundColor #E8F1FB
+skinparam ActorBorderColor #6B95C4
+skinparam DatabaseBackgroundColor #D6E6F7
+skinparam DatabaseBorderColor #4F82B8
+skinparam EntityBackgroundColor #F3F4F6
+skinparam EntityBorderColor #9CA3AF
+skinparam CollectionsBackgroundColor #E4EEF9
+skinparam CollectionsBorderColor #6B95C4
+skinparam SequenceLifeLineBorderColor #9CA3AF
+skinparam SequenceGroupBorderColor #9CA3AF
+skinparam SequenceGroupHeaderFontColor #374151
+skinparam SequenceBoxBackgroundColor #FAFAFA
+skinparam SequenceBoxBorderColor #9CA3AF
+skinparam PackageBackgroundColor #FFFFFF
+skinparam PackageBorderColor #9CA3AF
+skinparam FolderBackgroundColor #FFFFFF
+skinparam FolderBorderColor #9CA3AF
+skinparam NodeBackgroundColor #FFFFFF
+skinparam NodeBorderColor #9CA3AF
+skinparam ArtifactBackgroundColor #D6E6F7
+skinparam ArtifactBorderColor #4F82B8
+skinparam ComponentBackgroundColor #E4EEF9
+skinparam ComponentBorderColor #6B95C4
+skinparam ComponentBackgroundColor<<external>> #F3F4F6
+skinparam ComponentBorderColor<<external>> #9CA3AF
+skinparam ActorBackgroundColor<<external>> #F3F4F6
+skinparam ActorBorderColor<<external>> #9CA3AF
+skinparam CloudBackgroundColor #F3F4F6
+skinparam CloudBorderColor #9CA3AF
+skinparam ActivityBackgroundColor #E4EEF9
+skinparam ActivityBorderColor #6B95C4
+skinparam ActivityDiamondBackgroundColor #FFFFFF
+skinparam ActivityDiamondBorderColor #6B95C4
+skinparam ActivityStartColor #1F2933
+skinparam ActivityEndColor #1F2933
+skinparam PartitionBackgroundColor #FFFFFF
+skinparam PartitionBorderColor #9CA3AF
+skinparam StateBackgroundColor #E4EEF9
+skinparam StateBorderColor #6B95C4
+skinparam StateStartColor #1F2933
+skinparam StateEndColor #1F2933
+skinparam UsecaseBackgroundColor #E4EEF9
+skinparam UsecaseBorderColor #6B95C4
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #9CA3AF
+!endif
+
+!function $plain($text)
+!return "<plain>" + $text + "</plain>"
+!endfunction

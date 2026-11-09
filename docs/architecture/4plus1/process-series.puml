@@ -1,0 +1,65 @@
+' 4+1 vista de processo - Série semanal (US20) · uma transação por data, sucesso parcial e o resumo no fim
+' Version 1.0 - 2026-11-09
+' Para: quem programa e quem depura.
+' Decisão documentada: Uma transação por data, sucesso parcial e um resumo no fim (US20).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+@startuml process-series
+!include <C4/C4_Sequence>
+!include ../style.puml
+
+title Série semanal (US20) · uma transação por data, sucesso parcial e o resumo no fim
+
+Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "ClubBooking, createRecurring")
+Container_Boundary(C_API, "C-API · API ASP.NET Core")
+  Component(API_BOOK_SERIES, "API-BOOK-SERIES · Série semanal", "RecurringBookingService.CreateAsync")
+  Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas", "IAccountStore.IsActiveAsync")
+  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
+  Component(CC_SLOTCHECK, "CC-SLOTCHECK · Verificação do slot", "BookingSlotCheck.CheckAsync")
+  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
+  Component(API_BOOK_STORE, "API-BOOK-STORE · Store das reservas", "BookingStore.TryAddAsync")
+Boundary_End()
+ContainerDb(C_DB, "C-DB · PostgreSQL", "pitches, blocks, bookings, outbox_messages")
+
+Rel(WEB_F_BOOKING, API_BOOK_SERIES, $plain("POST /api/bookings/recurring { pitchId, startsAt, weeks }"), "apiJson; política Player")
+Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("Valida (400; weeks de 1 a 4)"))
+Rel(API_BOOK_SERIES, C_DB, $plain("Lê o campo e o clube (404 pitch_not_found)"), "SELECT pitches JOIN clubs")
+Rel(API_BOOK_SERIES, API_AUTH_ACCOUNTS, $plain("O dono está ativo? (422 club_unavailable)"))
+Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("seriesId = Guid.CreateVersion7(); RecurringOccurrences.Starts(startsAt, weeks, timeZone)"))
+
+loop cada data, por ordem (BookOneAsync)
+  group Transação própria desta data
+    Rel(API_BOOK_SERIES, CC_LOCK, $plain("LockAsync(pitchId)"))
+    Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches … FOR UPDATE"), "SQL")
+    Rel(API_BOOK_SERIES, C_DB, $plain("Volta a ler o campo dentro do trinco"), "SELECT pitches")
+    Rel(API_BOOK_SERIES, CC_SLOTCHECK, $plain("CheckAsync(pitch, timeZone, startsAt, now)"))
+    alt recusa
+      Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("SkippedOccurrence com RecurringOccurrences.ReasonFor: pitch_inactive, outside_window, closed, not_a_slot, started, blocked"))
+      Rel(CC_LOCK, C_DB, $plain("Sem commit → ROLLBACK"), "SQL")
+    else livre
+      Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("Booking.ForPlayer(…, PriceForSlot, now, seriesId)"))
+      Rel(API_BOOK_SERIES, API_NOTIF_OUTBOX, $plain("EnqueueOwnerNotificationAsync, EnqueueReminder (sem confirmação individual)"))
+      Rel(API_BOOK_SERIES, API_BOOK_STORE, $plain("TryAddAsync(booking)"))
+      Rel(API_BOOK_STORE, C_DB, $plain("INSERT bookings e outbox_messages"), "SQL")
+      alt 23P01 em bookings_no_overlap
+        Rel_Back(API_BOOK_SERIES, API_BOOK_STORE, $plain("false → SkippedOccurrence(taken)"))
+        Rel(CC_LOCK, C_DB, $plain("ROLLBACK"), "SQL")
+      else inserida
+        Rel(CC_LOCK, C_DB, $plain("COMMIT: esta data fica feita, aconteça o que acontecer às seguintes"), "SQL")
+      end
+    end
+  end
+end
+
+alt nenhuma data feita
+  Rel_Back(WEB_F_BOOKING, API_BOOK_SERIES, $plain("409 series_unavailable, extensions.skipped com o motivo de cada data"))
+else pelo menos uma
+  group Transação à parte (a implícita do SaveChanges)
+    Rel(API_BOOK_SERIES, API_NOTIF_OUTBOX, $plain("EnqueueSeriesSummaryAsync(created, skipped)"))
+    Rel(API_BOOK_SERIES, C_DB, $plain("SaveChangesAsync: INSERT outbox_messages (booking_series_confirmed)"), "SQL")
+  end
+  note over API_BOOK_SERIES, C_DB: Se o processo cair antes deste SaveChanges, as reservas ficam e o resumo perde-se (provisório, US20).
+  Rel_Back(WEB_F_BOOKING, API_BOOK_SERIES, $plain("201 Created { seriesId, created, skipped }, Location da 1.ª reserva"))
+end
+
+SHOW_LEGEND()
+@enduml

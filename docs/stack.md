@@ -6,7 +6,7 @@ Next.js (App Router) no front end, ASP.NET Core no back end e PostgreSQL, servid
  
 ## Arquitetura
  
-A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/00-inventory.md](architecture/00-inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
+A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/inventory.md](architecture/inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
  
 O browser só fala com o Caddy. Os Server Components chamam a API por dentro, a passar o cookie do utilizador, e nada além da API acede ao PostgreSQL.
  
@@ -281,7 +281,7 @@ Um só repositório, `main` só alterada por pull requests (sem proteção de br
 - A regra é que a `main` só recebe pull requests com o CI verde, mesmo trabalhando sozinho. **Hoje não há proteção de branch na `main`** (nenhuma regra nas definições do GitHub): o CI verde confirma-se à mão antes de cada merge.
 - Branches curtas com o ID da história (`feat/US18-reservar-slot`) e squash merge.
 - Commits no formato Conventional Commits (`feat:`, `fix:`, `test:`), com o ID da história.
-- Decisões importantes em ADRs curtos em `docs/` (uma app em vez de duas, cookies em vez de localStorage, a exclusion constraint).
+- Decisões importantes em ADRs curtos em `docs/architecture/adr/` (uma app em vez de duas, cookies em vez de localStorage, a exclusion constraint).
 **CI (GitHub Actions)**
  
 - Back end: restore, build e testes, incluindo os de integração com Testcontainers (os runners Ubuntu do GitHub têm Docker).

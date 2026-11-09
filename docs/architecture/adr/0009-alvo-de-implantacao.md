@@ -2,7 +2,7 @@
 
 - **Estado:** Aceite em 2026-11-09, depois do primeiro deploy real.
 - **Data:** 2026-11-09 (reescrita; a primeira versão, de 2026-10-30, propunha a API num serviço privado do Render).
-- **Elementos:** C-WEB, C-API, C-WORKER, C-DB, X-GHA, PL-VERCEL, PL-VERCEL-EDGE, PL-RENDER, PL-RENDER-EDGE, PL-RENDER-API, PL-SUPABASE, PL-SUPAPOOL, PL-BREVO, PL-DBUSERS, PL-MIGBUNDLE, PL-DEPLOY, PL-DEPLOYHOOK, PL-PRODDATA. Detalhe na [vista física](../06-physical-view.md).
+- **Elementos:** C-WEB, C-API, C-WORKER, C-DB, X-GHA, PL-VERCEL, PL-VERCEL-EDGE, PL-RENDER, PL-RENDER-EDGE, PL-RENDER-API, PL-SUPABASE, PL-SUPAPOOL, PL-BREVO, PL-DBUSERS, PL-MIGBUNDLE, PL-DEPLOY, PL-DEPLOYHOOK, PL-PRODDATA. Detalhe na [vista física](../4plus1/physical.md).
 
 ## Contexto
 

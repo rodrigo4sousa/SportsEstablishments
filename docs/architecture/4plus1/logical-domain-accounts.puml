@@ -1,0 +1,110 @@
+' 4+1 vista lógica - Modelo do domínio · contas, sessões, histórico dos donos e outbox
+' Version 1.0 - 2026-11-09
+' Para: quem programa.
+' Decisão documentada: A conta (AppUser), o refresh token e o histórico dos donos vivem na Infrastructure e a mensagem do outbox na Application; no Domain a conta existe só como regras (Dom/Accounts).
+' Não desenhado: controllers, HTTP e ecrãs; os clubes, campos e reservas estão em logical-domain-booking.
+@startuml logical-domain-accounts
+!include ../style.puml
+title Modelo do domínio · contas, sessões, histórico dos donos e outbox
+
+hide empty members
+
+package "SportsBooking.Domain (L-DOM)" {
+  class Profiles <<D-POLICIES>> {
+    {static} Player = "Player"
+    {static} Owner = "Owner"
+    {static} Admin = "Admin"
+    {static} SelfRegistration = [Player, Owner]
+  }
+  class "EmailAddressPolicy, AccountNamePolicy,\nPhoneNumberPolicy, PasswordPolicy" as Policies <<D-POLICIES>> {
+    {static} PasswordPolicy.MinimumLength = 8
+  }
+  class Booking <<D-BOOKING>> {
+    Id : Guid
+    PlayerId : Guid?
+  }
+}
+
+package "SportsBooking.Infrastructure (L-INF)" {
+  class AppUser <<D-USER>> {
+    Id : Guid
+    Email, UserName : string
+    Name : string
+    PhoneNumber : string?
+    PasswordHash, SecurityStamp
+    RegisteredAt : DateTime (UTC)
+    DeactivatedAt : DateTime?
+    --
+    IsActive : bool
+    Deactivate(now)
+  }
+  note top of AppUser : IdentityUser<Guid>
+
+  class RefreshToken <<D-REFRESH>> {
+    Id : Guid
+    UserId : Guid
+    TokenHash : byte[] (SHA-256)
+    CreatedAt, ExpiresAt : DateTime
+    RevokedAt : DateTime?
+    --
+    {static} Issue(userId, now, expiresAt)
+    {static} Hash(value)
+    IsExpired(now)
+  }
+
+  class OwnerStatusChange <<D-STATUSCHG>> {
+    Id : Guid
+    OwnerId : Guid
+    Action : OwnerStatusAction
+    Reason : string
+    AdminId : Guid
+    CreatedAt : DateTime
+    --
+    {static} Record(ownerId, action, reason, adminId, now)
+  }
+}
+
+package "SportsBooking.Application (L-APP)" {
+  enum OwnerStatusAction <<D-STATUSCHG>> {
+    Deactivated
+    Reactivated
+  }
+
+  class OutboxMessage <<D-OUTBOX>> {
+    Id : Guid
+    Type : string
+    Payload : string (jsonb)
+    CreatedAt : DateTime
+    Attempts : int
+    NextAttemptAt : DateTime
+    SentAt, SkippedAt, FailedAt : DateTime?
+    LastError : string?
+    --
+    {static} Create(type, payload, now, dueAt?)
+    MarkSent(now)
+    Skip(reason, now)
+    RecordFailure(error, now, retry)
+    GiveUp(error, now)
+    IsPending : bool
+  }
+
+  class OutboxRetry <<D-OUTBOX>> {
+    FirstDelay, MaximumDelay : TimeSpan
+    MaxAttempts : int
+    --
+    DelayAfter(failedAttempts)
+  }
+}
+
+AppUser "1" --> "1" Profiles : user_roles (um perfil)
+AppUser ..> Policies : regras no registo e no seed
+RefreshToken "0..*" --> "1" AppUser : UserId
+OwnerStatusChange "0..*" --> "1" AppUser : OwnerId (RESTRICT)
+OwnerStatusChange "0..*" --> "1" AppUser : AdminId (RESTRICT)
+OwnerStatusChange ..> OwnerStatusAction
+Booking "0..*" --> "0..1" AppUser : PlayerId
+OutboxMessage ..> OutboxRetry : RecordFailure
+OutboxMessage ..> Booking : payload: bookingId (JSON, sem FK)
+OutboxMessage ..> AppUser : payload: playerId / accountId (JSON, sem FK)
+
+@enduml

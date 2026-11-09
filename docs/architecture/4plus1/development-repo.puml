@@ -1,0 +1,51 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
+' Version 1.0 - 2026-11-09
+' Para: quem vai mudar o código.
+' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
+' Não desenhado: classes, endpoints e regras de negócio.
+@startuml development-repo
+!include ../style.puml
+title Vista de desenvolvimento · estrutura do repositório
+
+skinparam defaultTextAlignment left
+
+folder "/ · raiz do repositório" as ROOT {
+  rectangle "DEV-ROOTCFG\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md" as DEV_ROOTCFG
+  rectangle "DEV-COMPOSE\ndocker-compose.yml\npostgres, mailpit, api, frontend" as DEV_COMPOSE
+
+  folder "backend/ · DEV-BACKEND" as DEV_BACKEND {
+    rectangle "src/\nL-DOM, L-APP, L-INF, L-API" as B_SRC
+    rectangle "tests/\nDEV-TEST-UNIT, DEV-TEST-INT" as B_TESTS
+    rectangle "Directory.Build.props, Directory.Packages.props,\ndotnet-tools.json, SportsBooking.slnx, Dockerfile" as B_CFG
+  }
+
+  folder "frontend/ · DEV-FRONTEND" as DEV_FRONTEND {
+    rectangle "src/\napp, components, features, lib, test, proxy.ts\n(DEV-TEST-WEB: ficheiros *.test.ts(x) ao lado do código)" as F_SRC
+    rectangle "package.json, package-lock.json, next.config.ts,\nvitest.config.mts, eslint.config.mjs, tsconfig.json,\ncomponents.json, Dockerfile" as F_CFG
+  }
+
+  folder "docs/ · DEV-DOCS" as DEV_DOCS {
+    rectangle "backlog.md, stack.md" as D_SRC
+    folder "architecture/ · DEV-ARCHDOCS" as DEV_ARCHDOCS {
+      rectangle "README.md, inventory.md, style.puml, render.sh, render.ps1,\nc4/ e 4plus1/ (.md e .puml), out/ (.svg), adr/" as A_SRC
+    }
+  }
+
+  folder "scripts/ · DEV-SCRIPTS" as DEV_SCRIPTS {
+    rectangle "check-architecture-docs.sh, check-architecture-docs.ps1" as S_SRC
+  }
+
+  folder ".github/workflows/ · DEV-WORKFLOWS" as DEV_WORKFLOWS {
+    rectangle "ci.yml\njobs: backend, frontend, diagrams" as W_SRC
+  }
+}
+
+DEV_COMPOSE ..> DEV_BACKEND : "imagem da API"
+DEV_COMPOSE ..> DEV_FRONTEND : "imagem do front end"
+DEV_WORKFLOWS ..> DEV_BACKEND : "CI backend"
+DEV_WORKFLOWS ..> DEV_FRONTEND : "CI frontend"
+DEV_WORKFLOWS ..> DEV_ARCHDOCS : "CI diagramas: render.sh desenha os .puml em out/"
+DEV_WORKFLOWS ..> DEV_SCRIPTS : "CI docs: ligações e galeria"
+DEV_SCRIPTS ..> DEV_ARCHDOCS : "lê os .md e out/"
+
+@enduml

@@ -1,0 +1,35 @@
+' C4 implantação - Implantação · desenvolvimento (docker compose, uma máquina)
+' Version 1.0 - 2026-11-09
+' Não desenhado: lógica de negócio.
+@startuml 04-deployment-dev
+!include <C4/C4_Deployment>
+!include ../style.puml
+
+title Implantação · desenvolvimento (docker compose, uma máquina)
+
+LAYOUT_TOP_DOWN()
+
+Deployment_Node(DEP_DEVHOST, "DEP-DEVHOST · Máquina de desenvolvimento", "Docker Engine ou Docker Desktop") {
+  Container(C_BROWSER, "C-BROWSER · Browser", "Browser", "Abre http://localhost:3000; guarda os cookies httpOnly.")
+
+  Deployment_Node(DEP_COMPOSE_NET, "DEP-COMPOSE-NET · Projeto compose «sportsbooking», rede por omissão", "Rede bridge do Docker; os serviços chamam-se pelo nome") {
+    Container(C_WEB, "C-WEB · serviço frontend", "Next.js 16 standalone, Node 22, porta 3000 → localhost:3000", "API_INTERNAL_URL=http://api:8080, como argumento de build e variável de ambiente.")
+    Container(C_API, "C-API · serviço api", ".NET 10, porta 8080 → localhost:5080", "ASPNETCORE_ENVIRONMENT=Development: migrações no arranque, Swagger em /swagger.")
+    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService no processo de C-API", "Envia o outbox para o Mailpit.")
+    ContainerDb(C_DB, "C-DB · serviço postgres", "postgres:18.6, porta 5432 → localhost:5432", "Health check pg_isready; a api só arranca com ele saudável.")
+    Container_Ext(X_MAILPIT, "X-MAILPIT · serviço mailpit", "axllent/mailpit:v1.31.6, SMTP 1025 e web 8025 → localhost", "Apanha todos os emails; nenhum sai.")
+    ContainerDb(DEP_PGVOLUME, "DEP-PGVOLUME · volume postgres-data", "Volume do Docker", "Montado em /var/lib/postgresql; sobrevive a docker compose down.")
+  }
+}
+
+Rel(C_BROWSER, C_WEB, $plain("Abre páginas e chama /api/*"), "HTTP, localhost:3000")
+Rel(C_BROWSER, C_API, $plain("Swagger e chamadas diretas (ferramentas)"), "HTTP, localhost:5080")
+Rel(C_BROWSER, X_MAILPIT, $plain("Lê os emails apanhados"), "HTTP, localhost:8025")
+Rel(C_WEB, C_API, $plain("Reencaminha /api/* e lê a API nos Server Components"), "HTTP, api:8080")
+Rel(C_API, C_DB, $plain("Lê e escreve; aplica as migrações no arranque"), "SQL, postgres:5432")
+Rel(C_WORKER, C_DB, $plain("Reclama o outbox e grava o resultado"), "SQL")
+Rel(C_WORKER, X_MAILPIT, $plain("Envia o email"), "SMTP sem TLS, mailpit:1025")
+Rel(C_DB, DEP_PGVOLUME, $plain("Guarda os ficheiros de dados"), "Montagem de volume")
+
+SHOW_LEGEND()
+@enduml
