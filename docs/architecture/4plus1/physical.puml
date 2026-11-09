@@ -1,0 +1,59 @@
+' 4+1 vista física - diagrama de implantação UML da produção
+' Version 1.0 - 2026-11-09
+' Para: quem faz deploy, opera ou dá suporte à aplicação.
+' Decisão documentada: o site corre na Vercel, a API e o worker de emails no mesmo serviço do Render, a base de dados no Supabase (sempre pelo pooler em modo sessão) e o SMTP no Brevo; o GitHub Actions aplica as migrações como dono do esquema e lança os deploys (ADR 0009).
+' Só o que existe em produção desde 2026-11-09. O desenvolvimento (docker compose) está em c4/04-deployment-dev.puml.
+' Mesmos nós e nomes que c4/04-deployment-prod.puml.
+' Não desenhado: o que não foi adotado (Caddy, máquina virtual, GHCR, domínio próprio, cópias diárias; ver ADR 0009), os segredos e as variáveis de ambiente (docs/deployment/environment-variables.md).
+@startuml physical
+!include ../style.puml
+
+title Vista física · produção (T06)
+left to right direction
+
+node "C-BROWSER · Browser do utilizador" as C_BROWSER
+
+node "PL-VERCEL · Vercel (Hobby)" as PL_VERCEL {
+    component "PL-VERCEL-EDGE · Borda da Vercel" as PL_VERCEL_EDGE
+    artifact "C-WEB · Aplicação Next.js" as C_WEB
+}
+
+node "PL-RENDER · Render (plano gratuito, Frankfurt)" as PL_RENDER {
+    component "PL-RENDER-EDGE · Borda do Render" as PL_RENDER_EDGE
+    node "PL-RENDER-API · Serviço web público (Docker)" as PL_RENDER_API {
+        artifact "C-API · API ASP.NET Core" as C_API
+        artifact "C-WORKER · Worker de emails" as C_WORKER
+    }
+}
+
+node "PL-SUPABASE · Supabase (Free)" as PL_SUPABASE {
+    component "PL-SUPAPOOL · Pooler de ligações" as PL_SUPAPOOL
+    database "C-DB · Base de dados" as C_DB
+}
+
+node "PL-BREVO · Brevo" as PL_BREVO_NODE {
+    component "PL-BREVO · Servidor SMTP" <<external>> as PL_BREVO
+}
+
+node "X-GHA · GitHub Actions" as X_GHA {
+    artifact "PL-DEPLOY · deploy.yml" as PL_DEPLOY
+    artifact "PL-PRODDATA · prod-data.yml" as PL_PRODDATA
+    artifact "PL-MIGBUNDLE · Migration bundle" as PL_MIGBUNDLE
+}
+
+C_BROWSER --> PL_VERCEL_EDGE : Abre páginas e chama /api/*\n[HTTPS, cookies]
+PL_VERCEL_EDGE --> C_WEB : Encaminha as páginas
+PL_VERCEL_EDGE --> PL_RENDER_EDGE : Reescreve /api/*\n[HTTPS, Internet]
+C_WEB --> PL_RENDER_EDGE : Server Components leem a API\n[HTTPS, API_INTERNAL_URL]
+PL_RENDER_EDGE --> C_API : Encaminha o pedido\n[HTTP, PORT]
+C_API --> PL_SUPAPOOL : Lê e escreve como sportsbooking_app\n[SQL, TLS]
+C_WORKER --> PL_SUPAPOOL : Reclama o outbox e grava o resultado\n[SQL, TLS]
+PL_SUPAPOOL --> C_DB : Liga\n[PostgreSQL]
+C_WORKER --> PL_BREVO : Envia o email\n[SMTP, StartTls]
+PL_DEPLOY --> PL_MIGBUNDLE : Constrói e corre
+PL_PRODDATA --> PL_MIGBUNDLE : migrate-only
+PL_MIGBUNDLE --> PL_SUPAPOOL : Aplica as migrações como postgres\n[SQL, TLS]
+PL_PRODDATA --> PL_SUPAPOOL : Corre os comandos como postgres\n[SQL, TLS]
+PL_DEPLOY --> PL_RENDER_API : Dispara o deploy deste commit\n[Deploy hook]
+PL_DEPLOY --> PL_VERCEL : Publica o build\n[Vercel CLI]
+@enduml

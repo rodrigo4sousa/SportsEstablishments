@@ -8,6 +8,10 @@ O que se diz do desenvolvimento foi conferido em 2026-10-30, no commit `452be5a`
 
 As secções 1 (desenvolvimento) e 3 (produção), com os diagramas de implantação, estão em [C4 · Implantação](../c4/README.md#implantação); a numeração destas secções mantém-se.
 
+![Vista física: produção](../out/physical.svg)
+
+Fonte: [physical.puml](physical.puml). Diagrama de implantação UML da produção, com os mesmos nós e nomes que o [C4 de implantação](../c4/README.md#3-produção-t06): o que existe desde 2026-11-09, sem o que a [ADR 0009](../adr/0009-alvo-de-implantacao.md) não adotou.
+
 ## 2. Integração contínua
 
 O CI (X-GHA, `.github/workflows/ci.yml`) não implanta nada: o deploy é o `deploy.yml` (PL-DEPLOY). Os runners `ubuntu-latest` constroem e testam; os testes de integração arrancam um `postgres:18.6` próprio com Testcontainers, e o job `diagrams` arranca a imagem do PlantUML. Detalhe em [Vista de desenvolvimento](development.md#4-pipeline-de-build-e-qualidade). Na T06 o CI passa também a fazer parte do deploy (secção 5).

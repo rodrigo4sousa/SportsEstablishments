@@ -254,6 +254,14 @@ Do controller ao OpenAPI e aos tipos TypeScript gerados. Explicado em [Vista de 
 
 Os jobs de CI e o que cada um verifica. Explicado em [Vista de desenvolvimento · 4. Pipeline de build e qualidade](4plus1/development.md#4-pipeline-de-build-e-qualidade).
 
+<img src="out/physical.svg" alt="Vista física: produção" width="900">
+
+O diagrama de implantação UML da produção. Explicado em [Vista física](4plus1/physical.md).
+
+<img src="out/scenarios-use-cases.svg" alt="Cenários: casos de uso" width="800">
+
+Os sete cenários e os atores. Explicado em [Cenários](4plus1/scenarios.md#cenários-histórias-diagramas-e-testes).
+
 <img src="out/development-deploy.svg" alt="Pipelines de deploy e de dados de produção" width="900">
 
 Os workflows `deploy.yml` e `prod-data.yml`. Explicado em [05 · Deploy e dados de produção](4plus1/development.md#deploy-e-dados-de-produção-deployyml-e-prod-datayml).

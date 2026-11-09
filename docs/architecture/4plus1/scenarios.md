@@ -2,7 +2,7 @@
 
 <!-- Vista 4+1: cenários (+1) · diagramas dinâmicos do C4 por caso de uso. Ver README.md. -->
 
-Sete casos de uso que atravessam várias vistas e as validam: se um cenário não se conseguir contar com os elementos e os diagramas das vistas 01 a 06, falta alguma coisa nessas vistas. Cada cenário diz quem participa, os passos pela ordem em que acontecem, as regras que decidem o resultado e onde ver a mesma coisa desenhada. Não repete o detalhe: aponta para ele. Os ids dos elementos estão no [inventário](../inventory.md) (secção 11 para os cenários, `SC-`); as regras completas estão no [backlog](../../backlog.md) (US e T) e no [AGENTS.md](../../../AGENTS.md).
+Sete casos de uso que atravessam várias vistas e as validam: se um cenário não se conseguir contar com os elementos e os diagramas das outras vistas (contexto, contentores, lógica, processo, desenvolvimento e física), falta alguma coisa nessas vistas. Cada cenário diz quem participa, os passos pela ordem em que acontecem, as regras que decidem o resultado e onde ver a mesma coisa desenhada. Não repete o detalhe: aponta para ele. Os ids dos elementos estão no [inventário](../inventory.md) (secção 11 para os cenários, `SC-`); as regras completas estão no [backlog](../../backlog.md) (US e T) e no [AGENTS.md](../../../AGENTS.md).
 
 | Id | Cenário | Atores | Histórias |
 | --- | --- | --- | --- |
@@ -13,6 +13,22 @@ Sete casos de uso que atravessam várias vistas e as validam: se um cenário nã
 | [SC-05](#sc-05--recuperação-da-palavra-passe) | Recuperação da palavra-passe | P-VIS (com conta) | US05 |
 | [SC-06](#sc-06--admin-desativa-um-dono) | Admin desativa um dono | P-ADMIN, P-DONO | US29, US04 |
 | [SC-07](#sc-07--corrida-pelo-mesmo-slot) | Corrida pelo mesmo slot | P-JOG, P-JOG | T03, US18 |
+
+## Cenários, histórias, diagramas e testes
+
+![Casos de uso](../out/scenarios-use-cases.svg)
+
+Fonte: [scenarios-use-cases.puml](scenarios-use-cases.puml). A coluna dos testes só tem classes de teste que existem em `backend/tests/SportsBooking.IntegrationTests/` (`BE`), em `backend/tests/SportsBooking.UnitTests/` (`UT`) ou em `frontend/src/features/` (`FE`); nenhuma é um teste de ponta a ponta do cenário inteiro, porque o repositório não tem testes end-to-end.
+
+| Cenário | Histórias | Diagramas de processo | Testes |
+| --- | --- | --- | --- |
+| SC-01 | US16, US17, US18, US01, US03, US22 | [pipeline](../out/process-pipeline.svg), [login](../out/process-login.svg), [refresh no browser](../out/process-refresh-client.svg), [reservar](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `ClubSearchTests`, `PublicClubTests`, `PublicSlotsTests`, `BookingTests`, `LoginTests`, `EmailWorkerTests`; FE `club-search.test.tsx`, `club-booking-flow.test.tsx`, `return-after-login.test.tsx` |
+| SC-02 | US02, US06, US07, US08, US09, US10 | [pipeline](../out/process-pipeline.svg), [página com guarda](../out/process-guard.svg) | BE `OwnerRegistrationTests`, `ManageClubsTests`, `ManagePitchesTests`, `PitchScheduleTests`, `PriceBandTests`, `BlockTests`; UT `PitchScheduleTests`, `PriceBandTests`, `BlockTests` |
+| SC-03 | US11, US12, US22 | [dono cancela](../out/process-cancel-club.svg), [worker](../out/process-outbox.svg) | BE `ClubCalendarTests`, `ClubBookingTests`, `BookingNotificationTests`; UT `ClubCancellationTests`; FE `club-calendar.test.tsx` |
+| SC-04 | US20, US18 | [série semanal](../out/process-series.svg), [reservar](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `RecurringBookingTests`; FE `recurring.test.tsx` |
+| SC-05 | US05 | [pedir](../out/process-reset-request.svg), [definir](../out/process-reset-confirm.svg), [worker](../out/process-outbox.svg), [login](../out/process-login.svg) | BE `PasswordResetTests`; FE `forgot-password-form.test.tsx`, `reset-password-form.test.tsx` |
+| SC-06 | US29, US04 | [desativar um dono](../out/process-owner-deactivation.svg), [refresh na API](../out/process-refresh.svg), [login](../out/process-login.svg), [página com guarda](../out/process-guard.svg) | BE `OwnerDeactivationTests` |
+| SC-07 | T03, US18 | [reservar](../out/process-book.svg), [cancelar (jogador)](../out/process-cancel-player.svg), [cancelar (dono)](../out/process-cancel-club.svg), [série semanal](../out/process-series.svg) | BE `BookingTests` (`Twenty_concurrent_requests_for_the_same_slot_give_exactly_one_201_and_409_for_the_rest`), `BookingCancellationTests` |
 
 ## SC-01 · Visitante pesquisa e reserva um slot
 
@@ -231,5 +247,5 @@ Sete casos de uso que atravessam várias vistas e as validam: se um cenário nã
 ## Notas
 
 - **Substitui** os quatro títulos vazios que este ficheiro tinha: «Jogador reserva um slot» é agora SC-01, «Jogador reserva uma série semanal» é SC-04, «Dono cancela uma reserva com motivo» é SC-03 e «Admin desativa um dono» é SC-06. Os outros três (SC-02, SC-05, SC-07) são novos.
-- **Ids novos:** `SC-01` a `SC-07`, no [inventário](../inventory.md), secção 11. Nenhum diagrama novo: cada cenário reutiliza os das vistas 01 a 06.
+- **Ids novos:** `SC-01` a `SC-07`, no [inventário](../inventory.md), secção 11. Um só diagrama próprio, o dos casos de uso; cada cenário reutiliza os das outras vistas.
 - **O que não está desenhado como sequência:** a configuração do clube (SC-02) e a vista do calendário (SC-03, passos 1 e 2) são pedidos simples de leitura e escrita sob o pipeline normal; as suas regras estão no texto e nos diagramas de componentes e de domínio.
