@@ -131,7 +131,7 @@ Como dono da plataforma, quero que a conta de admin seja criada na instalação,
 - Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente nunca é alterado (mudar a variável da palavra-passe depois não tem efeito).
 - Se o email já pertence a uma conta de jogador ou de dono, essa conta nunca é promovida a admin; fica um aviso no log, sem o email.
 - O seed corre em todos os ambientes, sempre depois das migrações. Em produção as migrações são aplicadas no deploy (T06), antes de a API arrancar.
-- Mudar a palavra-passe do admin faz-se com o comando `set-admin-password` da API (ver o README, «Changing the admin password»): lê a nova palavra-passe da variável de ambiente `ADMIN_NEW_PASSWORD`, nunca da linha de comandos, valida-a com as regras da US01, atualiza a palavra-passe do admin, termina as sessões dele e nunca escreve o valor em lado nenhum. O procedimento antigo (apagar a conta de admin) já não existe.
+- Mudar a palavra-passe do admin faz-se com o comando `set-admin-password` da API (ver o README, «Mudar a palavra-passe do admin»): lê a nova palavra-passe da variável de ambiente `ADMIN_NEW_PASSWORD`, nunca da linha de comandos, valida-a com as regras da US01, atualiza a palavra-passe do admin, termina as sessões dele e nunca escreve o valor em lado nenhum. O procedimento antigo (apagar a conta de admin) já não existe.
 - O critério «o admin entra pelo login normal e vai para `/admin`» passou para a US03.
 - Decisões de implementação:
   - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
