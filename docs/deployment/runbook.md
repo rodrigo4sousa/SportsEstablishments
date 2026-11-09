@@ -92,7 +92,9 @@ O Render precisa do endereço da Vercel (`Security__AllowedOrigins__0`, `PublicS
 
 ## 5. Vercel
 
-- [ ] Cria um projeto a partir do repositório, numa conta **Hobby** (só uso não comercial).
+O projeto `sports-establishments` **já existe** na Vercel e tem de ficar com o Git desligado: ligado, cada push lança um deploy fora do workflow, que falha sem `API_INTERNAL_URL`. Se o estiveres a usar, salta a criação e confirma as definições abaixo.
+
+- [ ] Se o projeto não existir, cria-o a partir do repositório, numa conta **Hobby** (só uso não comercial).
 - [ ] **Root Directory:** `frontend`. Framework: Next.js.
 - [ ] Variáveis de ambiente, no ambiente Production:
 
