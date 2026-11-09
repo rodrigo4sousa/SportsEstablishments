@@ -1,0 +1,36 @@
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipelines de deploy e de dados de produção (deploy.yml, prod-data.yml)
+' Version 1.0 - 2026-11-09
+' Para: quem vai mudar o código ou fazer deploy.
+' Decisão documentada: as migrações correm no GitHub Actions como dono do esquema, antes da API; o Render e a Vercel só são chamados com o CI verde na main; os comandos de dados de produção são um workflow manual (ADR 0009).
+' Não desenhado: classes, endpoints e regras de negócio; os segredos e as variáveis do repositório (estão em docs/deployment/environment-variables.md).
+@startuml development-deploy
+!include ../style.puml
+title Vista de desenvolvimento · pipelines de deploy e de dados de produção (.github/workflows/deploy.yml, prod-data.yml)
+
+start
+fork
+  partition "PL-DEPLOY · Deploy · depois do CI verde num push à main · ubuntu-latest" {
+    :Só corre com DEPLOY_ENABLED = true\ne com o commit da execução do CI;
+    :migrate: instalar o SDK .NET\ndotnet tool restore + dotnet restore;
+    :PL-MIGBUNDLE\ndotnet ef migrations bundle\n./efbundle como dono do esquema;
+    :deploy-api: PL-DEPLOYHOOK\nchama o deploy hook do Render para este commit;
+    :Espera 200 em /health da API (até 6 minutos);
+    :deploy-web: Vercel CLI\npull, build ~-~-prod, deploy ~-~-prebuilt;
+    :smoke: o site e a API respondem 200;
+  }
+fork again
+  partition "PL-PRODDATA · Production data · manual (workflow_dispatch) · ubuntu-latest" {
+    :Só corre com DEPLOY_ENABLED = true;
+    if (ação?) then (migrate-only)
+      :PL-MIGBUNDLE\nbuild e ./efbundle;
+    elseif (set-admin-password) then
+      :dotnet run -- set-admin-password;
+    else (seed-demo)
+      :dotnet run -- seed-demo\nDemoData__AllowInProduction=true;
+    endif
+  }
+end fork
+:Os dois workflows partilham o grupo de concurrency "deploy"\n(nunca correm ao mesmo tempo, sem cancelar o que está a correr);
+stop
+
+@enduml

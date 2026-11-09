@@ -1,7 +1,7 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
 ' Version 1.0 - 2026-11-09
 ' Para: quem vai mudar o código.
-' Decisão documentada: O que o CI verifica, job a job, antes de se juntar à main.
+' Decisão documentada: o que o CI (ci.yml) verifica, job a job, antes de se juntar à main. O deploy está em development-deploy.puml.
 ' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-ci
 !include ../style.puml

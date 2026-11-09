@@ -254,6 +254,10 @@ Do controller ao OpenAPI e aos tipos TypeScript gerados. Explicado em [Vista de 
 
 Os jobs de CI e o que cada um verifica. Explicado em [Vista de desenvolvimento · 4. Pipeline de build e qualidade](4plus1/development.md#4-pipeline-de-build-e-qualidade).
 
+<img src="out/development-deploy.svg" alt="Pipelines de deploy e de dados de produção" width="900">
+
+Os workflows `deploy.yml` e `prod-data.yml`. Explicado em [05 · Deploy e dados de produção](4plus1/development.md#deploy-e-dados-de-produção-deployyml-e-prod-datayml).
+
 ### 06 · Vista física
 
 ![Implantação em desenvolvimento](out/04-deployment-dev.svg)
