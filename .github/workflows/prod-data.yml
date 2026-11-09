@@ -1,0 +1,83 @@
+name: Production data
+
+# Commands run by hand against the production database, because the Render free plan has no shell or one-off jobs.
+# See docs/deployment/runbook.md. Nothing runs until the repository variable DEPLOY_ENABLED is 'true'.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to run against the production database
+        type: choice
+        required: true
+        default: migrate-only
+        options:
+          - set-admin-password
+          - seed-demo
+          - migrate-only
+
+permissions:
+  contents: read
+
+# The same group as the deploy: never two things changing the database at once.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: ${{ inputs.action }}
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    env:
+      ConnectionStrings__Default: ${{ secrets.DB_OWNER_CONNECTION_STRING }}
+      ASPNETCORE_ENVIRONMENT: Production
+      # The commands start the same host as the API, which checks these at startup. Neither command uses them.
+      Security__AllowedOrigins__0: ${{ vars.SITE_URL }}
+      PublicSite__BaseUrl: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/install-dotnet
+
+      - name: Restore the EF Core tool and the packages
+        if: inputs.action == 'migrate-only'
+        working-directory: backend
+        run: dotnet tool restore && dotnet restore
+
+      - name: Build the migration bundle
+        if: inputs.action == 'migrate-only'
+        working-directory: backend
+        run: dotnet ef migrations bundle --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --configuration Release --output efbundle --force
+
+      - name: Apply the migrations
+        if: inputs.action == 'migrate-only'
+        working-directory: backend
+        run: ./efbundle
+
+      # Only so that the host starts: the commands never sign a token. A new value each run, hidden from the log.
+      - name: Generate the throwaway signing key
+        if: inputs.action != 'migrate-only'
+        run: |
+          key=$(openssl rand -base64 48 | tr -d '\n')
+          echo "::add-mask::$key"
+          echo "Jwt__SigningKey=$key" >> "$GITHUB_ENV"
+
+      # From the project folder, as appsettings.json is read from the working directory. No launch profile: it would select Development.
+      - name: Change the admin password
+        if: inputs.action == 'set-admin-password'
+        working-directory: backend/src/SportsBooking.Api
+        env:
+          # The seed creates the admin on the first run; the command then sets the password. The password is never on a command line.
+          AdminSeed__Email: ${{ secrets.ADMIN_EMAIL }}
+          AdminSeed__Password: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_NEW_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: dotnet run --configuration Release --no-launch-profile -- set-admin-password
+
+      - name: Create the demo data
+        if: inputs.action == 'seed-demo'
+        working-directory: backend/src/SportsBooking.Api
+        env:
+          DemoData__AllowInProduction: 'true'
+        run: |
+          dotnet run --configuration Release --no-launch-profile -- seed-demo
+          echo "::notice::seed-demo ran: the demo data was created in the production database."
