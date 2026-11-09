@@ -8,15 +8,16 @@ LAYOUT_TOP_DOWN()
 HIDE_STEREOTYPE()
 AddElementTag("planeado", $borderStyle=DashedLine(), $legendText="planeado (T06)")
 
-Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Vê uma só origem; guarda os cookies httpOnly de sessão.")
+Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Só fala com a origem da Vercel; guarda os cookies httpOnly de sessão.")
+
+Boundary(PL_VERCEL, "PL-VERCEL · Vercel", "", "planeado") {
+  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16", "Páginas com HTTPS; o rewrite de /api/* envia para a API.", $tags="planeado")
+}
 
 Boundary(PL_RENDER, "PL-RENDER · Render", "", "planeado") {
-  Boundary(PL_RENDER_WEB, "PL-RENDER-WEB · Serviço web público", "", "planeado") {
-    Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16, Node.js", "Única entrada pública, com HTTPS; reencaminha /api/* para a API.", $tags="planeado")
-  }
-  Boundary(PL_RENDER_API, "PL-RENDER-API · Serviço privado, sem URL público", "", "planeado") {
+  Boundary(PL_RENDER_API, "PL-RENDER-API · Serviço web público", "", "planeado") {
     Container(C_API, "C-API · API ASP.NET Core", ".NET 10, controllers", "Regras de negócio, cookies, base de dados.", $tags="planeado")
-    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService", "Envia os emails do outbox.", $tags="planeado")
+    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService", "Envia os emails do outbox enquanto a API estiver acordada.", $tags="planeado")
   }
 }
 
@@ -27,10 +28,10 @@ Boundary(PL_SUPABASE, "PL-SUPABASE · Supabase", "", "planeado") {
 System_Ext(PL_BREVO, "PL-BREVO · Brevo", "Servidor SMTP de produção", $tags="planeado")
 
 Rel(C_BROWSER, C_WEB, "Abre páginas e chama /api/*", "HTTPS, cookies")
-Rel(C_WEB, C_API, "Reencaminha /api/* e lê a API nos Server Components", "HTTP, rede interna do Render")
-Rel(C_API, C_DB, "Lê e escreve", "SQL, Npgsql")
+Rel(C_WEB, C_API, "Reescreve /api/* e lê a API nos Server Components", "HTTPS, Internet")
+Rel(C_API, C_DB, "Lê e escreve", "SQL, Npgsql, modo sessão")
 Rel(C_WORKER, C_DB, "Lê o outbox e marca o resultado", "SQL")
-Rel(C_WORKER, PL_BREVO, "Envia o email", "SMTP, porta 587, StartTls")
+Rel(C_WORKER, PL_BREVO, "Envia o email", "SMTP, StartTls")
 
 SHOW_LEGEND()
 @enduml

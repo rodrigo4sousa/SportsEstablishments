@@ -43,7 +43,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 | C-DB | Base de dados PostgreSQL | Contentor (PostgreSQL 18.6) | Guarda todos os dados; impõe as regras que não podem falhar (sem reservas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | `docker-compose.yml` (serviço `postgres`); `Inf/Persistence/` |
 | C-BROWSER | Browser do utilizador | Ambiente de execução (fora do nosso deploy) | Corre os Client Components e guarda os cookies httpOnly de sessão; fala só com C-WEB (mesma origem). | `Web/` (componentes com `"use client"`), `Web/lib/api/client.ts` |
 
-**Proxy reverso, como está hoje:** não há Caddy no repositório. Em desenvolvimento e no compose, o browser fala com C-WEB na porta 3000 e o Next.js reencaminha `/api/*` para `http://api:8080` (WEB-REWRITE). A API também está exposta diretamente na porta 5080 (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O Caddy é PL-CADDY.
+**Proxy reverso, como está hoje:** não há Caddy no repositório. Em desenvolvimento e no compose, o browser fala com C-WEB na porta 3000 e o Next.js reencaminha `/api/*` para `http://api:8080` (WEB-REWRITE). A API também está exposta diretamente na porta 5080 (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O Caddy (PL-CADDY) não foi adotado.
 
 ## 4. Componentes da API por funcionalidade
 
@@ -182,33 +182,37 @@ Usadas nos diagramas de pormenor da [vista lógica](03-logical-view.md). Cada pa
 | DB-DPKEYS | `data_protection_keys` | Tabela | Chaves do Data Protection (CC-DATAPROT). | Migração `AddDataProtectionKeys` |
 | DB-MIGHIST | `__EFMigrationsHistory` | Tabela (EF Core) | Migrações aplicadas. | `Inf/Persistence/Migrations/` |
 
-## 8. Planeado (T06), ainda sem código
+## 8. Planeado (T06)
 
-Não usar estes ids nos diagramas do estado atual; só nas vistas de implantação futura, marcados como planeados.
+Não usar estes ids nos diagramas do estado atual; só nas vistas de implantação, marcados como planeados. Os workflows e a configuração existem, mas ainda não houve nenhum deploy real. Os ids «não adotado» ficam aqui para os documentos antigos continuarem a fazer sentido.
 
 | Id | Nome | Tipo | O que se prevê | Fonte |
 | --- | --- | --- | --- | --- |
-| PL-CADDY | Caddy | Contentor (proxy reverso) | HTTPS, encaminha `/api/*` para a API e o resto para o Next.js na mesma origem; o seu endereço fixo será o `ForwardedHeaders:KnownProxies` da API. | `docs/stack.md` (Deploy), `docs/backlog.md` (T06) |
-| PL-HOST | Máquina de produção | Nó de implantação | Uma máquina virtual com docker compose (alternativa: Azure Container Apps). A escolher na ADR de implantação. | `docs/stack.md` (Deploy) |
-| PL-GHCR | GitHub Container Registry | Sistema externo | Guarda as imagens construídas pelo CI. | `docs/stack.md` (Deploy) |
-| PL-DEPLOY | Workflow de deploy | Pipeline | `deploy.yml`: constrói e publica as imagens, entra por SSH, aplica o migration bundle e faz `docker compose up -d`. | `docs/stack.md`, `docs/backlog.md` (T06) |
-| PL-MIGBUNDLE | Migration bundle | Artefacto | Aplica as migrações no deploy como dono da base de dados (a API liga-se com um utilizador sem DDL). | `docs/backlog.md` (T06) |
-| PL-DBUSERS | Dois utilizadores da base de dados | Configuração | Dono do esquema (migrações, `btree_gist`) e utilizador da aplicação só com leitura e escrita. | `docs/backlog.md` (T06) |
-| PL-BREVO | Brevo | Sistema externo (SMTP) | O servidor SMTP de produção (X-SMTP em produção). | `docs/stack.md`, `docs/backlog.md` (US22, T06) |
-| PL-PGMANAGED | PostgreSQL gerido | Sistema externo (alternativa) | PostgreSQL como serviço (por exemplo Azure Database for PostgreSQL) em vez do contentor C-DB. | `docs/stack.md` (Deploy) |
-| PL-BACKUP | Cópia diária | Tarefa | `pg_dump` diário da base de dados. | `docs/stack.md` (Deploy) |
-| PL-RENDER | Render | Sistema externo (plataforma de alojamento) | Aloja o front end e a API em produção; é uma caixa nos diagramas, sem detalhe. | Plano de produção indicado pelo autor (T06); ainda não está em `docs/stack.md` |
-| PL-RENDER-WEB | Serviço web público do Render | Nó de implantação | Corre C-WEB; é a única entrada pública (HTTPS) e reencaminha `/api/*` para a API. | Idem |
-| PL-RENDER-API | Serviço privado do Render | Nó de implantação | Corre C-API com C-WORKER, sem URL público; só se alcança pela rede interna do Render. | Idem |
-| PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção. | Idem |
-| PL-RENDER-EDGE | Borda do Render | Infraestrutura gerida (proxy de entrada) | Termina o TLS do domínio próprio, encaminha para PL-RENDER-WEB e dá o IP do cliente num cabeçalho (qual, a confirmar). | [Vista física](06-physical-view.md), [ADR 0009](adr/0009-alvo-de-implantacao.md) |
-| PL-RENDER-NET | Rede privada do Render | Rede | Liga os serviços da mesma conta e região; é o único caminho até PL-RENDER-API. | Idem |
-| PL-SUPAPOOL | Pooler de ligações do Supabase | Infraestrutura gerida | Supavisor em modo sessão (porta 5432), entre a API e a base de dados; o modo transação fica excluído. | Idem |
-| PL-DNS | DNS do domínio próprio | Sistema externo | Aponta o domínio para o Render e tem os registos de autenticação do Brevo (SPF, DKIM, DMARC). | Idem |
+| PL-CADDY | Caddy | Contentor (proxy reverso) | **Não adotado** (ADR 0009). Previa HTTPS e juntar o front end e a API na mesma origem; essa função é do rewrite do Next.js. | `docs/stack.md` (Deploy) |
+| PL-HOST | Máquina de produção | Nó de implantação | **Não adotado** (ADR 0009). Uma máquina virtual com docker compose. | `docs/stack.md` (Deploy) |
+| PL-GHCR | GitHub Container Registry | Sistema externo | **Não adotado** (ADR 0009): o Render constrói a imagem a partir do repositório. | `docs/stack.md` (Deploy) |
+| PL-DEPLOY | Workflow de deploy | Pipeline | `.github/workflows/deploy.yml`: depois do CI verde na `main`, aplica as migrações, chama o deploy hook do Render, publica o site com a CLI da Vercel e faz um smoke. | `.github/workflows/deploy.yml`, [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-MIGBUNDLE | Migration bundle | Artefacto | `dotnet ef migrations bundle`, construído e aplicado no GitHub Actions como dono do esquema (a API liga-se com um utilizador sem DDL). | `.github/workflows/deploy.yml`, `prod-data.yml` |
+| PL-DBUSERS | Dois utilizadores da base de dados | Configuração | `postgres`, dono do esquema (migrações, comandos, `btree_gist`), e `sportsbooking_app`, só com leitura e escrita (a API). | `docs/deployment/supabase-roles.sql` |
+| PL-BREVO | Brevo | Sistema externo (SMTP) | O servidor SMTP de produção (X-SMTP em produção), com um remetente verificado por email. | `docs/deployment/environment-variables.md`, `docs/backlog.md` (US22, T06) |
+| PL-PGMANAGED | PostgreSQL gerido | Sistema externo (alternativa) | **Não adotado** como alternativa à parte: o PostgreSQL gerido é o PL-SUPABASE. | `docs/stack.md` (Deploy) |
+| PL-BACKUP | Cópia diária | Tarefa | **Não adotado** nesta demonstração: o plano gratuito do Supabase não inclui cópias automáticas e os dados são de demonstração. | `docs/stack.md` (Deploy), [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-RENDER | Render | Sistema externo (plataforma de alojamento) | Aloja a API em produção, no plano gratuito. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-RENDER-WEB | Serviço web público do Render | Nó de implantação | **Não adotado** (ADR 0009): o site corre na Vercel (PL-VERCEL). | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-RENDER-API | Serviço web público da API no Render | Nó de implantação | Corre C-API com C-WORKER, em Docker, com URL público. Adormece sem tráfego e o deploy automático está desligado. (Na primeira versão da ADR 0009 era um serviço privado.) | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção, no plano gratuito. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-RENDER-EDGE | Borda do Render | Infraestrutura gerida (proxy de entrada) | Cloudflare e balanceadores do Render: terminam o TLS de `*.onrender.com` e encaminham para PL-RENDER-API. A cadeia de `X-Forwarded-For` não está documentada. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-RENDER-NET | Rede privada do Render | Rede | **Não adotado** (ADR 0009): a Vercel chega à API pela Internet. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-SUPAPOOL | Pooler de ligações do Supabase | Infraestrutura gerida | Supavisor em modo sessão (porta 5432, IPv4), usado pela API e pelo GitHub Actions; o modo transação e o anfitrião direto ficam excluídos. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-DNS | DNS do domínio próprio | Sistema externo | **Não adotado** (ADR 0009): sem domínio próprio, usam-se os endereços `*.vercel.app` e `*.onrender.com`. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
 | PL-DEPENDABOT | Dependabot | Configuração | `.github/dependabot.yml` para NuGet, npm e GitHub Actions. **Feito** antes da T06 (o id mantém-se). | `.github/dependabot.yml`, `docs/backlog.md` (T06), `docs/stack.md` (checklist de segurança) |
-| PL-SECHEADERS | Cabeçalhos de segurança | Configuração e código | Feitos antes da T06 (o id mantém-se): ver CC-HEADERS e WEB-HEADERS. Falta só ligar o HSTS (`ENABLE_HSTS=true`) na T06. | Idem |
+| PL-SECHEADERS | Cabeçalhos de segurança | Configuração e código | Feitos antes da T06 (o id mantém-se): ver CC-HEADERS e WEB-HEADERS. O HSTS liga-se com `ENABLE_HSTS=true` na Vercel. | `docs/backlog.md` (T06), `docs/stack.md` (checklist de segurança) |
+| PL-VERCEL | Vercel | Sistema externo (plataforma de alojamento) | Aloja C-WEB em produção, no plano Hobby; é a única origem que o browser conhece. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-VERCEL-EDGE | Borda da Vercel | Infraestrutura gerida (proxy de entrada) | HTTPS em `*.vercel.app`, e o rewrite de `/api/*` para a API, fixado no build. Escreve `X-Forwarded-For` com o IP do visitante. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](06-physical-view.md) |
+| PL-DEPLOYHOOK | Deploy hook do Render | Configuração | URL secreto que lança o deploy de um commit na API; chamado por PL-DEPLOY, com o deploy automático desligado. | `.github/workflows/deploy.yml`, `docs/deployment/runbook.md` |
+| PL-PRODDATA | Workflow de dados de produção | Pipeline | `.github/workflows/prod-data.yml`, manual: `migrate-only`, `set-admin-password` e `seed-demo` contra o Supabase, porque o plano gratuito do Render não tem shell. | `.github/workflows/prod-data.yml`, `docs/deployment/runbook.md` |
 
-**Nota (plano de produção).** `docs/stack.md` e `docs/backlog.md` (T06) descrevem uma máquina virtual com Caddy (PL-HOST, PL-CADDY, PL-GHCR, PL-DEPLOY, PL-MIGBUNDLE). O plano atual, com PL-RENDER, PL-RENDER-WEB, PL-RENDER-API, PL-SUPABASE e PL-BREVO, não tem Caddy: o Next.js (C-WEB) continua a ser o proxy reverso. A [ADR 0009](adr/0009-alvo-de-implantacao.md) (proposta) escolhe o plano do Render e diz que partes da Stack substitui; os ids antigos ficam até ela ser aceite.
+**Nota (plano de produção).** `docs/stack.md` descreve uma máquina virtual com Caddy. O plano atual (ADR 0009, proposta) é Vercel, Render gratuito com a API pública, Supabase e Brevo: o Next.js (C-WEB) continua a ser o proxy reverso. A ADR diz que partes da Stack substitui.
 
 ## 9. Vista de desenvolvimento
 

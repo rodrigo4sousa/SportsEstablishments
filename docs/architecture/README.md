@@ -262,7 +262,7 @@ A máquina de desenvolvimento, a rede do compose, as portas e o volume da base d
 
 <img src="diagrams/06-physical-prod.svg" alt="Implantação em produção, planeado (T06)" width="800">
 
-A implantação prevista (Render, Supabase, Brevo), a tracejado. Explicado em [06 · 3. Produção, planeado](06-physical-view.md#3-produção-planeado-t06).
+A implantação prevista (Vercel, Render, Supabase, Brevo e GitHub Actions), a tracejado. Explicado em [06 · 3. Produção, planeado](06-physical-view.md#3-produção-planeado-t06).
 
 ## 5. As decisões (ADR)
 
@@ -332,7 +332,7 @@ Os `.puml` e os `.svg` ficam lado a lado em [diagrams/](diagrams/): `NN-nome.pum
 Factos do código que as vistas, os cenários e as ADRs têm de dizer tal como são. Não são erros.
 
 1. **A API também se alcança diretamente, em desenvolvimento.** Além de passar pelo Next.js, a API está publicada na porta 5080 do compose (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O diagrama de contentores e o de implantação de desenvolvimento mostram as duas entradas (browser → C-WEB → C-API, e browser/ferramentas → C-API em 5080).
-2. **Hoje o proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API. Por isso a API só vê o endereço do contentor Next.js como IP do cliente (relevante para os limites por IP). O Caddy aparece só como planeado (PL-CADDY), e a [ADR 0009](adr/0009-alvo-de-implantacao.md) propõe não o usar: a solução prevista para a T06 está na [vista física](06-physical-view.md#44-o-ip-do-cliente), secção 4.4.
+2. **O proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API, em desenvolvimento e em produção. O Caddy (PL-CADDY) não foi adotado. O IP do cliente está na [vista física](06-physical-view.md#44-o-ip-do-cliente), secção 4.4.
 3. **Entidades persistidas fora do Domain.** A conta (`AppUser`, do Identity), o refresh token e a mudança de estado de um dono vivem na Infrastructure, e a mensagem do outbox na Application. No Domain a conta existe só como regras (`Dom/Accounts`: email, nome, telemóvel, palavra-passe, perfis). O diagrama do domínio mostra estes elementos com a camada a que pertencem (`D-USER`, `D-REFRESH`, `D-STATUSCHG`, `D-OUTBOX`).
 4. **Uma exceção ao relógio injetado.** Toda a hora atual vem de `TimeProvider` (CC-TIME), exceto o gerador de tokens de recuperação de palavra-passe do Identity, que lê o relógio do sistema e por isso não se testa com um relógio falso (os testes fabricam tokens antigos no formato do Identity).
 5. **A exclusion constraint só cobre reservas `Confirmed`.** `bookings_no_overlap` (DB-NOOVERLAP) tem `WHERE status = 'Confirmed'`: uma reserva cancelada ou uma falta não ocupa o slot, e anular uma falta (ou qualquer volta a `Confirmed`) só tem sucesso se mais nenhuma reserva confirmada se sobrepuser entretanto; senão a base de dados recusa (23P01 → 409 `slot_taken`).
@@ -343,19 +343,18 @@ Tirados dos próprios documentos (secções «Notas» e «Riscos» de cada vista
 
 ### 7.1 Dependem da T06 e da ADR 0009
 
-- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) é uma Proposta.** Os diagramas `*-prod` e a [secção 3 da vista física](06-physical-view.md#3-produção-planeado-t06) mostram a proposta (Render, Supabase, Brevo, sem Caddy), não uma decisão. Se a ADR mudar, esses diagramas e os ids `PL-` mudam com ela.
-- **A Stack e o backlog ainda descrevem outro alvo.** `docs/stack.md` e o critério da T06 em `docs/backlog.md` falam numa máquina virtual com Caddy, `deploy.yml` e migration bundle; a ADR 0009, quando aceite, substitui-os. Está marcado como provisório em «Pontos a rever no T06» do backlog. A Stack não foi alterada, exceto os nomes dos projetos do back end.
-- **O IP do cliente não está resolvido.** Hoje a API não confia em nenhum proxy e vê o endereço do contentor Next.js, por isso todos os utilizadores partilham o mesmo limite de pedidos por IP. A solução prevista (cinco passos) está na [secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente) e depende de confirmar, com um pedido real no Render, o cabeçalho que a borda envia.
-- **Os 16 pontos de risco da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** estão por confirmar com os fornecedores (planos e custos do Render, pooler do Supabase com o EF Core, `btree_gist`, domínio próprio para o Brevo, migrações e comandos sem acesso local, limites dos planos gratuitos, entre outros). Foram lidos em 2026-10-30 e têm de ser verificados outra vez antes de decidir.
-- **O worker corre dentro da API**, por isso em produção a API tem de estar sempre ligada, ou os emails e lembretes atrasam ou são ignorados.
-- **Feitos antes da T06:** o `dependabot.yml` e os cabeçalhos de segurança do site e da API (`PL-DEPENDABOT`, `PL-SECHEADERS`). Falta ligar o HSTS (`ENABLE_HSTS=true` no build do serviço web) quando houver HTTPS. A política de conteúdo (CSP) tem `'unsafe-inline'` em scripts e estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página: um limite conhecido, marcado como «Provisório» no backlog (T06).
+- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) é uma Proposta.** Os diagramas `*-prod` e a [secção 3 da vista física](06-physical-view.md#3-produção-planeado-t06) mostram o alvo proposto (Vercel, Render gratuito com a API pública, Supabase, Brevo, sem Caddy). Os workflows e a configuração existem; muda depois do primeiro deploy real.
+- **A Stack ainda descreve outro alvo.** `docs/stack.md` fala numa máquina virtual com Caddy; a ADR 0009 nomeia as secções que substitui. A Stack não foi alterada, exceto os nomes dos projetos do back end.
+- **O IP do cliente é provisório.** Em produção a API acredita em `X-Forwarded-For` com um limite explícito de entradas, e os limites por IP são só de melhor esforço, porque a API é pública. O valor certo do limite encontra-se no primeiro deploy ([secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)).
+- **Os pontos da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** só se confirmam no primeiro deploy real. Os riscos aceites (arranque a frio, planos gratuitos, entre outros) estão na ADR 0009.
+- **O worker corre dentro da API**, por isso os emails e lembretes só saem enquanto a API estiver acordada.
+- **Feitos antes da T06:** o `dependabot.yml` e os cabeçalhos de segurança do site e da API (`PL-DEPENDABOT`, `PL-SECHEADERS`). O HSTS liga-se com `ENABLE_HSTS=true` na Vercel. A política de conteúdo (CSP) tem `'unsafe-inline'` em scripts e estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página: um limite conhecido, marcado como «Provisório» no backlog.
 
 ### 7.2 Diferenças entre documentos e código que ficaram em aberto
 
 As que já foram corrigidas estão registadas como tal nas «Notas» de cada vista. Fecharam-se com o pull request de endurecimento pré-deploy (T06) os comentários de código (`PitchPriceBand`, `TrustedProxyOptions`, `MigrateDatabaseAsync` e `Program.cs`), o `README.md` da raiz (reescrito no pull request #29) e o commit citado nas contagens da vista de desenvolvimento. Estas continuam por corrigir (fora do âmbito de uma branch só de documentação):
 
-1. **`docs/stack.md`**: a árvore do repositório mostra `Caddyfile` e `deploy.yml`, que não existem (são da T06), e promete as ADRs «em `docs/`» quando estão em `docs/architecture/adr/`.
-2. **`getPublicClub`** chama, a partir do servidor, um endpoint com limite por IP sem o IP do cliente: no compose, todas as páginas de clube já partilham a partição do contentor Next.js ([secção 4.4](06-physical-view.md#44-o-ip-do-cliente)).
+1. **`docs/stack.md`**: a árvore do repositório mostra um `Caddyfile`, que não existe, e promete as ADRs «em `docs/`» quando estão em `docs/architecture/adr/`.
 
 Não são erros: o `frontend/Dockerfile` copia uma pasta `public` que não existe e cria-a vazia; a `main` não tem proteção de branch (o CI confirma-se à mão antes de cada merge).
 

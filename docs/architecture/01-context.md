@@ -31,11 +31,12 @@ Fora do âmbito: pagamentos, aplicações móveis, integração com outros siste
 | --- | --- | --- |
 | X-SMTP | Servidor SMTP | A aplicação envia por SMTP os emails de reservas e de contas. Em desenvolvimento é o X-MAILPIT (nada sai para fora); em produção será o PL-BREVO. |
 | PL-BREVO | Brevo | O servidor SMTP de produção (planeado). |
-| PL-RENDER | Render | A plataforma onde a aplicação vai correr (planeado). É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
+| PL-VERCEL | Vercel | A plataforma onde o site vai correr (planeado). É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
+| PL-RENDER | Render | A plataforma onde a API vai correr (planeado). É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
 
 O CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e não aparecem aqui; estão na vista de implantação.
 
 ## Notas
 
-- O Render (planeado (T06)) aparece como sistema externo para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende dele.
+- A Vercel e o Render (planeados (T06)) aparecem como sistemas externos para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende deles.
 - O envio de email nunca bloqueia uma reserva: a aplicação grava o email num outbox e envia-o depois (ver [04-process-view.md](04-process-view.md)).
