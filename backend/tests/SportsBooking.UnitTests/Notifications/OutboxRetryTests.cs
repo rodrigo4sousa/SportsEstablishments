@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Hosting;
 using SportsBooking.Application.Notifications;
 using SportsBooking.Infrastructure.Notifications;
 
@@ -124,7 +125,7 @@ public sealed class OutboxRetryTests
     [Fact]
     public void Valid_email_settings_pass()
     {
-        var result = new EmailOptionsValidator().Validate(null, new EmailOptions { Host = "smtp-relay.brevo.com", Port = 587, FromAddress = "reservas@exemplo.pt", Username = "u", Password = "p" });
+        var result = new EmailOptionsValidator(Environment("Testing")).Validate(null, new EmailOptions { Host = "smtp-relay.brevo.com", Port = 587, FromAddress = "reservas@exemplo.pt", Username = "u", Password = "p" });
 
         result.Succeeded.ShouldBeTrue();
     }
@@ -132,7 +133,7 @@ public sealed class OutboxRetryTests
     [Fact]
     public void Wrong_email_settings_are_named_and_their_values_are_not_shown()
     {
-        var result = new EmailOptionsValidator().Validate(
+        var result = new EmailOptionsValidator(Environment("Testing")).Validate(
             null,
             new EmailOptions { Host = "", Port = 0, FromAddress = "not-an-address", FromName = " ", Username = "secret-user", Password = null, TimeoutSeconds = 0 });
 
@@ -145,6 +146,42 @@ public sealed class OutboxRetryTests
         result.FailureMessage.ShouldContain("Email:TimeoutSeconds");
         result.FailureMessage.ShouldNotContain("not-an-address");
         result.FailureMessage.ShouldNotContain("secret-user");
+    }
+
+    [Fact]
+    public void Production_may_leave_smtp_out_altogether()
+    {
+        new EmailOptionsValidator(Environment("Production")).Validate(null, new EmailOptions()).Succeeded.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Testing")]
+    public void Other_environments_need_smtp(string environment)
+    {
+        new EmailOptionsValidator(Environment(environment)).Validate(null, new EmailOptions()).Failed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Production_still_checks_smtp_settings_that_are_there()
+    {
+        var result = new EmailOptionsValidator(Environment("Production")).Validate(null, new EmailOptions { Host = "smtp-relay.brevo.com", Port = 2525 });
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("Email:FromAddress");
+    }
+
+    private static StubEnvironment Environment(string name) => new(name);
+
+    private sealed class StubEnvironment(string name) : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = name;
+
+        public string ApplicationName { get; set; } = "SportsBooking.Tests";
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 
     [Fact]

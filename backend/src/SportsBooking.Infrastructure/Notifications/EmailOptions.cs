@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SportsBooking.Domain.Accounts;
 
@@ -43,13 +44,24 @@ public sealed class EmailOptions
 
     /// <summary>How long one SMTP exchange may take before it counts as failed.</summary>
     public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>False when both the host and the sender are empty. Only Production may start like that (T06, provisional).</summary>
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(Host) || !string.IsNullOrWhiteSpace(FromAddress);
 }
 
-/// <summary>Checked at start-up (<c>ValidateOnStart</c>); the messages name the settings, never their values.</summary>
-public sealed class EmailOptionsValidator : IValidateOptions<EmailOptions>
+/// <summary>
+/// Checked at start-up (<c>ValidateOnStart</c>); the messages name the settings, never their values. In Production SMTP may be left out
+/// altogether: the API starts, <see cref="OutboxDispatcher"/> warns and sends nothing. Settings that are present are always checked.
+/// </summary>
+public sealed class EmailOptionsValidator(IHostEnvironment environment) : IValidateOptions<EmailOptions>
 {
     public ValidateOptionsResult Validate(string? name, EmailOptions options)
     {
+        if (!options.IsConfigured && environment.IsProduction())
+        {
+            return ValidateOptionsResult.Success;
+        }
+
         var failures = new List<string>();
         if (string.IsNullOrWhiteSpace(options.Host))
         {
