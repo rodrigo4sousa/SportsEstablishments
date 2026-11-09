@@ -5,6 +5,7 @@ import type { components } from "@/lib/api/schema";
 import { isClubSlug } from "@/features/catalog/slug";
 import { toPublicClub, type PublicClub } from "@/features/catalog/types";
 import { apiInternalUrl } from "./api-url";
+import { visitorIpHeader } from "./visitor-ip";
 
 /**
  * US16: the public page of a club, read on the server from `GET /api/clubs/{slug}`. It is public, so no cookie is
@@ -14,7 +15,7 @@ import { apiInternalUrl } from "./api-url";
  */
 export const getPublicClub = cache(async (slug: string): Promise<PublicClub | null> => {
   const response = await fetch(`${apiInternalUrl()}/api/clubs/${encodeURIComponent(slug)}`, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...(await visitorIpHeader()) },
     cache: "no-store",
   });
   if (response.status === 404) {

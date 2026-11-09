@@ -5,6 +5,9 @@ import { server } from "@/test/msw";
 import { getPublicClub, loadPublicClub } from "./public-club";
 
 vi.mock("next/navigation", async () => import("@/test/navigation"));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": "198.51.100.7" }),
+}));
 
 const API = "http://localhost:5080";
 
@@ -34,6 +37,8 @@ describe("getPublicClub", () => {
     expect(club?.name).toBe("Clube da Foz");
     expect(club?.pitches[0].pricePerSlot).toBe(18.5);
     expect(received?.headers.get("cookie")).toBeNull();
+    // T06: the page's visitor, or every club page would share one rate limit.
+    expect(received?.headers.get("x-forwarded-for")).toBe("198.51.100.7");
     // Never cached: a club that has just been hidden, or a new price, must show at once (docs/stack.md).
     expect(fetchSpy).toHaveBeenCalledWith(`${API}/api/clubs/clube-da-foz`, expect.objectContaining({ cache: "no-store" }));
     fetchSpy.mockRestore();
