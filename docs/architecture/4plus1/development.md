@@ -20,7 +20,7 @@ Fonte: [development-repo.puml](development-repo.puml).
 | `docs/` | DEV-DOCS | `backlog.md` e `stack.md` (fontes de verdade, em pt-PT) e a arquitetura. |
 | `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (o índice e as ADRs escritas), `c4/` e `4plus1/` com os `.puml`, `out/` com os `.svg`, `style.puml` (o estilo comum) e `render.sh` e `render.ps1`. |
 | `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` e `check-architecture-docs.ps1`. |
-| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, o único workflow. |
+| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `deploy.yml`, `prod-data.yml` e `keepalive.yml`. |
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |
 | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` | DEV-ROOTCFG | Na raiz. `global.json` fixa o SDK 10.0.400 (`rollForward: latestFeature`) e escolhe o executor `Microsoft.Testing.Platform`. `.editorconfig` impõe UTF-8, `lf`, 2 espaços (4 em `.cs`) e namespaces com âmbito de ficheiro. `.gitattributes` fixa `eol=lf`. |
 
@@ -114,7 +114,7 @@ Node 22 (`engines`, CI e imagens Docker). Os scripts: `dev`, `build`, `start`, `
 
 ![Pipeline de CI](../out/development-ci.svg)
 
-Fonte: [development-ci.puml](development-ci.puml). O deploy e os dados de produção estão na [secção seguinte](#deploy-e-dados-de-produção-deployyml-e-prod-datayml).
+Fonte: [development-ci.puml](development-ci.puml). O deploy e os dados de produção estão na [secção seguinte](#deploy-dados-de-produção-e-keepalive-deployyml-prod-datayml-e-keepaliveyml).
 
 `ci.yml` corre em cada `push` e `pull_request` (X-GHA), com `permissions: contents: read` e `concurrency` por ref que cancela a execução anterior. Os três jobs não dependem uns dos outros.
 
@@ -128,13 +128,13 @@ Fonte: [development-ci.puml](development-ci.puml). O deploy e os dados de produ�
 
 **Os testes de integração precisam de Docker**, que os runners `ubuntu-latest` têm; localmente, sem Docker, todos falham a ligar (parece haver centenas de falhas). **Não há testes end-to-end no CI.** A `main` **não tem proteção de branch** no GitHub (verificado em 2026-10-30: a API responde «Branch not protected»), por isso nada obriga o CI a estar verde: confirma-se à mão, antes de cada merge, que os três jobs passaram.
 
-### Deploy e dados de produção (`deploy.yml` e `prod-data.yml`)
+### Deploy, dados de produção e keepalive (`deploy.yml`, `prod-data.yml` e `keepalive.yml`)
 
-![Pipelines de deploy e de dados de produção](../out/development-deploy.svg)
+![Pipelines de deploy, de dados de produção e de keepalive](../out/development-deploy.svg)
 
 Fonte: [development-deploy.puml](development-deploy.puml).
 
-`deploy.yml` (PL-DEPLOY) corre depois de o CI acabar com sucesso num `push` à `main`, só com a variável `DEPLOY_ENABLED` a `true`, e tem quatro jobs em fila: `migrate` (PL-MIGBUNDLE, como dono do esquema), `deploy-api` (PL-DEPLOYHOOK, e espera 200 em `/health`), `deploy-web` (CLI da Vercel) e `smoke`. `prod-data.yml` (PL-PRODDATA) é manual e corre `migrate-only`, `set-admin-password` ou `seed-demo` contra a base de produção. Os dois partilham o grupo de `concurrency` `deploy`, sem cancelar o que está a correr. Os passos manuais e os segredos estão no [runbook](../../deployment/runbook.md) e em [environment-variables.md](../../deployment/environment-variables.md); a decisão, na [ADR 0009](../adr/0009-alvo-de-implantacao.md).
+`deploy.yml` (PL-DEPLOY) corre depois de o CI acabar com sucesso num `push` à `main`, só com a variável `DEPLOY_ENABLED` a `true`, e tem quatro jobs em fila: `migrate` (PL-MIGBUNDLE, como dono do esquema), `deploy-api` (PL-DEPLOYHOOK, e espera 200 em `/health`), `deploy-web` (CLI da Vercel) e `smoke`. `prod-data.yml` (PL-PRODDATA) é manual e corre `migrate-only`, `set-admin-password` ou `seed-demo` contra a base de produção. Os dois partilham o grupo de `concurrency` `deploy`, sem cancelar o que está a correr. `keepalive.yml` (PL-KEEPALIVE) corre às segundas e quintas-feiras e à mão, só com `DEPLOY_ENABLED` a `true`, e faz um `GET /api/localities` pelo site público, com repetições durante cerca de 5 minutos: é uma consulta de leitura à base de dados, que também acorda a API, para o Supabase não pausar o projeto por inatividade. Tem o seu próprio grupo de `concurrency` e não usa segredos, só a variável `SITE_URL` (ver o [runbook, secção 10](../../deployment/runbook.md#10-manter-a-demo-ativa)). Os passos manuais e os segredos estão no [runbook](../../deployment/runbook.md) e em [environment-variables.md](../../deployment/environment-variables.md); a decisão, na [ADR 0009](../adr/0009-alvo-de-implantacao.md).
 
 **Em local.** O que o CI faz repete-se com `dotnet build backend/SportsBooking.slnx`, `dotnet test backend/SportsBooking.slnx` e, em `frontend/`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run gen:api`; os diagramas com `docs/architecture/render.sh` (ou `.ps1`), que só precisa de Docker.
 

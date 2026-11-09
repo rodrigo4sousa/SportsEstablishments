@@ -1,11 +1,11 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipelines de deploy e de dados de produção (deploy.yml, prod-data.yml)
+' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipelines de deploy, de dados de produção e de keepalive (deploy.yml, prod-data.yml, keepalive.yml)
 ' Version 1.0 - 2026-11-09
 ' Para: quem vai mudar o código ou fazer deploy.
-' Decisão documentada: as migrações correm no GitHub Actions como dono do esquema, antes da API; o Render e a Vercel só são chamados com o CI verde na main; os comandos de dados de produção são um workflow manual (ADR 0009).
+' Decisão documentada: uma consulta de leitura à base de dados duas vezes por semana (keepalive.yml) evita que o Supabase pause o projeto gratuito por inatividade; as migrações correm no GitHub Actions como dono do esquema, antes da API; o Render e a Vercel só são chamados com o CI verde na main; os comandos de dados de produção são um workflow manual (ADR 0009).
 ' Não desenhado: classes, endpoints e regras de negócio; os segredos e as variáveis do repositório (estão em docs/deployment/environment-variables.md).
 @startuml development-deploy
 !include ../style.puml
-title Vista de desenvolvimento · pipelines de deploy e de dados de produção (.github/workflows/deploy.yml, prod-data.yml)
+title Vista de desenvolvimento · pipelines de deploy, de dados de produção e de keepalive (.github/workflows/deploy.yml, prod-data.yml, keepalive.yml)
 
 start
 fork
@@ -29,8 +29,16 @@ fork again
       :dotnet run -- seed-demo\nDemoData__AllowInProduction=true;
     endif
   }
+fork again
+  partition "PL-KEEPALIVE · Keepalive · segundas e quintas 07:23 UTC, e manual · ubuntu-latest" {
+    :Só corre com DEPLOY_ENABLED = true;
+    :GET SITE_URL/api/localities?keepalive=<hora>\nCache-Control: no-cache, até 130 s por pedido;
+    :Se falhar, repete de 20 em 20 s até cerca de 5 minutos;
+    :HTTP 200 com um corpo JSON = a base de dados respondeu\n(passa pelo rewrite da Vercel e acorda a API no Render);
+  }
 end fork
-:Os dois workflows partilham o grupo de concurrency "deploy"\n(nunca correm ao mesmo tempo, sem cancelar o que está a correr);
+:deploy.yml e prod-data.yml partilham o grupo de concurrency "deploy"\n(nunca correm ao mesmo tempo, sem cancelar o que está a correr);
+:keepalive.yml tem o seu próprio grupo, "keepalive";
 stop
 
 @enduml
