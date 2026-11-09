@@ -2,38 +2,37 @@
 @startuml 06-physical-prod
 !include <C4/C4_Deployment>
 
-title Implantação · produção, planeado (T06)
+title Implantação · produção (T06)
 
 LAYOUT_TOP_DOWN()
 HIDE_STEREOTYPE()
-AddElementTag("planeado", $borderStyle=DashedLine(), $legendText="planeado (T06)")
 
 Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Só fala com a origem da Vercel; cookies first-party.")
 
-Deployment_Node(PL_VERCEL, "PL-VERCEL · Vercel (Hobby)", "Alojamento do front end", $tags="planeado") {
-  Container(PL_VERCEL_EDGE, "PL-VERCEL-EDGE · Borda da Vercel", "Gerida pela Vercel", "HTTPS em *.vercel.app; rewrite de /api/* fixado no build; escreve X-Forwarded-For com o IP do visitante.", $tags="planeado")
-  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16, Vercel Functions", "Páginas e Server Components, que passam o cookie e o IP do visitante.", $tags="planeado")
+Deployment_Node(PL_VERCEL, "PL-VERCEL · Vercel (Hobby)", "Alojamento do front end") {
+  Container(PL_VERCEL_EDGE, "PL-VERCEL-EDGE · Borda da Vercel", "Gerida pela Vercel", "HTTPS em *.vercel.app; rewrite de /api/* fixado no build; escreve X-Forwarded-For com o IP do visitante.")
+  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16, Vercel Functions", "Páginas e Server Components, que passam o cookie e o IP do visitante.")
 }
 
-Deployment_Node(PL_RENDER, "PL-RENDER · Render (plano gratuito, Frankfurt)", "Alojamento da API", $tags="planeado") {
-  Container(PL_RENDER_EDGE, "PL-RENDER-EDGE · Borda do Render", "Cloudflare e balanceadores", "TLS em *.onrender.com; a cadeia de X-Forwarded-For não está documentada.", $tags="planeado")
-  Deployment_Node(PL_RENDER_API, "PL-RENDER-API · Serviço web público (Docker)", "Imagem de backend/Dockerfile; adormece sem tráfego", $tags="planeado") {
-    Container(C_API, "C-API · API ASP.NET Core", ".NET 10, PORT em 0.0.0.0", "Production; sem migrações no arranque; /health só de liveness.", $tags="planeado")
-    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService no processo de C-API", "Só corre enquanto a API estiver acordada.", $tags="planeado")
+Deployment_Node(PL_RENDER, "PL-RENDER · Render (plano gratuito, Frankfurt)", "Alojamento da API") {
+  Container(PL_RENDER_EDGE, "PL-RENDER-EDGE · Borda do Render", "Cloudflare e balanceadores", "TLS em *.onrender.com; a cadeia de X-Forwarded-For não está documentada.")
+  Deployment_Node(PL_RENDER_API, "PL-RENDER-API · Serviço web público (Docker)", "Imagem de backend/Dockerfile; adormece sem tráfego") {
+    Container(C_API, "C-API · API ASP.NET Core", ".NET 10, PORT em 0.0.0.0", "Production; sem migrações no arranque; /health só de liveness.")
+    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService no processo de C-API", "Só corre enquanto a API estiver acordada.")
   }
 }
 
-Deployment_Node(PL_SUPABASE, "PL-SUPABASE · Supabase (Free)", "PostgreSQL gerido", $tags="planeado") {
-  Container(PL_SUPAPOOL, "PL-SUPAPOOL · Pooler de ligações", "Supavisor, modo sessão (porta 5432, IPv4)", "Nunca o modo transação nem o anfitrião direto (IPv6).", $tags="planeado")
-  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL gerido", "Dados, btree_gist, chaves do Data Protection; dois papéis (PL-DBUSERS).", $tags="planeado")
+Deployment_Node(PL_SUPABASE, "PL-SUPABASE · Supabase (Free)", "PostgreSQL gerido") {
+  Container(PL_SUPAPOOL, "PL-SUPAPOOL · Pooler de ligações", "Supavisor, modo sessão (porta 5432, IPv4)", "Nunca o modo transação nem o anfitrião direto (IPv6).")
+  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL gerido", "Dados, btree_gist, chaves do Data Protection; dois papéis (PL-DBUSERS).")
 }
 
-System_Ext(PL_BREVO, "PL-BREVO · Brevo", "SMTP de produção, porta 2525 (a confirmar); remetente verificado por email.", $tags="planeado")
+System_Ext(PL_BREVO, "PL-BREVO · Brevo", "SMTP de produção, porta 2525 (a confirmar); remetente verificado por email.")
 
 Deployment_Node(X_GHA, "X-GHA · GitHub Actions", "Pipelines") {
-  Container(PL_DEPLOY, "PL-DEPLOY · deploy.yml", "Depois do CI verde na main", "Migrações, API, site, smoke, por esta ordem.", $tags="planeado")
-  Container(PL_PRODDATA, "PL-PRODDATA · prod-data.yml", "Manual", "migrate-only, set-admin-password, seed-demo.", $tags="planeado")
-  Container(PL_MIGBUNDLE, "PL-MIGBUNDLE · Migration bundle", "dotnet ef migrations bundle", "Corre como dono do esquema.", $tags="planeado")
+  Container(PL_DEPLOY, "PL-DEPLOY · deploy.yml", "Depois do CI verde na main", "Migrações, API, site, smoke, por esta ordem.")
+  Container(PL_PRODDATA, "PL-PRODDATA · prod-data.yml", "Manual", "migrate-only, set-admin-password, seed-demo.")
+  Container(PL_MIGBUNDLE, "PL-MIGBUNDLE · Migration bundle", "dotnet ef migrations bundle", "Corre como dono do esquema.")
 }
 
 Rel(C_BROWSER, PL_VERCEL_EDGE, "Abre páginas e chama /api/*", "HTTPS, cookies")

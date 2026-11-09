@@ -2,30 +2,29 @@
 @startuml 02-containers-prod
 !include <C4/C4_Container>
 
-title Contentores · produção, planeado (T06)
+title Contentores · produção (T06)
 
 LAYOUT_TOP_DOWN()
 HIDE_STEREOTYPE()
-AddElementTag("planeado", $borderStyle=DashedLine(), $legendText="planeado (T06)")
 
 Container_Ext(C_BROWSER, "C-BROWSER · Browser do utilizador", "Browser", "Só fala com a origem da Vercel; guarda os cookies httpOnly de sessão.")
 
-Boundary(PL_VERCEL, "PL-VERCEL · Vercel", "", "planeado") {
-  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16", "Páginas com HTTPS; o rewrite de /api/* envia para a API.", $tags="planeado")
+Boundary(PL_VERCEL, "PL-VERCEL · Vercel") {
+  Container(C_WEB, "C-WEB · Aplicação Next.js", "Next.js 16", "Páginas com HTTPS; o rewrite de /api/* envia para a API.")
 }
 
-Boundary(PL_RENDER, "PL-RENDER · Render", "", "planeado") {
-  Boundary(PL_RENDER_API, "PL-RENDER-API · Serviço web público", "", "planeado") {
-    Container(C_API, "C-API · API ASP.NET Core", ".NET 10, controllers", "Regras de negócio, cookies, base de dados.", $tags="planeado")
-    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService", "Envia os emails do outbox enquanto a API estiver acordada.", $tags="planeado")
+Boundary(PL_RENDER, "PL-RENDER · Render") {
+  Boundary(PL_RENDER_API, "PL-RENDER-API · Serviço web público") {
+    Container(C_API, "C-API · API ASP.NET Core", ".NET 10, controllers", "Regras de negócio, cookies, base de dados.")
+    Container(C_WORKER, "C-WORKER · Worker de emails", "BackgroundService", "Envia os emails do outbox enquanto a API estiver acordada.")
   }
 }
 
-Boundary(PL_SUPABASE, "PL-SUPABASE · Supabase", "", "planeado") {
-  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL gerido", "Todos os dados e as chaves do Data Protection.", $tags="planeado")
+Boundary(PL_SUPABASE, "PL-SUPABASE · Supabase") {
+  ContainerDb(C_DB, "C-DB · Base de dados", "PostgreSQL gerido", "Todos os dados e as chaves do Data Protection.")
 }
 
-System_Ext(PL_BREVO, "PL-BREVO · Brevo", "Servidor SMTP de produção", $tags="planeado")
+System_Ext(PL_BREVO, "PL-BREVO · Brevo", "Servidor SMTP de produção")
 
 Rel(C_BROWSER, C_WEB, "Abre páginas e chama /api/*", "HTTPS, cookies")
 Rel(C_WEB, C_API, "Reescreve /api/* e lê a API nos Server Components", "HTTPS, Internet")

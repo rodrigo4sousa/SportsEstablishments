@@ -2,9 +2,9 @@
 
 <!-- Diagramas de implantação do C4 · vista 4+1: física. Ver README.md. -->
 
-Onde corre cada contentor, como se chega a ele, em que se confia e que configuração muda o comportamento. Dois níveis: os **diagramas de implantação** (desenvolvimento, que existe, e produção, que está **planeada para a T06** e ainda não foi implantada) e a **rede e confiança** (o que é público, TLS, origem, IP do cliente, base de dados, segredos). Os ids estão no [inventário](00-inventory.md); os nós `DEP-` e os novos `PL-` foram acrescentados com esta vista.
+Onde corre cada contentor, como se chega a ele, em que se confia e que configuração muda o comportamento. Dois níveis: os **diagramas de implantação** (desenvolvimento, que existe, e produção, em funcionamento desde 2026-11-09, T06) e a **rede e confiança** (o que é público, TLS, origem, IP do cliente, base de dados, segredos). Os ids estão no [inventário](00-inventory.md); os nós `DEP-` e os novos `PL-` foram acrescentados com esta vista.
 
-O que se diz do desenvolvimento foi conferido em 2026-10-30, no commit `452be5a`, com `docker-compose.yml`, `.env.example`, `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/next.config.ts`, `frontend/src/proxy.ts`, `Api/Program.cs`, os `appsettings*.json` e as classes de opções. **A produção ainda não foi implantada:** os workflows e a configuração existem, mas não houve nenhum deploy real. O que se diz dos fornecedores (Vercel, Render, Supabase, Brevo) vem da documentação deles, lida em 2026-11-09. A decisão está na [ADR 0009](adr/0009-alvo-de-implantacao.md).
+O que se diz do desenvolvimento foi conferido em 2026-10-30, no commit `452be5a`, com `docker-compose.yml`, `.env.example`, `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/next.config.ts`, `frontend/src/proxy.ts`, `Api/Program.cs`, os `appsettings*.json` e as classes de opções. **A produção está em funcionamento desde 2026-11-09.** O que se diz dos fornecedores (Vercel, Render, Supabase, Brevo) vem da documentação deles, lida nesse dia, e do primeiro deploy real nos pontos indicados. A decisão está na [ADR 0009](adr/0009-alvo-de-implantacao.md).
 
 ## 1. Desenvolvimento (docker compose)
 
@@ -33,27 +33,27 @@ O que vem do `appsettings.Development.json` (porque o ambiente é Development) e
 
 ## 2. Integração contínua
 
-O CI (X-GHA, `.github/workflows/ci.yml`) não implanta nada. Os runners `ubuntu-latest` constroem e testam; os testes de integração arrancam um `postgres:18.6` próprio com Testcontainers, e o job `diagrams` arranca a imagem do PlantUML. Detalhe em [05 · Vista de desenvolvimento](05-development-view.md#4-pipeline-de-build-e-qualidade). Na T06 o CI passa também a fazer parte do deploy (secção 5).
+O CI (X-GHA, `.github/workflows/ci.yml`) não implanta nada: o deploy é o `deploy.yml` (PL-DEPLOY). Os runners `ubuntu-latest` constroem e testam; os testes de integração arrancam um `postgres:18.6` próprio com Testcontainers, e o job `diagrams` arranca a imagem do PlantUML. Detalhe em [05 · Vista de desenvolvimento](05-development-view.md#4-pipeline-de-build-e-qualidade). Na T06 o CI passa também a fazer parte do deploy (secção 5).
 
-## 3. Produção, planeado (T06)
+## 3. Produção (T06)
 
-![Implantação em produção, planeado (T06)](diagrams/06-physical-prod.svg)
+![Implantação em produção (T06)](diagrams/06-physical-prod.svg)
 
-Fonte: [06-physical-prod.puml](diagrams/06-physical-prod.puml). **Planeado (T06): os workflows e a configuração existem, mas ainda não houve nenhum deploy real.** Os contornos tracejados são o que se prevê. Os passos manuais estão no [runbook](../deployment/runbook.md).
+Fonte: [06-physical-prod.puml](diagrams/06-physical-prod.puml). **Em produção desde 2026-11-09 (T06).** Os passos manuais estão no [runbook](../deployment/runbook.md).
 
 | Nó ou serviço | Elemento | Corre | Público? | Nota |
 | --- | --- | --- | --- | --- |
 | Vercel (Hobby) | PL-VERCEL, PL-VERCEL-EDGE | C-WEB | Sim, em `https://<projeto>.vercel.app` | **A origem que o browser conhece.** O rewrite de `/api/*` fica fixado no build. |
 | Render (gratuito) | PL-RENDER, PL-RENDER-EDGE, PL-RENDER-API | C-API com C-WORKER, imagem de `backend/Dockerfile` | **Sim**, em `https://<serviço>.onrender.com` | Adormece ao fim de 15 minutos sem tráfego. Deploy automático desligado. |
 | Supabase (gratuito) | PL-SUPABASE, PL-SUPAPOOL, C-DB | PostgreSQL gerido e o pooler | Sim (endpoint na Internet, com palavra-passe e TLS) | Sempre pelo pooler em modo sessão (secção 4.6). |
-| Brevo | PL-BREVO | SMTP | — (fornecedor) | Porta 2525 (a confirmar); remetente verificado por email. |
+| Brevo | PL-BREVO | SMTP | — (fornecedor) | Porta 2525 com StartTls (confirmado no primeiro deploy); remetente verificado por email. |
 | GitHub Actions | X-GHA, PL-DEPLOY, PL-PRODDATA, PL-MIGBUNDLE | `deploy.yml`, `prod-data.yml` | — | Secção 4.8. |
 
 ## 4. Rede e confiança
 
 ### 4.1 O que é público e o que não é
 
-| O quê | Hoje (compose) | Produção planeada |
+| O quê | Hoje (compose) | Produção (T06) |
 | --- | --- | --- |
 | Páginas e `/api/*` | `localhost:3000` (C-WEB) | `https://<projeto>.vercel.app` (PL-VERCEL) |
 | A API diretamente | `localhost:5080` (Swagger) | **Sim**, em `https://<serviço>.onrender.com`. O Swagger só existe em Development. Um `POST` sem o `Origin` do site recebe 403 |
@@ -66,7 +66,7 @@ Fonte: [06-physical-prod.puml](diagrams/06-physical-prod.puml). **Planeado (T06)
 - **Vercel → Render:** HTTPS pela Internet (o build falha na Vercel se `API_INTERNAL_URL` não for `https`).
 - **Borda do Render → C-API:** HTTP. A documentação do Render diz que o balanceador termina o TLS. A API não faz `UseHttpsRedirection`, o que está certo atrás de um proxy, e lê o esquema de `X-Forwarded-Proto`.
 - **C-API → Supabase:** TLS, com `SSL Mode=Require` (encripta sem verificar o servidor, como a documentação do Supabase descreve).
-- **C-WORKER → Brevo:** `Email__Security=StartTls`, a confirmar na porta 2525 (`StartTls` recusa o envio se o servidor não suportar TLS).
+- **C-WORKER → Brevo:** `Email__Security=StartTls` na porta 2525 (confirmado no primeiro deploy; `StartTls` recusa o envio se o servidor não suportar TLS).
 
 ### 4.3 Uma só origem: cookies first-party, sem CORS, `Origin`
 
@@ -83,7 +83,7 @@ O browser só conhece a origem da Vercel: as páginas e `/api/*` vêm desse ende
 
 - **Rewrite:** a documentação da Vercel diz que, num rewrite externo, envia à origem `x-forwarded-for` com o IP público do visitante, e que reescreve o que o browser envia.
 - **Server Components:** levam o IP do visitante (`visitorIpHeader`, `lib/server/visitor-ip.ts`).
-- **A cadeia no Render não está documentada:** quantas entradas chegam à API e por que ordem. O valor certo de `ForwardLimit` encontra-se no primeiro deploy, com a linha `Too many requests from client …` do log ([procedimento](../deployment/environment-variables.md)).
+- **A cadeia no Render não está documentada:** quantas entradas chegam à API e por que ordem. No primeiro deploy, `ForwardLimit=1` deu o IP certo do cliente, achado com a linha `Too many requests from client …` do log ([procedimento](../deployment/environment-variables.md)).
 - **A API é pública**, por isso quem lhe ligar diretamente pode forjar o cabeçalho: os limites por IP são só de melhor esforço, e a proteção real contra adivinhar palavras-passe é o bloqueio de conta do Identity.
 
 ### 4.5 Os rewrites são fixados no build
@@ -132,19 +132,21 @@ O esquema novo fica ativo antes da API nova: **cada migração tem de funcionar 
 
 ## 5. Riscos e pontos em aberto para a T06
 
-Os riscos aceites estão na [ADR 0009](adr/0009-alvo-de-implantacao.md). «Verificado aqui» = confirmado no repositório ou num teste local em 2026-11-09. «A confirmar» = só se vê no primeiro deploy real.
+Os riscos aceites estão na [ADR 0009](adr/0009-alvo-de-implantacao.md). Resultados do primeiro deploy real (2026-11-09), segundo o dono do projeto. «Não reportado» continua por confirmar.
 
 | # | Ponto | Estado | O que verificar |
 | --- | --- | --- | --- |
-| 1 | **`ForwardLimit`** | A confirmar | O procedimento de [`environment-variables.md`](../deployment/environment-variables.md) |
-| 2 | **`Origin` e `Set-Cookie` no rewrite da Vercel** | Verificado aqui com `next start`; a documentação da Vercel não fala deles | Login e um pedido que altere dados no site real |
-| 3 | **Cache da Vercel nos rewrites** | A documentação diz que respeita o `Cache-Control` da origem; a API não o envia nas respostas JSON | Que nenhuma resposta fica em cache |
-| 4 | **Porta 2525 e STARTTLS no Brevo** | A documentação lista a porta 2525, sem falar de STARTTLS nem do servidor | Um email real |
-| 5 | **Pooler do Supabase com o EF Core** | Documentação lida; testado só contra PostgreSQL local | Uma reserva e o worker contra o Supabase |
-| 6 | **`btree_gist` no Supabase** | A página de extensões não a nomeia | A consulta do runbook, antes da primeira migração |
-| 7 | **`vercel deploy --prebuilt` real** | `vercel build` testado localmente com a CLI fixada; o deploy precisa de credenciais | A primeira execução de `deploy.yml` |
-| 8 | **Contexto de build no Render** | A documentação diz que o caminho do Dockerfile é relativo ao Root Directory | O primeiro build no Render |
-| 9 | **Health check HTTP no plano gratuito** | A documentação não diz | Se a opção existe |
+| 1 | **`ForwardLimit`** | Confirmado: `1` deu o IP certo do cliente | — |
+| 2 | **`Origin` e `Set-Cookie` no rewrite da Vercel** | Confirmado: o login e um pedido que altera dados funcionaram | — |
+| 3 | **Cache da Vercel nos rewrites** | Confirmado: nada ficou em cache | — |
+| 4 | **Porta 2525 e STARTTLS no Brevo** | Confirmado: a porta 2525 com StartTls funcionou | — |
+| 5 | **Pooler do Supabase com o EF Core** | Não reportado à parte | Uma reserva e o worker contra o Supabase |
+| 6 | **`btree_gist` no Supabase** | Não reportado à parte | A consulta do runbook |
+| 7 | **`vercel deploy --prebuilt` real** | Não reportado à parte | O resultado do `deploy.yml` |
+| 8 | **Contexto de build no Render** | Confirmado: os valores do runbook foram os usados | — |
+| 9 | **Health check HTTP no plano gratuito** | Os valores do runbook, incluindo o health check, foram os usados; sem diferenças | — |
+| 10 | **IP do cliente nas chamadas dos Server Components** | Não reportado à parte | Um pedido de uma página de clube |
+| 11 | **Versão do PostgreSQL do Supabase** | Não reportado | A consulta `select version()` |
 
 ## 6. Notas
 

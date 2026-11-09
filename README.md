@@ -80,11 +80,11 @@ Search, club page, owner calendar and admin dashboard. All eight screenshots, an
 - **PostgreSQL**, the only data store, also enforces the rule against double bookings.
 - **A background email worker** inside the API process sends messages written to an outbox table in the same transaction as the change that caused them.
 
-<img src="docs/architecture/diagrams/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; the planned Vercel, Render and Brevo services are dashed" width="800">
+<img src="docs/architecture/diagrams/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; Vercel and Render host it and Brevo sends the email in production" width="800">
 
 <img src="docs/architecture/diagrams/02-containers-dev.svg" alt="C4 containers in development: browser, Next.js, ASP.NET Core API with the email worker, PostgreSQL and Mailpit" width="500">
 
-System context (top; dashed elements are planned, not deployed) and containers in development (bottom). Diagram labels are in Portuguese. The [architecture README](docs/architecture/README.md) is the entry point to all views, with C4 levels 1 to 4, the 4+1 views (logical, process, development, physical and scenarios), an inventory of elements mapped to the code, and a gallery of all 40 diagrams.
+System context (top) and containers in development (bottom). Diagram labels are in Portuguese. The [architecture README](docs/architecture/README.md) is the entry point to all views, with C4 levels 1 to 4, the 4+1 views (logical, process, development, physical and scenarios), an inventory of elements mapped to the code, and a gallery of all 40 diagrams.
 
 ## Technology and why
 
@@ -158,7 +158,7 @@ docker compose run --rm api seed-demo                          # with the compos
 dotnet run --project backend/src/SportsBooking.Api -- seed-demo   # API outside Docker (needs: docker compose up -d postgres)
 ```
 
-It exits without starting the server, sends no email, and refuses when any owner or player already exists. It also refuses in Production unless `DemoData__AllowInProduction=true` is set on that one process. Every demo account has the same **development-only** password, `demo-password-1`; never use it anywhere real.
+It exits without starting the server, sends no email, and refuses when any owner or player already exists. It also refuses in Production unless `DemoData__AllowInProduction=true` is set on that one process. Every demo account has the same **public, development-only** password, `demo-password-1`: anyone can read it here, so never use it for a real account.
 
 | Role | Email |
 | --- | --- |
@@ -260,19 +260,19 @@ The backlog, the Stack document and the architecture documents are in Portuguese
 - [Backlog](docs/backlog.md): epics, user and technical stories with acceptance criteria, story-point estimates, business rules and the decisions taken on each story.
 - [Stack and practices](docs/stack.md): the stack, backend architecture, authentication, frontend, data and concurrency, validation and errors, tests, and the security checklist.
 - [Architecture](docs/architecture/README.md): reading guide, C4 and 4+1 views, element inventory and diagram gallery.
-- [Architecture decision records](docs/architecture/adr/README.md): ADRs 0001 to 0008 are accepted; [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) (deployment target) is a proposal.
+- [Architecture decision records](docs/architecture/adr/README.md): all nine are accepted; [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) (deployment target) was accepted on 2026-11-09, after the first real deployment.
 - Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
 - [Screenshots](docs/screenshots/README.md): what each image shows and which data it uses.
 
 ## Status and roadmap
 
-**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built, including all optional stories. T06, continuous deployment (5 points), is implemented in code and its first real deployment is pending: 34 stories and 124 points are complete. Dependabot and the security headers, planned before T06, are in place.
+**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built and deployed, including all optional stories: 35 stories and 129 points are complete. T06, continuous deployment (5 points), went live on 2026-11-09. Dependabot and the security headers, planned before T06, are in place.
 
-**Planned.**
+**Deployed.**
 
-- Deployment (T06): the workflows and configuration are written, and nothing is deployed yet. The target, a proposal in ADR 0009 until the first real deployment: the site on Vercel, the API on Render's free plan, Supabase for PostgreSQL, Brevo for email, and GitHub Actions for the pipelines. See the [runbook](docs/deployment/runbook.md) and the [environment variables](docs/deployment/environment-variables.md).
+- Deployment (T06), live since 2026-11-09 (ADR 0009, accepted): the site on Vercel, the API on Render's free plan, Supabase for PostgreSQL, Brevo for email, and GitHub Actions for the pipelines. See the [runbook](docs/deployment/runbook.md) and the [environment variables](docs/deployment/environment-variables.md).
 
-> **Live demo:** to be added after the deployment.
+> **Demo online:** <https://sports-establishments.vercel.app/>. It is a demo that may be taken offline at any time. The API runs on a free plan that sleeps when idle, so the first request can take about a minute. The demo accounts share a public password (see [Demo data](#demo-data)): never use it for a real account.
 
 ## Development workflow
 

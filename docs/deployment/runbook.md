@@ -2,6 +2,8 @@
 
 Os passos que só o dono do projeto pode fazer, pela ordem certa. O alvo é Vercel, Render, Supabase, Brevo e GitHub Actions, com **custo zero**. As variáveis estão explicadas em [environment-variables.md](environment-variables.md).
 
+Estes passos foram seguidos no primeiro deploy real (2026-11-09), sem diferenças em relação ao que está escrito.
+
 Os nomes dos botões e campos podem mudar nos painéis dos fornecedores: onde está «(o nome pode variar)», procura a definição descrita.
 
 ## Valores a anotar
@@ -42,7 +44,7 @@ Guarda estes valores num sítio privado. Nunca os escrevas no repositório.
 - [ ] Cria uma conta gratuita.
 - [ ] Adiciona e **verifica um remetente por email**: é o `<REMETENTE>`. Sem domínio próprio, os emails podem ir para o spam.
 - [ ] Nas definições de SMTP e API, gera uma **chave SMTP** (não uma chave de API). Anota `<SMTP_LOGIN>` e `<SMTP_KEY>`.
-- [ ] **Confirma na documentação atual do Brevo** o servidor (`smtp-relay.brevo.com`), a porta **2525** e se essa porta oferece STARTTLS. O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587.
+- [ ] Usa o servidor `smtp-relay.brevo.com` e a porta **2525** com STARTTLS (funcionou no primeiro deploy). O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587.
 
 ## 3. As duas URLs dependem uma da outra
 
@@ -79,10 +81,10 @@ O Render precisa do endereço da Vercel (`Security__AllowedOrigins__0`, `PublicS
   | `Security__AllowedOrigins__0` | `<VERCEL_URL>` |
   | `PublicSite__BaseUrl` | `<VERCEL_URL>` |
   | `ForwardedHeaders__TrustAnyProxy` | `true` |
-  | `ForwardedHeaders__ForwardLimit` | `1` (ver a secção 8) |
-  | `Email__Host` | `smtp-relay.brevo.com` (a confirmar) |
-  | `Email__Port` | `2525` (a confirmar) |
-  | `Email__Security` | `StartTls` (a confirmar) |
+  | `ForwardedHeaders__ForwardLimit` | `1` (confirmado no primeiro deploy; ver a secção 8) |
+  | `Email__Host` | `smtp-relay.brevo.com` |
+  | `Email__Port` | `2525` |
+  | `Email__Security` | `StartTls` |
   | `Email__Username` | `<SMTP_LOGIN>` |
   | `Email__Password` | `<SMTP_KEY>` |
   | `Email__FromAddress` | `<REMETENTE>` |
@@ -160,8 +162,8 @@ Cada migração tem de funcionar com a versão anterior da API, porque o esquema
   ```
   Too many requests from client <endereço> to /api/auth/login
   ```
-  Se for o teu endereço, está certo (em IPv6, aparece a tua rede /64). Se não for, sobe `ForwardedHeaders__ForwardLimit` em 1, faz um novo deploy e repete. Usa o valor mais baixo que dê o endereço certo.
-- [ ] Muda o estado da ADR 0009 depois deste primeiro deploy.
+  Se for o teu endereço, está certo (em IPv6, aparece a tua rede /64). Se não for, sobe `ForwardedHeaders__ForwardLimit` em 1, faz um novo deploy e repete. Usa o valor mais baixo que dê o endereço certo. No primeiro deploy, o valor `1` deu o endereço certo.
+- [x] O estado da ADR 0009 passou a «Aceite» depois do primeiro deploy (2026-11-09).
 
 ## 9. Limitações conhecidas
 

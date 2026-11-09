@@ -1,6 +1,6 @@
 # 00 · Inventário de elementos
 
-Catálogo de tudo o que os diagramas podem usar. Cada elemento tem um **id estável**: os diagramas e as ADRs referem-se a ele por esse id, nunca por um nome solto. Só entra o que existe no código em 2026-10-29 (depois do merge `f4057ca` na `main`); o que está planeado (T06) está numa secção à parte, no fim.
+Catálogo de tudo o que os diagramas podem usar. Cada elemento tem um **id estável**: os diagramas e as ADRs referem-se a ele por esse id, nunca por um nome solto. Só entra o que existe no código em 2026-10-29 (depois do merge `f4057ca` na `main`); a produção (T06, ids `PL-`) está numa secção à parte, no fim.
 
 Os caminhos são relativos à raiz do repositório. Para não repetir prefixos longos:
 
@@ -10,7 +10,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `SC-` cenários de uso, `PL-` elementos planeados. Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `SC-` cenários de uso, `PL-` elementos da produção (T06). Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
 
 ## 1. Pessoas e atores
 
@@ -29,7 +29,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 | --- | --- | --- | --- | --- |
 | X-SMTP | Servidor SMTP | Sistema externo | Recebe os emails da aplicação por SMTP (qualquer servidor; em produção será o Brevo, ver PL-BREVO). | `Inf/Notifications/SmtpEmailSender.cs` (MailKit), `EmailOptions.cs` (`Email:*`) |
 | X-MAILPIT | Mailpit | Sistema externo (só desenvolvimento) | Servidor SMTP falso com interface web: apanha todos os emails em desenvolvimento, nenhum sai para fora. | `docker-compose.yml` (serviço `mailpit`, `axllent/mailpit:v1.31.6`, portas 1025 e 8025) |
-| X-GHA | GitHub Actions | Sistema externo | CI: build, testes (com Testcontainers), verificação do OpenAPI e dos tipos gerados, migrações pendentes, pacotes vulneráveis, lint, tipos e build do front end. Não faz deploy. | `.github/workflows/ci.yml` |
+| X-GHA | GitHub Actions | Sistema externo | CI (`ci.yml`): build, testes (com Testcontainers), verificação do OpenAPI e dos tipos gerados, migrações pendentes, pacotes vulneráveis, lint, tipos e build do front end. Não faz deploy; o deploy é o `deploy.yml` (PL-DEPLOY). | `.github/workflows/ci.yml` |
 | X-GH | GitHub | Sistema externo | Repositório e pull requests (merge por squash). Não há proteção de branch na `main`: o CI verde confirma-se à mão antes de cada merge. | `README.md`, `AGENTS.md` (convenções) |
 
 ## 3. Contentores
@@ -182,9 +182,9 @@ Usadas nos diagramas de pormenor da [vista lógica](03-logical-view.md). Cada pa
 | DB-DPKEYS | `data_protection_keys` | Tabela | Chaves do Data Protection (CC-DATAPROT). | Migração `AddDataProtectionKeys` |
 | DB-MIGHIST | `__EFMigrationsHistory` | Tabela (EF Core) | Migrações aplicadas. | `Inf/Persistence/Migrations/` |
 
-## 8. Planeado (T06)
+## 8. Produção (T06)
 
-Não usar estes ids nos diagramas do estado atual; só nas vistas de implantação, marcados como planeados. Os workflows e a configuração existem, mas ainda não houve nenhum deploy real. Os ids «não adotado» ficam aqui para os documentos antigos continuarem a fazer sentido.
+Estes ids só aparecem nas vistas de implantação em produção, que existe desde 2026-11-09. Os ids «não adotado» ficam aqui para os documentos antigos continuarem a fazer sentido.
 
 | Id | Nome | Tipo | O que se prevê | Fonte |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ Não usar estes ids nos diagramas do estado atual; só nas vistas de implantaç�
 | PL-DEPLOYHOOK | Deploy hook do Render | Configuração | URL secreto que lança o deploy de um commit na API; chamado por PL-DEPLOY, com o deploy automático desligado. | `.github/workflows/deploy.yml`, `docs/deployment/runbook.md` |
 | PL-PRODDATA | Workflow de dados de produção | Pipeline | `.github/workflows/prod-data.yml`, manual: `migrate-only`, `set-admin-password` e `seed-demo` contra o Supabase, porque o plano gratuito do Render não tem shell. | `.github/workflows/prod-data.yml`, `docs/deployment/runbook.md` |
 
-**Nota (plano de produção).** `docs/stack.md` descreve uma máquina virtual com Caddy. O plano atual (ADR 0009, proposta) é Vercel, Render gratuito com a API pública, Supabase e Brevo: o Next.js (C-WEB) continua a ser o proxy reverso. A ADR diz que partes da Stack substitui.
+**Nota (plano de produção).** `docs/stack.md` descreve uma máquina virtual com Caddy. O alvo em produção (ADR 0009, aceite em 2026-11-09) é Vercel, Render gratuito com a API pública, Supabase e Brevo: o Next.js (C-WEB) continua a ser o proxy reverso. A ADR diz que partes da Stack substitui.
 
 ## 9. Vista de desenvolvimento
 

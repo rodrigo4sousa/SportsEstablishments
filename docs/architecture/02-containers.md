@@ -2,7 +2,7 @@
 
 <!-- C4 nível 2 · vista 4+1: de processo. Ver README.md. -->
 
-Dois diagramas: o que corre hoje em desenvolvimento e o que está planeado para produção. Em ambos o browser vê **uma só origem**, o que mantém os cookies de sessão first-party e dispensa CORS.
+Dois diagramas: o que corre hoje em desenvolvimento e o que corre em produção. Em ambos o browser vê **uma só origem**, o que mantém os cookies de sessão first-party e dispensa CORS.
 
 ## Diagrama
 
@@ -12,11 +12,11 @@ Dois diagramas: o que corre hoje em desenvolvimento e o que está planeado para 
 
 Fonte: [02-containers-dev.puml](diagrams/02-containers-dev.puml).
 
-### Produção, planeado (T06)
+### Produção (T06)
 
-![Contentores em produção, planeado (T06)](diagrams/02-containers-prod.svg)
+![Contentores em produção (T06)](diagrams/02-containers-prod.svg)
 
-Fonte: [02-containers-prod.puml](diagrams/02-containers-prod.puml). **Planeado (T06): ainda não há código nem deploy.** Os contornos tracejados são o que se prevê.
+Fonte: [02-containers-prod.puml](diagrams/02-containers-prod.puml). **Em produção desde 2026-11-09 (T06).**
 
 ## Contentores
 
@@ -26,7 +26,7 @@ Fonte: [02-containers-prod.puml](diagrams/02-containers-prod.puml). **Planeado (
 | C-WEB | Next.js 16 (App Router, imagem `standalone`), porta 3000 | Serve as áreas do jogador, do dono e do admin. Os Server Components chamam a API pelo URL interno, a passar o cookie do utilizador; os Client Components chamam `/api/*` na mesma origem. Reencaminha `/api/*` para a API (WEB-REWRITE). | Nenhum dado: não acede à base de dados. |
 | C-API | .NET 10, ASP.NET Core, porta 8080 (5080 no anfitrião, só em desenvolvimento) | Única dona das regras de negócio, da autenticação (JWT e refresh em cookies), da autorização por perfil e por dono, dos erros ProblemDetails e do rate limiting. Verifica o `Origin` dos pedidos que alteram dados. | Todas as regras e todo o acesso a C-DB. |
 | C-WORKER | `BackgroundService` no processo da API | Lê o outbox, compõe e envia os emails com novas tentativas; usa `SKIP LOCKED`, por isso pode correr em várias instâncias. | O envio dos emails (o outbox em si está em C-DB). |
-| C-DB | PostgreSQL 18.6 (desenvolvimento); PostgreSQL gerido (produção, planeado (T06)) | Guarda os dados, impõe as regras que não podem falhar (sem reservas confirmadas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | Os dados e o esquema. |
+| C-DB | PostgreSQL 18.6 (desenvolvimento); PostgreSQL gerido (produção, T06) | Guarda os dados, impõe as regras que não podem falhar (sem reservas confirmadas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | Os dados e o esquema. |
 
 C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arrancar o servidor, por isso não tem caixa própria nestes diagramas.
 
@@ -40,7 +40,7 @@ C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arr
 - C-API e C-WORKER → C-DB: SQL com Npgsql, `Host=postgres;Port=5432`.
 - C-WORKER → X-MAILPIT: SMTP na porta 1025, sem TLS; a interface web está na 8025.
 
-**Produção, planeado (T06)**
+**Produção (T06)**
 
 - C-BROWSER → C-WEB: HTTPS, na origem da Vercel (PL-VERCEL). É a única origem que o browser conhece.
 - C-WEB → C-API: HTTPS pela Internet, para o URL público do serviço da API no Render (PL-RENDER-API, `API_INTERNAL_URL`), tanto no rewrite de `/api/*` como nos Server Components. A API também se alcança diretamente: o `Origin` e os limites protegem-na, e os limites por IP são só de melhor esforço.
@@ -52,5 +52,5 @@ C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arr
 
 - **O proxy reverso é o Next.js, não o Caddy.** Em desenvolvimento e no compose é C-WEB que reencaminha `/api/*`; em produção é o rewrite do Next.js, servido pela Vercel. O desenho antigo (Caddy numa máquina virtual, em `docs/stack.md`) não foi adotado (ver a [ADR 0009](adr/0009-alvo-de-implantacao.md)).
 - **O IP do cliente.** Sem proxy configurado, a API ignora `X-Forwarded-For` e usa o endereço da ligação; é assim no compose, porque o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em produção a configuração é outra e é provisória (ver a [secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)).
-- O worker corre no processo da API: em produção (planeado (T06)) os emails e lembretes só saem enquanto a API estiver acordada.
+- O worker corre no processo da API: em produção (T06) os emails e lembretes só saem enquanto a API estiver acordada.
 - As migrações correm no arranque da API só em desenvolvimento. Em produção aplica-as o GitHub Actions, com um migration bundle, como dono do esquema (ver a [secção 4.8 da vista física](06-physical-view.md#48-onde-correm-as-migrações-e-os-comandos)).

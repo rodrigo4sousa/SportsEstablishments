@@ -91,7 +91,7 @@ Fonte: [03-logical-web.puml](diagrams/03-logical-web.puml).
 Há dois caminhos até à API:
 
 - **No browser**, os Client Components das funcionalidades chamam `/api/*` na mesma origem, só por WEB-API-CLIENT (`apiRequest`/`apiJson`); o Next.js reencaminha para a API (WEB-REWRITE). Os cookies httpOnly vão com o pedido; num 401 há um só refresh partilhado (Web Lock entre separadores) e uma nova tentativa.
-- **No servidor**, WEB-SERVER (`lib/server`, `server-only`) chama a API diretamente pelo **URL interno** (`API_INTERNAL_URL`, `lib/server/api-url.ts`), com `no-store`: `getSessionAccount` passa o cookie do utilizador a `GET /api/auth/me`, `loadPublicClub` não passa cookies, `loadAdminStats` passa os do admin. O servidor nunca renova uma sessão. Hoje, no compose, esse URL é `http://api:8080`. **Planeado (T06):** em produção será o endereço privado do serviço da API no Render (PL-RENDER-API), que não tem URL público.
+- **No servidor**, WEB-SERVER (`lib/server`, `server-only`) chama a API diretamente pelo **URL interno** (`API_INTERNAL_URL`, `lib/server/api-url.ts`), com `no-store`: `getSessionAccount` passa o cookie do utilizador a `GET /api/auth/me`, `loadPublicClub` não passa cookies, `loadAdminStats` passa os do admin. O servidor nunca renova uma sessão. Hoje, no compose, esse URL é `http://api:8080`. Em produção (T06) é o URL público do serviço da API no Render (PL-RENDER-API), definido em `API_INTERNAL_URL`.
 
 WEB-PROXY (`proxy.ts`) só escreve o caminho pedido em `x-pathname` nas áreas com guarda (`/manage/*`, `/admin/*`, `/bookings`); os guardas (WEB-GUARDS) usam-no para mandar para `/login?next=…`. Os guardas são uma conveniência: quem decide o acesso é sempre a API.
 
