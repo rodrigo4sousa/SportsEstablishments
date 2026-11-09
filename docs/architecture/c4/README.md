@@ -4,6 +4,12 @@
 
 Os diagramas C4 mais gerais do sistema: o contexto (nível 1), os contentores (nível 2) e a implantação, em desenvolvimento e em produção. Os componentes (nível 3) e o código (nível 4) estão na [vista lógica](../4plus1/logical.md), e os diagramas dinâmicos, em sequência, na [vista de processo](../4plus1/process.md). Os ids estão no [inventário](../inventory.md); os `.puml` e os SVG de todos os diagramas estão ao lado, em `c4/` e `4plus1/` (fontes) e em `out/` (desenhos).
 
+Para cada nível, para quem é e que decisão documenta:
+
+- **Contexto** (nível 1). **Para:** quem avalia, produto, recém-chegados. **Decisão documentada:** um só marketplace, com uma conta de jogador que serve em todos os clubes de todos os donos e sem sites por dono ([ADR 0005](../adr/0005-marketplace-unico.md)), e três áreas (jogador, dono, admin) sobre a mesma API ([ADR 0001](../adr/0001-uma-app-tres-areas.md)).
+- **Contentores** (nível 2). **Para:** recém-chegados e quem opera. **Decisão documentada:** o browser vê uma só origem, o que mantém os cookies de sessão first-party e dispensa CORS ([ADR 0002](../adr/0002-sessao-em-cookies-httponly.md)); o worker de emails corre no processo da API e lê o outbox ([ADR 0004](../adr/0004-outbox-para-emails.md)).
+- **Implantação.** **Para:** quem faz deploy e opera. **Decisão documentada:** a produção na Vercel, no Render e no Supabase, com o Brevo para o email ([ADR 0009](../adr/0009-alvo-de-implantacao.md)); o desenvolvimento é o docker compose.
+
 ## Nível 1 · Contexto do sistema
 
 <!-- C4 nível 1 · vista 4+1: cenários (contexto de uso). Ver README.md. -->
@@ -131,7 +137,7 @@ O que vem do `appsettings.Development.json` (porque o ambiente é Development) e
 
 - A API aplica as migrações no arranque (`Program.cs`), corre o seed do admin e mostra o Swagger em `/swagger` (só em Development).
 - O browser fala com `http://localhost:3000`; os cookies são `Secure` mas os browsers aceitam-nos em `localhost` sem HTTPS (comentário em `Api/Auth/AuthCookies.cs`).
-- A API tem uma segunda entrada, `localhost:5080`, para ferramentas ([Notas de arquitetura](../README.md#notas-de-arquitetura), 1). O PostgreSQL também está publicado em `localhost:5432`, para correr a API fora do Docker (`dotnet run`, com a ligação do `appsettings.Development.json`) e para clientes SQL.
+- A API tem uma segunda entrada, `localhost:5080`, para ferramentas ([Notas de arquitetura](../README.md#limitações-conhecidas), 1). O PostgreSQL também está publicado em `localhost:5432`, para correr a API fora do Docker (`dotnet run`, com a ligação do `appsettings.Development.json`) e para clientes SQL.
 - Os dados ficam no volume `postgres-data`: sobrevivem a `docker compose down` e só se apagam com `docker compose down -v`.
 - Os comandos de linha (C-CLI) correm como `docker compose run --rm api seed-demo` (ou `set-admin-password`, com `ADMIN_NEW_PASSWORD`): um contentor de curta duração na mesma rede.
 

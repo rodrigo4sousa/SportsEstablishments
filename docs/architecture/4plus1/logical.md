@@ -27,7 +27,7 @@ Fonte: [logical-layers.puml](logical-layers.puml).
 - **`IAppDbContext`, sem repositório genérico.** A Application usa os `DbSet` e LINQ do EF Core diretamente (o `DbContext` é a unidade de trabalho). O que depende do PostgreSQL fica atrás de uma interface pequena implementada na Infrastructure (`IBookingStore`, `IPitchStore`, `IClubStore`, `IOwnerStatusStore`, `IOccupationStore`, …).
 - **Hora injetada.** Toda a hora atual vem de `TimeProvider` (CC-TIME).
 
-**Exceções reais** (ver as [Notas de arquitetura](../README.md#notas-de-arquitetura)):
+**Exceções reais** (ver as [Notas de arquitetura](../README.md#limitações-conhecidas)):
 
 - Entidades persistidas fora do Domain: a conta (`AppUser`, D-USER, do Identity), o refresh token (`RefreshToken`, D-REFRESH) e a mudança de estado de um dono (`OwnerStatusChange`, D-STATUSCHG) vivem na Infrastructure; a mensagem do outbox (`OutboxMessage`, D-OUTBOX) vive na Application. No Domain a conta existe só como regras (`Dom/Accounts`).
 - O gerador de tokens de recuperação de palavra-passe do Identity (`DataProtectorTokenProvider`, registado por `AddDefaultTokenProviders`) lê o relógio do sistema, não o `TimeProvider`; os testes fabricam tokens antigos no formato do Identity.
