@@ -24,6 +24,9 @@ public static class ErrorCodes
     /// <summary>409 from registration: an account with this email already exists (any profile).</summary>
     public const string EmailTaken = "email_taken";
 
+    /// <summary>400 from registration (T07): the request does not carry the version of the terms the person accepted.</summary>
+    public const string TermsNotAccepted = "terms_not_accepted";
+
     /// <summary>401 from <c>POST /api/auth/refresh</c>: the session cannot be renewed; the user must sign in again.</summary>
     public const string InvalidRefreshToken = "invalid_refresh_token";
 

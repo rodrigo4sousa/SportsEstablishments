@@ -11,7 +11,7 @@ LAYOUT_TOP_DOWN()
 
 Container_Boundary(C_API, "C-API · API ASP.NET Core") {
   Boundary(API_AUTH, "API-AUTH · Contas e sessões (AuthController, api/auth)") {
-    Component(API_AUTH_REG, "API-AUTH-REG · Registo", "AccountRegistrationService", "Jogador e dono; 409 email_taken; começa a sessão.")
+    Component(API_AUTH_REG, "API-AUTH-REG · Registo", "AccountRegistrationService", "Jogador e dono; aceitação dos Termos (400 terms_not_accepted); 409 email_taken; começa a sessão.")
     Component(API_AUTH_LOGIN, "API-AUTH-LOGIN · Login", "LoginService", "Qualquer falha é o mesmo 401 invalid_credentials.")
     Component(API_AUTH_RESET, "API-AUTH-RESET · Recuperação", "PasswordResetService, Inf/Auth/PasswordResetStore, AccountEmailBuilder", "Pedido (202 sempre) e confirmação; o token só é feito pelo worker.")
     Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas no Identity", "IAccountStore, Inf/Identity/AccountStore, UserManager<AppUser>", "Cria, autentica (FallbackPasswordHash, LoginLockout), procura, IsActiveAsync.")
@@ -25,7 +25,7 @@ Container_Boundary(C_API, "C-API · API ASP.NET Core") {
 }
 
 Container_Boundary(C_DB, "C-DB · PostgreSQL") {
-  ComponentDb(DB_USERS, "DB-USERS · users, roles, user_roles", "Tabelas (Identity)", "deactivated_at, registered_at, email normalizado único.")
+  ComponentDb(DB_USERS, "DB-USERS · users, roles, user_roles", "Tabelas (Identity)", "deactivated_at, registered_at, accepted_terms_version, terms_accepted_at, email normalizado único.")
   ComponentDb(DB_REFRESH, "DB-REFRESH · refresh_tokens", "Tabela", "Só o SHA-256 do valor.")
   ComponentDb(DB_DPKEYS, "DB-DPKEYS · data_protection_keys", "Tabela", "Chaves dos tokens.")
   ComponentDb(DB_STATUSCHG, "DB-STATUSCHG · owner_status_changes", "Tabela, só de acrescentar", "Histórico dos donos.")

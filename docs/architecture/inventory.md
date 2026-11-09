@@ -89,7 +89,7 @@ Usadas nos diagramas de pormenor da [vista lógica](4plus1/logical.md). Cada par
 | API-BOOK-SERIES | Série semanal | Parte de API-BOOK | Pré-visualização e criação de uma série, uma data por transação. | `App/Bookings/RecurringBookings.cs` (`RecurringBookingService`, `RecurringOccurrences`) |
 | API-BOOK-MINE | As minhas reservas e cancelar | Parte de API-BOOK | Lista e detalhe das reservas do jogador; cancelamento pelo jogador. | `App/Bookings/MyBookings.cs`, `BookingCancellationService.cs` |
 | API-BOOK-STORE | Store das reservas | Parte de API-BOOK (usada também por API-CLUBBOOK) | Insere e grava reservas; 23P01 em `bookings_no_overlap` → `false`. | `App/Bookings/IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
-| API-AUTH-REG | Registo | Parte de API-AUTH | Registo de jogador e de dono, com início de sessão. | `App/Accounts/AccountRegistrationService.cs` |
+| API-AUTH-REG | Registo | Parte de API-AUTH | Registo de jogador e de dono, com início de sessão e com a aceitação dos Termos (T07); sem ela, 400 `terms_not_accepted`. | `App/Accounts/AccountRegistrationService.cs` |
 | API-AUTH-LOGIN | Login | Parte de API-AUTH | Login com uma só resposta para qualquer falha. | `App/Auth/LoginService.cs` |
 | API-AUTH-RESET | Recuperação de palavra-passe | Parte de API-AUTH | Pedido e confirmação; no envio, o token e o texto do email. | `App/Auth/PasswordReset.cs`; `Inf/Auth/PasswordReset.cs` (`PasswordResetStore`, `AccountEmailBuilder`) |
 | API-AUTH-ACCOUNTS | Contas no Identity | Parte de API-AUTH | Criar, autenticar, procurar, saber se uma conta está ativa. | `App/Accounts/IAccountStore.cs`; `Inf/Identity/AccountStore.cs`, `FallbackPasswordHash.cs`, `LoginLockout.cs` |
@@ -157,8 +157,8 @@ Usadas nos diagramas de pormenor da [vista lógica](4plus1/logical.md). Cada par
 | D-BLOCK | Bloqueio | Entidade (Domain) | `[StartsAt, EndsAt)` em UTC com fim depois do início; motivo opcional até 200; só se remove antes de começar. | `Dom/Pitches/Block.cs` |
 | D-BOOKING | Reserva | Entidade (Domain) | De um jogador **ou** de um cliente, nunca os dois nem nenhum; nunca apagada, muda de estado (`Confirmed`, `CancelledByPlayer`, `CancelledByClub`, `NoShow`) por métodos que devolvem o resultado; guarda o preço do momento; série semanal opcional (`SeriesId`). | `Dom/Bookings/Booking.cs` |
 | D-SLOT | Slot | Valor (Domain) | Intervalo `[início, fim)` em UTC de duração exata; «começado» quando o início ≤ agora. | `Dom/Scheduling/TimeSlot.cs`, `SlotDuration.cs` |
-| D-POLICIES | Regras de conta | Valores (Domain) | Email, nome, telemóvel e palavra-passe (≥ 8 caracteres); perfis `Player`, `Owner`, `Admin`. | `Dom/Accounts/` |
-| D-USER | Conta | Entidade (Infrastructure, Identity) | Um email = uma conta = um perfil; email normalizado único; `RegisteredAt`; desativada quando `DeactivatedAt` está preenchido. | `Inf/Identity/AppUser.cs` |
+| D-POLICIES | Regras de conta | Valores (Domain) | Email, nome, telemóvel e palavra-passe (≥ 8 caracteres); versão dos Termos aceite (até 32 caracteres); perfis `Player`, `Owner`, `Admin`. | `Dom/Accounts/` |
+| D-USER | Conta | Entidade (Infrastructure, Identity) | Um email = uma conta = um perfil; email normalizado único; `RegisteredAt`; desativada quando `DeactivatedAt` está preenchido; `AcceptedTermsVersion` e `TermsAcceptedAt` preenchidos no registo (T07), vazios nas contas anteriores e nas dos seeds. | `Inf/Identity/AppUser.cs` |
 | D-REFRESH | Refresh token | Entidade (Infrastructure) | Só o SHA-256 é guardado; rotação condicional atómica; validade absoluta; reutilização revoga todas as sessões da conta. | `Inf/Auth/RefreshToken.cs` |
 | D-OUTBOX | Mensagem do outbox | Entidade (Application) | Tipo e payload sem endereços; um só resultado (enviada, ignorada ou falhada); novas tentativas com intervalo a dobrar. | `App/Notifications/OutboxMessage.cs` |
 | D-STATUSCHG | Mudança de estado de um dono | Entidade (Infrastructure) | Só se acrescenta (nunca alterada nem apagada); ação, motivo e admin que a fez. | `Inf/Admin/OwnerStatusChange.cs` |
@@ -167,7 +167,7 @@ Usadas nos diagramas de pormenor da [vista lógica](4plus1/logical.md). Cada par
 
 | Id | Nome | Tipo | Para quê | Onde aparece no código |
 | --- | --- | --- | --- | --- |
-| DB-USERS | `users`, `roles`, `user_roles` (e `user_claims`, `user_logins`, `user_tokens`, `role_claims`) | Tabelas (Identity) | Contas, perfis e dados do Identity; `ix_users_normalized_email` (único), `ix_users_registered_at`. | `Inf/Identity/IdentityModelConfiguration.cs`; migrações `AddIdentity`, `AddAccountDetailsAndSessions`, `AddUserRegisteredAt` |
+| DB-USERS | `users`, `roles`, `user_roles` (e `user_claims`, `user_logins`, `user_tokens`, `role_claims`) | Tabelas (Identity) | Contas, perfis e dados do Identity; `ix_users_normalized_email` (único), `ix_users_registered_at`; `accepted_terms_version` e `terms_accepted_at`, opcionais. | `Inf/Identity/IdentityModelConfiguration.cs`; migrações `AddIdentity`, `AddAccountDetailsAndSessions`, `AddUserRegisteredAt`, `AddTermsAcceptance` |
 | DB-REFRESH | `refresh_tokens` | Tabela | Hashes dos refresh tokens, `ix_refresh_tokens_token_hash`. | `Inf/Auth/RefreshToken.cs` |
 | DB-CLUBS | `clubs` | Tabela | Clubes; `ix_clubs_slug`, `ix_clubs_locality_key`, `ix_clubs_owner_id_name`, `ck_clubs_cancellation_window_hours`. | `Inf/Clubs/ClubConfiguration.cs` |
 | DB-PITCHES | `pitches`, `pitch_opening_hours`, `pitch_price_bands` | Tabelas | Campos (`ix_pitches_club_id_name_key` único, `ck_pitches_*`), horário semanal e faixas de preço (`ck_pitch_price_bands_*`). | `Inf/Pitches/PitchConfiguration.cs`, `PitchPriceBandConfiguration.cs` |

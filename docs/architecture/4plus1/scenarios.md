@@ -68,7 +68,7 @@ Fonte: [scenarios-use-cases.puml](scenarios-use-cases.puml). A coluna dos testes
 
 **Passos**
 
-1. A pessoa regista-se como dono (`/register/owner`, `POST /api/auth/register/owner`); a conta nasce com o perfil `Owner` e a sessão começa logo. Vai para `/manage`, que, sem clubes, mostra «Criar o primeiro clube».
+1. A pessoa regista-se como dono (`/register/owner`, `POST /api/auth/register/owner`), aceitando os Termos e tomando conhecimento da Política de Privacidade (a versão e a data ficam na conta); a conta nasce com o perfil `Owner` e a sessão começa logo. Vai para `/manage`, que, sem clubes, mostra «Criar o primeiro clube».
 2. **Clube:** `/manage/clubs/new` envia `POST /api/manage/clubs` (nome, morada, localidade, contactos, janela de cancelamento, por omissão 24 h, e o aviso de novas reservas). A API gera o `slug` a partir do nome, que não muda se o nome mudar.
 3. **Campo:** em `/manage/clubs/{id}`, `PitchSection` cria o campo (`POST …/pitches`): desporto, nome único no clube, preço base (> 0 e ≤ 500 €). O campo nasce ativo, com slots de 60 minutos e **fechado todos os dias**.
 4. **Horário:** o botão «Horário» abre o `ScheduleEditor`; `PUT …/schedule` substitui a semana toda (sete dias, abertura e fecho de 30 em 30 minutos, ou fechado; fecho `00:00` = meia-noite) e a duração do slot (30, 60 ou 90). O `SlotPreview` mostra os slots de um dia, de hoje a hoje + 30, gerados a partir do horário.

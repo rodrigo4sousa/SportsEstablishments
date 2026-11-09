@@ -29,7 +29,7 @@ public sealed class OwnerRegistrationTests(ApiFactory factory)
     private static string NewEmail(string prefix = "dono") => $"{prefix}-{Guid.NewGuid():N}@exemplo.pt";
 
     private static object Registration(string email, string name = "Rui Dono", string password = Password, string? phone = "912 345 678") =>
-        new { name, email, password, phone };
+        new { name, email, password, phone, acceptedTermsVersion = "1.0" };
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string path, object body, string? connectionAddress = null)
     {
@@ -130,7 +130,7 @@ public sealed class OwnerRegistrationTests(ApiFactory factory)
     {
         var email = NewEmail("quer-ser-admin");
 
-        using var response = await RegisterOwnerAsync(new { name = "Rui", email, password = Password, profile = requested, role = requested, roles = new[] { requested } });
+        using var response = await RegisterOwnerAsync(new { name = "Rui", email, password = Password, acceptedTermsVersion = "1.0", profile = requested, role = requested, roles = new[] { requested } });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("profile").GetString().ShouldBe(Profiles.Owner);
@@ -147,7 +147,7 @@ public sealed class OwnerRegistrationTests(ApiFactory factory)
         var email = NewEmail("admin-direto");
 
         await Should.ThrowAsync<ArgumentOutOfRangeException>(() =>
-            accounts.CreateAsync(new NewAccount("Rui", email, Password, null), Profiles.Admin, Ct));
+            accounts.CreateAsync(new NewAccount("Rui", email, Password, null, "1.0"), Profiles.Admin, Ct));
 
         (await AccountCountAsync(email)).ShouldBe(0);
     }

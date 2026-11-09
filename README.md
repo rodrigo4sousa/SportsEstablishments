@@ -139,6 +139,10 @@ The detailed documentation under `docs/` is written in Portuguese.
 - [Architecture](docs/architecture/README.md): C4 and 4+1 views, inventory, [decision records (ADR)](docs/architecture/adr/README.md).
 - Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
 - [Screenshots](docs/images/README.md).
+- Legal pages (in Portuguese): [`/terms`][terms-page] and [`/privacy`][privacy-page].
+
+[terms-page]: frontend/src/app/(legal)/terms/page.tsx
+[privacy-page]: frontend/src/app/(legal)/privacy/page.tsx
 - [AGENTS.md](AGENTS.md): the architecture and convention rules for whoever changes the code, including the commands.
 
 ## License and credits

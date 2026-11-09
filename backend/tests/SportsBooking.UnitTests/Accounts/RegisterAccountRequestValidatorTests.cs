@@ -9,7 +9,7 @@ public sealed class RegisterAccountRequestValidatorTests
 {
     private static readonly RegisterAccountRequestValidator Validator = new();
 
-    private static readonly RegisterAccountRequest ValidRequest = new("Ana Silva", "ana@exemplo.pt", "palavra-passe", "912 345 678");
+    private static readonly RegisterAccountRequest ValidRequest = new("Ana Silva", "ana@exemplo.pt", "palavra-passe", "1.0", "912 345 678");
 
     private static IReadOnlyDictionary<string, string[]> Errors(RegisterAccountRequest request) =>
         Validator.Validate(request.Normalized()).ToFieldErrors();
@@ -124,7 +124,7 @@ public sealed class RegisterAccountRequestValidatorTests
     [Fact]
     public void Every_invalid_field_gets_its_own_message()
     {
-        var errors = Errors(new RegisterAccountRequest("", "não-é-email", "curta", "123"));
+        var errors = Errors(new RegisterAccountRequest("", "não-é-email", "curta", "1.0", "123"));
 
         errors.Keys.ShouldBe(["name", "email", "password", "phone"], ignoreOrder: true);
     }
@@ -132,9 +132,9 @@ public sealed class RegisterAccountRequestValidatorTests
     [Fact]
     public void Normalization_trims_name_and_email_strips_phone_spaces_and_keeps_the_password()
     {
-        var normalized = new RegisterAccountRequest("  Ana Silva ", " Ana@Exemplo.pt ", " palavra ", " +351 912 345 678 ").Normalized();
+        var normalized = new RegisterAccountRequest("  Ana Silva ", " Ana@Exemplo.pt ", " palavra ", " 1.0 ", " +351 912 345 678 ").Normalized();
 
-        normalized.ShouldBe(new RegisterAccountRequest("Ana Silva", "Ana@Exemplo.pt", " palavra ", "+351912345678"));
-        new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe", "   ").Normalized().Phone.ShouldBeNull();
+        normalized.ShouldBe(new RegisterAccountRequest("Ana Silva", "Ana@Exemplo.pt", " palavra ", "1.0", "+351912345678"));
+        new RegisterAccountRequest("Ana", "ana@exemplo.pt", "palavra-passe", "1.0", "   ").Normalized().Phone.ShouldBeNull();
     }
 }

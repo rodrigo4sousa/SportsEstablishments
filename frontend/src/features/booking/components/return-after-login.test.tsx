@@ -122,6 +122,7 @@ describe("choosing a slot without a session, signing in, and coming back to it",
     await userEvent.type(screen.getByLabelText(/^nome$/i), "Rita Jogadora");
     await userEvent.type(screen.getByLabelText(/^email$/i), "rita@exemplo.pt");
     await userEvent.type(screen.getByLabelText(/palavra-passe/i), "palavra-passe");
+    await userEvent.click(screen.getByRole("checkbox", { name: /Termos e Condições/ }));
     await userEvent.click(screen.getByRole("button", { name: "Criar conta" }));
 
     await waitFor(() => expect(currentPath()).toBe(next));

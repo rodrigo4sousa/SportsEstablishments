@@ -31,6 +31,7 @@ const MESSAGES: Record<string, string> = {
   owner_not_deactivated: "Este dono não está desativado.",
   forbidden: "Não tens permissão para fazer esta ação.",
   email_taken: "Já existe uma conta com este email.",
+  terms_not_accepted: "Para criar conta, tens de aceitar os Termos e Condições e tomar conhecimento da Política de Privacidade.",
   validation_failed: "Há campos com erros. Corrige-os e tenta novamente.",
   origin_not_allowed: "O pedido foi recusado. Recarrega a página e tenta novamente.",
   too_many_requests: "Fizeste demasiados pedidos seguidos. Espera um pouco e tenta novamente.",

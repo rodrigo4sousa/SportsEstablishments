@@ -5364,7 +5364,8 @@
         "required": [
           "name",
           "email",
-          "password"
+          "password",
+          "acceptedTermsVersion"
         ],
         "type": "object",
         "properties": {
@@ -5375,6 +5376,9 @@
             "type": "string"
           },
           "password": {
+            "type": "string"
+          },
+          "acceptedTermsVersion": {
             "type": "string"
           },
           "phone": {

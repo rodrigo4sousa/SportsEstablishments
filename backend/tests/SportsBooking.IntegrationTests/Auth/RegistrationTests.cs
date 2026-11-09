@@ -25,7 +25,7 @@ public sealed class RegistrationTests(ApiFactory factory)
     private static string NewEmail(string prefix = "jogador") => $"{prefix}-{Guid.NewGuid():N}@exemplo.pt";
 
     private static object Registration(string email, string name = "Ana Silva", string password = Password, string? phone = "912 345 678") =>
-        new { name, email, password, phone };
+        new { name, email, password, phone, acceptedTermsVersion = "1.0" };
 
     private async Task<HttpResponseMessage> RegisterAsync(object body, HttpClient? client = null)
     {
@@ -115,7 +115,7 @@ public sealed class RegistrationTests(ApiFactory factory)
     {
         var email = NewEmail("quer-ser-admin");
 
-        using var response = await RegisterAsync(new { name = "Rui", email, password = Password, profile = Profiles.Admin, role = Profiles.Admin });
+        using var response = await RegisterAsync(new { name = "Rui", email, password = Password, acceptedTermsVersion = "1.0", profile = Profiles.Admin, role = Profiles.Admin });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("profile").GetString().ShouldBe(Profiles.Player);
@@ -131,7 +131,7 @@ public sealed class RegistrationTests(ApiFactory factory)
         var withoutPhone = NewEmail("sem-telemovel");
 
         using var first = await RegisterAsync(Registration($"  {withPhone} ", name: "  Ana Silva  ", phone: "+351 912 345 678"));
-        using var second = await RegisterAsync(new { name = "Rui", email = withoutPhone, password = Password });
+        using var second = await RegisterAsync(new { name = "Rui", email = withoutPhone, password = Password, acceptedTermsVersion = "1.0" });
 
         first.StatusCode.ShouldBe(HttpStatusCode.Created);
         second.StatusCode.ShouldBe(HttpStatusCode.Created);

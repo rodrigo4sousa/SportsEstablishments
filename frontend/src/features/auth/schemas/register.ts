@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { errorMessage } from "@/lib/api/error-messages";
 
 /**
  * US01 registration rules, for immediate feedback only: the API validates again and has the last word.
@@ -32,6 +33,8 @@ export const registerSchema = z.object({
     .transform((phone) => phone.replaceAll(" ", "").trim())
     .refine((phone) => phone === "" || PHONE_PATTERN.test(phone), "Indica um número de telemóvel válido, com 9 a 15 algarismos.")
     .transform((phone) => (phone === "" ? null : phone)),
+  // T07: the API stores the version, so the form only has to know that the box is ticked.
+  acceptTerms: z.boolean().refine(Boolean, errorMessage("terms_not_accepted")),
 });
 
 export type RegisterFormValues = z.input<typeof registerSchema>;

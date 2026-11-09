@@ -27,7 +27,9 @@ internal sealed class AccountStore(
             throw new ArgumentOutOfRangeException(nameof(profile), "Only the profiles in Profiles.SelfRegistration can be created by a registration.");
         }
 
-        var user = new AppUser(account.Email, account.Name, timeProvider.GetUtcNow().UtcDateTime) { PhoneNumber = account.Phone };
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var user = new AppUser(account.Email, account.Name, now) { PhoneNumber = account.Phone };
+        user.RecordTermsAcceptance(account.AcceptedTermsVersion, now);
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);

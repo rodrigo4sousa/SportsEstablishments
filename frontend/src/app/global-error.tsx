@@ -31,6 +31,16 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
             </a>
           </div>
         </main>
+        <footer className="border-t">
+          <nav aria-label="Informação legal" className="mx-auto flex w-full max-w-3xl flex-wrap gap-x-6 gap-y-1 px-4 py-3 text-sm">
+            <a href="/terms" className="inline-block py-1 underline underline-offset-4">
+              Termos e Condições
+            </a>
+            <a href="/privacy" className="inline-block py-1 underline underline-offset-4">
+              Política de Privacidade
+            </a>
+          </nav>
+        </footer>
       </body>
     </html>
   );
