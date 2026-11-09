@@ -42,15 +42,15 @@ C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arr
 
 **Produção, planeado (T06)**
 
-- C-BROWSER → C-WEB: HTTPS. O serviço web público do Render (PL-RENDER-WEB) é a **única entrada pública**.
-- C-WEB → C-API: HTTP pela rede interna do Render, para o URL interno do serviço privado (`API_INTERNAL_URL`). O serviço da API (PL-RENDER-API) **não tem URL público**: não há outra forma de lhe chegar a partir da internet.
-- C-API e C-WORKER → C-DB (PL-SUPABASE): SQL.
-- C-WORKER → PL-BREVO: SMTP na porta 587 com StartTls.
-- Cookies: são httpOnly e Secure; o `refresh_token` tem `Path=/api/auth`. Como o browser só conhece o domínio de C-WEB, são first-party. A API verifica que o `Origin` é o do site (`Security__AllowedOrigins__0`).
+- C-BROWSER → C-WEB: HTTPS, na origem da Vercel (PL-VERCEL). É a única origem que o browser conhece.
+- C-WEB → C-API: HTTPS pela Internet, para o URL público do serviço da API no Render (PL-RENDER-API, `API_INTERNAL_URL`), tanto no rewrite de `/api/*` como nos Server Components. A API também se alcança diretamente: o `Origin` e os limites protegem-na, e os limites por IP são só de melhor esforço.
+- C-API e C-WORKER → C-DB (PL-SUPABASE): SQL pelo pooler em modo sessão, como `sportsbooking_app`.
+- C-WORKER → PL-BREVO: SMTP na porta 2525 com StartTls (a confirmar), porque o plano gratuito do Render bloqueia as portas 25, 465 e 587.
+- Cookies: são httpOnly e Secure; o `refresh_token` tem `Path=/api/auth`. Como o browser só conhece a origem da Vercel, são first-party. A API verifica que o `Origin` é o do site (`Security__AllowedOrigins__0`).
 
 ## Notas
 
-- **Hoje o proxy reverso é o Next.js, não o Caddy.** Em desenvolvimento e no compose é C-WEB que reencaminha `/api/*`. O desenho antigo de produção (Caddy numa máquina virtual, em `docs/stack.md`) não é o plano atual: no plano do Render, o Next.js continua a ser o proxy e o Caddy não aparece (ver a nota no fim do [inventário](00-inventory.md)).
-- **O IP do cliente.** A API só confia em `X-Forwarded-For` de proxies configurados (`ForwardedHeaders:KnownProxies`), e nunca do contentor Next.js, porque o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Com o Next.js como único proxy, a API só vê o endereço de C-WEB como IP do cliente e todos os utilizadores partilham o mesmo limite. Como resolver isto no Render fica para a T06; este diagrama não afirma nenhuma solução.
-- O worker corre no processo da API: em produção (planeado (T06)) a API também envia emails e tem de ter pelo menos uma instância sempre a correr.
-- As migrações e o seed do admin correm no arranque da API em desenvolvimento. Como se aplicam em produção (utilizador da base de dados, migration bundle) é da T06.
+- **O proxy reverso é o Next.js, não o Caddy.** Em desenvolvimento e no compose é C-WEB que reencaminha `/api/*`; em produção é o rewrite do Next.js, servido pela Vercel. O desenho antigo (Caddy numa máquina virtual, em `docs/stack.md`) não foi adotado (ver a [ADR 0009](adr/0009-alvo-de-implantacao.md)).
+- **O IP do cliente.** Sem proxy configurado, a API ignora `X-Forwarded-For` e usa o endereço da ligação; é assim no compose, porque o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em produção a configuração é outra e é provisória (ver a [secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)).
+- O worker corre no processo da API: em produção (planeado (T06)) os emails e lembretes só saem enquanto a API estiver acordada.
+- As migrações correm no arranque da API só em desenvolvimento. Em produção aplica-as o GitHub Actions, com um migration bundle, como dono do esquema (ver a [secção 4.8 da vista física](06-physical-view.md#48-onde-correm-as-migrações-e-os-comandos)).

@@ -19,7 +19,8 @@ System(SYS, "App de Reservas de Campos", "Mercado único para reservar campos (f
 
 System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "Recebe os emails da aplicação. Em desenvolvimento é o X-MAILPIT.")
 System_Ext(PL_BREVO, "PL-BREVO · Brevo", "O servidor SMTP de produção.", $tags="planeado")
-System_Ext(PL_RENDER, "PL-RENDER · Render", "Plataforma onde a aplicação vai correr.", $tags="planeado")
+System_Ext(PL_VERCEL, "PL-VERCEL · Vercel", "Onde o site vai correr.", $tags="planeado")
+System_Ext(PL_RENDER, "PL-RENDER · Render", "Onde a API vai correr.", $tags="planeado")
 
 Rel(P_VIS, SYS, "Pesquisa clubes e horários", "HTTPS")
 Rel(P_JOG, SYS, "Reserva e cancela slots", "HTTPS")
@@ -29,7 +30,8 @@ Rel(P_CLI, P_DONO, "Pede uma reserva", "Telefone ou presença")
 Rel(P_OPS, SYS, "Configura e corre comandos", "Variáveis de ambiente, linha de comandos")
 Rel(SYS, X_SMTP, "Envia emails de reservas e contas", "SMTP")
 Rel(PL_BREVO, X_SMTP, "É o X-SMTP em produção", "")
-Rel_Back(PL_RENDER, SYS, "Aloja", "")
+Rel_Back(PL_VERCEL, SYS, "Aloja o site", "")
+Rel_Back(PL_RENDER, SYS, "Aloja a API", "")
 
 SHOW_LEGEND()
 @enduml

@@ -47,9 +47,8 @@ note right of WEB_SERVER
   Hoje, no compose: http://api:8080
   (argumento de build para os rewrites
   e variável de ambiente em execução).
-  **planeado (T06):** o endereço privado do
-  serviço da API no Render (PL-RENDER-API),
-  sem URL público.
+  **planeado (T06):** o URL público do
+  serviço da API no Render (PL-RENDER-API).
 end note
 
 note bottom of WEB_API_CLIENT

@@ -1,0 +1,16 @@
+name: Install the .NET SDK
+description: >-
+  The exact SDK of global.json, with the official install script (the same steps as ci.yml). actions/setup-dotnet resolves its
+  downloads through aka.ms to dotnetorigin.blob.core.windows.net, which answers 409 (actions/setup-dotnet#794).
+
+runs:
+  using: composite
+  steps:
+    - name: Install the .NET SDK
+      shell: bash
+      run: |
+        curl -sSfL https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+        bash "$RUNNER_TEMP/dotnet-install.sh" --jsonfile global.json --install-dir "$HOME/.dotnet" --azure-feed https://builds.dotnet.microsoft.com/dotnet
+        echo "DOTNET_ROOT=$HOME/.dotnet" >> "$GITHUB_ENV"
+        echo "$HOME/.dotnet" >> "$GITHUB_PATH"
+        echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"

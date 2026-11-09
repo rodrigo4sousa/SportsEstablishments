@@ -1,0 +1,147 @@
+name: Deploy
+
+# After CI passes on main: migrations, then the API, then the site, then a smoke test. See docs/deployment/runbook.md.
+# Nothing runs until the repository variable DEPLOY_ENABLED is 'true'.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply database migrations
+    if: >-
+      vars.DEPLOY_ENABLED == 'true'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: ./.github/actions/install-dotnet
+
+      - name: Restore the EF Core tool and the packages
+        working-directory: backend
+        run: dotnet tool restore && dotnet restore
+
+      - name: Build the migration bundle
+        working-directory: backend
+        run: dotnet ef migrations bundle --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --configuration Release --output efbundle --force
+
+      # The new schema goes live before the new API, so every migration must work with the previous API version.
+      # The bundle reads the connection string from the environment, so it is never on a command line.
+      - name: Apply the migrations
+        working-directory: backend
+        env:
+          ConnectionStrings__Default: ${{ secrets.DB_OWNER_CONNECTION_STRING }}
+        run: ./efbundle
+
+  deploy-api:
+    name: Deploy the API to Render
+    needs: migrate
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the deploy hook for this commit
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          COMMIT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -X POST "${RENDER_DEPLOY_HOOK_URL}&ref=${COMMIT}" || true)
+          case "$status" in
+            200) echo "Render accepted the deploy." ;;
+            202) echo "::notice::Render has another deploy in progress and will run this one afterwards." ;;
+            *) echo "::error::The Render deploy hook answered HTTP $status (000 means no answer)."; exit 1 ;;
+          esac
+
+      # Render keeps the previous instance serving during a build, so a 200 says the API answers, not that this commit is live yet.
+      - name: Wait for the API to answer
+        env:
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: |
+          deadline=$((SECONDS + 360))
+          while true; do
+            status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "${RENDER_API_URL}/health" || true)
+            if [ "$status" = "200" ]; then
+              echo "The API answers on /health."
+              exit 0
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::The API did not answer 200 on /health within 6 minutes (last HTTP status: $status). Check the deploy and the logs in Render."
+              exit 1
+            fi
+            echo "Not ready yet (HTTP $status); trying again in 15 seconds."
+            sleep 15
+          done
+
+  deploy-web:
+    name: Deploy the site to Vercel
+    needs: deploy-api
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # The production variables stay in Vercel: `vercel pull` brings them. The CLI runs from the repository root because the project's
+    # Root Directory is `frontend`: from inside it, the CLI looks for frontend/frontend and fails.
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@65.2.0
+
+      - name: Pull the project settings and production variables
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy the build
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  smoke:
+    name: Smoke test
+    needs: deploy-web
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Only reads: no login, no data written.
+      - name: The site and the API answer
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: |
+          check() {
+            local name=$1 url=$2 status=""
+            for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$url" || true)
+              if [ "$status" = "200" ]; then
+                echo "$name: 200"
+                return 0
+              fi
+              echo "$name: HTTP $status on attempt $attempt; trying again in 10 seconds."
+              sleep 10
+            done
+            echo "::error::$name did not answer 200 (last HTTP status: $status)."
+            return 1
+          }
+          check "The site" "$SITE_URL"
+          check "The API" "${RENDER_API_URL}/health"

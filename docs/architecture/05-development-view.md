@@ -24,7 +24,7 @@ Fonte: [05-dev-repo.puml](diagrams/05-dev-repo.puml).
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |
 | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` | DEV-ROOTCFG | Na raiz. `global.json` fixa o SDK 10.0.400 (`rollForward: latestFeature`) e escolhe o executor `Microsoft.Testing.Platform`. `.editorconfig` impõe UTF-8, `lf`, 2 espaços (4 em `.cs`) e namespaces com âmbito de ficheiro. `.gitattributes` fixa `eol=lf`. |
 
-Não existem ainda (planeados na T06): `Caddyfile` e o workflow `deploy.yml`. Ver as [Notas](#7-notas-e-diferenças-encontradas).
+Workflows de implantação da T06: `.github/workflows/deploy.yml` e `prod-data.yml`, que usam `.github/actions/install-dotnet`. Ver a [vista física](06-physical-view.md#48-onde-correm-as-migrações-e-os-comandos). Não há `Caddyfile` (ver as [Notas](#7-notas-e-diferenças-encontradas)).
 
 ## 2. Back end
 
@@ -187,7 +187,7 @@ A ordem segue as dependências: cada passo assenta no anterior. Os commits de sq
 
 Diferenças entre o código e outros documentos, só registadas aqui (esta parte não altera código, testes nem os outros documentos):
 
-1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra `Caddyfile` e `deploy.yml` na árvore do repositório; nenhum dos dois ficheiros existe (são da T06). A mesma secção promete ADRs «em `docs/`»: estão em `docs/architecture/adr/` (0001 a 0009).
+1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra um `Caddyfile` na árvore do repositório, que não existe: a [ADR 0009](adr/0009-alvo-de-implantacao.md) substitui essa parte. A mesma secção promete ADRs «em `docs/`»: estão em `docs/architecture/adr/` (0001 a 0009).
 2. O `README.md` da raiz foi reescrito (pull request #29) e já descreve os três jobs de CI, incluindo `diagrams`, e a estrutura atual do repositório; esta nota fica só como registo.
 3. `frontend/Dockerfile` copia `/app/public`, que não existe no repositório; o próprio `Dockerfile` cria a pasta vazia (`mkdir -p public`) e explica-o num comentário. Não é erro.
 4. A `main` não tem proteção de branch no GitHub; o `README.md`, o `docs/stack.md` e o `AGENTS.md` dizem-no como é, e o CI verde confirma-se à mão antes de cada merge.

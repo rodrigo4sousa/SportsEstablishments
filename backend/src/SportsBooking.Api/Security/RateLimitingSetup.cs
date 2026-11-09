@@ -24,7 +24,7 @@ internal static class AuthRateLimits
     public const string PasswordResetConfirm = "auth-password-reset-confirm";
 }
 
-internal static class RateLimitingSetup
+internal static partial class RateLimitingSetup
 {
     /// <summary>
     /// US03, US05, T06: fixed-window limits per client IP on login, registration, refresh, the two password-reset steps and the public read
@@ -39,7 +39,11 @@ internal static class RateLimitingSetup
         services.AddOptions<ForwardedHeadersOptions>()
             .Configure<IOptions<TrustedProxyOptions>>((forwarded, trusted) =>
             {
-                forwarded.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+                // The middleware believes anyone when both lists are empty, so "no proxy configured" has to turn the headers off.
+                forwarded.ForwardedHeaders = trusted.Value.TrustsAProxy
+                    ? ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                    : ForwardedHeaders.None;
+                forwarded.ForwardLimit = trusted.Value.ForwardLimit;
                 // The defaults trust loopback; only configured proxies are trusted here.
                 forwarded.KnownProxies.Clear();
                 forwarded.KnownIPNetworks.Clear();
@@ -88,6 +92,12 @@ internal static class RateLimitingSetup
     private static async ValueTask WriteTooManyRequestsAsync(OnRejectedContext rejected, CancellationToken cancellationToken)
     {
         var context = rejected.HttpContext;
+        // The address after the trusted forwarded headers were applied: also how T06 checks ForwardedHeaders:ForwardLimit on a real host.
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("SportsBooking.Api.Security.RateLimiting");
+        var clientPartition = ClientPartition.For(context.Connection.RemoteIpAddress);
+        string path = context.Request.Path;
+        LogRejected(logger, clientPartition, path);
+
         if (rejected.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
             context.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -105,4 +115,7 @@ internal static class RateLimitingSetup
             },
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Too many requests from client {ClientPartition} to {Path}.")]
+    private static partial void LogRejected(ILogger logger, string clientPartition, string path);
 }

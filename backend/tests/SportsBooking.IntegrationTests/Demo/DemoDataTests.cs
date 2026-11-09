@@ -10,10 +10,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Scheduling;
+using SportsBooking.Infrastructure;
 using SportsBooking.Infrastructure.Demo;
 using SportsBooking.Infrastructure.Identity;
 using SportsBooking.Infrastructure.Persistence;
@@ -476,6 +478,7 @@ public sealed class DemoDataTests(ApiFactory factory)
             scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>(),
             scope.ServiceProvider.GetRequiredService<IPasswordHasher<AppUser>>(),
             new StubEnvironment(environmentName),
+            Options.Create(new DemoDataOptions()),
             scope.ServiceProvider.GetRequiredService<TimeProvider>(),
             NullLogger<DemoDataSeeder>.Instance);
         return await Should.ThrowAsync<DemoSeedRefusedException>(() => seeder.SeedAsync(Ct));
@@ -492,6 +495,52 @@ public sealed class DemoDataTests(ApiFactory factory)
         public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 
+    private WebApplicationFactory<Program> ProductionApp(string? allowance) =>
+        NewApp(DateTimeOffset.UtcNow)
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Production");
+                if (allowance is not null)
+                {
+                    builder.UseSetting("DemoData:AllowInProduction", allowance);
+                }
+            });
+
+    private static async Task<(int ExitCode, string Error)> RunCommandAsync(WebApplicationFactory<Program> app)
+    {
+        await app.Services.MigrateDatabaseAsync(Ct);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exitCode = await DemoDataCommand.RunAsync(app.Services, output, error, Ct);
+        return (exitCode, error.ToString());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("false")]
+    public async Task The_command_is_refused_in_production_without_the_explicit_allowance(string? allowance)
+    {
+        await using var app = ProductionApp(allowance);
+
+        var (exitCode, error) = await RunCommandAsync(app);
+
+        exitCode.ShouldBe(1);
+        error.ShouldContain("DemoData:AllowInProduction");
+        (await SnapshotAsync(app)).Users.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_command_runs_in_production_with_the_explicit_allowance()
+    {
+        await using var app = ProductionApp("true");
+
+        var (exitCode, error) = await RunCommandAsync(app);
+
+        error.ShouldBeEmpty();
+        exitCode.ShouldBe(0);
+        (await SnapshotAsync(app)).Users.ShouldNotBeEmpty();
+    }
+
     [Fact]
     public async Task It_refuses_in_the_production_environment_and_creates_nothing()
     {
@@ -499,7 +548,7 @@ public sealed class DemoDataTests(ApiFactory factory)
 
         var refused = await SeedRefusedAsync(app, "Production");
 
-        refused.Message.ShouldBe("Demo data is never created in the Production environment.");
+        refused.Message.ShouldBe("Demo data is not created in the Production environment unless DemoData:AllowInProduction is true.");
         var data = await SnapshotAsync(app);
         data.Users.ShouldBeEmpty();
         data.Clubs.ShouldBeEmpty();

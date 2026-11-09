@@ -35,6 +35,8 @@ builder.Services
 
 // Missing fields reach FluentValidation (pt-PT messages per field) instead of MVC's implicit [Required].
 builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+// Liveness only, with no checks: a database that is paused or down must not make the host restart a process that is fine (T06).
+builder.Services.AddHealthChecks();
 builder.Services.AddApiProblemDetails();
 builder.Services.AddOriginCheck(builder.Configuration);
 builder.Services.AddApiRateLimiting(builder.Configuration);
@@ -43,7 +45,9 @@ builder.Services.AddOpenApi(options => options.AddSchemaTransformer<ProblemDetai
 
 var app = builder.Build();
 
-// First: the client IP (rate limiting) comes from X-Forwarded-For only when a trusted proxy sent it.
+// First: the client IP and scheme come from X-Forwarded-For and -Proto only when a proxy is trusted (TrustedProxyOptions). TLS ends at the
+// host, so the API speaks HTTP and never redirects to HTTPS. The API is public on Render, so a direct caller can forge these headers: the
+// IP-based rate limits are best-effort there, and the Identity account lockout is the real protection against guessing passwords.
 app.UseForwardedHeaders();
 app.UseResponseSecurityHeaders();
 app.UseExceptionHandler();
@@ -66,9 +70,10 @@ if (!isOpenApiGeneration)
     // Invalid settings (e.g. a partial admin seed) stop the API before it touches the database.
     app.Services.GetRequiredService<IStartupValidator>().Validate();
 
-    // Migrations run here in Development, or when Database:ApplyMigrationsOnStartup is set. How production applies them is a T06
-    // decision (ADR 0009, proposed): the plan is a step before the API starts, but no migration bundle exists yet.
-    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+    // Migrations run here in Development, or when Database:ApplyMigrationsOnStartup is set. Never in Production, whatever the setting
+    // says: the API connects there as a user without DDL rights, and T06 applies migrations in a step before the API starts.
+    if (!app.Environment.IsProduction()
+        && (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup")))
     {
         await app.Services.MigrateDatabaseAsync();
     }

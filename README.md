@@ -80,7 +80,7 @@ Search, club page, owner calendar and admin dashboard. All eight screenshots, an
 - **PostgreSQL**, the only data store, also enforces the rule against double bookings.
 - **A background email worker** inside the API process sends messages written to an outbox table in the same transaction as the change that caused them.
 
-<img src="docs/architecture/diagrams/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; the planned Render and Brevo services are dashed" width="800">
+<img src="docs/architecture/diagrams/01-context.svg" alt="C4 system context: visitor, player, owner and admin use the booking system, which sends email over SMTP; the planned Vercel, Render and Brevo services are dashed" width="800">
 
 <img src="docs/architecture/diagrams/02-containers-dev.svg" alt="C4 containers in development: browser, Next.js, ASP.NET Core API with the email worker, PostgreSQL and Mailpit" width="500">
 
@@ -158,7 +158,7 @@ docker compose run --rm api seed-demo                          # with the compos
 dotnet run --project backend/src/SportsBooking.Api -- seed-demo   # API outside Docker (needs: docker compose up -d postgres)
 ```
 
-It exits without starting the server, sends no email, and refuses in Production or when any owner or player already exists. Every demo account has the same **development-only** password, `demo-password-1`; never use it anywhere real.
+It exits without starting the server, sends no email, and refuses when any owner or player already exists. It also refuses in Production unless `DemoData__AllowInProduction=true` is set on that one process. Every demo account has the same **development-only** password, `demo-password-1`; never use it anywhere real.
 
 | Role | Email |
 | --- | --- |
@@ -261,15 +261,16 @@ The backlog, the Stack document and the architecture documents are in Portuguese
 - [Stack and practices](docs/stack.md): the stack, backend architecture, authentication, frontend, data and concurrency, validation and errors, tests, and the security checklist.
 - [Architecture](docs/architecture/README.md): reading guide, C4 and 4+1 views, element inventory and diagram gallery.
 - [Architecture decision records](docs/architecture/adr/README.md): ADRs 0001 to 0008 are accepted; [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) (deployment target) is a proposal.
+- Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
 - [Screenshots](docs/screenshots/README.md): what each image shows and which data it uses.
 
 ## Status and roadmap
 
-**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built except T06, continuous deployment (5 points): 34 stories and 124 points, including all optional stories. Dependabot and the security headers, planned before T06, are in place.
+**Done.** The backlog counts 35 stories and 129 story points: 25 MVP stories (92 points) and 10 optional stories (37 points). Everything is built, including all optional stories. T06, continuous deployment (5 points), is implemented in code and its first real deployment is pending: 34 stories and 124 points are complete. Dependabot and the security headers, planned before T06, are in place.
 
 **Planned.**
 
-- Deployment (T06), not started. The **planned** hosting, proposed in ADR 0009 and not yet decided: Render for the public web app and a private API service, Supabase for PostgreSQL, and Brevo for email. Turning on HSTS is a build setting, off until the site is served over HTTPS. Before deployment, the client IP used for rate limiting must be handled ([physical view, section 4.4](docs/architecture/06-physical-view.md#44-o-ip-do-cliente)).
+- Deployment (T06): the workflows and configuration are written, and nothing is deployed yet. The target, a proposal in ADR 0009 until the first real deployment: the site on Vercel, the API on Render's free plan, Supabase for PostgreSQL, Brevo for email, and GitHub Actions for the pipelines. See the [runbook](docs/deployment/runbook.md) and the [environment variables](docs/deployment/environment-variables.md).
 
 > **Live demo:** to be added after the deployment.
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Domain.Clubs;
@@ -32,7 +33,7 @@ public sealed record DemoSeedSummary(
 /// <summary>
 /// T05: demo data for showing the app and for the admin's numbers: owners, clubs, pitches, blocks, players and bookings
 /// from the last 60 days and the next 14. It runs only from the explicit <c>seed-demo</c> command (never at startup),
-/// refuses in the Production environment and refuses if any owner or player exists (provisional), so it can never be
+/// refuses in the Production environment unless <see cref="DemoDataOptions.AllowInProduction"/> is set, and refuses if any owner or player exists (provisional), so it can never be
 /// mixed with real data. Everything goes through the same entities and rules as the app (<see cref="Club.Create"/>,
 /// <see cref="Pitch.ChangeSchedule"/>, <see cref="Booking.ForPlayer"/>, <see cref="Booking.CancelByPlayer"/>, …); the one
 /// thing it bypasses is the service rule "no bookings in the past", by building the bookings itself. Every booking is on a
@@ -47,6 +48,7 @@ public sealed partial class DemoDataSeeder(
     UserManager<AppUser> users,
     IPasswordHasher<AppUser> passwordHasher,
     IHostEnvironment environment,
+    IOptions<DemoDataOptions> options,
     TimeProvider timeProvider,
     ILogger<DemoDataSeeder> logger)
 {
@@ -73,7 +75,12 @@ public sealed partial class DemoDataSeeder(
     {
         if (environment.IsProduction())
         {
-            throw new DemoSeedRefusedException("Demo data is never created in the Production environment.");
+            if (!options.Value.AllowInProduction)
+            {
+                throw new DemoSeedRefusedException($"Demo data is not created in the Production environment unless {DemoDataOptions.AllowInProductionSetting} is true.");
+            }
+
+            LogAllowedInProduction(logger);
         }
 
         var hasOwnersOrPlayers = await (
@@ -235,6 +242,9 @@ public sealed partial class DemoDataSeeder(
 
         return blocks;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Creating demo data in the Production environment, because DemoData:AllowInProduction is true.")]
+    private static partial void LogAllowedInProduction(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Demo data created: {Owners} owners, {Players} players, {Clubs} clubs, {Pitches} pitches, {Blocks} blocks, {Bookings} bookings.")]
     private static partial void LogSeeded(ILogger logger, int owners, int players, int clubs, int pitches, int blocks, int bookings);

@@ -14,11 +14,20 @@ namespace SportsBooking.Infrastructure.Notifications;
 internal sealed partial class OutboxDispatcher(
     IServiceScopeFactory scopeFactory,
     IOptions<OutboxOptions> options,
+    IOptions<EmailOptions> emailOptions,
     TimeProvider timeProvider,
     ILogger<OutboxDispatcher> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Only Production gets here without SMTP (EmailOptionsValidator). Not trying keeps the messages for when SMTP is set: failing
+        // would use up their retries. Bookings and cancellations only write to the outbox, so they carry on either way.
+        if (!emailOptions.Value.IsConfigured)
+        {
+            LogSmtpNotConfigured(logger);
+            return;
+        }
+
         var settings = options.Value;
         if (!settings.Enabled)
         {
@@ -57,6 +66,9 @@ internal sealed partial class OutboxDispatcher(
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "SMTP is not configured (Email:Host and Email:FromAddress are empty): no email will be sent, and messages stay in the outbox until it is.")]
+    private static partial void LogSmtpNotConfigured(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The outbox worker is turned off (Outbox:Enabled = false).")]
     private static partial void LogDisabled(ILogger logger);

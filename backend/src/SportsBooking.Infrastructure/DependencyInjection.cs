@@ -68,9 +68,9 @@ public static class DependencyInjection
         services.AddScoped<IOwnerStatusStore, OwnerStatusStore>();
         // T05: only the `seed-demo` command ever asks for it.
         services.AddScoped<DemoDataSeeder>();
-
-        services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>("database");
+        services.AddOptions<DemoDataOptions>()
+            .Bind(configuration.GetSection(DemoDataOptions.SectionName))
+            .ValidateOnStart();
 
         services.AddAccounts(configuration);
         services.AddSessions(configuration);
@@ -171,7 +171,7 @@ public static class DependencyInjection
         });
     }
 
-    /// <summary>Applies pending EF Core migrations. Development, or when <c>Database:ApplyMigrationsOnStartup</c> is set. How production applies them is decided in T06 (ADR 0009, proposed); no migration bundle exists yet.</summary>
+    /// <summary>Applies pending EF Core migrations. Development, or when <c>Database:ApplyMigrationsOnStartup</c> is set, and never in Production (T06 applies them in a step before the API starts).</summary>
     public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();

@@ -6,6 +6,7 @@ import { getSessionAccount } from "./session";
 let cookieHeader = "";
 vi.mock("next/headers", () => ({
   cookies: async () => ({ toString: () => cookieHeader }),
+  headers: async () => new Headers({ "x-forwarded-for": "198.51.100.7" }),
 }));
 
 const account = { id: "0199f7a0-0000-7000-8000-0000000000aa", name: "Rui Dono", email: "rui@exemplo.pt", profile: "Owner" };
@@ -18,10 +19,10 @@ describe("getSessionAccount", () => {
   });
 
   it("reads the account from the internal API with the user's own cookies, uncached", async () => {
-    let received: { cookie: string | null } | null = null;
+    let received: { cookie: string | null; forwardedFor: string | null } | null = null;
     server.use(
       http.get(ME, ({ request }) => {
-        received = { cookie: request.headers.get("Cookie") };
+        received = { cookie: request.headers.get("Cookie"), forwardedFor: request.headers.get("X-Forwarded-For") };
         return HttpResponse.json(account);
       }),
     );
@@ -29,7 +30,7 @@ describe("getSessionAccount", () => {
 
     await expect(getSessionAccount()).resolves.toEqual(account);
 
-    expect(received).toEqual({ cookie: "access_token=abc; other=1" });
+    expect(received).toEqual({ cookie: "access_token=abc; other=1", forwardedFor: "198.51.100.7" });
     expect(fetchSpy).toHaveBeenCalledWith(ME, expect.objectContaining({ cache: "no-store" }));
     fetchSpy.mockRestore();
   });

@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { Account } from "@/features/auth/api";
 import { apiInternalUrl } from "./api-url";
+import { visitorIpHeader } from "./visitor-ip";
 
 /**
  * The signed-in account, read on the server from `GET /api/auth/me` with the user's own cookies; null when there is
@@ -16,7 +17,7 @@ export async function getSessionAccount(): Promise<Account | null> {
   }
 
   const response = await fetch(`${apiInternalUrl()}/api/auth/me`, {
-    headers: { Cookie: cookie, Accept: "application/json" },
+    headers: { Cookie: cookie, Accept: "application/json", ...(await visitorIpHeader()) },
     cache: "no-store",
   });
   if (response.status === 401) {
