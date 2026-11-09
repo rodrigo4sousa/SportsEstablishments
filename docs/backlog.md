@@ -2,7 +2,7 @@
  
 Oct 22, 2026 · @Rodri
  
-O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 37. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
+O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 40. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
  
 ## Pontos a rever no T06
 
@@ -663,7 +663,7 @@ Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que
   - O dono desativado não vê as reservas nem os clubes até ser reativado; o jogador vê as suas reservas como sempre.
 ## Histórias técnicas
  
-Não são visíveis para o utilizador, mas sem elas as estimativas das outras histórias ficam erradas. Todas são MVP.
+Não são visíveis para o utilizador, mas sem elas as estimativas das outras histórias ficam erradas. Todas são MVP, exceto a T07, acrescentada depois.
  
 ### T01 · Estrutura, Docker e CI · 5 pontos
  
@@ -741,6 +741,21 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
   - **Provisório (frequência do keepalive):** a documentação do Supabase diz que um projeto gratuito é pausado com «low activity over a 7-day period» sem dar um número, e que «a few user requests to the database each day» costumam chegar; duas consultas por semana pode ser pouco. Aumentar a frequência é mudar o `cron`.
   - **Provisório (o que conta como atividade):** a documentação do Supabase não diz se uma visita ao painel conta como atividade na base de dados; a do GitHub não define «repository activity» para a regra dos 60 dias que desativa os workflows agendados nos repositórios públicos.
 - Parte A (código e configuração) feita: proxy para a API definido no build, `Origin` configurável, IP do cliente, imagem Docker para o Render, variáveis em `docs/deployment/environment-variables.md`, comandos em Production.
+### T07 · Termos e Política de Privacidade · 3 pontos
+
+Como dono da plataforma, quero publicar os Termos e Condições e a Política de Privacidade e guardar a aceitação no registo, para que quem cria conta saiba o que aceita e que dados são tratados.
+
+- Existem as páginas `/terms` e `/privacy`, geradas no servidor, com um layout comum, títulos e regiões corretos, e com «Última atualização» e a versão, que vive num só módulo.
+- Todas as páginas têm no rodapé uma ligação para as duas.
+- Cada afirmação de facto pode ser confirmada no repositório, em `docs/deployment` ou na aplicação a correr; o que não se pode confirmar diz «a confirmar».
+- A Política diz quem é o responsável e o contacto, que dados são recolhidos e para quê, a base legal de cada finalidade, os subcontratantes e o que cada um recebe, quanto tempo os dados ficam, os cookies, os direitos do RGPD e como exercê-los, a queixa à CNPD e quem responde pelos dados dos clientes sem conta introduzidos pelos donos.
+- Os Termos dizem o que é o serviço (demonstração pessoal, sem fins comerciais e sem garantias, que pode ser desligada e demora a acordar), as contas, as regras das reservas, as responsabilidades dos donos, a utilização aceitável, a disponibilidade e os limites de responsabilidade, as alterações, a lei portuguesa e o contacto.
+- Só há cookies estritamente necessários e, por isso, não há banner; os cookies e o armazenamento descritos são os que se observam no browser.
+- Os dois registos (jogador e dono) têm uma caixa obrigatória, «Li e aceito os Termos e Condições e tomei conhecimento da Política de Privacidade», com ligações para as duas páginas e mensagem de erro se não estiver marcada, utilizável com teclado e leitor de ecrã.
+- A API guarda a versão aceite e a data (`TimeProvider`) em colunas opcionais de `users`, pelo mesmo caminho nos dois registos. Um registo sem aceitação é recusado com um código estável.
+- Uma só migração compatível com a versão anterior da API (colunas opcionais, sem mexer em dados). As contas que já existem e as de demonstração ficam sem valor, não são bloqueadas e nunca se diz que aceitaram.
+- O axe não encontra violações em `/terms`, `/privacy` e no formulário de registo.
+- Estado: por fazer.
 ## Resumo de pontos
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
@@ -751,9 +766,9 @@ Como programador, quero que cada merge na main fique publicado automaticamente, 
 | 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
 | 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
 | 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
-| Histórias técnicas | 6 | 23 | 0 | 0 | 6 de 6 | 23 de 23 |
-| **Total** | **25** | **92** | **10** | **37** | **35 de 35** | **129 de 129** |
+| Histórias técnicas | 6 | 23 | 1 | 3 | 6 de 7 | 23 de 26 |
+| **Total** | **25** | **92** | **11** | **40** | **35 de 36** | **129 de 132** |
 
-Estado final: tudo está feito. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
+Estado: falta a T07 (termos e privacidade). A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
  
 As duas histórias de 8 pontos (US11 e US20) são as primeiras a dividir se não couberem num sprint.
