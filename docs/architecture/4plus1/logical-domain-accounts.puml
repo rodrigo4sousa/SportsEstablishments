@@ -16,7 +16,7 @@ package "SportsBooking.Domain (L-DOM)" {
     {static} Admin = "Admin"
     {static} SelfRegistration = [Player, Owner]
   }
-  class "EmailAddressPolicy, AccountNamePolicy,\nPhoneNumberPolicy, PasswordPolicy" as Policies <<D-POLICIES>> {
+  class "EmailAddressPolicy, AccountNamePolicy,\nPhoneNumberPolicy, PasswordPolicy,\nTermsAcceptancePolicy" as Policies <<D-POLICIES>> {
     {static} PasswordPolicy.MinimumLength = 8
   }
   class Booking <<D-BOOKING>> {
@@ -34,9 +34,12 @@ package "SportsBooking.Infrastructure (L-INF)" {
     PasswordHash, SecurityStamp
     RegisteredAt : DateTime (UTC)
     DeactivatedAt : DateTime?
+    AcceptedTermsVersion : string?
+    TermsAcceptedAt : DateTime?
     --
     IsActive : bool
     Deactivate(now)
+    RecordTermsAcceptance(version, acceptedAt)
   }
   note top of AppUser : IdentityUser<Guid>
 

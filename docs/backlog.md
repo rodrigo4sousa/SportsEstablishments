@@ -2,7 +2,7 @@
  
 Oct 22, 2026 · @Rodri
  
-O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 40. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
+O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 45. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
  
 ## Pontos a rever no T06
 
@@ -157,6 +157,14 @@ Como utilizador, quero redefinir a palavra-passe por email, para recuperar o ace
   - Se resultar: 204, palavra-passe mudada pelo Identity (novo security stamp), todos os refresh tokens da conta revogados, bloqueio por tentativas limpo, e um email «A tua palavra-passe foi alterada» na fila (`password_changed`, sem ligação). **Não entra automaticamente**: a pessoa inicia sessão com a nova palavra-passe.
   - Nunca vão para os logs o email, o token, a ligação ou a palavra-passe (tem teste).
   - As chaves de Data Protection que protegem os tokens ficam na base de dados (tabela `data_protection_keys`, `PersistKeysToDbContext`, nome de aplicação fixo `SportsBooking`), por isso uma ligação enviada antes de um reinício, de um deploy ou de uma segunda instância continua a funcionar (tem teste). **As cópias de segurança da base de dados guardam também as chaves**: têm de ser tratadas como segredos.
+### US30 · Apagar a conta e exportar os meus dados · D · 5 pontos
+
+Como utilizador, quero apagar a minha conta e descarregar os meus dados, para exercer os meus direitos do RGPD sem ter de escrever um email. Enquanto não existir, a Política de Privacidade (T07) indica o pedido por email, tratado à mão.
+
+- Na área da conta, um jogador ou dono pode descarregar os seus dados num formato de uso comum (conta e reservas).
+- Pode pedir o apagamento da conta, com confirmação; os dados pessoais deixam de estar associados às reservas, que continuam a existir para os clubes sem identificar a pessoa.
+- O que acontece às contas de dono com clubes e às reservas futuras fica decidido antes de começar (hoje as reservas nunca se apagam e um clube não pode ficar sem dono).
+- Estado: por fazer (nasceu da T07).
 ## Épico 2 — Configuração do clube
  
 ### US06 · Criar e editar clube · M · 3 pontos
@@ -755,20 +763,25 @@ Como dono da plataforma, quero publicar os Termos e Condições e a Política de
 - A API guarda a versão aceite e a data (`TimeProvider`) em colunas opcionais de `users`, pelo mesmo caminho nos dois registos. Um registo sem aceitação é recusado com um código estável.
 - Uma só migração compatível com a versão anterior da API (colunas opcionais, sem mexer em dados). As contas que já existem e as de demonstração ficam sem valor, não são bloqueadas e nunca se diz que aceitaram.
 - O axe não encontra violações em `/terms`, `/privacy` e no formulário de registo.
-- Estado: por fazer.
+- Estado: feita. Páginas em `frontend/src/app/(legal)`, versão e data em `features/legal/legal-info.ts`, rodapé no layout raiz (`SiteFooter`). Pedido de registo com `acceptedTermsVersion`; colunas `users.accepted_terms_version` e `users.terms_accepted_at` (migração `AddTermsAcceptance`); sem aceitação, 400 `terms_not_accepted`, com a mensagem em `errors.acceptedTermsVersion`. Os erros dos outros campos vêm primeiro (400 `validation_failed`). O `docs/deployment/supabase-roles.sql` não muda: os direitos são por tabela e as colunas novas herdam-nos.
+- Verificado na aplicação a correr (docker compose): dois cookies, `access_token` (`/`, httpOnly, Secure, Lax, 15 minutos) e `refresh_token` (`/api/auth`, httpOnly, Secure, Strict, 7 dias), só depois de entrar; nada em `localStorage` nem em `sessionStorage`; nenhum pedido a outra origem (as fontes são servidas pelo próprio site).
+- **Provisório (janela do deploy):** a API nova fica ativa antes do site novo, por isso, durante esses minutos, o registo pelo site antigo recebe 400. Não há forma barata de o evitar num só deploy: a alternativa, publicar primeiro o site e só depois exigir a aceitação na API, pede duas entregas e deixa contas sem registo de aceitação nesse intervalo. Aceite numa demonstração.
+- **Provisório (textos legais):** as bases legais de cada finalidade e a divisão de responsabilidades sobre os dados dos clientes sem conta foram escritas de forma conservadora e sem revisão jurídica.
+- **Provisório (a confirmar nas páginas):** a localização do Brevo e do resto do serviço da Vercel (além das funções), a existência de transferências para fora da União Europeia e o tempo de conservação dos registos (logs) no Render e na Vercel. As regiões de Frankfurt (Render, Supabase e funções da Vercel) foram indicadas pelo dono do projeto.
+- **Provisório (versão aceite):** a API guarda a versão que o site envia (não vazia, até 32 caracteres) e não a compara com uma lista, para o site continuar a ser o único sítio que define as versões.
 ## Resumo de pontos
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 — Contas e acesso | 4 | 12 | 1 | 3 | 5 de 5 | 15 de 15 |
+| 1 — Contas e acesso | 4 | 12 | 2 | 8 | 5 de 6 | 15 de 20 |
 | 2 — Configuração do clube | 4 | 16 | 1 | 5 | 5 de 5 | 21 de 21 |
 | 3 — Operação do clube | 3 | 13 | 2 | 7 | 5 de 5 | 20 de 20 |
 | 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
 | 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
 | 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
-| Histórias técnicas | 6 | 23 | 1 | 3 | 6 de 7 | 23 de 26 |
-| **Total** | **25** | **92** | **11** | **40** | **35 de 36** | **129 de 132** |
+| Histórias técnicas | 6 | 23 | 1 | 3 | 7 de 7 | 26 de 26 |
+| **Total** | **25** | **92** | **12** | **45** | **36 de 37** | **132 de 137** |
 
-Estado: falta a T07 (termos e privacidade). A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
+Estado: falta a US30 (apagar a conta e exportar os dados), que nasceu da T07. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
  
 As duas histórias de 8 pontos (US11 e US20) são as primeiras a dividir se não couberem num sprint.
