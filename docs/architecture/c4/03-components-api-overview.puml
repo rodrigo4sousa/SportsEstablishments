@@ -1,6 +1,6 @@
 ' C4 nível 3 - Componentes da API · visão geral por funcionalidade
 ' Version 1.0 - 2026-11-09
-' Not drawn: classes individuais; os componentes de arranque e de linha de comandos (API-ADMINSEED, API-DEMO, API-ADMINPW) estão só no diagrama de contas.
+' Não desenhado: classes individuais; os componentes de arranque e de linha de comandos (API-ADMINSEED, API-DEMO, API-ADMINPW) estão só no diagrama de contas.
 @startuml 03-components-api-overview
 !include <C4/C4_Component>
 !include ../style.puml

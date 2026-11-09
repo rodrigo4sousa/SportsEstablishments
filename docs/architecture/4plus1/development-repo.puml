@@ -1,8 +1,8 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
 ' Version 1.0 - 2026-11-09
-' For: quem vai mudar o código.
-' Decision documented: Um só repositório com o back end, o front end, a documentação e o CI.
-' Not drawn: classes, endpoints e regras de negócio.
+' Para: quem vai mudar o código.
+' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
+' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-repo
 !include ../style.puml
 title Vista de desenvolvimento · estrutura do repositório

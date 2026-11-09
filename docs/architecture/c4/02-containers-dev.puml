@@ -1,6 +1,6 @@
 ' C4 nível 2 - Contentores · desenvolvimento (docker compose)
 ' Version 1.0 - 2026-11-09
-' Not drawn: classes, pastas e componentes internos; o C-CLI (seed-demo, set-admin-password) é o mesmo executável da API e não tem caixa.
+' Não desenhado: classes, pastas e componentes internos; o C-CLI (seed-demo, set-admin-password) é o mesmo executável da API e não tem caixa.
 @startuml 02-containers-dev
 !include <C4/C4_Container>
 !include ../style.puml

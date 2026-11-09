@@ -1,6 +1,6 @@
 ' C4 implantação - Implantação · desenvolvimento (docker compose, uma máquina)
 ' Version 1.0 - 2026-11-09
-' Not drawn: lógica de negócio.
+' Não desenhado: lógica de negócio.
 @startuml 04-deployment-dev
 !include <C4/C4_Deployment>
 !include ../style.puml

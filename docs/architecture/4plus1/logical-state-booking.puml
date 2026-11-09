@@ -1,8 +1,8 @@
 ' 4+1 vista lógica - Estados de uma reserva (D-BOOKING) · Booking.Status
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: O estado de uma reserva muda só por métodos da entidade Booking; a exclusion constraint só cobre as reservas Confirmed (ADR 0003).
-' Not drawn: controllers, HTTP e ecrãs.
+' Para: quem programa.
+' Decisão documentada: O estado de uma reserva muda só por métodos da entidade Booking; a exclusion constraint só cobre as reservas Confirmed (ADR 0003).
+' Não desenhado: controllers, HTTP e ecrãs.
 @startuml logical-state-booking
 !include ../style.puml
 title Estados de uma reserva (D-BOOKING) · Booking.Status

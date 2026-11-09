@@ -1,8 +1,8 @@
 ' 4+1 vista lógica (código, C4 nível 4) - Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: As regras de uma reserva estão na entidade, que devolve resultados (CancellationOutcome e outros) em vez de lançar exceções.
-' Not drawn: os componentes que chamam a entidade.
+' Para: quem programa.
+' Decisão documentada: As regras de uma reserva estão na entidade, que devolve resultados (CancellationOutcome e outros) em vez de lançar exceções.
+' Não desenhado: os componentes que chamam a entidade.
 @startuml logical-code-booking
 !include ../style.puml
 title Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)

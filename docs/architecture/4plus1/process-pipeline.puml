@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Pipeline de um pedido na API · a ordem de Program.cs
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: A ordem dos middlewares de um pedido é a de Api/Program.cs.
-' Not drawn: detalhe interno das classes.
+' Para: quem programa e quem depura.
+' Decisão documentada: A ordem dos middlewares de um pedido é a de Api/Program.cs.
+' Não desenhado: detalhe interno das classes.
 @startuml process-pipeline
 !include ../style.puml
 

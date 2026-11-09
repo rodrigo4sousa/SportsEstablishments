@@ -1,6 +1,6 @@
 ' C4 nível 3 - Componentes do front end · áreas e funcionalidades
 ' Version 1.0 - 2026-11-09
-' Not drawn: classes individuais, salvo quando são o próprio componente.
+' Não desenhado: classes individuais, salvo quando são o próprio componente.
 @startuml 03-components-web-features
 !include <C4/C4_Component>
 !include ../style.puml

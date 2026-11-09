@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Refresh com rotação e deteção de reutilização (US01, US03) · lado da API
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Rotação do refresh token e revogação de todas as sessões da conta se um token já usado reaparecer (ADR 0002).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Rotação do refresh token e revogação de todas as sessões da conta se um token já usado reaparecer (ADR 0002).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-refresh
 !include <C4/C4_Sequence>
 !include ../style.puml

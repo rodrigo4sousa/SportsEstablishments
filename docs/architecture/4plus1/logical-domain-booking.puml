@@ -1,8 +1,8 @@
 ' 4+1 vista lógica - Modelo do domínio · clubes, campos, bloqueios e reservas
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: Entidades com setters privados e métodos com intenção; o Domain não conhece a persistência, o HTTP nem os ecrãs.
-' Not drawn: controllers, HTTP e ecrãs; as contas estão em logical-domain-accounts.
+' Para: quem programa.
+' Decisão documentada: Entidades com setters privados e métodos com intenção; o Domain não conhece a persistência, o HTTP nem os ecrãs.
+' Não desenhado: controllers, HTTP e ecrãs; as contas estão em logical-domain-accounts.
 @startuml logical-domain-booking
 !include ../style.puml
 title Modelo do domínio · clubes, campos, bloqueios e reservas

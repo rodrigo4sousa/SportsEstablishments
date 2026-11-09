@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Refresh no browser · Web Lock entre separadores e refresh silencioso em /login
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Um só separador renova a sessão de cada vez (Web Lock) e o servidor nunca a renova (ADR 0002).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Um só separador renova a sessão de cada vez (Web Lock) e o servidor nunca a renova (ADR 0002).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-refresh-client
 !include <C4/C4_Sequence>
 !include ../style.puml

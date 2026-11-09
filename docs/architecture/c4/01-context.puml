@@ -1,6 +1,6 @@
 ' C4 nível 1 - Contexto do sistema · App de Reservas de Campos
 ' Version 1.0 - 2026-11-09
-' Not drawn: tecnologias, contentores e código; o CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e estão na implantação.
+' Não desenhado: tecnologias, contentores e código; o CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e estão na implantação.
 @startuml 01-context
 !include <C4/C4_Context>
 !include ../style.puml

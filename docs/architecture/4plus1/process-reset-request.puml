@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Pedir nova palavra-passe (US05) · sem enumeração, limite por conta, token feito no envio
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Resposta sempre igual, no máximo uma mensagem por conta e intervalo, e o token feito pelo worker no envio (US05).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Resposta sempre igual, no máximo uma mensagem por conta e intervalo, e o token feito pelo worker no envio (US05).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-reset-request
 !include <C4/C4_Sequence>
 !include ../style.puml

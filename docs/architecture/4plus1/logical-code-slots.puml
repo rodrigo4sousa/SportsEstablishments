@@ -1,8 +1,8 @@
 ' 4+1 vista lógica (código, C4 nível 4) - Código (C4 nível 4) · geração de slots, «livre» e preço de um slot
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: Os slots são calculados por SlotGenerator, nunca guardados (ADR 0007); «livre» e o preço de um slot têm uma só definição.
-' Not drawn: os componentes que chamam estas classes.
+' Para: quem programa.
+' Decisão documentada: Os slots são calculados por SlotGenerator, nunca guardados (ADR 0007); «livre» e o preço de um slot têm uma só definição.
+' Não desenhado: os componentes que chamam estas classes.
 @startuml logical-code-slots
 !include ../style.puml
 title Código (C4 nível 4) · geração de slots, «livre» e preço de um slot

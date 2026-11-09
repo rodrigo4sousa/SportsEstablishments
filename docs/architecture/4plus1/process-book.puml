@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Jogador reserva um slot (US18, T03) · trinco do campo, exclusion constraint e outbox na mesma transação
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Trinco do campo, exclusion constraint e outbox na mesma transação (ADR 0003, ADR 0004).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Trinco do campo, exclusion constraint e outbox na mesma transação (ADR 0003, ADR 0004).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-book
 !include <C4/C4_Sequence>
 !include ../style.puml

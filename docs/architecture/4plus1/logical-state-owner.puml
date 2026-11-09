@@ -1,8 +1,8 @@
 ' 4+1 vista lógica - Estados de um dono (D-USER com perfil Owner) · users.deactivated_at
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: Desativar um dono é um UPDATE condicional de users.deactivated_at, com um histórico só de acrescentar (US29).
-' Not drawn: controllers, HTTP e ecrãs.
+' Para: quem programa.
+' Decisão documentada: Desativar um dono é um UPDATE condicional de users.deactivated_at, com um histórico só de acrescentar (US29).
+' Não desenhado: controllers, HTTP e ecrãs.
 @startuml logical-state-owner
 !include ../style.puml
 title Estados de um dono (D-USER com perfil Owner) · users.deactivated_at

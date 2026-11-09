@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Série semanal (US20) · uma transação por data, sucesso parcial e o resumo no fim
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Uma transação por data, sucesso parcial e um resumo no fim (US20).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Uma transação por data, sucesso parcial e um resumo no fim (US20).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-series
 !include <C4/C4_Sequence>
 !include ../style.puml

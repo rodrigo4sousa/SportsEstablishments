@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Desativar um dono (US29) · atualização condicional, registo de auditoria e revogação numa transação
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Atualização condicional, registo de auditoria e revogação das sessões numa só transação (US29).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Atualização condicional, registo de auditoria e revogação das sessões numa só transação (US29).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-owner-deactivation
 !include <C4/C4_Sequence>
 !include ../style.puml

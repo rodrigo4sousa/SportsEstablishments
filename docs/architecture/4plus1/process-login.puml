@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Login e logout (US03) · uma só resposta para qualquer falha; o logout revoga o refresh token
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Uma só resposta (401 invalid_credentials) para qualquer falha de login, e sessões em cookies httpOnly (ADR 0002).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Uma só resposta (401 invalid_credentials) para qualquer falha de login, e sessões em cookies httpOnly (ADR 0002).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-login
 !include <C4/C4_Sequence>
 !include ../style.puml

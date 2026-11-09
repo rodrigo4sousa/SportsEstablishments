@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: A janela de cancelamento lida no momento e o trinco que faz de dois cancelamentos ao mesmo tempo um só (US19).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: A janela de cancelamento lida no momento e o trinco que faz de dois cancelamentos ao mesmo tempo um só (US19).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-cancel-player
 !include <C4/C4_Sequence>
 !include ../style.puml

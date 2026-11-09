@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Dono cancela com motivo (US12) · e um cancelamento do jogador ao mesmo tempo
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: O dono cancela com motivo, sem janela, e o email segue na mesma transação (US12).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: O dono cancela com motivo, sem janela, e o email segue na mesma transação (US12).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-cancel-club
 !include <C4/C4_Sequence>
 !include ../style.puml

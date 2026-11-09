@@ -1,8 +1,8 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · do controller aos tipos do front end
 ' Version 1.0 - 2026-11-09
-' For: quem vai mudar o código.
-' Decision documented: Os tipos da API no front end são gerados a partir do OpenAPI, nunca escritos à mão, e o CI verifica a deriva.
-' Not drawn: classes, endpoints e regras de negócio.
+' Para: quem vai mudar o código.
+' Decisão documentada: Os tipos da API no front end são gerados a partir do OpenAPI, nunca escritos à mão, e o CI verifica a deriva.
+' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-api-types
 !include ../style.puml
 title Vista de desenvolvimento · do controller aos tipos do front end

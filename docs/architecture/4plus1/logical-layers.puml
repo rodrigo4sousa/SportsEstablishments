@@ -1,8 +1,8 @@
 ' 4+1 vista lógica - Vista lógica · camadas do back end (Clean Architecture)
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: Clean Architecture no back end: as dependências apontam só para dentro (Api → Infrastructure → Application → Domain).
-' Not drawn: classes individuais.
+' Para: quem programa.
+' Decisão documentada: Clean Architecture no back end: as dependências apontam só para dentro (Api → Infrastructure → Application → Domain).
+' Não desenhado: classes individuais.
 @startuml logical-layers
 !include <C4/C4_Component>
 !include ../style.puml

@@ -1,8 +1,8 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · composição da injeção de dependências
 ' Version 1.0 - 2026-11-09
-' For: quem vai mudar o código.
-' Decision documented: Cada camada regista os seus serviços e o Program.cs só compõe.
-' Not drawn: classes, endpoints e regras de negócio.
+' Para: quem vai mudar o código.
+' Decisão documentada: Cada camada regista os seus serviços e o Program.cs só compõe.
+' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-di
 !include ../style.puml
 title Vista de desenvolvimento · composição da injeção de dependências

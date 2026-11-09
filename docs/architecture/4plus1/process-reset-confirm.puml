@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Definir a nova palavra-passe (US05) · uma só resposta para qualquer ligação má; tudo numa transação
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Uma só resposta 400 para qualquer ligação má; a nova palavra-passe, a revogação das sessões e o email numa transação (US05).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Uma só resposta 400 para qualquer ligação má; a nova palavra-passe, a revogação das sessões e o email numa transação (US05).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-reset-confirm
 !include <C4/C4_Sequence>
 !include ../style.puml

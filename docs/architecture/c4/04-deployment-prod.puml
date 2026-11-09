@@ -1,6 +1,6 @@
 ' C4 implantação - Implantação · produção (T06)
 ' Version 1.0 - 2026-11-09
-' Not drawn: lógica de negócio.
+' Não desenhado: lógica de negócio.
 @startuml 04-deployment-prod
 !include <C4/C4_Deployment>
 !include ../style.puml

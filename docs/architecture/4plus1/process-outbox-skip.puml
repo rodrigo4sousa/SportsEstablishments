@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Avisos ao dono e lembretes (US21, US23, US29) · lidos no envio; ignorados quando já não se aplicam
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: Avisos e lembretes são lidos no envio e ignorados (skipped_at) quando já não se aplicam (US21, US23, US29).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: Avisos e lembretes são lidos no envio e ignorados (skipped_at) quando já não se aplicam (US21, US23, US29).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-outbox-skip
 !include <C4/C4_Sequence>
 !include ../style.puml

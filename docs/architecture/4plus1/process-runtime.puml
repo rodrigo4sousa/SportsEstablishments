@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Vista de processo · processos e fios de execução (desenvolvimento e compose)
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: A API e o worker de emails correm no mesmo processo; SKIP LOCKED permite várias instâncias (ADR 0004).
-' Not drawn: detalhe interno das classes.
+' Para: quem programa e quem depura.
+' Decisão documentada: A API e o worker de emails correm no mesmo processo; SKIP LOCKED permite várias instâncias (ADR 0004).
+' Não desenhado: detalhe interno das classes.
 @startuml process-runtime
 !include <C4/C4_Container>
 !include ../style.puml

@@ -1,8 +1,8 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · projetos do back end e referências
 ' Version 1.0 - 2026-11-09
-' For: quem vai mudar o código.
-' Decision documented: Um projeto .NET por camada, com referências só para dentro.
-' Not drawn: classes, endpoints e regras de negócio.
+' Para: quem vai mudar o código.
+' Decisão documentada: Um projeto .NET por camada, com referências só para dentro.
+' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-backend
 !include ../style.puml
 title Vista de desenvolvimento · projetos do back end e referências

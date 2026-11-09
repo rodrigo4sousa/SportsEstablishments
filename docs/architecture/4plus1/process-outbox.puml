@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Worker de emails (US22) · reclamar com SKIP LOCKED, enviar, adiar, desistir
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: O worker reclama as mensagens com SKIP LOCKED, envia, adia ou desiste (ADR 0004).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: O worker reclama as mensagens com SKIP LOCKED, envia, adia ou desiste (ADR 0004).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-outbox
 !include <C4/C4_Sequence>
 !include ../style.puml

@@ -1,8 +1,8 @@
 ' 4+1 vista de processo - Página de uma área com guarda, desenhada no servidor (US03) · /manage como exemplo
 ' Version 1.0 - 2026-11-09
-' For: quem programa e quem depura.
-' Decision documented: As áreas do dono e do admin são guardadas no servidor, dentro de Suspense (ADR 0001).
-' Not drawn: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' Para: quem programa e quem depura.
+' Decisão documentada: As áreas do dono e do admin são guardadas no servidor, dentro de Suspense (ADR 0001).
+' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-guard
 !include <C4/C4_Sequence>
 !include ../style.puml

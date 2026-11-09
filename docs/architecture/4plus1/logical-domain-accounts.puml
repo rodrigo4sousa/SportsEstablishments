@@ -1,8 +1,8 @@
 ' 4+1 vista lógica - Modelo do domínio · contas, sessões, histórico dos donos e outbox
 ' Version 1.0 - 2026-11-09
-' For: quem programa.
-' Decision documented: A conta (AppUser), o refresh token e o histórico dos donos vivem na Infrastructure e a mensagem do outbox na Application; no Domain a conta existe só como regras (Dom/Accounts).
-' Not drawn: controllers, HTTP e ecrãs; os clubes, campos e reservas estão em logical-domain-booking.
+' Para: quem programa.
+' Decisão documentada: A conta (AppUser), o refresh token e o histórico dos donos vivem na Infrastructure e a mensagem do outbox na Application; no Domain a conta existe só como regras (Dom/Accounts).
+' Não desenhado: controllers, HTTP e ecrãs; os clubes, campos e reservas estão em logical-domain-booking.
 @startuml logical-domain-accounts
 !include ../style.puml
 title Modelo do domínio · contas, sessões, histórico dos donos e outbox
