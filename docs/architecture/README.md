@@ -6,14 +6,14 @@ Ponto de entrada da documentação de arquitetura da App de Reservas de Campos: 
 
 Estes documentos descrevem a arquitetura da aplicação tal como está no código: quem a usa, de que partes é feita, como essas partes se organizam, como colaboram durante um pedido, onde correm e porque foram feitas assim. Servem a quem chega ao projeto (incluindo quem o avalia num portfólio) e a quem o vai mudar.
 
-**O que descrevem.** O sistema que existe: um Next.js com três áreas (jogador, dono, admin) sobre uma API ASP.NET Core e uma base PostgreSQL, com um worker de emails dentro da API. A produção ainda não existe: tudo o que lhe diz respeito está marcado como **planeado (T06)** (ids `PL-`, contornos tracejados) e a [ADR 0009](adr/0009-alvo-de-implantacao.md) é uma **proposta**, não uma decisão.
+**O que descrevem.** O sistema que existe: um Next.js com três áreas (jogador, dono, admin) sobre uma API ASP.NET Core e uma base PostgreSQL, com um worker de emails dentro da API. A produção existe desde 2026-11-09 (T06): os ids `PL-` e as vistas `*-prod` descrevem-na, e a [ADR 0009](adr/0009-alvo-de-implantacao.md) foi aceite.
 
 **Estado descrito.**
 
 | Parte | Estado |
 | --- | --- |
 | Contexto, contentores, vista lógica, vista de processo, vista de desenvolvimento, desenvolvimento e CI da vista física, cenários | **Construído**: verificado contra o código. |
-| Produção (diagramas `*-prod`, secção 3 da vista física, ADR 0009) | **Planeado (T06)**: nada implantado, sujeito a verificação com os fornecedores. |
+| Produção (diagramas `*-prod`, secção 3 da vista física, ADR 0009) | **Em produção desde 2026-11-09 (T06)**; o que o primeiro deploy não confirmou continua em aberto. |
 
 **Verificado contra o commit `f4057ca`** (último commit de código da `main`, 2026-10-29: «chore: pre-deploy cleanup and public rate limit»). O merge destes documentos (`2e4e113`, PR #26) não mudou código. O pull request de endurecimento pré-deploy (T06) acrescentou depois o middleware `UseResponseSecurityHeaders` (CC-HEADERS) e os cabeçalhos de segurança do site (WEB-HEADERS), que o inventário, a vista de processo e dois diagramas já mostram. Quando o código mudar, o inventário e os diagramas afetados mudam no mesmo pull request (ver [Atualização](#63-atualização)).
 
@@ -38,7 +38,7 @@ Não são concorrentes. O C4 dá os níveis de zoom; o 4+1 dá os pontos de vist
 | [03-logical-view.md](03-logical-view.md) | Nível 3 · Componentes e nível 4 · Código | Lógica | Como se organiza o código em camadas e componentes, e que conceitos, invariantes e estados tem o domínio? | Quem programa |
 | [04-process-view.md](04-process-view.md) | Diagramas dinâmicos (em sequência) | De processo | Que processos e fios correm, o que corre ao mesmo tempo, e como colaboram as partes num pedido, numa transação e em segundo plano? | Quem programa e quem depura |
 | [05-development-view.md](05-development-view.md) | — (sem equivalente direto no C4) | De desenvolvimento | Como está organizado o repositório, como se constrói, testa e verifica, e como se acrescenta uma funcionalidade? | Quem vai mudar o código |
-| [06-physical-view.md](06-physical-view.md) | Diagrama de implantação | Física | Onde corre cada contentor (desenvolvimento, CI, produção planeada), o que é público e em que se confia? | Quem opera e faz deploy |
+| [06-physical-view.md](06-physical-view.md) | Diagrama de implantação | Física | Onde corre cada contentor (desenvolvimento, CI, produção), o que é público e em que se confia? | Quem opera e faz deploy |
 | [07-scenarios.md](07-scenarios.md) | Diagramas dinâmicos (por caso de uso) | Cenários (+1) | Que casos de uso atravessam todas as vistas e as validam? | Todos: é o fio que liga as vistas |
 | [adr/](adr/README.md) | — | — (justificação transversal) | Que decisões estão registadas, porquê, e em que estado? | Quem quer saber o «porquê» |
 
@@ -84,9 +84,9 @@ Escolhe o percurso pelo que precisas de fazer. Em qualquer um, quando um diagram
 3. As [ADRs](adr/README.md) das peças que tocas (por exemplo a [0003](adr/0003-exclusion-constraint-reservas.md) antes de mexer em reservas e a [0004](adr/0004-outbox-para-emails.md) antes de mexer em emails).
 4. O [inventário](00-inventory.md) para o caminho exato de cada elemento, e as secções «Notas» de cada vista para os desvios conhecidos.
 
-**Para fazer deploy (planeado, T06).**
+**Para fazer deploy (T06).**
 1. [06 · Vista física](06-physical-view.md): o que é público, TLS, uma só origem, o IP do cliente (4.4), a base de dados (4.6), segredos (4.7), migrações (4.8) e os [riscos da T06](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06).
-2. [ADR 0009 · Alvo de implantação](adr/0009-alvo-de-implantacao.md): a proposta (Render, Supabase, Brevo) e o que substitui da Stack. É uma proposta: confirma o seu estado antes de agir.
+2. [ADR 0009 · Alvo de implantação](adr/0009-alvo-de-implantacao.md): a decisão (Vercel, Render, Supabase, Brevo) e o que substitui da Stack. Foi aceite depois do primeiro deploy real.
 
 ## 4. Galeria de diagramas
 
@@ -104,9 +104,9 @@ Quem usa o sistema e os sistemas externos com que fala. Explicado em [01 · Diag
 
 Os contentores do docker compose e as duas entradas em desenvolvimento (pelo Next.js e diretamente na API). Explicado em [02 · Desenvolvimento](02-containers.md#desenvolvimento-docker-compose).
 
-![Contentores em produção, planeado (T06)](diagrams/02-containers-prod.svg)
+![Contentores em produção (T06)](diagrams/02-containers-prod.svg)
 
-Os contentores previstos para produção, a tracejado. Explicado em [02 · Produção, planeado](02-containers.md#produção-planeado-t06).
+Os contentores em produção. Explicado em [02 · Produção](02-containers.md#produção-t06).
 
 ### 03 · Vista lógica
 
@@ -260,9 +260,9 @@ Os jobs de CI e o que cada um verifica. Explicado em [05 · 4. Pipeline de build
 
 A máquina de desenvolvimento, a rede do compose, as portas e o volume da base de dados. Explicado em [06 · 1. Desenvolvimento](06-physical-view.md#1-desenvolvimento-docker-compose).
 
-<img src="diagrams/06-physical-prod.svg" alt="Implantação em produção, planeado (T06)" width="800">
+<img src="diagrams/06-physical-prod.svg" alt="Implantação em produção (T06)" width="800">
 
-A implantação prevista (Vercel, Render, Supabase, Brevo e GitHub Actions), a tracejado. Explicado em [06 · 3. Produção, planeado](06-physical-view.md#3-produção-planeado-t06).
+A implantação em produção (Vercel, Render, Supabase, Brevo e GitHub Actions). Explicado em [06 · 3. Produção](06-physical-view.md#3-produção-t06).
 
 ## 5. As decisões (ADR)
 
@@ -278,7 +278,7 @@ Cada ADR regista o contexto, a decisão, as alternativas e as consequências. Um
 | 0006 | Ids públicos GUID v7 | Aceite | 2026-10-30 | [0006](adr/0006-ids-guid-v7.md) |
 | 0007 | Slots calculados, não guardados | Aceite | 2026-10-30 | [0007](adr/0007-slots-calculados.md) |
 | 0008 | Chaves do Data Protection na base de dados | Aceite | 2026-10-30 | [0008](adr/0008-chaves-data-protection-na-base-de-dados.md) |
-| 0009 | Alvo de implantação | **Proposta** (T06) | 2026-10-30 | [0009](adr/0009-alvo-de-implantacao.md) |
+| 0009 | Alvo de implantação | **Aceite** (T06) | 2026-11-09 | [0009](adr/0009-alvo-de-implantacao.md) |
 
 A data é a do registo; nas ADRs 0001 a 0008 a decisão é mais antiga e vem da Stack ou do backlog, como cada ADR indica.
 
@@ -299,7 +299,7 @@ A data é a do registo; nas ADRs 0001 a 0008 a decisão é mais antiga e vem da 
 | Sistema externo (`X-`) | `System_Ext`, `Container_Ext` | Cinzento `#999999`, texto branco | Retângulo |
 | Entidade do domínio (`D-`) | `class` (diagrama de classes) | Branco, contorno azul | Caixa de classe com o nome, os campos essenciais e as invariantes numa nota |
 | Objeto da base de dados (`DB-`) | `ComponentDb` | Azul-claro | Cilindro |
-| Planeado (`PL-`) | A macro do tipo com a etiqueta `planeado` (`AddElementTag`) | A cor do tipo, com contorno tracejado | A forma do tipo, com «planeado» na legenda |
+| Produção (`PL-`) | A macro do tipo, como qualquer elemento que existe | A cor do tipo | A forma do tipo |
 | Fronteira (sistema, contentor, nó) | `System_Boundary`, `Container_Boundary`, `Boundary`, `Node` | Sem preenchimento, contorno tracejado cinzento | Retângulo com o nome em cima |
 
 **Rótulos dos elementos.** O alias no PlantUML é o id com `_` no lugar de `-` (`API_BOOK` para `API-BOOK`), porque os alias não aceitam hífenes. O nome visível começa sempre pelo id verdadeiro: `Container(C_API, "C-API · API ASP.NET Core", ".NET 10", "…")`. A tecnologia vai no argumento próprio da macro e a descrição, curta, no último.
@@ -310,7 +310,7 @@ A data é a do registo; nas ADRs 0001 a 0008 a decisão é mais antiga e vem da 
 
 ### 6.2 Ids obrigatórios
 
-Todo o elemento de um diagrama usa um id do [inventário](00-inventory.md), com o prefixo do seu tipo: `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas, `API-`/`CC-`/`WEB-` componentes, `D-` domínio, `DB-` base de dados, `DEV-` desenvolvimento, `DEP-` implantação de hoje, `SC-` cenários, `PL-` planeado. Um id nunca muda nem é reutilizado. Um elemento novo entra primeiro no inventário, no mesmo pull request; um diagrama sem id para um elemento está errado. Os ids `PL-` só aparecem em vistas do futuro, marcados como planeados.
+Todo o elemento de um diagrama usa um id do [inventário](00-inventory.md), com o prefixo do seu tipo: `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas, `API-`/`CC-`/`WEB-` componentes, `D-` domínio, `DB-` base de dados, `DEV-` desenvolvimento, `DEP-` implantação de hoje, `SC-` cenários, `PL-` produção. Um id nunca muda nem é reutilizado. Um elemento novo entra primeiro no inventário, no mesmo pull request; um diagrama sem id para um elemento está errado. Os ids `PL-` só aparecem nas vistas de implantação em produção.
 
 ### 6.3 Atualização
 
@@ -343,10 +343,10 @@ Tirados dos próprios documentos (secções «Notas» e «Riscos» de cada vista
 
 ### 7.1 Dependem da T06 e da ADR 0009
 
-- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) é uma Proposta.** Os diagramas `*-prod` e a [secção 3 da vista física](06-physical-view.md#3-produção-planeado-t06) mostram o alvo proposto (Vercel, Render gratuito com a API pública, Supabase, Brevo, sem Caddy). Os workflows e a configuração existem; muda depois do primeiro deploy real.
+- **A [ADR 0009](adr/0009-alvo-de-implantacao.md) foi aceite** em 2026-11-09, depois do primeiro deploy real. Os diagramas `*-prod` e a [secção 3 da vista física](06-physical-view.md#3-produção-t06) mostram o que está em produção (Vercel, Render gratuito com a API pública, Supabase, Brevo, sem Caddy).
 - **A Stack ainda descreve outro alvo.** `docs/stack.md` fala numa máquina virtual com Caddy; a ADR 0009 nomeia as secções que substitui. A Stack não foi alterada, exceto os nomes dos projetos do back end.
-- **O IP do cliente é provisório.** Em produção a API acredita em `X-Forwarded-For` com um limite explícito de entradas, e os limites por IP são só de melhor esforço, porque a API é pública. O valor certo do limite encontra-se no primeiro deploy ([secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)).
-- **Os pontos da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** só se confirmam no primeiro deploy real. Os riscos aceites (arranque a frio, planos gratuitos, entre outros) estão na ADR 0009.
+- **O IP do cliente é de melhor esforço.** Em produção a API acredita em `X-Forwarded-For` com `ForwardLimit=1`, confirmado no primeiro deploy, e os limites por IP são só de melhor esforço, porque a API é pública ([secção 4.4 da vista física](06-physical-view.md#44-o-ip-do-cliente)). O IP nas chamadas dos Server Components não foi reportado.
+- **Os pontos da [secção 5 da vista física](06-physical-view.md#5-riscos-e-pontos-em-aberto-para-a-t06)** que o primeiro deploy real não confirmou continuam em aberto. Os riscos aceites (arranque a frio, planos gratuitos, entre outros) estão na ADR 0009.
 - **O worker corre dentro da API**, por isso os emails e lembretes só saem enquanto a API estiver acordada.
 - **Feitos antes da T06:** o `dependabot.yml` e os cabeçalhos de segurança do site e da API (`PL-DEPENDABOT`, `PL-SECHEADERS`). O HSTS liga-se com `ENABLE_HSTS=true` na Vercel. A política de conteúdo (CSP) tem `'unsafe-inline'` em scripts e estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página: um limite conhecido, marcado como «Provisório» no backlog.
 

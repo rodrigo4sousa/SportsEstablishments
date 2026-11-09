@@ -6,7 +6,6 @@ title Contexto do sistema · App de Reservas de Campos
 
 LAYOUT_TOP_DOWN()
 HIDE_STEREOTYPE()
-AddElementTag("planeado", $borderStyle=DashedLine(), $legendText="planeado (T06)")
 
 Person(P_VIS, "P-VIS · Visitante", "Pesquisa clubes e vê os horários livres, sem sessão.")
 Person(P_JOG, "P-JOG · Jogador", "Reserva, cancela e vê as suas reservas.")
@@ -18,9 +17,9 @@ Person_Ext(P_OPS, "P-OPS · Operador", "Arranca a aplicação e define a configu
 System(SYS, "App de Reservas de Campos", "Mercado único para reservar campos (futsal, futebol 7, padel, ténis) em clubes portugueses.")
 
 System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "Recebe os emails da aplicação. Em desenvolvimento é o X-MAILPIT.")
-System_Ext(PL_BREVO, "PL-BREVO · Brevo", "O servidor SMTP de produção.", $tags="planeado")
-System_Ext(PL_VERCEL, "PL-VERCEL · Vercel", "Onde o site vai correr.", $tags="planeado")
-System_Ext(PL_RENDER, "PL-RENDER · Render", "Onde a API vai correr.", $tags="planeado")
+System_Ext(PL_BREVO, "PL-BREVO · Brevo", "O servidor SMTP de produção.")
+System_Ext(PL_VERCEL, "PL-VERCEL · Vercel", "Onde o site vai correr.")
+System_Ext(PL_RENDER, "PL-RENDER · Render", "Onde a API vai correr.")
 
 Rel(P_VIS, SYS, "Pesquisa clubes e horários", "HTTPS")
 Rel(P_JOG, SYS, "Reserva e cancela slots", "HTTPS")

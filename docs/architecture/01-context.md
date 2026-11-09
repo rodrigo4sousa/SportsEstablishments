@@ -6,7 +6,7 @@
 
 ![Contexto do sistema](diagrams/01-context.svg)
 
-Fonte: [01-context.puml](diagrams/01-context.puml). Os contornos tracejados são o que está planeado (T06); o resto existe hoje.
+Fonte: [01-context.puml](diagrams/01-context.puml). Todos os elementos existem; os de produção (ids `PL-`) estão em funcionamento desde 2026-11-09 (T06).
 
 ## Âmbito
 
@@ -29,14 +29,14 @@ Fora do âmbito: pagamentos, aplicações móveis, integração com outros siste
 
 | Id | Sistema | Ligação |
 | --- | --- | --- |
-| X-SMTP | Servidor SMTP | A aplicação envia por SMTP os emails de reservas e de contas. Em desenvolvimento é o X-MAILPIT (nada sai para fora); em produção será o PL-BREVO. |
-| PL-BREVO | Brevo | O servidor SMTP de produção (planeado). |
-| PL-VERCEL | Vercel | A plataforma onde o site vai correr (planeado). É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
-| PL-RENDER | Render | A plataforma onde a API vai correr (planeado). É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
+| X-SMTP | Servidor SMTP | A aplicação envia por SMTP os emails de reservas e de contas. Em desenvolvimento é o X-MAILPIT (nada sai para fora); em produção é o PL-BREVO. |
+| PL-BREVO | Brevo | O servidor SMTP de produção. |
+| PL-VERCEL | Vercel | A plataforma onde o site corre. É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
+| PL-RENDER | Render | A plataforma onde a API corre. É só uma caixa: o que contém está em [02-containers.md](02-containers.md). |
 
 O CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e não aparecem aqui; estão na vista de implantação.
 
 ## Notas
 
-- A Vercel e o Render (planeados (T06)) aparecem como sistemas externos para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende deles.
+- A Vercel e o Render (T06) aparecem como sistemas externos para marcar que o alojamento é uma escolha de implantação e não do sistema. Nenhuma regra de negócio depende deles.
 - O envio de email nunca bloqueia uma reserva: a aplicação grava o email num outbox e envia-o depois (ver [04-process-view.md](04-process-view.md)).
