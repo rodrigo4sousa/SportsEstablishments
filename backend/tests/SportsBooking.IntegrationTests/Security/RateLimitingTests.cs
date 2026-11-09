@@ -157,6 +157,18 @@ public sealed class RateLimitingTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task With_no_proxy_configured_a_forwarded_for_header_is_ignored()
+    {
+        await using var app = factory.CreateIsolatedApp($"t06_rl_{Guid.NewGuid():N}", new Dictionary<string, string?> { ["RateLimiting:Auth:LoginPermitLimit"] = $"{Limit}" });
+        _ = app.Server;
+        await ExhaustAsync(app, "/api/auth/login", "203.0.113.30", request => $"198.51.100.{request + 1}");
+
+        using var limited = await SendAsync(app, "/api/auth/login", "203.0.113.30", "198.51.100.99");
+
+        await ShouldBeTooManyRequestsAsync(limited);
+    }
+
+    [Fact]
     public async Task Ipv6_clients_share_a_limit_per_64_bit_network()
     {
         await using var app = StartApp();
