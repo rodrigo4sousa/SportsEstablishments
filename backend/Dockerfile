@@ -19,6 +19,10 @@ RUN dotnet publish src/SportsBooking.Api/SportsBooking.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
+# The image's default would bind port 8080 next to the address below.
+ENV ASPNETCORE_HTTP_PORTS=
 USER $APP_UID
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "SportsBooking.Api.dll"]
+# Listens on 0.0.0.0 and on the port the host gives in PORT (Render sets it), 8080 otherwise. `exec` keeps the API as PID 1, so it gets
+# the stop signal; the arguments after the image name reach the API (seed-demo, set-admin-password).
+ENTRYPOINT ["/bin/sh", "-c", "export ASPNETCORE_URLS=\"http://0.0.0.0:${PORT:-8080}\"; exec dotnet SportsBooking.Api.dll \"$@\"", "--"]

@@ -12,7 +12,7 @@ namespace SportsBooking.IntegrationTests;
 public sealed class SmokeTests(ApiFactory factory)
 {
     [Fact]
-    public async Task Health_endpoint_reports_healthy_against_real_postgres()
+    public async Task Health_endpoint_reports_healthy()
     {
         using var client = factory.CreateClient();
 
