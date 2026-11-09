@@ -1,0 +1,56 @@
+name: Keepalive
+
+# Supabase pauses a free project that has little database activity. /health does not touch the database, so this
+# workflow makes a real, read-only database query through the public site (GET /api/localities, which also wakes the
+# Render API). Nothing runs until the repository variable DEPLOY_ENABLED is 'true'. See docs/deployment/runbook.md.
+on:
+  schedule:
+    # Mondays and Thursdays, 07:23 UTC (not on the hour or half hour, when GitHub's queues are busiest).
+    - cron: '23 7 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Query the database through the site
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: GET /api/localities until it answers 200 with JSON
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          # A cold Render start takes about a minute and Vercel allows 120 s per rewrite, so each request may wait
+          # 130 s; a failed attempt is retried every 20 s until about 5 minutes have passed. The body is never printed.
+          # KEEPALIVE_WINDOW and KEEPALIVE_PAUSE (seconds) exist only so the logic can be tested locally.
+          if [ -z "${SITE_URL:-}" ]; then
+            echo "::error::The repository variable SITE_URL is empty."
+            exit 1
+          fi
+          url="${SITE_URL%/}/api/localities"
+          window="${KEEPALIVE_WINDOW:-300}"
+          pause="${KEEPALIVE_PAUSE:-20}"
+          body="${RUNNER_TEMP:-/tmp}/keepalive-response.json"
+          deadline=$((SECONDS + window))
+          attempt=0
+          while true; do
+            attempt=$((attempt + 1))
+            status=$(curl -s -o "$body" -w '%{http_code}' --max-time 130 -H 'Cache-Control: no-cache' "${url}?keepalive=$(date +%s)" || true)
+            if [ "$status" = "200" ] && jq -e . "$body" > /dev/null 2>&1; then
+              echo "Attempt $attempt: HTTP 200 and a JSON body. The database answered."
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP ${status:-000} (000 means no answer) or a body that is not JSON."
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::The site did not return 200 with JSON from /api/localities within about ${window} seconds (last HTTP status: ${status:-000}). The API may be down or the Supabase project paused: check Render and the Supabase dashboard."
+              exit 1
+            fi
+            sleep "$pause"
+          done

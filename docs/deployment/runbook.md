@@ -171,10 +171,25 @@ Cada migração tem de funcionar com a versão anterior da API, porque o esquema
 - **Emails e lembretes** só saem enquanto a API estiver acordada; um lembrete cuja reserva já começou é ignorado.
 - **Rate limiting de melhor esforço:** a API é pública, e quem lhe ligar diretamente pode forjar o IP. A proteção real contra adivinhar palavras-passe é o bloqueio de conta.
 - **As palavras-passe das contas de demonstração são públicas** (estão no README): qualquer pessoa pode entrar com elas enquanto a demo estiver online.
-- **Supabase:** um projeto gratuito com pouca atividade durante uma semana é pausado. Reativa-o no painel.
+- **Supabase:** um projeto gratuito com pouca atividade na base de dados durante 7 dias é pausado. O workflow `keepalive.yml` faz uma consulta por esse motivo (secção 10), mas não é garantia: se o projeto for pausado, reativa-o no painel («Resume project»).
 - **Sem cópias de segurança** e sem domínio próprio.
 
-## 10. Desligar tudo e evitar qualquer cobrança
+## 10. Manter a demo ativa
+
+O plano gratuito do Supabase pausa um projeto com pouca atividade, e o `/health` não toca na base de dados, por isso não conta. O workflow `.github/workflows/keepalive.yml` faz um `GET {SITE_URL}/api/localities` pelo site público: é uma consulta de leitura à base de dados (os clubes visíveis), que também acorda a API no Render. Não usa segredos, só a variável `SITE_URL`, e não corre enquanto `DEPLOY_ENABLED` não for `true`.
+
+- **Quando corre:** às segundas e quintas-feiras às 07:23 UTC, e à mão.
+- **O que faz:** pede com `Cache-Control: no-cache` e um parâmetro `keepalive=<hora>` que muda de cada vez. Cada pedido espera até 130 s (um arranque a frio do Render demora cerca de um minuto e a Vercel dá 120 s ao rewrite); se falhar, repete de 20 em 20 s durante cerca de 5 minutos. Dá sucesso com HTTP 200 e um corpo que seja JSON. Nunca escreve o corpo no registo. Se não conseguir, o job falha com uma mensagem a dizer para ver o Render e o painel do Supabase.
+- **Correr à mão:** Actions → Keepalive → *Run workflow*, ou `gh workflow run keepalive.yml`.
+- **Desligar:** muda `DEPLOY_ENABLED` para `false` (desliga também o deploy), ou desativa só este workflow em Actions → Keepalive → «⋯» → *Disable workflow* (`gh workflow disable keepalive.yml`).
+- **Só corre na branch por omissão** (`main`): a documentação do GitHub diz que os workflows agendados só correm aí, no último commit. O workflow não pôde ser experimentado antes de entrar na `main`; a primeira execução pode ser pedida à mão com `workflow_dispatch`.
+
+**O que dizem as documentações** (lidas a 2026-11-09, sem data de atualização nas páginas):
+
+- **Supabase** ([free-project-pausing](https://supabase.com/docs/guides/platform/free-project-pausing)): «Supabase pauses Free Plan projects that show low activity over a 7-day period» e um projeto é considerado inativo se não tiver «sufficient user database activity over the past week»; «Typically a few user requests to the database each day over the previous week is enough». O limiar de «low activity» não é dado em números. Avisam por email cerca de uma semana antes de pausar. Um projeto pausado pode ser restaurado até 1 ano depois, no painel (*Resume project*). **Não é claro** se uma visita ao painel conta como atividade na base de dados (a página sugere-o como forma de gerar atividade), nem se uma consulta duas vezes por semana chega: o texto fala em alguns pedidos por dia. Por isso a frequência é **provisória**.
+- **GitHub** ([disabling and enabling a workflow](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow)): «In a public repository, scheduled workflows are automatically disabled when no repository activity has occurred in 60 days.» A documentação **não define** «repository activity», e as páginas lidas não dizem se o dono é avisado. Reativar: Actions → o workflow → *Enable workflow*, ou `gh workflow enable keepalive.yml`; um commit com permissões de escrita que mude o `cron` também o reativa. A execução agendada pode atrasar-se nas horas de carga (por isso 07:23 e não 07:00) e, com muita carga, alguns jobs podem ser descartados.
+
+## 11. Desligar tudo e evitar qualquer cobrança
 
 - [ ] **GitHub:** muda `DEPLOY_ENABLED` para `false` e apaga os secrets e as variables da secção 6.
 - [ ] **Render:** apaga o serviço web.
