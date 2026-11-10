@@ -78,6 +78,20 @@ export default function Page() {
           </p>
           <p>Para proteger o serviço contra abusos. Base legal: interesse legítimo em manter o serviço seguro.</p>
         </LegalSubsection>
+
+        <LegalSubsection title="Registos (logs)">
+          <p>
+            A API escreve registos do seu funcionamento: o arranque, o texto dos comandos enviados à base de dados (sem os valores), os emails
+            enviados ou falhados (só o identificador e o tipo da mensagem), o campo e o horário quando dois pedidos disputam o mesmo horário, o
+            identificador da conta quando um token de sessão é reutilizado, os erros inesperados (o método, o caminho pedido e o erro) e, quando
+            alguém ultrapassa um limite de pedidos, o endereço IP (ou a rede) e o caminho. A aplicação não escreve palavras-passe, tokens nem
+            endereços de email nos registos. Estes registos ficam no Render; a Vercel guarda os registos de execução das funções do site. A
+            aplicação não envia registos para mais nenhum serviço nem os guarda na base de dados.
+          </p>
+          <p>
+            Servem apenas para manter o serviço a funcionar e seguro. Base legal: interesse legítimo em operar o serviço e em o proteger.
+          </p>
+        </LegalSubsection>
       </LegalSection>
 
       <LegalSection title="Clientes sem conta">
@@ -164,7 +178,10 @@ export default function Page() {
             mudam de estado.
           </li>
           <li>Os contadores de pedidos por IP duram um minuto e perdem-se quando a API reinicia.</li>
-          <li>O tempo durante o qual os registos (logs) ficam guardados no Render e na Vercel está a confirmar.</li>
+          <li>
+            Os registos (logs) ficam disponíveis durante 7 dias no Render (plano Hobby) e os registos de execução da Vercel ficam guardados
+            durante 1 hora (plano Hobby), segundo a documentação de cada fornecedor.
+          </li>
           <li>Não são feitas cópias de segurança da base de dados.</li>
         </LegalList>
       </LegalSection>
