@@ -27,6 +27,15 @@ public static class ErrorCodes
     /// <summary>400 from registration (T07): the request does not carry the version of the terms the person accepted.</summary>
     public const string TermsNotAccepted = "terms_not_accepted";
 
+    /// <summary>400 from deleting an account (US30): the password is wrong. Not a 401, which to the client means an expired session.</summary>
+    public const string InvalidPassword = "invalid_password";
+
+    /// <summary>422 from deleting an account (US30): the owner has clubs, and a club always has an owner.</summary>
+    public const string OwnerHasClubs = "owner_has_clubs";
+
+    /// <summary>422 from deleting an account (US30): the admin account cannot be deleted by anyone.</summary>
+    public const string AdminCannotDeleteAccount = "admin_cannot_delete_account";
+
     /// <summary>401 from <c>POST /api/auth/refresh</c>: the session cannot be renewed; the user must sign in again.</summary>
     public const string InvalidRefreshToken = "invalid_refresh_token";
 

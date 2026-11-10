@@ -33,6 +33,9 @@ public sealed class AppUser : IdentityUser<Guid>
     /// <summary>When that version was accepted, in UTC; null exactly when <see cref="AcceptedTermsVersion"/> is.</summary>
     public DateTime? TermsAcceptedAt { get; private set; }
 
+    /// <summary>When the person deleted the account (US30), in UTC; null otherwise. The row stays, anonymized, for what points to it.</summary>
+    public DateTime? DeletedAt { get; private set; }
+
     public bool IsActive => DeactivatedAt is null;
 
     /// <summary>T07: records what the person accepted when signing up.</summary>

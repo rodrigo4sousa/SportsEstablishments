@@ -117,6 +117,8 @@ public sealed class AccountRegistrationServiceTests
     {
         public Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(true);
 
+        public Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(false);
+
         public bool EmailTaken { get; set; }
 
         public List<(NewAccount Account, string Profile)> Created { get; } = [];

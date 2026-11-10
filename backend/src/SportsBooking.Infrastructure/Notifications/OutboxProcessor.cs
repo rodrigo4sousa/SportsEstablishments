@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SportsBooking.Application.Notifications;
+using SportsBooking.Domain.Accounts;
 using SportsBooking.Domain.Bookings;
 using SportsBooking.Infrastructure.Auth;
 using SportsBooking.Infrastructure.Persistence;
@@ -77,6 +78,14 @@ public sealed partial class OutboxProcessor(
                 return;
             }
 
+            if (DeletedAccount.IsTombstone(ready.ToAddress))
+            {
+                // US30: the deletion removes what is pending; this is a message written by a request that was already running.
+                message.Skip(SkippedAccountDeleted, Now());
+                LogSkipped(logger, message.Id, message.Type, SkippedAccountDeleted);
+                return;
+            }
+
             email = ready;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -118,6 +127,9 @@ public sealed partial class OutboxProcessor(
 
     /// <summary>US23: the owner's account was deactivated before the email was sent.</summary>
     public const string SkippedOwnerDeactivated = "owner_deactivated";
+
+    /// <summary>US30: the recipient deleted the account before the email was sent.</summary>
+    public const string SkippedAccountDeleted = "account_deleted";
 
     private async Task<Built> BuildAsync(OutboxMessage message, CancellationToken cancellationToken)
     {

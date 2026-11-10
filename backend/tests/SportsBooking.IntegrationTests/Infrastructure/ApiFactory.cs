@@ -76,6 +76,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:Auth:RefreshPermitLimit", "100000");
         builder.UseSetting("RateLimiting:Auth:PasswordResetRequestPermitLimit", "100000");
         builder.UseSetting("RateLimiting:Auth:PasswordResetConfirmPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:AccountExportPermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Auth:AccountDeletePermitLimit", "100000");
         builder.UseSetting("PublicSite:BaseUrl", SiteOrigin);
         builder.ConfigureServices(services =>
         {

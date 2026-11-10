@@ -22,6 +22,8 @@ internal static class AuthRateLimits
     public const string Refresh = "auth-refresh";
     public const string PasswordResetRequest = "auth-password-reset-request";
     public const string PasswordResetConfirm = "auth-password-reset-confirm";
+    public const string AccountExport = "account-export";
+    public const string AccountDelete = "account-delete";
 }
 
 internal static partial class RateLimitingSetup
@@ -77,6 +79,8 @@ internal static partial class RateLimitingSetup
                 limiter.AddFixedWindowPerClient(AuthRateLimits.Refresh, limits.RefreshPermitLimit, limits.Window);
                 limiter.AddFixedWindowPerClient(AuthRateLimits.PasswordResetRequest, limits.PasswordResetRequestPermitLimit, limits.Window);
                 limiter.AddFixedWindowPerClient(AuthRateLimits.PasswordResetConfirm, limits.PasswordResetConfirmPermitLimit, limits.Window);
+                limiter.AddFixedWindowPerClient(AuthRateLimits.AccountExport, limits.AccountExportPermitLimit, limits.Window);
+                limiter.AddFixedWindowPerClient(AuthRateLimits.AccountDelete, limits.AccountDeletePermitLimit, limits.Window);
                 limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
                 limiter.OnRejected = WriteTooManyRequestsAsync;
             });

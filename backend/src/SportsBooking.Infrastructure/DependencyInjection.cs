@@ -127,6 +127,7 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<AdminSeedOptions>, AdminSeedOptionsValidator>();
         services.AddScoped<AdminAccountSeeder>();
         services.AddScoped<IAccountStore, AccountStore>();
+        services.AddScoped<IAccountPrivacyStore, AccountPrivacyStore>();
         services.AddSingleton<FallbackPasswordHash>();
 
         // Identity core only (no UI): PBKDF2 password hashing, user and role stores on EF Core.
