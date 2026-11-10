@@ -170,7 +170,7 @@ Fonte: [process-outbox-skip.puml](process-outbox-skip.puml). Código: `OutboxPro
 
 Fonte: [process-guard.puml](process-guard.puml). Código: `Web/proxy.ts`; `Web/app/manage/layout.tsx` (e `admin/layout.tsx`, `(player)/bookings/layout.tsx`); `Web/components/area-guard.tsx`, `player-guard.tsx`; `Web/lib/server/session.ts`; `Web/lib/auth/redirects.ts`.
 
-- `proxy.ts` escreve o caminho pedido em `x-pathname` (por cima do que o cliente enviar) em `/manage/*`, `/admin/*` e `/bookings`.
+- `proxy.ts` escreve o caminho pedido em `x-pathname` (por cima do que o cliente enviar) em `/manage/*`, `/admin/*` e `/bookings`; nas mesmas áreas e em `/clubs/{slug}` responde 404 a um id impossível (e, para um clube, a um que a API não tem) antes de a página começar a enviar.
 - O layout da área põe o guarda dentro de `<Suspense>`, porque ler cookies é dinâmico com `cacheComponents`. `getSessionAccount` devolve `null` sem chamar a API se não houver cookies; senão chama `GET /api/auth/me` no URL interno com o cabeçalho `Cookie` e `no-store`. Um 401 é `null`; qualquer outro erro lança, e aparece o `error.tsx` da área em vez de um redirecionamento errado.
 - `areaDecision` decide: sem sessão → `/login?next=<safeNext(caminho)>`; outro perfil → a página inicial desse perfil; o perfil certo → a área.
 - **Redirecionamento dentro da Suspense:** quando o guarda chama `redirect()`, a casca da página já foi enviada com 200 (o fallback da Suspense é vazio). Como a documentação do `redirect()` do Next.js 16 descreve para o streaming, o redirecionamento segue então no HTML transmitido como uma etiqueta `<meta http-equiv="refresh">`, e é o browser que muda de página; não é um 307. Em `/login`, `GuestOnly` manda quem já tem sessão para a sua área e `LoginScreen` tenta o refresh silencioso (2.4).
@@ -394,7 +394,7 @@ Fonte: [process-guard.puml](process-guard.puml).
 | Participante | Caixa | Classe, método ou tabelas |
 | --- | --- | --- |
 | Browser | — | cookies access_token (Path=/) |
-| proxy.ts | Next.js | matcher /manage/\*, /admin/\*, /bookings |
+| proxy.ts | Next.js | matcher /manage/\*, /admin/\*, /bookings e /clubs/{slug} (não nos prefetch) |
 | app/manage/layout.tsx | Next.js | Suspense com fallback null |
 | AreaGuard | Next.js | areaDecision, safeNext, loginUrl |
 | lib/server/session.ts | Next.js | getSessionAccount |

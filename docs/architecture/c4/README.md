@@ -300,7 +300,7 @@ Fonte: [03-components-web.puml](03-components-web.puml).
 | Nome | Tecnologia | Responsabilidade |
 | --- | --- | --- |
 | Browser | Browser | Corre os Client Components; guarda os cookies httpOnly. |
-| proxy.ts | Next.js proxy | Em /manage/\*, /admin/\* e /bookings escreve o caminho pedido em x-pathname. Não renova sessões. |
+| proxy.ts | Next.js proxy | Em /manage/\*, /admin/\* e /bookings escreve o caminho pedido em x-pathname; responde 404 a ids impossíveis e a clubes públicos que a API não tem. Não renova sessões. |
 | Área do jogador | app/(player) | / (pesquisa no endereço), /clubs/[slug] (escolha ?pitch=&date=&slot=&weeks= no endereço), /bookings. |
 | Área do dono | app/manage | Clubes, campos, calendário (?date=&view=&pitch=&booking= no endereço), estatísticas. |
 | Área do admin | app/admin | Painel e página de um dono; filtros no endereço. |
