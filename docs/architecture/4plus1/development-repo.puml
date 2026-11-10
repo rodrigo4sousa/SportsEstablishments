@@ -1,5 +1,5 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
-' Version 1.1 - 2026-11-10
+' Version 1.2 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
 ' Não desenhado: classes, endpoints e regras de negócio.
@@ -10,7 +10,7 @@ title Vista de desenvolvimento - estrutura do repositório
 skinparam defaultTextAlignment left
 
 folder "/ · raiz do repositório" as ROOT {
-  rectangle "Configuração da raiz\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md" as DEV_ROOTCFG
+  rectangle "Configuração da raiz\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md,\nLICENSE, SECURITY.md" as DEV_ROOTCFG
   rectangle "docker-compose.yml\npostgres, mailpit, api, frontend" as DEV_COMPOSE
 
   folder "backend/" as DEV_BACKEND {
@@ -36,7 +36,7 @@ folder "/ · raiz do repositório" as ROOT {
   }
 
   folder ".github/workflows/" as DEV_WORKFLOWS {
-    rectangle "ci.yml\njobs: backend, frontend, diagrams" as W_SRC
+    rectangle "ci.yml\njobs: backend, frontend, diagrams\ncodeql.yml\ndeploy.yml, prod-data.yml, keepalive.yml" as W_SRC
   }
 }
 

@@ -20,9 +20,9 @@ Fonte: [development-repo.puml](development-repo.puml).
 | `docs/` | DEV-DOCS | `backlog.md` e `stack.md` (fontes de verdade, em pt-PT) e a arquitetura. |
 | `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (o índice e as ADRs escritas), `c4/` e `4plus1/` com os `.puml`, `out/` com os `.svg`, `style.puml` (o estilo comum) e `render.sh` e `render.ps1`. |
 | `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` e `check-architecture-docs.ps1`. |
-| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `deploy.yml`, `prod-data.yml` e `keepalive.yml`. |
+| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `codeql.yml`, `deploy.yml`, `prod-data.yml` e `keepalive.yml`. |
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |
-| `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` | DEV-ROOTCFG | Na raiz. `global.json` fixa o SDK 10.0.400 (`rollForward: latestFeature`) e escolhe o executor `Microsoft.Testing.Platform`. `.editorconfig` impõe UTF-8, `lf`, 2 espaços (4 em `.cs`) e namespaces com âmbito de ficheiro. `.gitattributes` fixa `eol=lf`. |
+| `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md` | DEV-ROOTCFG | Na raiz. `global.json` fixa o SDK 10.0.400 (`rollForward: latestFeature`) e escolhe o executor `Microsoft.Testing.Platform`. `.editorconfig` impõe UTF-8, `lf`, 2 espaços (4 em `.cs`) e namespaces com âmbito de ficheiro. `.gitattributes` fixa `eol=lf`. |
 
 Workflows de implantação da T06: `.github/workflows/deploy.yml` e `prod-data.yml`, que usam `.github/actions/install-dotnet`. Ver a [vista física](physical.md#48-onde-correm-as-migrações-e-os-comandos). Não há `Caddyfile` (ver as [Notas](#7-notas-e-diferenças-encontradas)).
 
@@ -125,6 +125,8 @@ Fonte: [development-ci.puml](development-ci.puml). O deploy e os dados de produ�
 | `diagrams` | DEV-CI-DIAGRAMS | `checkout` → `docs/architecture/render.sh` → `git status --porcelain -- docs/architecture/out` tem de ser vazio → `scripts/check-architecture-docs.sh` | Um `.svg` que não corresponde ao `.puml`, ou nunca commitado; uma ligação relativa que não chega a um ficheiro. |
 
 **Porque é que o SDK .NET não vem de `actions/setup-dotnet`.** Os downloads dessa action passam por `aka.ms` até `dotnetorigin.blob.core.windows.net`, que responde 409 (`PublicAccessNotPermitted`; [actions/setup-dotnet#794](https://github.com/actions/setup-dotnet/issues/794)). O passo descarrega `dotnet-install.sh` de `builds.dotnet.microsoft.com` e instala a versão exata de `global.json` (`--jsonfile global.json`, `--azure-feed https://builds.dotnet.microsoft.com/dotnet`); uma versão exata dispensa a pesquisa no `aka.ms`. Quando o problema for resolvido pode voltar-se à action (confirmar que o registo da instalação já não menciona `dotnetorigin`).
+
+**CodeQL (`codeql.yml`, PL-CODEQL).** Um workflow à parte, para C# e JavaScript/TypeScript, sem build (`build-mode: none`), em cada `pull_request`, em cada `push` à `main` e às segundas-feiras. Não é um job do `ci.yml`: o `deploy.yml` só espera pelo workflow `CI`, por isso uma análise lenta ou que falhe nunca atrasa um deploy.
 
 **Os testes de integração precisam de Docker**, que os runners `ubuntu-latest` têm; localmente, sem Docker, todos falham a ligar (parece haver centenas de falhas). **Não há testes end-to-end no CI.** A `main` **não tem proteção de branch** no GitHub (verificado em 2026-10-30: a API responde «Branch not protected»), por isso nada obriga o CI a estar verde: confirma-se à mão, antes de cada merge, que os três jobs passaram.
 
