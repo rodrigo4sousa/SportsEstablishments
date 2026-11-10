@@ -100,7 +100,7 @@ C-CLI (`seed-demo` e `set-admin-password`) é o mesmo executável da API sem arr
 - C-BROWSER → C-WEB: HTTPS, na origem da Vercel (PL-VERCEL). É a única origem que o browser conhece.
 - C-WEB → C-API: HTTPS pela Internet, para o URL público do serviço da API no Render (PL-RENDER-API, `API_INTERNAL_URL`), tanto no rewrite de `/api/*` como nos Server Components. A API também se alcança diretamente: o `Origin` e os limites protegem-na, e os limites por IP são só de melhor esforço.
 - C-API e C-WORKER → C-DB (PL-SUPABASE): SQL pelo pooler em modo sessão, como `sportsbooking_app`.
-- C-WORKER → PL-BREVO: SMTP na porta 2525 com StartTls (a confirmar), porque o plano gratuito do Render bloqueia as portas 25, 465 e 587.
+- C-WORKER → PL-BREVO: SMTP na porta 2525 com StartTls (confirmado no primeiro deploy), porque o plano gratuito do Render bloqueia as portas 25, 465 e 587.
 - Cookies: são httpOnly e Secure; o `refresh_token` tem `Path=/api/auth`. Como o browser só conhece a origem da Vercel, são first-party. A API verifica que o `Origin` é o do site (`Security__AllowedOrigins__0`).
 
 ### Notas dos contentores
@@ -174,8 +174,8 @@ Fonte: [01-context.puml](01-context.puml).
 | App de Reservas de Campos | — | Mercado único para reservar campos (futsal, futebol 7, padel, ténis) em clubes portugueses. |
 | Servidor SMTP | — | Recebe os emails da aplicação. Em desenvolvimento é o X-MAILPIT. |
 | Brevo | — | O servidor SMTP de produção. |
-| Vercel | — | Onde o site vai correr. |
-| Render | — | Onde a API vai correr. |
+| Vercel | — | Onde o site corre. |
+| Render | — | Onde a API corre. |
 
 ### Contentores: desenvolvimento
 
@@ -359,7 +359,7 @@ Fonte: [04-deployment-prod.puml](04-deployment-prod.puml).
 | Worker de emails | BackgroundService no processo da API | Só corre enquanto a API estiver acordada. |
 | Pooler de ligações | Supavisor, modo sessão (porta 5432, IPv4) | Nunca o modo transação nem o anfitrião direto (IPv6). |
 | Base de dados | PostgreSQL gerido | Dados, btree_gist, chaves do Data Protection; dois papéis (PL-DBUSERS). |
-| Brevo | — | SMTP de produção, porta 2525 (a confirmar); remetente verificado por email. |
+| Brevo | — | SMTP de produção, porta 2525 (confirmado no primeiro deploy); remetente verificado por email. |
 | deploy.yml | Depois do CI verde na main | Migrações, API, site, smoke, por esta ordem. |
 | prod-data.yml | Manual | migrate-only, set-admin-password, seed-demo. |
 | Migration bundle | dotnet ef migrations bundle | Corre como dono do esquema. |

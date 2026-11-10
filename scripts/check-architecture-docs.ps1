@@ -3,6 +3,7 @@
 #  2. docs/architecture/README.md does not reference a diagram that does not exist;
 #  3. every .puml in docs/architecture/*/ includes the shared style (!include ../style.puml);
 #  4. every relative link (and src/href) in the root README.md and in docs/**/*.md points to an existing file
+#     (folders named node_modules, at any depth, are not scanned: a local docs/demo/node_modules is not documentation)
 #     (the #anchor part is not checked);
 #  5. no .svg in docs/architecture/out/ mentions DejaVu;
 #  6. no .puml under docs/architecture/4plus1/ includes anything from C4/ (C4 includes belong in c4/);
@@ -43,7 +44,7 @@ foreach ($puml in Get-ChildItem -Path $docs -Filter '*.puml' -Recurse | Where-Ob
 }
 
 # 4. Relative links resolve. Markdown links "](target)" and HTML src/href attributes.
-$files = @(Get-Item -Path (Join-Path $root 'README.md')) + @(Get-ChildItem -Path (Join-Path $root 'docs') -Filter '*.md' -Recurse)
+$files = @(Get-Item -Path (Join-Path $root 'README.md')) + @(Get-ChildItem -Path (Join-Path $root 'docs') -Filter '*.md' -Recurse | Where-Object { $_.FullName -notmatch '[\\/]node_modules[\\/]' })
 foreach ($file in $files) {
     $text = Get-Content -Path $file.FullName -Raw -Encoding UTF8
     $targets = @()
