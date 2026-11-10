@@ -19,9 +19,14 @@ fi
 to_host_path() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
 export MSYS_NO_PATHCONV=1
 
-docker run --rm -v "$(to_host_path "$dir"):/data" \
+# On Linux the container must run as the calling user, or it cannot write to out/ in a checkout owned by someone else
+# (PlantUML only warns about that). Docker Desktop maps the owner itself, and under Git Bash id is not a container uid.
+user_args=()
+if ! command -v cygpath >/dev/null 2>&1; then user_args=(--user "$(id -u):$(id -g)" -e HOME=/tmp); fi
+
+docker run --rm ${user_args[@]+"${user_args[@]}"} -v "$(to_host_path "$dir"):/data" \
   -v "$(to_host_path "$dir/fonts"):/usr/share/fonts/truetype/liberation-vendored:ro" -w /data \
   "plantuml/plantuml:$version" -tsvg -failonerror "/data/*/*.puml" -o ../out
-docker run --rm -v "$(to_host_path "$dir"):/data" -w /data --entrypoint sh \
+docker run --rm ${user_args[@]+"${user_args[@]}"} -v "$(to_host_path "$dir"):/data" -w /data --entrypoint sh \
   "plantuml/plantuml:$version" /data/postprocess-svg.sh
 echo "Rendered to docs/architecture/out/ with plantuml/plantuml:$version"
