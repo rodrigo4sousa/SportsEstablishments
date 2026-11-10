@@ -13,6 +13,8 @@ Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. 
 
 Na Vercel é a mesma variável para os dois momentos. O build falha de propósito se ela faltar, não for uma origem simples (sem caminho nem barra final) ou não for `https`. Essa verificação usa a variável de sistema `VERCEL`, por isso a opção «Automatically expose System Environment Variables» do projeto tem de ficar ligada.
 
+Quando o build recusa o valor, o erro mostra o que recebeu, entre aspas e com os caracteres invisíveis escritos como `\uXXXX`, e o motivo (vazio, barra final, caminho, esquema errado, espaços, aspas, caracteres invisíveis). A origem não é um segredo, por isso pode aparecer no registo do build.
+
 `ENABLE_HSTS` também é lida só no build: os cabeçalhos ficam escritos no resultado.
 
 ## Vercel
