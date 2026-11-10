@@ -36,14 +36,19 @@ describe("legal pages", () => {
     expect(screen.getAllByRole("link", { name: DATA_PROTECTION_EMAIL })[0]).toHaveAttribute("href", `mailto:${DATA_PROTECTION_EMAIL}`);
   });
 
-  it("the privacy policy lists the session cookies and the processors, and says what is still to confirm", () => {
+  it("the privacy policy lists the session cookies, the processors and where the data is", () => {
     const { container } = render(<PrivacyPage />);
     const text = container.textContent ?? "";
 
     for (const name of ["access_token", "refresh_token", "Vercel", "Render", "Supabase", "Brevo", "GitHub", "CNPD", "2016/679"]) {
       expect(text).toContain(name);
     }
-    expect(text).toMatch(/Brevo[\s\S]*Localização: a confirmar/);
+    for (const fact of ["na Irlanda", "A API corre em Frankfurt", "Brevo, em França", "Washington DC", "Decisão 2021/914", "EU-U.S. Data Privacy Framework"]) {
+      expect(text).toContain(fact);
+    }
+    // The one item that cannot be checked from the repository.
+    expect(text.match(/a confirmar/g)).toHaveLength(1);
+    expect(text).toContain("registos (logs) ficam guardados no Render e na Vercel está a confirmar");
   });
 
   it("the terms say it is a demo and which law applies", () => {

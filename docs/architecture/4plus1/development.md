@@ -19,7 +19,7 @@ Fonte: [development-repo.puml](development-repo.puml).
 | `frontend/src/` | WEB-* | `app/`, `components/`, `features/`, `lib/`, `test/` e `proxy.ts` (secção 3). |
 | `docs/` | DEV-DOCS | `backlog.md` e `stack.md` (fontes de verdade, em pt-PT) e a arquitetura. |
 | `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (o índice e as ADRs escritas), `c4/` e `4plus1/` com os `.puml`, `out/` com os `.svg`, `style.puml` (o estilo comum) e `render.sh` e `render.ps1`. |
-| `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` e `check-architecture-docs.ps1`. |
+| `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` e `check-architecture-docs.ps1`; `generate-icons.mjs`, que gera os ícones do site a partir de `icon.svg`. |
 | `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `codeql.yml`, `e2e.yml`, `deploy.yml`, `prod-data.yml` e `keepalive.yml`. |
 | `e2e/` | DEV-E2E | Testes end-to-end (Playwright, Chromium) com `package.json` próprio, `playwright.config.ts`, `tests/` (quatro fluxos), `support/`, `scripts/stack.mjs` (sobe e semeia a stack) e `compose.e2e.yml`. |
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |

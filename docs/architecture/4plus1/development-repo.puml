@@ -1,5 +1,5 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
-' Version 1.3 - 2026-11-10
+' Version 1.4 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
 ' Não desenhado: classes, endpoints e regras de negócio.
@@ -32,7 +32,7 @@ folder "/ · raiz do repositório" as ROOT {
   }
 
   folder "scripts/" as DEV_SCRIPTS {
-    rectangle "check-architecture-docs.sh, check-architecture-docs.ps1" as S_SRC
+    rectangle "check-architecture-docs.sh, check-architecture-docs.ps1,\ngenerate-icons.mjs" as S_SRC
   }
 
   folder ".github/workflows/" as DEV_WORKFLOWS {
