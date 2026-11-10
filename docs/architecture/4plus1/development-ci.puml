@@ -1,5 +1,5 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
-' Version 1.1 - 2026-11-10
+' Version 1.2 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: o que o CI (ci.yml) verifica, job a job, antes de se juntar à main. O deploy está em development-deploy.puml.
 ' Não desenhado: classes, endpoints e regras de negócio.
@@ -44,6 +44,8 @@ fork again
     :checkout;
     :docs/architecture/render.sh\nimagem plantuml/plantuml:<versão de style.puml>;
     :git status ~-~-porcelain -- docs/architecture/out\nvazio = SVG em dia (apanha também um .svg nunca commitado);
+    :scripts/check-architecture-docs.sh
+ligações, galeria e aliases dos diagramas;
   }
 end fork
 :Os três jobs são independentes (sem needs:);

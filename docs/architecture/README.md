@@ -87,7 +87,7 @@ Os diagramas mostram o código como está, com as falhas. Estes são factos do c
 
 **Tamanho dos diagramas.** A regra é cerca de 10 elementos; os diagramas de componentes da API vão até 16 porque já estão divididos por área. A contagem abaixo é aproximada (linhas de elementos nos `.puml`, passos nos diagramas de atividade). Passam de 12:
 
-- `development-ci` (23 passos, em três jobs com no máximo 10 cada), `physical` (18) e `04-deployment-prod` (17);
+- `development-ci` (24 passos, em três jobs com no máximo 10 cada), `physical` (18) e `04-deployment-prod` (17);
 - `03-components-api-overview` e `03-components-api-bookings` (16), `03-components-api-notifications` e `03-components-api-accounts` (15);
 - `development-frontend` (14), `03-components-web-features` (13) e `process-pipeline` (13).
 
