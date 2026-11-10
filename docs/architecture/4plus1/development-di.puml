@@ -1,21 +1,21 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · composição da injeção de dependências
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: Cada camada regista os seus serviços e o Program.cs só compõe.
 ' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-di
 !include ../style.puml
-title Vista de desenvolvimento · composição da injeção de dependências
+title Vista de desenvolvimento - composição da injeção de dependências
 
 skinparam defaultTextAlignment left
 
-rectangle "L-API · Program.cs\nWebApplication.CreateBuilder(args)\n(no gerador do OpenAPI: definições de substituição em memória)" as PROG
-rectangle "L-APP · AddApplication()\nvalidadores (Singleton) e serviços (Scoped):\nOwnedClubs, BookingService, ClubBookingService, …" as ADDAPP
-rectangle "L-INF · AddInfrastructure(config)\nTimeProvider.System, AppDbContext, IAppDbContext,\nI*Store, IPitchLock, DemoDataSeeder, HealthChecks" as ADDINF
+rectangle "Program.cs\nWebApplication.CreateBuilder(args)\n(no gerador do OpenAPI: definições de substituição em memória)" as PROG
+rectangle "AddApplication()\nvalidadores (Singleton) e serviços (Scoped):\nOwnedClubs, BookingService, ClubBookingService, …" as ADDAPP
+rectangle "AddInfrastructure(config)\nTimeProvider.System, AppDbContext, IAppDbContext,\nI*Store, IPitchLock, DemoDataSeeder, HealthChecks" as ADDINF
 rectangle "AddAccounts · Identity, IAccountStore, seed do admin,\nData Protection, PasswordHasherOptions" as ADDACC
 rectangle "AddSessions · JwtOptions, ISessionService,\nPublicSiteOptions, IPasswordResetStore, AccountEmailBuilder" as ADDSES
 rectangle "AddEmail · EmailOptions, OutboxOptions, IEmailSender,\nOutboxProcessor, OutboxDispatcher (HostedService)" as ADDMAIL
-rectangle "L-API · extensões próprias\nAddApiProblemDetails, AddOriginCheck, AddApiRateLimiting,\nAddCookieJwtAuthentication\n(AddControllers e AddOpenApi são do framework)" as ADDAPI
+rectangle "extensões próprias\nAddApiProblemDetails, AddOriginCheck, AddApiRateLimiting,\nAddCookieJwtAuthentication\n(AddControllers e AddOpenApi são do framework)" as ADDAPI
 rectangle "Pipeline e arranque\nUseForwardedHeaders, UseResponseSecurityHeaders,\nUseExceptionHandler, UseOriginCheck,\nUseRateLimiter, UseAuthentication, UseAuthorization;\nvalida as opções, migra, seed do admin, comandos, MapControllers" as PIPE
 
 PROG --> ADDAPP : 1.º

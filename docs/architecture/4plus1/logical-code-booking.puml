@@ -1,15 +1,15 @@
 ' 4+1 vista lógica (código, C4 nível 4) - Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa.
 ' Decisão documentada: As regras de uma reserva estão na entidade, que devolve resultados (CancellationOutcome e outros) em vez de lançar exceções.
 ' Não desenhado: os componentes que chamam a entidade.
 @startuml logical-code-booking
 !include ../style.puml
-title Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)
+title Vista lógica - código (C4 nível 4): o agregado Booking (Dom/Bookings/Booking.cs)
 
 hide empty members
 
-class Booking <<D-BOOKING>> <<sealed>> {
+class "Booking" as D_BOOKING <<sealed>> {
   - Booking()
   + Id : Guid
   + PitchId : Guid
@@ -46,46 +46,46 @@ class Booking <<D-BOOKING>> <<sealed>> {
   - {static} EnsureUtc(value) : DateTime
 }
 
-enum BookingStatus <<D-BOOKING>> {
+enum "BookingStatus" as D_BOOKING_BookingStatus {
   Confirmed
   CancelledByPlayer
   CancelledByClub
   NoShow
 }
 
-enum CancellationOutcome <<D-BOOKING>> {
+enum "CancellationOutcome" as D_BOOKING_CancellationOutcome {
   Cancelled
   NotConfirmed
   OutsideWindow
 }
 
-enum ClubCancellationOutcome <<D-BOOKING>> {
+enum "ClubCancellationOutcome" as D_BOOKING_ClubCancellationOutcome {
   Cancelled
   NotConfirmed
   AlreadyStarted
 }
 
-enum NoShowOutcome <<D-BOOKING>> {
+enum "NoShowOutcome" as D_BOOKING_NoShowOutcome {
   Marked
   NotConfirmed
   NotEnded
 }
 
-class BookingStatuses <<D-BOOKING>> <<static>> {
+class "BookingStatuses" as D_BOOKING_BookingStatuses <<static>> {
   + {static} ToCode(status) : string
 }
 
-class BookingRules <<D-BOOKING>> <<static>> {
+class "BookingRules" as D_BOOKING_BookingRules <<static>> {
   + {static} CancellationReasonMaximumLength = 200
 }
 
-Booking --> BookingStatus : Status
-Booking ..> CancellationOutcome : CancelByPlayer
-Booking ..> ClubCancellationOutcome : CancelByClub
-Booking ..> NoShowOutcome : RecordNoShow
-BookingStatuses ..> BookingStatus : confirmed, cancelled_by_player,\ncancelled_by_club, no_show
+D_BOOKING --> D_BOOKING_BookingStatus : Status
+D_BOOKING ..> D_BOOKING_CancellationOutcome : CancelByPlayer
+D_BOOKING ..> D_BOOKING_ClubCancellationOutcome : CancelByClub
+D_BOOKING ..> D_BOOKING_NoShowOutcome : RecordNoShow
+D_BOOKING_BookingStatuses ..> D_BOOKING_BookingStatus : confirmed, cancelled_by_player,\ncancelled_by_club, no_show
 
-note right of Booking
+note right of D_BOOKING
   **Invariantes nos métodos**
   Todas as propriedades têm private set; o construtor é privado.
   ForPlayer: playerId ≠ Guid.Empty; ForCustomer: nome e telemóvel

@@ -1,11 +1,11 @@
 ' 4+1 vista lógica - Estados de uma mensagem do outbox (D-OUTBOX) · OutboxMessage
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa.
 ' Decisão documentada: O email é gravado no outbox na transação de quem o pede e enviado depois, com novas tentativas (ADR 0004).
 ' Não desenhado: controllers, HTTP e ecrãs.
 @startuml logical-state-outbox
 !include ../style.puml
-title Estados de uma mensagem do outbox (D-OUTBOX) · OutboxMessage
+title Vista lógica - estados de uma mensagem do outbox: OutboxMessage
 
 hide empty description
 state Pendente : IsPending\nSentAt, FailedAt e SkippedAt vazios\ndevida quando NextAttemptAt ≤ agora

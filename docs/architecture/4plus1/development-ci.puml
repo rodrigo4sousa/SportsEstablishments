@@ -1,16 +1,16 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: o que o CI (ci.yml) verifica, job a job, antes de se juntar à main. O deploy está em development-deploy.puml.
 ' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-ci
 !include ../style.puml
-title Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
+title Vista de desenvolvimento - pipeline de CI (.github/workflows/ci.yml)
 
 start
-:push ou pull_request\nX-GH → X-GHA\nconcurrency: cancela a execução anterior da mesma ref;\npermissions: contents read;
+:push ou pull_request\nGitHub → GitHub Actions\nconcurrency: cancela a execução anterior da mesma ref;\npermissions: contents read;
 fork
-  partition "DEV-CI-BACKEND · Backend (build + tests) · ubuntu-latest · wd backend" {
+  partition "Backend (build + tests) · ubuntu-latest · wd backend" {
     :checkout;
     :Instalar o SDK .NET\ndotnet-install.sh ~-~-jsonfile global.json\n(builds.dotnet.microsoft.com, versão exata);
     note right
@@ -28,7 +28,7 @@ fork
     :dotnet package list ~-~-vulnerable ~-~-include-transitive\nfalha se houver "vulnerabilities";
   }
 fork again
-  partition "DEV-CI-FRONTEND · Frontend (lint, typecheck, tests, build) · ubuntu-latest · wd frontend" {
+  partition "Frontend (lint, typecheck, tests, build) · ubuntu-latest · wd frontend" {
     :checkout;
     :setup-node (node 22, cache npm);
     :npm ci;
@@ -40,7 +40,7 @@ fork again
     :npm audit ~-~-omit=dev ~-~-audit-level=high;
   }
 fork again
-  partition "DEV-CI-DIAGRAMS · Docs (architecture diagrams) · ubuntu-latest" {
+  partition "Docs (architecture diagrams) · ubuntu-latest" {
     :checkout;
     :docs/architecture/render.sh\nimagem plantuml/plantuml:<versão de style.puml>;
     :git status ~-~-porcelain -- docs/architecture/out\nvazio = SVG em dia (apanha também um .svg nunca commitado);

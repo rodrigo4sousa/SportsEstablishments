@@ -1,27 +1,27 @@
 ' 4+1 cenários (+1) - casos de uso
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: toda a gente (produto, quem programa, quem avalia).
 ' Decisão documentada: quais os casos de uso que atravessam as outras vistas e as validam; cada um é um cenário (SC-) de scenarios.md, que o liga às histórias do backlog, aos diagramas de processo e aos testes.
 ' Não desenhado: a sequência de cada cenário (os cenários apontam para os process-*.puml); o P-CLI e o P-OPS, que não usam a aplicação (ver c4/README.md).
 @startuml scenarios-use-cases
 !include ../style.puml
 
-title Cenários · casos de uso
+title Cenários - casos de uso
 left to right direction
 
-actor "P-VIS · Visitante" as P_VIS
-actor "P-JOG · Jogador" as P_JOG
-actor "P-DONO · Dono" as P_DONO
-actor "P-ADMIN · Admin" as P_ADMIN
+actor "Visitante" as P_VIS
+actor "Jogador" as P_JOG
+actor "Dono" as P_DONO
+actor "Admin" as P_ADMIN
 
 rectangle "App de Reservas de Campos" {
-    usecase "SC-01 · Pesquisa e reserva um slot" as SC_01
-    usecase "SC-02 · Configura clube, campos,\nhorários e preços" as SC_02
-    usecase "SC-03 · Cancela uma reserva\nno calendário" as SC_03
-    usecase "SC-04 · Reserva semanal\ncom uma data saltada" as SC_04
-    usecase "SC-05 · Recupera a palavra-passe" as SC_05
-    usecase "SC-06 · Desativa um dono" as SC_06
-    usecase "SC-07 · Corrida pelo mesmo slot" as SC_07
+    usecase "Pesquisa e reserva um slot" as SC_01
+    usecase "Configura clube, campos,\nhorários e preços" as SC_02
+    usecase "Cancela uma reserva\nno calendário" as SC_03
+    usecase "Reserva semanal\ncom uma data saltada" as SC_04
+    usecase "Recupera a palavra-passe" as SC_05
+    usecase "Desativa um dono" as SC_06
+    usecase "Corrida pelo mesmo slot" as SC_07
 }
 
 P_VIS --> SC_01
