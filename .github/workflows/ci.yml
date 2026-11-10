@@ -91,7 +91,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # The PlantUML image tag is pinned in docs/architecture/style.puml; the script reads it, so the CI and a local render
-      # always use the same version, and the font (DejaVu Sans) comes from that image.
+      # always use the same version, and the font (Liberation Sans) comes from docs/architecture/fonts.
       - name: Render the diagrams
         run: docs/architecture/render.sh
 

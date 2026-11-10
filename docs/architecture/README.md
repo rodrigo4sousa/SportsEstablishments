@@ -102,7 +102,7 @@ Os mais largos ficam ilegíveis quando reduzidos à largura de uma página; abre
 
 ## Renderizar os diagramas
 
-Os SVG de [`out/`](out/) são gerados a partir dos `.puml`; não se editam à mão. [`render.sh`](render.sh) (Git Bash, macOS, Linux) e [`render.ps1`](render.ps1) (Windows PowerShell) desenham todos com a imagem Docker `plantuml/plantuml`, **cuja versão está fixada em [`style.puml`](style.puml)** (linha `' plantuml-version: X.Y.Z`). O tipo de letra (DejaVu Sans) vem dessa imagem e não se monta nada do computador, por isso o resultado é o mesmo em qualquer máquina e no CI. É preciso ter o Docker a correr.
+Os SVG de [`out/`](out/) são gerados a partir dos `.puml`; não se editam à mão. [`render.sh`](render.sh) (Git Bash, macOS, Linux) e [`render.ps1`](render.ps1) (Windows PowerShell) desenham todos com a imagem Docker `plantuml/plantuml`, **cuja versão está fixada em [`style.puml`](style.puml)** (linha `' plantuml-version: X.Y.Z`). O tipo de letra (Liberation Sans, métrico-compatível com o Arial) está em [`fonts/`](fonts/README.md) e é montado só de leitura no contentor, onde o PlantUML mede o texto. Depois, [`postprocess-svg.sh`](postprocess-svg.sh) troca em todos os SVG o nome do tipo de letra pela lista `Arial, Liberation Sans, Helvetica, sans-serif`. Não se usa nenhum tipo de letra do computador nem a rede, por isso o resultado é o mesmo em qualquer máquina e no CI. É preciso ter o Docker a correr.
 
 ```bash
 bash docs/architecture/render.sh

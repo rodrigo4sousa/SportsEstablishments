@@ -224,7 +224,7 @@ Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pasta
 | DEV-BACKEND | `backend/` | Pasta | Solução .NET: quatro projetos em `src/`, dois de teste em `tests/`, versões centrais dos pacotes, `Dockerfile`. | `backend/` |
 | DEV-FRONTEND | `frontend/` | Pasta | Aplicação Next.js (`src/`), configuração, `Dockerfile`. | `frontend/` |
 | DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
-| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`) e os scripts que os desenham. | `docs/architecture/` |
+| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`), o tipo de letra (`fonts/`) e os scripts que os desenham. | `docs/architecture/` |
 | DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações e da galeria dos documentos. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1` |
 | DEV-WORKFLOWS | `.github/workflows/` | Pasta | Pipeline de CI. | `.github/workflows/ci.yml` |
 | DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
