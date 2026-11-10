@@ -1,0 +1,14 @@
+{
+  "name": "sportsbooking-demo-recorder",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Records the README demo GIF against the local docker compose stack. Not part of CI.",
+  "type": "module",
+  "scripts": {
+    "record": "node record-demo.mjs",
+    "encode": "node encode-gif.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
