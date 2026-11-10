@@ -149,6 +149,10 @@ describe("safeNext", () => {
 
   it("uses the profile's home when there is no next", () => {
     expect(safeNext(null, "Admin")).toBe("/admin");
+    // US30: the account page is everyone's.
+    expect(safeNext("/account", "Player")).toBe("/account");
+    expect(safeNext("/account", "Owner")).toBe("/account");
+    expect(safeNext("/account", "Admin")).toBe("/account");
     expect(safeNext(undefined, "Owner")).toBe("/manage");
     expect(safeNext(null, "Player")).toBe("/");
   });

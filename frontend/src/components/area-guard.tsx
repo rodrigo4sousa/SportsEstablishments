@@ -14,6 +14,7 @@ const AREA_LINKS: Record<Profile, AccountMenuLink[]> = {
   Owner: [
     { href: "/manage", label: "Os meus clubes" },
     { href: "/manage/statistics", label: "Estatísticas" },
+    { href: "/account", label: "A minha conta" },
   ],
   Admin: [],
 };
