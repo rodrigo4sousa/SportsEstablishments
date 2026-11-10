@@ -76,6 +76,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # The status code of an unknown club or id is decided by the built server (the proxy answers before the page streams), so it is
+      # checked against the build, with a stub API. No browser, no database.
+      - name: Unknown resources answer 404
+        run: npm run check:not-found
+
       - name: API types are up to date with the OpenAPI document
         run: |
           npm run gen:api
