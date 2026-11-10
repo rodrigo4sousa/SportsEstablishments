@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { AccountMenu } from "@/components/account-menu";
+import { AccountMenu, type AccountMenuLink } from "@/components/account-menu";
 import { useCurrentUser } from "../hooks/use-current-user";
+
+const ACCOUNT_LINK = { href: "/account", label: "A minha conta" };
+
+/** The admin has no link: the account page only offers it the export, and its area is `/admin`. */
+const LINKS: Record<string, AccountMenuLink[]> = {
+  Player: [{ href: "/bookings", label: "As minhas reservas" }, ACCOUNT_LINK],
+  Owner: [ACCOUNT_LINK],
+};
 
 /**
  * Header corner: who is signed in, or the way to create an account.
@@ -17,7 +25,7 @@ export function AccountStatus() {
   }
 
   if (account) {
-    return <AccountMenu accountName={account.name} links={account.profile === "Player" ? [{ href: "/bookings", label: "As minhas reservas" }] : []} />;
+    return <AccountMenu accountName={account.name} links={LINKS[account.profile] ?? []} />;
   }
 
   return (

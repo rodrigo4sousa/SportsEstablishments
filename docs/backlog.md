@@ -168,7 +168,24 @@ Como utilizador, quero apagar a minha conta e descarregar os meus dados, para ex
 - Na área da conta, um jogador ou dono pode descarregar os seus dados num formato de uso comum (conta e reservas).
 - Pode pedir o apagamento da conta, com confirmação; os dados pessoais deixam de estar associados às reservas, que continuam a existir para os clubes sem identificar a pessoa.
 - O que acontece às contas de dono com clubes e às reservas futuras fica decidido antes de começar (hoje as reservas nunca se apagam e um clube não pode ficar sem dono).
-- Estado: por fazer (nasceu da T07).
+- Estado: feita (nasceu da T07). Página `/account` («A minha conta»), secção «Privacidade e dados»; `GET /api/me/data-export` e `POST /api/me/delete-account`; migração `AddAccountDeletion` (`users.deleted_at`, opcional, sem tabela nova, por isso o `docs/deployment/supabase-roles.sql` não muda). Decisão e alternativas na [ADR 0011](architecture/adr/0011-apagar-conta-por-anonimizacao.md).
+- **Provisório (decisões da US30, tomadas pelo dono do projeto):**
+  - Exportação: um ficheiro JSON só com os dados da própria pessoa: perfil, reservas (clube, campo, datas, preço, estado) e versão e data da aceitação dos Termos. Sem hashes, tokens, ids internos ou dados de outras pessoas. Limite por IP.
+  - Apagamento: pede de novo a palavra-passe; numa só transação cancela as reservas futuras (libertando os horários), anonimiza a conta (nome fixo «Conta apagada», email `deleted-<id>@deleted.invalid`, palavra-passe e security stamp invalidados, telemóvel e aceitação limpos), apaga os refresh tokens e os emails por enviar. As reservas passadas ficam, sem dados pessoais. Nenhuma linha referenciada é apagada.
+  - Um dono com clubes (422 `owner_has_clubs`, a interface manda contactar a administração) e o admin (422 `admin_cannot_delete_account`) não podem apagar a conta.
+  - Sem email de confirmação: a confirmação é no ecrã e os cookies são limpos.
+- **Provisório (escolhas na implementação, as mais conservadoras onde a história não dizia):**
+  - «Clubes ativos» = qualquer clube: um clube não tem estado próprio, e um clube sem campos ativos continua a ser do dono.
+  - O access token de uma conta apagada deixa de funcionar logo (uma leitura pela chave primária em cada pedido autenticado); é uma exceção à regra dos 15 minutos, que continua a valer para uma conta desativada (US29).
+  - O cancelamento ao apagar ignora a janela de cancelamento e fica como `CancelledByPlayer`; uma reserva que já começou não é tocada.
+  - Uma palavra-passe errada é 400 `invalid_password` (um 401 faria o cliente tentar renovar a sessão) e conta para o bloqueio por tentativas, como no login.
+  - Limites: 5 exportações e 5 tentativas de apagamento por minuto e por IP (`RateLimiting:Auth:AccountExportPermitLimit`, `AccountDeletePermitLimit`).
+  - Não existia uma página de conta: criou-se `/account` para todos os perfis, com ligação «A minha conta» para jogadores e donos; o admin vê só a exportação.
+  - Uma conta apagada sai dos totais e da lista de donos do admin, mas continua nos gráficos de registos.
+  - A exportação de um dono não inclui os clubes (o pedido era perfil, reservas e aceitação).
+  - Ficam por anonimizar, por não serem campos da conta: os motivos escritos à mão por um clube ou por um admin (`owner_status_changes` é só de acrescentar) e as mensagens já fechadas do outbox (só têm o id). A Política diz o primeiro.
+  - `LEGAL_VERSION` passou a `1.1`, porque `legal-info.ts` manda mudar a versão sempre que um texto muda; quem já aceitou a 1.0 não tem de aceitar de novo.
+  - Um quarto fluxo end-to-end, além dos três da T08, a pedido; no E2E o limite de inícios de sessão sobe para 100 por minuto (`e2e/compose.e2e.yml`), porque todos os browsers partilham um endereço.
 ## Épico 2 — Configuração do clube
  
 ### US06 · Criar e editar clube · M · 3 pontos
@@ -789,15 +806,15 @@ Como programador, quero um conjunto pequeno e estável de testes end-to-end que 
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 — Contas e acesso | 4 | 12 | 2 | 8 | 5 de 6 | 15 de 20 |
+| 1 — Contas e acesso | 4 | 12 | 2 | 8 | 6 de 6 | 20 de 20 |
 | 2 — Configuração do clube | 4 | 16 | 1 | 5 | 5 de 5 | 21 de 21 |
 | 3 — Operação do clube | 3 | 13 | 2 | 7 | 5 de 5 | 20 de 20 |
 | 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
 | 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
 | 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
 | Histórias técnicas | 6 | 23 | 2 | 6 | 8 de 8 | 29 de 29 |
-| **Total** | **25** | **92** | **13** | **48** | **37 de 38** | **135 de 140** |
+| **Total** | **25** | **92** | **13** | **48** | **38 de 38** | **140 de 140** |
 
-Estado: falta a US30 (apagar a conta e exportar os dados), que nasceu da T07. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
+Estado: todas as histórias estão feitas. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
  
 As duas histórias de 8 pontos (US11 e US20) são as primeiras a dividir se não couberem num sprint.

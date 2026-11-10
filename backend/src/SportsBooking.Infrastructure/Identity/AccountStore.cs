@@ -102,6 +102,9 @@ internal sealed class AccountStore(
     public Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken) =>
         dbContext.Users.AsNoTracking().AnyAsync(user => user.Id == userId && user.DeactivatedAt == null, cancellationToken);
 
+    public Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken) =>
+        dbContext.Users.AsNoTracking().AnyAsync(user => user.Id == userId && user.DeletedAt != null, cancellationToken);
+
     // Validation already passed, so any other Identity error is a bug, not an expected failure.
     private static InvalidOperationException UnexpectedFailure(IdentityResult result) =>
         new($"Account creation failed: {string.Join(", ", result.Errors.Select(error => error.Code))}");

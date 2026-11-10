@@ -27,6 +27,7 @@ describe("AccountStatus", () => {
     expect(await screen.findByText("Ana Silva")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "As minhas reservas" })).toHaveAttribute("href", "/bookings");
+    expect(screen.getByRole("link", { name: "A minha conta" })).toHaveAttribute("href", "/account");
     expect(screen.queryByRole("link", { name: "Criar conta" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Entrar" })).not.toBeInTheDocument();
     // UX-014: the account links are a navigation landmark of their own, signed in or not.
@@ -125,6 +126,8 @@ describe("the account menu on a phone (UX-021)", () => {
 
     await userEvent.tab();
     expect(screen.getByRole("link", { name: "As minhas reservas" })).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole("link", { name: "A minha conta" })).toHaveFocus();
     await userEvent.tab();
     expect(screen.getByRole("button", { name: "Sair" })).toHaveFocus();
     await userEvent.tab();

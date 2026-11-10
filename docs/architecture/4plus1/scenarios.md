@@ -18,7 +18,7 @@ Sete casos de uso que atravessam várias vistas e as validam: se um cenário nã
 
 ![Casos de uso](../out/scenarios-use-cases.svg)
 
-Fonte: [scenarios-use-cases.puml](scenarios-use-cases.puml). A coluna dos testes só tem classes de teste que existem em `backend/tests/SportsBooking.IntegrationTests/` (`BE`), em `backend/tests/SportsBooking.UnitTests/` (`UT`) ou em `frontend/src/features/` (`FE`); nenhuma é um teste de ponta a ponta do cenário inteiro. Os três testes end-to-end de `e2e/` (reservar e cancelar, o conflito de dois jogadores, o calendário do dono) não entram na coluna: não são classes de teste destas pastas.
+Fonte: [scenarios-use-cases.puml](scenarios-use-cases.puml). A coluna dos testes só tem classes de teste que existem em `backend/tests/SportsBooking.IntegrationTests/` (`BE`), em `backend/tests/SportsBooking.UnitTests/` (`UT`) ou em `frontend/src/features/` (`FE`); nenhuma é um teste de ponta a ponta do cenário inteiro. Os quatro testes end-to-end de `e2e/` (reservar e cancelar, o conflito de dois jogadores, o calendário do dono, exportar e apagar a conta) não entram na coluna: não são classes de teste destas pastas.
 
 | Cenário | Histórias | Diagramas de processo | Testes |
 | --- | --- | --- | --- |

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using SportsBooking.Application.Accounts;
 using SportsBooking.Application.Common;
 using SportsBooking.Domain.Accounts;
 using SportsBooking.Infrastructure.Auth;
@@ -27,6 +28,16 @@ internal static class AuthenticationSetup
                     {
                         context.Token = context.Request.Cookies[AuthCookies.AccessToken];
                         return Task.CompletedTask;
+                    },
+                    // US30: a deleted account stops working at once, on every device. Only deletion is checked per request: a deactivated
+                    // account keeps the accepted 15 minutes of an access token already issued (US29).
+                    OnTokenValidated = async context =>
+                    {
+                        if (Guid.TryParse(context.Principal?.FindFirst(SessionClaims.Subject)?.Value, out var userId)
+                            && await context.HttpContext.RequestServices.GetRequiredService<IAccountStore>().IsDeletedAsync(userId, context.HttpContext.RequestAborted))
+                        {
+                            context.Fail("The account was deleted.");
+                        }
                     },
                 };
             });

@@ -40,13 +40,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         from user in Users
         join userRole in UserRoles on user.Id equals userRole.UserId
         join role in Roles on userRole.RoleId equals role.Id
+        where user.DeletedAt == null
         select new AccountProfile { Id = user.Id, Profile = role.Name!, RegisteredAt = user.RegisteredAt, IsDeactivated = user.DeactivatedAt != null };
 
     public IQueryable<OwnerAccount> OwnerAccounts =>
         from user in Users
         join userRole in UserRoles on user.Id equals userRole.UserId
         join role in Roles on userRole.RoleId equals role.Id
-        where role.Name == Profiles.Owner
+        where role.Name == Profiles.Owner && user.DeletedAt == null
         select new OwnerAccount { Id = user.Id, Name = user.Name, Email = user.Email!, RegisteredAt = user.RegisteredAt, IsDeactivated = user.DeactivatedAt != null };
 
     public IQueryable<AccountName> AccountNames => Users.Select(user => new AccountName { Id = user.Id, Name = user.Name });

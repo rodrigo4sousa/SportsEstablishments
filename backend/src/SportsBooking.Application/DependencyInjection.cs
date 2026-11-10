@@ -21,6 +21,9 @@ public static class DependencyInjection
         services.AddScoped<AccountRegistrationService>();
         services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddScoped<LoginService>();
+        services.AddSingleton<IValidator<DeleteAccountRequest>, DeleteAccountRequestValidator>();
+        services.AddScoped<AccountExportService>();
+        services.AddScoped<AccountDeletionService>();
 
         services.AddSingleton<IValidator<PageRequest>, PageRequestValidator>();
         services.AddSingleton<CreateClubRequestValidator>();

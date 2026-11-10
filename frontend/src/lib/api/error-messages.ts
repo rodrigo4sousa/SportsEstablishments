@@ -3,6 +3,9 @@ import { NETWORK_ERROR } from "./client";
 /** User-facing message for each stable API error `code` (docs/stack.md: the front end picks the message by code). */
 const MESSAGES: Record<string, string> = {
   invalid_credentials: "Email ou palavra-passe incorretos.",
+  invalid_password: "A palavra-passe está incorreta.",
+  owner_has_clubs: "Uma conta com clubes não pode ser apagada aqui. Contacta a administração:",
+  admin_cannot_delete_account: "A conta de administração não pode ser apagada.",
   club_not_found: "Este clube não existe ou não é teu.",
   pitch_not_found: "Este campo já não existe neste clube.",
   block_not_found: "Este bloqueio já não existe.",

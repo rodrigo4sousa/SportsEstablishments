@@ -24,6 +24,12 @@ internal sealed class AuthRateLimitOptions
 
     /// <summary>US05: setting a new password with a link (provisional): low, since each try is a guess at a token.</summary>
     public int PasswordResetConfirmPermitLimit { get; set; } = 10;
+
+    /// <summary>US30: downloads of a person's data (provisional).</summary>
+    public int AccountExportPermitLimit { get; set; } = 5;
+
+    /// <summary>US30: attempts to delete an account, which check a password (provisional).</summary>
+    public int AccountDeletePermitLimit { get; set; } = 5;
 }
 
 internal sealed class AuthRateLimitOptionsValidator : IValidateOptions<AuthRateLimitOptions>
@@ -43,6 +49,8 @@ internal sealed class AuthRateLimitOptionsValidator : IValidateOptions<AuthRateL
             (nameof(options.RefreshPermitLimit), options.RefreshPermitLimit),
             (nameof(options.PasswordResetRequestPermitLimit), options.PasswordResetRequestPermitLimit),
             (nameof(options.PasswordResetConfirmPermitLimit), options.PasswordResetConfirmPermitLimit),
+            (nameof(options.AccountExportPermitLimit), options.AccountExportPermitLimit),
+            (nameof(options.AccountDeletePermitLimit), options.AccountDeletePermitLimit),
         })
         {
             if (limit < 1)

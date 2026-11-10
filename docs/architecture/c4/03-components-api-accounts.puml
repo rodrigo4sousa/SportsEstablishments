@@ -1,5 +1,5 @@
 ' C4 nível 3 - Componentes da API · contas, sessões e recuperação de palavra-passe
-' Version 1.1 - 2026-11-10
+' Version 1.2 - 2026-11-10
 ' Não desenhado: classes individuais, salvo quando são o próprio componente.
 @startuml 03-components-api-accounts
 !include <C4/C4_Component>
@@ -10,7 +10,7 @@ title Componentes da API - contas, sessões e recuperação de palavra-passe
 LAYOUT_TOP_DOWN()
 
 Container_Boundary(C_API, "API ASP.NET Core") {
-  Boundary(API_AUTH, "Contas e sessões (AuthController, api/auth)") {
+  Boundary(API_AUTH, "Contas e sessões (AuthController, api/auth; MeAccountController, api/me)") {
     Component(API_AUTH_REG, "Registo", "AccountRegistrationService")
     Component(API_AUTH_LOGIN, "Login", "LoginService")
     Component(API_AUTH_RESET, "Recuperação", "PasswordResetService, Inf/Auth/PasswordResetStore, AccountEmailBuilder")

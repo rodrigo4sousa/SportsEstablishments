@@ -22,6 +22,9 @@ public interface IAccountStore
 
     /// <summary>True when the account exists and is not deactivated (<c>users.deactivated_at</c> empty).</summary>
     Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>US30: true when the person deleted this account. Asked on every authenticated request, so an access token stops working at once.</summary>
+    Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken);
 }
 
 /// <summary>A validated, normalized registration.</summary>

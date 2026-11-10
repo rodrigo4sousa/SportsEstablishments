@@ -17,7 +17,7 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -742,6 +742,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DeactivatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deactivated_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Email")
                         .IsRequired()

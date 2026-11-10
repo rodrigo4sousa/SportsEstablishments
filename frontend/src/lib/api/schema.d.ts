@@ -2874,6 +2874,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountDataExport"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/delete-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DeleteAccountRequest"];
+                    "application/*+json": components["schemas"]["DeleteAccountRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/bookings": {
         parameters: {
             query?: never;
@@ -2930,6 +3057,13 @@ export interface components {
             active: number | string;
             /** Format: int32 */
             deactivated: number | string;
+        };
+        AccountDataExport: {
+            /** Format: date-time */
+            exportedAt: string;
+            account: components["schemas"]["ExportedAccount"];
+            legalAcceptance: components["schemas"]["ExportedLegalAcceptance"];
+            bookings: components["schemas"]["ExportedBooking"][];
         };
         AccountResponse: {
             /** Format: uuid */
@@ -3158,6 +3292,39 @@ export interface components {
             closed: boolean;
             opens: null | string;
             closes: null | string;
+        };
+        DeleteAccountRequest: {
+            password: string;
+        };
+        ExportedAccount: {
+            name: string;
+            email: string;
+            phone: null | string;
+            profile: string;
+            /** Format: date-time */
+            registeredAt: string;
+        };
+        ExportedBooking: {
+            clubName: string;
+            pitchName: string;
+            sport: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: double */
+            price: number | string;
+            status: string;
+            /** Format: date-time */
+            bookedAt: string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            cancellationReason: null | string;
+        };
+        ExportedLegalAcceptance: {
+            version: null | string;
+            /** Format: date-time */
+            acceptedAt: null | string;
         };
         LoginRequest: {
             email: string;

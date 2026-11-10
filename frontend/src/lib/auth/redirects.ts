@@ -64,6 +64,8 @@ export function areaDecision<T extends { profile: string }>(
   return { allowed: true, account };
 }
 
+const ACCOUNT_PAGE = "/account";
+
 /** Pages that are not part of anyone's area: sign-in and sign-up. */
 const ACCOUNT_PAGES = [LOGIN_PATH, "/register"];
 
@@ -103,6 +105,11 @@ export function safeNext(next: string | null | undefined, profile: string): stri
   }
 
   const path = resolved.pathname;
+  // US30: the account page belongs to every profile.
+  if (isWithin(path, ACCOUNT_PAGE)) {
+    return next;
+  }
+
   const inOwnerArea = isWithin(path, PROFILE_HOME.Owner);
   const inAdminArea = isWithin(path, PROFILE_HOME.Admin);
   const belongs =

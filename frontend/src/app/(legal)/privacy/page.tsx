@@ -123,9 +123,12 @@ export default function Page() {
         <LegalList>
           <li>
             Não há um prazo definido nem eliminação automática: contas, reservas, dados de clientes sem conta, tokens de sessão expirados e
-            mensagens da fila de emails ficam guardados enquanto a demonstração existir, salvo se pedires a eliminação.
+            mensagens da fila de emails ficam guardados enquanto a demonstração existir, salvo se apagares a conta ou pedires a eliminação.
           </li>
-          <li>Uma conta desativada continua guardada. As reservas nunca são apagadas pela aplicação, só mudam de estado.</li>
+          <li>
+            Uma conta desativada continua guardada. Uma conta apagada fica sem dados pessoais. As reservas nunca são apagadas pela aplicação, só
+            mudam de estado.
+          </li>
           <li>Os contadores de pedidos por IP duram um minuto e perdem-se quando a API reinicia.</li>
           <li>O tempo durante o qual os registos (logs) ficam guardados no Render e na Vercel está a confirmar.</li>
           <li>Não são feitas cópias de segurança da base de dados.</li>
@@ -153,12 +156,31 @@ export default function Page() {
 
       <LegalSection title="Os teus direitos">
         <p>
-          Tens direito de acesso, de retificação, de apagamento, de limitação do tratamento, de portabilidade e de oposição. Hoje, na aplicação,
-          podes ver as tuas reservas em «As minhas reservas» e definir uma nova palavra-passe; a aplicação não tem funções para editar o perfil,
-          apagar a conta ou exportar dados.
+          Tens direito de acesso, de retificação, de apagamento, de limitação do tratamento, de portabilidade e de oposição. Na aplicação, em
+          «A minha conta», podes exercer dois deles sem escrever a ninguém:
         </p>
+        <LegalList>
+          <li>
+            <strong className="font-medium">Acesso e portabilidade.</strong> «Exportar os meus dados» descarrega um ficheiro JSON com o teu perfil
+            (nome, email, telemóvel, perfil e data de registo), as tuas reservas (clube, campo, datas, preço e estado) e a versão dos Termos que
+            aceitaste e quando. Não inclui a palavra-passe, tokens, identificadores internos nem dados de outras pessoas.
+          </li>
+          <li>
+            <strong className="font-medium">Apagamento.</strong> «Apagar a minha conta» pede a tua palavra-passe e, de uma só vez, cancela as tuas
+            reservas futuras e liberta esses horários, substitui o teu nome por «Conta apagada» e o teu email por um endereço que não recebe
+            correio, apaga o telemóvel, a palavra-passe, o registo da aceitação dos Termos e os emails ainda por enviar, e termina todas as sessões. O teu email fica livre
+            para uma nova conta. As reservas passadas ficam para o histórico dos clubes, sem te identificar. Um motivo escrito por um clube ao cancelar
+            uma reserva, ou por quem administra a plataforma ao desativar um dono, não é alterado. Não enviamos um email de confirmação: a
+            confirmação aparece no ecrã.
+          </li>
+          <li>
+            Uma conta de dono com clubes não pode ser apagada na aplicação, porque um clube tem sempre dono: escreve para <ContactEmailLink />. A
+            conta de administração não pode ser apagada.
+          </li>
+        </LegalList>
         <p>
-          Para exercer qualquer um destes direitos, escreve para <ContactEmailLink /> a partir do email da tua conta. O pedido é tratado à mão.
+          Podes ver as tuas reservas em «As minhas reservas» e definir uma nova palavra-passe. A aplicação não tem uma função para editar o perfil.
+          Para este ou para qualquer outro direito, escreve para <ContactEmailLink /> a partir do email da tua conta; o pedido é tratado à mão.
           As contas de demonstração são partilhadas e não têm um titular real.
         </p>
       </LegalSection>
