@@ -12,30 +12,30 @@ function requestFor(url: string, headers: Record<string, string> = {}) {
 }
 
 describe("proxy", () => {
-  it("forwards the path and query of the page being requested", () => {
-    const response = proxy(requestFor("/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=horarios"));
+  it("forwards the path and query of the page being requested", async () => {
+    const response = await proxy(requestFor("/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=horarios"));
 
     expect(forwardedHeader(response, "x-pathname")).toBe("/manage/clubs/0199f7a0-0000-7000-8000-0000000000aa?tab=horarios");
   });
 
-  it("forwards a path without a query as it is", () => {
-    expect(forwardedHeader(proxy(requestFor("/admin")), "x-pathname")).toBe("/admin");
+  it("forwards a path without a query as it is", async () => {
+    expect(forwardedHeader(await proxy(requestFor("/admin")), "x-pathname")).toBe("/admin");
   });
 
-  it("always overwrites a value sent by the client", () => {
-    const response = proxy(requestFor("/manage/clubs/new", { "x-pathname": "/admin/secrets" }));
+  it("always overwrites a value sent by the client", async () => {
+    const response = await proxy(requestFor("/manage/clubs/new", { "x-pathname": "/admin/secrets" }));
 
     expect(forwardedHeader(response, "x-pathname")).toBe("/manage/clubs/new");
   });
 
-  it("overwrites a client value written in another casing too", () => {
-    const response = proxy(requestFor("/manage", { "X-PathName": "//evil.example" }));
+  it("overwrites a client value written in another casing too", async () => {
+    const response = await proxy(requestFor("/manage", { "X-PathName": "//evil.example" }));
 
     expect(forwardedHeader(response, "x-pathname")).toBe("/manage");
   });
 
-  it("keeps the other request headers, including the cookies", () => {
-    const response = proxy(requestFor("/manage", { cookie: "access_token=abc", "accept-language": "pt-PT" }));
+  it("keeps the other request headers, including the cookies", async () => {
+    const response = await proxy(requestFor("/manage", { cookie: "access_token=abc", "accept-language": "pt-PT" }));
 
     // The headers listed as overridden are the full set of request headers the page receives.
     const overridden = (response.headers.get("x-middleware-override-headers") ?? "").split(",");
@@ -43,8 +43,8 @@ describe("proxy", () => {
     expect(forwardedHeader(response, "cookie")).toBe("access_token=abc");
   });
 
-  it("does not redirect, rewrite or decide anything", () => {
-    const response = proxy(requestFor("/manage"));
+  it("does not redirect, rewrite or decide anything", async () => {
+    const response = await proxy(requestFor("/manage"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
@@ -52,11 +52,16 @@ describe("proxy", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("forwards the tab and page of the player's bookings, so a visitor comes back to them after signing in", () => {
-    expect(forwardedHeader(proxy(requestFor("/bookings?tab=past&page=2")), "x-pathname")).toBe("/bookings?tab=past&page=2");
+  it("forwards the tab and page of the player's bookings, so a visitor comes back to them after signing in", async () => {
+    expect(forwardedHeader(await proxy(requestFor("/bookings?tab=past&page=2")), "x-pathname")).toBe("/bookings?tab=past&page=2");
   });
 
-  it("runs only for the areas and pages that have guards", () => {
-    expect(config.matcher).toEqual(["/manage/:path*", "/admin/:path*", "/bookings"]);
+  it("runs for the areas with guards, the bookings page, and a real load of a public club page (not prefetches)", async () => {
+    expect(config.matcher).toEqual([
+      "/manage/:path*",
+      "/admin/:path*",
+      "/bookings",
+      { source: "/clubs/:slug", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }] },
+    ]);
   });
 });
