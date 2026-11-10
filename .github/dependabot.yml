@@ -1,7 +1,7 @@
 # Dependency updates (T06). Weekly, one grouped PR for minor and patch updates per ecosystem: NuGet, npm, GitHub Actions and
 # the base images of backend/Dockerfile and frontend/Dockerfile.
 #
-# Major updates are never grouped: each arrives as its own PR and is reviewed by hand (changelog, breaking changes,
+# Major updates are never grouped: each arrives as its own PR and is reviewed by hand, except the ones ignored below (changelog, breaking changes,
 # generated files such as the OpenAPI document and the API types). Frontend dependencies are pinned to exact versions
 # and must be at least two weeks old (docs/backlog.md, US01), so `cooldown` holds back any release younger than that;
 # the one exception, a security fix, is not delayed because security updates ignore the cooldown.
@@ -30,6 +30,14 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 14
+    ignore:
+      # Major upgrades postponed: TypeScript 7 and ESLint 10 until their Next 16 compatibility is checked, @types/node 26 because the runtime is Node 22 LTS.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
@@ -58,6 +66,10 @@ updates:
     open-pull-requests-limit: 3
     cooldown:
       default-days: 14
+    ignore:
+      # A new major version of a base image (Node 22 LTS, .NET 10) is a decision, not an update.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-minor-patch:
         update-types: [minor, patch]
@@ -72,6 +84,10 @@ updates:
     open-pull-requests-limit: 3
     cooldown:
       default-days: 14
+    ignore:
+      # A new major version of a base image (Node 22 LTS, .NET 10) is a decision, not an update.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-minor-patch:
         update-types: [minor, patch]
