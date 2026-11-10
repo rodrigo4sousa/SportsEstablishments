@@ -775,6 +775,16 @@ Como dono da plataforma, quero publicar os Termos e Condições e a Política de
 - **Provisório (textos legais):** as bases legais de cada finalidade e a divisão de responsabilidades sobre os dados dos clientes sem conta foram escritas de forma conservadora e sem revisão jurídica.
 - **Provisório (a confirmar nas páginas):** a localização do Brevo e do resto do serviço da Vercel (além das funções), a existência de transferências para fora da União Europeia e o tempo de conservação dos registos (logs) no Render e na Vercel. As regiões de Frankfurt (Render, Supabase e funções da Vercel) foram indicadas pelo dono do projeto.
 - **Provisório (versão aceite):** a API guarda a versão que o site envia (não vazia, até 32 caracteres) e não a compara com uma lista, para o site continuar a ser o único sítio que define as versões.
+### T08 · Testes end-to-end · 3 pontos
+
+Como programador, quero um conjunto pequeno e estável de testes end-to-end que corra no CI contra a stack real, para ter um sinal de que o site, a API e a base de dados funcionam juntos.
+
+- Existe `e2e/` (Playwright, só Chromium), com três fluxos e não mais: (1) o jogador entra com uma conta semeada, reserva um horário livre, vê-o em «As minhas reservas» e cancela; (2) dois jogadores, em dois contextos do browser, têm o mesmo horário no ecrã: o segundo recebe o 409 `slot_taken` e a mensagem da interface, e só existe uma reserva; (3) o dono entra, vê a reserva no calendário e um clube que não existe responde 404 a sério.
+- Corre contra o `docker compose` do repositório com os dados de demonstração (`e2e/scripts/stack.mjs`), localmente (`npm run e2e` em `e2e/`) e no CI (`.github/workflows/e2e.yml`, à parte do `ci.yml` para o `deploy.yml` não esperar por ele). Decisão e alternativas na [ADR 0010](architecture/adr/0010-testes-end-to-end-playwright.md).
+- Estáveis: localizadores por papel e nome, sem esperas fixas, um worker, uma repetição só no CI, `trace` e `video` na primeira repetição e o relatório carregado como artefacto quando falha.
+- Repetíveis na mesma base de dados: cada teste usa dias a partir do dia 20 e cancela as reservas que faz.
+- Estado: feita. **Provisório:** os 3 pontos e a classificação «Depois»; o E2E não é obrigatório para o merge (a `main` não tem proteção de branch, confere-se à mão).
+
 ## Resumo de pontos
  
 | Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
@@ -785,8 +795,8 @@ Como dono da plataforma, quero publicar os Termos e Condições e a Política de
 | 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
 | 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
 | 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
-| Histórias técnicas | 6 | 23 | 1 | 3 | 7 de 7 | 26 de 26 |
-| **Total** | **25** | **92** | **12** | **45** | **36 de 37** | **132 de 137** |
+| Histórias técnicas | 6 | 23 | 2 | 6 | 8 de 8 | 29 de 29 |
+| **Total** | **25** | **92** | **13** | **48** | **37 de 38** | **135 de 140** |
 
 Estado: falta a US30 (apagar a conta e exportar os dados), que nasceu da T07. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
  

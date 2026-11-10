@@ -83,7 +83,7 @@ Counted on 2026-11-09:
 
 - **Back end:** 1410 tests, all passing (`dotnet test backend/SportsBooking.slnx`): 553 unit and 857 integration. The integration tests run against a real PostgreSQL 18 with Testcontainers; they need Docker, and without it they all fail. None uses the in-memory EF Core provider.
 - **Front end:** 1171 tests passing (`npm test`, in `frontend/`): Vitest, Testing Library and MSW.
-- **There are no end-to-end tests.** UI changes are checked by hand in the browser, against the full stack.
+- **End-to-end:** 3 Playwright tests (Chromium) in `e2e/`, run against the docker compose stack with the demo data in their own workflow ([`e2e.yml`](.github/workflows/e2e.yml)); see [Running the E2E tests](#running-the-e2e-tests). Other UI changes are checked by hand in the browser.
 
 ```bash
 dotnet build backend/SportsBooking.slnx     # warnings are errors; regenerates the OpenAPI document
@@ -93,6 +93,19 @@ npm run gen:api                              # in frontend/, after a back end bu
 ```
 
 [CI](.github/workflows/ci.yml) runs three jobs on every push and pull request: the back end (build, tests, OpenAPI up to date, no EF model change without a migration, vulnerable packages), the front end (lint, types, tests, build, API types up to date, `npm audit` of production dependencies) and the diagrams (renders them and fails if an SVG changed). `main` has no branch protection: the CI result is checked by hand before every merge.
+
+### Running the E2E tests
+
+Three Playwright tests (Chromium only) check the main flows through the real stack: a player books and cancels, two players want the same slot (the second gets the conflict), and an owner sees the booking in the calendar while an unknown club answers 404. They need Docker, Node.js 22, and ports 3000 and 5080 free (stop `docker compose up` first; the E2E stack is its own compose project, `sportsbooking-e2e`, with its own database volume, and never touches a development stack).
+
+```bash
+cd e2e
+npm ci
+npx playwright install chromium     # first time; on Linux add --with-deps
+npm run e2e                         # builds the stack, seeds the demo data, runs the tests, removes the stack
+```
+
+Or step by step, to run the tests again against the same stack: `npm run stack:up`, then `npm test` (or `npm run test:headed`, `npm run report` for the HTML report), then `npm run stack:down`. The tests use the public demo accounts, book the first free slot from day 20 ahead on and cancel what they book, so they can run repeatedly on the same database; they refuse to run against any address that is not `localhost`. The workflow [`e2e.yml`](.github/workflows/e2e.yml) does the same on every pull request and push to `main`, separately from CI (the deploy does not wait for it), and uploads the report, traces and videos when it fails. Decision: [ADR 0010](docs/architecture/adr/0010-testes-end-to-end-playwright.md).
 
 ## Run locally
 
