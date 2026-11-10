@@ -1,56 +1,54 @@
 ' 4+1 vista de processo - Jogador reserva um slot (US18, T03) · trinco do campo, exclusion constraint e outbox na mesma transação
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Trinco do campo, exclusion constraint e outbox na mesma transação (ADR 0003, ADR 0004).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-book
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Jogador reserva um slot (US18, T03) · trinco do campo, exclusion constraint e outbox na mesma transação
+title Vista de processo - jogador reserva um slot (US18, T03): trinco do campo, exclusion constraint e outbox na mesma transação
+autonumber
 
-Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "ClubBooking, createBooking")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_BOOK_SINGLE, "API-BOOK-SINGLE · Uma reserva", "BookingService.CreateAsync")
-  Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas", "IAccountStore.IsActiveAsync")
-  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
-  Component(CC_SLOTCHECK, "CC-SLOTCHECK · Verificação do slot", "BookingSlotCheck.CheckAsync")
-  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
-  Component(API_BOOK_STORE, "API-BOOK-STORE · Store das reservas", "BookingStore.TryAddAsync")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "pitches, blocks, bookings, outbox_messages")
+participant "Reservar" as WEB_F_BOOKING
+box "API ASP.NET Core"
+  participant "Uma reserva" as API_BOOK_SINGLE
+  participant "Contas" as API_AUTH_ACCOUNTS
+  participant "Trinco do campo" as CC_LOCK
+  participant "Verificação do slot" as CC_SLOTCHECK
+  participant "Pôr no outbox" as API_NOTIF_OUTBOX
+  participant "Store das reservas" as API_BOOK_STORE
+end box
+database "PostgreSQL" as C_DB
 
-Rel(WEB_F_BOOKING, API_BOOK_SINGLE, $plain("POST /api/bookings { pitchId, startsAt }"), "apiJson, via WEB-REWRITE; política Player")
-Rel(API_BOOK_SINGLE, API_BOOK_SINGLE, $plain("Valida o pedido (400 validation_failed)"))
-Rel(API_BOOK_SINGLE, C_DB, $plain("Lê o campo e o clube, fora de transação (404 pitch_not_found)"), "SELECT pitches JOIN clubs")
-Rel(API_BOOK_SINGLE, API_AUTH_ACCOUNTS, $plain("O dono do clube está ativo? (422 club_unavailable)"))
-Rel(API_AUTH_ACCOUNTS, C_DB, $plain("users.deactivated_at IS NULL"), "SELECT")
+WEB_F_BOOKING -> API_BOOK_SINGLE : POST /api/bookings { pitchId, startsAt } [apiJson, via os\nrewrites do Next.js; política Player]
+API_BOOK_SINGLE -> API_BOOK_SINGLE : Valida o pedido (400 validation_failed)
+API_BOOK_SINGLE -> C_DB : Lê o campo e o clube, fora de transação (404 pitch_not_found)\n[SELECT pitches JOIN clubs]
+API_BOOK_SINGLE -> API_AUTH_ACCOUNTS : O dono do clube está ativo? (422 club_unavailable)
+API_AUTH_ACCOUNTS -> C_DB : users.deactivated_at IS NULL [SELECT]
 
 group Transação do trinco (READ COMMITTED)
-  Rel(API_BOOK_SINGLE, CC_LOCK, $plain("LockAsync(pitchId)"))
-  Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches WHERE id = … FOR UPDATE"), "SQL")
-  note over CC_LOCK, C_DB: Outro pedido para o mesmo campo (reserva, bloqueio, cancelamento, falta, faixa de preço) espera aqui.
-  Rel(API_BOOK_SINGLE, C_DB, $plain("Volta a ler o campo dentro do trinco"), "SELECT pitches (+ horário, faixas)")
-  Rel(API_BOOK_SINGLE, CC_SLOTCHECK, $plain("CheckAsync(pitch, timeZone, startsAt, now)"))
-  Rel(CC_SLOTCHECK, C_DB, $plain("Há bloqueio sobreposto?"), "SELECT blocks")
-  Rel_Back(API_BOOK_SINGLE, CC_SLOTCHECK, $plain("O slot, ou a 1.ª recusa: 422 pitch_inactive, outside_booking_window, invalid_slot, slot_started; 409 slot_blocked"))
-  Rel(API_BOOK_SINGLE, API_BOOK_SINGLE, $plain("Booking.ForPlayer(…, pitch.PriceForSlot(startsAt, timeZone), now)"))
-  Rel(API_BOOK_SINGLE, API_NOTIF_OUTBOX, $plain("EnqueueConfirmationAsync, EnqueueOwnerNotificationAsync, EnqueueReminder"))
+  API_BOOK_SINGLE -> CC_LOCK : LockAsync(pitchId)
+  CC_LOCK -> C_DB : BEGIN; SELECT 1 FROM pitches WHERE id = … FOR UPDATE [SQL]
+  note over CC_LOCK, C_DB: Outro pedido para o mesmo campo (reserva, bloqueio, cancelamento, falta, faixa\nde preço) espera aqui.
+  API_BOOK_SINGLE -> C_DB : Volta a ler o campo dentro do trinco [SELECT pitches (+ horário,\nfaixas)]
+  API_BOOK_SINGLE -> CC_SLOTCHECK : CheckAsync(pitch, timeZone, startsAt, now)
+  CC_SLOTCHECK -> C_DB : Há bloqueio sobreposto? [SELECT blocks]
+  CC_SLOTCHECK --> API_BOOK_SINGLE : O slot, ou a 1.ª recusa: 422 pitch_inactive,\noutside_booking_window, invalid_slot, slot_started; 409\nslot_blocked
+  API_BOOK_SINGLE -> API_BOOK_SINGLE : Booking.ForPlayer(…, pitch.PriceForSlot(startsAt, timeZone),\nnow)
+  API_BOOK_SINGLE -> API_NOTIF_OUTBOX : EnqueueConfirmationAsync, EnqueueOwnerNotificationAsync,\nEnqueueReminder
   note over API_NOTIF_OUTBOX: Só junta OutboxMessage ao mesmo AppDbContext, sem gravar:\nbooking_confirmed; owner_new_booking se o clube o quer;\nbooking_reminder devido a startsAt − 3 h, se ainda no futuro.
-  Rel(API_BOOK_SINGLE, API_BOOK_STORE, $plain("TryAddAsync(booking)"))
-  Rel(API_BOOK_STORE, C_DB, $plain("Um SaveChanges: INSERT bookings e INSERT outbox_messages"), "SQL")
+  API_BOOK_SINGLE -> API_BOOK_STORE : TryAddAsync(booking)
+  API_BOOK_STORE -> C_DB : Um SaveChanges: INSERT bookings e INSERT outbox_messages [SQL]
   alt bookings_no_overlap recusa
-    Rel_Back(API_BOOK_STORE, C_DB, $plain("SQLSTATE 23P01 (exclusion_violation)"))
-    Rel(API_BOOK_STORE, API_BOOK_STORE, $plain("Desliga as entradas Added (reserva e mensagens); log Information sem o jogador"))
-    Rel_Back(API_BOOK_SINGLE, API_BOOK_STORE, $plain("false"))
-    Rel(CC_LOCK, C_DB, $plain("Sem commit: o scope é descartado → ROLLBACK"), "SQL")
-    Rel_Back(WEB_F_BOOKING, API_BOOK_SINGLE, $plain("409 slot_taken"))
+    C_DB --> API_BOOK_STORE : SQLSTATE 23P01 (exclusion_violation)
+    API_BOOK_STORE -> API_BOOK_STORE : Desliga as entradas Added (reserva e mensagens); log Information\nsem o jogador
+    API_BOOK_STORE --> API_BOOK_SINGLE : false
+    CC_LOCK -> C_DB : Sem commit: o scope é descartado → ROLLBACK [SQL]
+    API_BOOK_SINGLE --> WEB_F_BOOKING : 409 slot_taken
   else inserida
-    Rel(API_BOOK_SINGLE, CC_LOCK, $plain("scope.CommitAsync"))
-    Rel(CC_LOCK, C_DB, $plain("COMMIT: reserva e emails juntos; o trinco é libertado"), "SQL")
-    Rel_Back(WEB_F_BOOKING, API_BOOK_SINGLE, $plain("201 Created, Location: /api/bookings/{id}"))
+    API_BOOK_SINGLE -> CC_LOCK : scope.CommitAsync
+    CC_LOCK -> C_DB : COMMIT: reserva e emails juntos; o trinco é libertado [SQL]
+    API_BOOK_SINGLE --> WEB_F_BOOKING : 201 Created, Location: /api/bookings/{id}
   end
 end
-
-SHOW_LEGEND()
 @enduml

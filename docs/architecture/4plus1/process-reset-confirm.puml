@@ -1,40 +1,38 @@
 ' 4+1 vista de processo - Definir a nova palavra-passe (US05) · uma só resposta para qualquer ligação má; tudo numa transação
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Uma só resposta 400 para qualquer ligação má; a nova palavra-passe, a revogação das sessões e o email numa transação (US05).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-reset-confirm
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Definir a nova palavra-passe (US05) · uma só resposta para qualquer ligação má; tudo numa transação
+title Vista de processo - definir a nova palavra-passe (US05): uma só resposta para qualquer ligação má; tudo numa transação
+autonumber
 
-Component(WEB_F_AUTH, "WEB-F-AUTH · Contas", "ResetPasswordForm, confirmPasswordReset")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_AUTH, "API-AUTH · Contas e sessões", "AuthController.ConfirmPasswordReset")
-  Component(API_AUTH_RESET, "API-AUTH-RESET · Recuperação", "PasswordResetService.ConfirmAsync, PasswordResetStore.ResetAsync")
-  Component(CC_DATAPROT, "CC-DATAPROT · Data Protection", "DataProtectorTokenProvider do Identity")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "users, refresh_tokens, outbox_messages")
+participant "Contas" as WEB_F_AUTH
+box "API ASP.NET Core"
+  participant "Contas e sessões" as API_AUTH
+  participant "Recuperação" as API_AUTH_RESET
+  participant "Data Protection" as CC_DATAPROT
+end box
+database "PostgreSQL" as C_DB
 
-Rel(WEB_F_AUTH, API_AUTH, $plain("POST /api/auth/password-reset/confirm { email, token, newPassword }"), "email e token lidos do endereço; [AllowAnonymous], limite por IP")
-Rel(API_AUTH, API_AUTH_RESET, $plain("ConfirmAsync"))
-Rel(API_AUTH_RESET, API_AUTH_RESET, $plain("Valida newPassword (400 no campo); email ou token vazios → 400 invalid_or_expired_reset_link"))
-Rel(API_AUTH_RESET, C_DB, $plain("FindByEmailAsync e elegibilidade (Player ou Owner ativo)"), "SELECT users")
+WEB_F_AUTH -> API_AUTH : POST /api/auth/password-reset/confirm { email, token,\nnewPassword } [email e token lidos do endereço;\n[AllowAnonymous], limite por IP]
+API_AUTH -> API_AUTH_RESET : ConfirmAsync
+API_AUTH_RESET -> API_AUTH_RESET : Valida newPassword (400 no campo); email ou token vazios → 400\ninvalid_or_expired_reset_link
+API_AUTH_RESET -> C_DB : FindByEmailAsync e elegibilidade (Player ou Owner ativo) [SELECT\nusers]
 group Transação
-  Rel(API_AUTH_RESET, CC_DATAPROT, $plain("UserManager.ResetPasswordAsync(user, token, newPassword)"))
-  Rel(CC_DATAPROT, C_DB, $plain("Valida finalidade, validade (relógio do sistema) e security stamp"), "SELECT data_protection_keys")
+  API_AUTH_RESET -> CC_DATAPROT : UserManager.ResetPasswordAsync(user, token, newPassword)
+  CC_DATAPROT -> C_DB : Valida finalidade, validade (relógio do sistema) e security\nstamp [SELECT data_protection_keys]
   alt token errado, expirado ou já usado
-    Rel(API_AUTH_RESET, C_DB, $plain("ROLLBACK"), "SQL")
-    Rel_Back(WEB_F_AUTH, API_AUTH, $plain("400 invalid_or_expired_reset_link (o mesmo para conta desconhecida)"))
+    API_AUTH_RESET -> C_DB : ROLLBACK [SQL]
+    API_AUTH --> WEB_F_AUTH : 400 invalid_or_expired_reset_link (o mesmo para conta\ndesconhecida)
   else válido
-    Rel(API_AUTH_RESET, C_DB, $plain("Novo hash e novo security stamp: este token e os anteriores deixam de valer"), "UPDATE users")
-    Rel(API_AUTH_RESET, C_DB, $plain("Revoga todas as sessões"), "UPDATE refresh_tokens SET revoked_at")
-    Rel(API_AUTH_RESET, C_DB, $plain("ResetAccessFailedCountAsync, SetLockoutEndDateAsync(null)"), "UPDATE users")
-    Rel(API_AUTH_RESET, C_DB, $plain("INSERT outbox_messages (password_changed); COMMIT"), "SQL")
-    Rel_Back(WEB_F_AUTH, API_AUTH, $plain("204; ninguém fica com sessão iniciada"))
+    API_AUTH_RESET -> C_DB : Novo hash e novo security stamp: este token e os anteriores\ndeixam de valer [UPDATE users]
+    API_AUTH_RESET -> C_DB : Revoga todas as sessões [UPDATE refresh_tokens SET revoked_at]
+    API_AUTH_RESET -> C_DB : ResetAccessFailedCountAsync, SetLockoutEndDateAsync(null)\n[UPDATE users]
+    API_AUTH_RESET -> C_DB : INSERT outbox_messages (password_changed); COMMIT [SQL]
+    API_AUTH --> WEB_F_AUTH : 204; ninguém fica com sessão iniciada
   end
 end
-
-SHOW_LEGEND()
 @enduml

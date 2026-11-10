@@ -1,22 +1,22 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · projetos do back end e referências
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: Um projeto .NET por camada, com referências só para dentro.
 ' Não desenhado: classes, endpoints e regras de negócio.
 @startuml development-backend
 !include ../style.puml
-title Vista de desenvolvimento · projetos do back end e referências
+title Vista de desenvolvimento - projetos do back end e referências
 
 package "backend/src" {
-  component "L-API\nSportsBooking.Api\n(Microsoft.NET.Sdk.Web)" as L_API
-  component "L-INF\nSportsBooking.Infrastructure\n(FrameworkReference Microsoft.AspNetCore.App)" as L_INF
-  component "L-APP\nSportsBooking.Application" as L_APP
-  component "L-DOM\nSportsBooking.Domain\n(sem pacotes)" as L_DOM
+  component "SportsBooking.Api\n(Microsoft.NET.Sdk.Web)" as L_API
+  component "SportsBooking.Infrastructure\n(FrameworkReference Microsoft.AspNetCore.App)" as L_INF
+  component "SportsBooking.Application" as L_APP
+  component "SportsBooking.Domain\n(sem pacotes)" as L_DOM
 }
 
 package "backend/tests" {
-  component "DEV-TEST-UNIT\nSportsBooking.UnitTests" as DEV_TEST_UNIT
-  component "DEV-TEST-INT\nSportsBooking.IntegrationTests" as DEV_TEST_INT
+  component "SportsBooking.UnitTests" as DEV_TEST_UNIT
+  component "SportsBooking.IntegrationTests" as DEV_TEST_INT
 }
 
 L_API --> L_INF : ProjectReference
@@ -28,12 +28,12 @@ DEV_TEST_UNIT --> L_API : ProjectReference\n(+ InternalsVisibleTo)
 DEV_TEST_INT --> L_API : ProjectReference
 
 note right of L_API
-  Não referencia L-APP nem L-DOM diretamente:
-  chega-lhes por L-INF (referências transitivas).
+  Não referencia Application nem Domain diretamente:
+  chega-lhes por Infrastructure (referências transitivas).
 end note
 
 note bottom of DEV_TEST_UNIT
-  Chega a L-APP e L-INF pela referência a L-API.
+  Chega a Application e Infrastructure pela referência a Api.
 end note
 
 @enduml

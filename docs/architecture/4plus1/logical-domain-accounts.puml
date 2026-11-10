@@ -1,32 +1,32 @@
 ' 4+1 vista lógica - Modelo do domínio · contas, sessões, histórico dos donos e outbox
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa.
 ' Decisão documentada: A conta (AppUser), o refresh token e o histórico dos donos vivem na Infrastructure e a mensagem do outbox na Application; no Domain a conta existe só como regras (Dom/Accounts).
 ' Não desenhado: controllers, HTTP e ecrãs; os clubes, campos e reservas estão em logical-domain-booking.
 @startuml logical-domain-accounts
 !include ../style.puml
-title Modelo do domínio · contas, sessões, histórico dos donos e outbox
+title Vista lógica - modelo do domínio: contas, sessões, histórico dos donos e outbox
 
 hide empty members
 
-package "SportsBooking.Domain (L-DOM)" {
-  class Profiles <<D-POLICIES>> {
+package "Domain" as L_DOM {
+  class "Profiles" as D_POLICIES_Profiles {
     {static} Player = "Player"
     {static} Owner = "Owner"
     {static} Admin = "Admin"
     {static} SelfRegistration = [Player, Owner]
   }
-  class "EmailAddressPolicy, AccountNamePolicy,\nPhoneNumberPolicy, PasswordPolicy,\nTermsAcceptancePolicy" as Policies <<D-POLICIES>> {
+  class "EmailAddressPolicy, AccountNamePolicy,\nPhoneNumberPolicy, PasswordPolicy,\nTermsAcceptancePolicy" as D_POLICIES {
     {static} PasswordPolicy.MinimumLength = 8
   }
-  class Booking <<D-BOOKING>> {
+  class "Booking" as D_BOOKING {
     Id : Guid
     PlayerId : Guid?
   }
 }
 
-package "SportsBooking.Infrastructure (L-INF)" {
-  class AppUser <<D-USER>> {
+package "Infrastructure" as L_INF {
+  class "AppUser" as D_USER {
     Id : Guid
     Email, UserName : string
     Name : string
@@ -41,9 +41,9 @@ package "SportsBooking.Infrastructure (L-INF)" {
     Deactivate(now)
     RecordTermsAcceptance(version, acceptedAt)
   }
-  note top of AppUser : IdentityUser<Guid>
+  note top of D_USER : IdentityUser<Guid>
 
-  class RefreshToken <<D-REFRESH>> {
+  class "RefreshToken" as D_REFRESH {
     Id : Guid
     UserId : Guid
     TokenHash : byte[] (SHA-256)
@@ -55,7 +55,7 @@ package "SportsBooking.Infrastructure (L-INF)" {
     IsExpired(now)
   }
 
-  class OwnerStatusChange <<D-STATUSCHG>> {
+  class "OwnerStatusChange" as D_STATUSCHG {
     Id : Guid
     OwnerId : Guid
     Action : OwnerStatusAction
@@ -67,13 +67,13 @@ package "SportsBooking.Infrastructure (L-INF)" {
   }
 }
 
-package "SportsBooking.Application (L-APP)" {
-  enum OwnerStatusAction <<D-STATUSCHG>> {
+package "Application" as L_APP {
+  enum "OwnerStatusAction" as D_STATUSCHG_OwnerStatusAction {
     Deactivated
     Reactivated
   }
 
-  class OutboxMessage <<D-OUTBOX>> {
+  class "OutboxMessage" as D_OUTBOX {
     Id : Guid
     Type : string
     Payload : string (jsonb)
@@ -91,7 +91,7 @@ package "SportsBooking.Application (L-APP)" {
     IsPending : bool
   }
 
-  class OutboxRetry <<D-OUTBOX>> {
+  class "OutboxRetry" as D_OUTBOX_OutboxRetry {
     FirstDelay, MaximumDelay : TimeSpan
     MaxAttempts : int
     --
@@ -99,15 +99,15 @@ package "SportsBooking.Application (L-APP)" {
   }
 }
 
-AppUser "1" --> "1" Profiles : user_roles (um perfil)
-AppUser ..> Policies : regras no registo e no seed
-RefreshToken "0..*" --> "1" AppUser : UserId
-OwnerStatusChange "0..*" --> "1" AppUser : OwnerId (RESTRICT)
-OwnerStatusChange "0..*" --> "1" AppUser : AdminId (RESTRICT)
-OwnerStatusChange ..> OwnerStatusAction
-Booking "0..*" --> "0..1" AppUser : PlayerId
-OutboxMessage ..> OutboxRetry : RecordFailure
-OutboxMessage ..> Booking : payload: bookingId (JSON, sem FK)
-OutboxMessage ..> AppUser : payload: playerId / accountId (JSON, sem FK)
+D_USER "1" --> "1" D_POLICIES_Profiles : user_roles (um perfil)
+D_USER ..> D_POLICIES : regras no registo e no seed
+D_REFRESH "0..*" --> "1" D_USER : UserId
+D_STATUSCHG "0..*" --> "1" D_USER : OwnerId (RESTRICT)
+D_STATUSCHG "0..*" --> "1" D_USER : AdminId (RESTRICT)
+D_STATUSCHG ..> D_STATUSCHG_OwnerStatusAction
+D_BOOKING "0..*" --> "0..1" D_USER : PlayerId
+D_OUTBOX ..> D_OUTBOX_OutboxRetry : RecordFailure
+D_OUTBOX ..> D_BOOKING : payload: bookingId (JSON, sem FK)
+D_OUTBOX ..> D_USER : payload: playerId / accountId (JSON, sem FK)
 
 @enduml

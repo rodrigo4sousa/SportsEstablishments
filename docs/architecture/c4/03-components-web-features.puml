@@ -1,29 +1,29 @@
 ' C4 nível 3 - Componentes do front end · áreas e funcionalidades
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Não desenhado: classes individuais, salvo quando são o próprio componente.
 @startuml 03-components-web-features
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes do front end · áreas e funcionalidades
+title Componentes do front end - áreas e funcionalidades
 
 LAYOUT_TOP_DOWN()
 
-Container_Boundary(C_WEB, "C-WEB · Aplicação Next.js") {
-  Component(WEB_AREA_PLAYER, "WEB-AREA-PLAYER · Área do jogador", "app/(player)", "/, /clubs/[slug], /bookings")
-  Component(WEB_AREA_ACCOUNT, "WEB-AREA-ACCOUNT · Páginas de conta", "app/login, register, …", "Login, registo, recuperação.")
-  Component(WEB_AREA_MANAGE, "WEB-AREA-MANAGE · Área do dono", "app/manage", "/manage/...")
-  Component(WEB_AREA_ADMIN, "WEB-AREA-ADMIN · Área do admin", "app/admin", "/admin, /admin/owners/[id]")
+Container_Boundary(C_WEB, "Aplicação Next.js") {
+  Component(WEB_AREA_PLAYER, "Área do jogador", "app/(player)")
+  Component(WEB_AREA_ACCOUNT, "Páginas de conta", "app/login, register, …")
+  Component(WEB_AREA_MANAGE, "Área do dono", "app/manage")
+  Component(WEB_AREA_ADMIN, "Área do admin", "app/admin")
 
-  Component(WEB_F_AUTH, "WEB-F-AUTH · Contas", "features/auth", "Formulários; useCurrentUser (chave [auth, me]).")
-  Component(WEB_F_CATALOG, "WEB-F-CATALOG · Catálogo", "features/catalog", "Pesquisa no endereço; slots públicos.")
-  Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "features/booking", "Escolha no endereço (selection.ts); série semanal.")
-  Component(WEB_F_MYBOOK, "WEB-F-MYBOOK · As minhas reservas", "features/my-bookings", "Separador e página no endereço; cancelar.")
-  Component(WEB_F_CLUBS, "WEB-F-CLUBS · Clubes do dono", "features/clubs", "Lista e formulário do clube.")
-  Component(WEB_F_PITCHES, "WEB-F-PITCHES · Campos", "features/pitches", "Campos, horário, pré-visualização, bloqueios, faixas de preço.")
-  Component(WEB_F_CALENDAR, "WEB-F-CALENDAR · Calendário", "features/calendar", "Vista no endereço (calendar-url.ts); layout por tempo real.")
-  Component(WEB_F_STATS, "WEB-F-STATS · Estatísticas", "features/statistics", "Período e campo no endereço.")
-  Component(WEB_F_ADMIN, "WEB-F-ADMIN · Admin", "features/admin", "Vista no endereço (admin-url.ts); gráficos.")
+  Component(WEB_F_AUTH, "Contas", "features/auth")
+  Component(WEB_F_CATALOG, "Catálogo", "features/catalog")
+  Component(WEB_F_BOOKING, "Reservar", "features/booking")
+  Component(WEB_F_MYBOOK, "As minhas reservas", "features/my-bookings")
+  Component(WEB_F_CLUBS, "Clubes do dono", "features/clubs")
+  Component(WEB_F_PITCHES, "Campos", "features/pitches")
+  Component(WEB_F_CALENDAR, "Calendário", "features/calendar")
+  Component(WEB_F_STATS, "Estatísticas", "features/statistics")
+  Component(WEB_F_ADMIN, "Admin", "features/admin")
 }
 
 Rel(WEB_AREA_PLAYER, WEB_F_CATALOG, $plain("Pesquisa e página do clube"), "")
@@ -46,11 +46,9 @@ Rel(WEB_F_ADMIN, WEB_F_STATS, $plain("Formata horas e ocupação"), "formatHours
 Rel(WEB_F_STATS, WEB_F_CLUBS, $plain("Clube não encontrado"), "ClubNotFound")
 
 note bottom of WEB_F_PITCHES
-  WEB-F-PITCHES também dá a quase todas as funcionalidades
+  Campos também dá a quase todas as funcionalidades
   formatPrice, sportLabel e previewDateRange (setas omitidas).
-  Todas as funcionalidades chamam a API só por WEB-API-CLIENT
-  e mostram datas só por WEB-DATETIME (lib/datetime.ts).
+  Todas as funcionalidades chamam a API só pelo Cliente da API
+  e mostram datas só por lib/datetime.ts.
 end note
-
-SHOW_LEGEND()
 @enduml

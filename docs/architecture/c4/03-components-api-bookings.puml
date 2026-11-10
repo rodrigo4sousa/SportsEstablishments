@@ -1,36 +1,36 @@
 ' C4 nível 3 - Componentes da API · reservas (uma, série semanal, do dono) e verificação partilhada do slot
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Não desenhado: classes individuais, salvo quando são o próprio componente.
 @startuml 03-components-api-bookings
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes da API · reservas (uma, série semanal, do dono) e verificação partilhada do slot
+title Componentes da API - reservas (uma, série semanal, do dono) e verificação partilhada do slot
 
 LAYOUT_TOP_DOWN()
 
-Container_Boundary(C_API, "C-API · API ASP.NET Core") {
-  Boundary(API_BOOK, "API-BOOK · Reservas do jogador (BookingsController, MeBookingsController; política Player)") {
-    Component(API_BOOK_SINGLE, "API-BOOK-SINGLE · Uma reserva", "BookingService.CreateAsync", "Valida, encontra o campo, confirma o dono ativo, tranca o campo, verifica o slot, preço de PriceForSlot, insere.")
-    Component(API_BOOK_SERIES, "API-BOOK-SERIES · Série semanal", "RecurringBookingService, RecurringOccurrences", "Pré-visualização e criação: cada data em BookOneAsync, com o seu trinco e a sua transação.")
-    Component(API_BOOK_MINE, "API-BOOK-MINE · As minhas reservas e cancelar", "MyBookingsService, BookingCancellationService", "Lista e detalhe filtrados pelo jogador da sessão; cancelar com Booking.CancelByPlayer.")
-    Component(API_BOOK_STORE, "API-BOOK-STORE · Store das reservas", "IBookingStore, Inf/Bookings/BookingStore", "TryAddAsync e TrySaveChangesAsync: 23P01 → false (409 slot_taken).")
+Container_Boundary(C_API, "API ASP.NET Core") {
+  Boundary(API_BOOK, "Reservas do jogador (BookingsController, MeBookingsController; política Player)") {
+    Component(API_BOOK_SINGLE, "Uma reserva", "BookingService.CreateAsync")
+    Component(API_BOOK_SERIES, "Série semanal", "RecurringBookingService, RecurringOccurrences")
+    Component(API_BOOK_MINE, "As minhas reservas e cancelar", "MyBookingsService, BookingCancellationService")
+    Component(API_BOOK_STORE, "Store das reservas", "IBookingStore, Inf/Bookings/BookingStore")
   }
-  Component(API_CLUBBOOK, "API-CLUBBOOK · Reservas do dono", "ClubBookingService, ClubCalendarService", "Reserva para cliente, cancelar com motivo, marcar e anular falta, calendário.")
-  Component(CC_AUTHZ, "CC-AUTHZ · Autorização por dono", "OwnedClubs, OwnedPitches, OwnedBookings", "Só os clubes, campos e reservas do dono da sessão (404 igual para o de outro dono).")
-  Component(CC_SLOTCHECK, "CC-SLOTCHECK · Verificação do slot", "BookingSlotCheck.CheckAsync", "Campo ativo → janela → grelha (SlotStartingAt) → começado → bloqueios. Não olha para outras reservas.")
-  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, Inf/Pitches/PitchLock", "Transação + SELECT … FOR UPDATE na linha do campo.")
-  Component(API_CATALOG, "API-CATALOG · Clubes visíveis", "VisibleClubs", "Dono ativo e pelo menos um campo ativo.")
-  Component(API_AUTH, "API-AUTH · Contas", "IAccountStore.IsActiveAsync", "O dono do clube não está desativado.")
-  Component(API_NOTIF, "API-NOTIF · Outbox", "BookingEmailOutbox", "Junta as mensagens ao mesmo IAppDbContext, antes do SaveChanges de quem chama.")
+  Component(API_CLUBBOOK, "Reservas do dono", "ClubBookingService, ClubCalendarService")
+  Component(CC_AUTHZ, "Autorização por dono", "OwnedClubs, OwnedPitches, OwnedBookings")
+  Component(CC_SLOTCHECK, "Verificação do slot", "BookingSlotCheck.CheckAsync")
+  Component(CC_LOCK, "Trinco do campo", "IPitchLock, Inf/Pitches/PitchLock")
+  Component(API_CATALOG, "Clubes visíveis", "VisibleClubs")
+  Component(API_AUTH, "Contas", "IAccountStore.IsActiveAsync")
+  Component(API_NOTIF, "Outbox", "BookingEmailOutbox")
 }
 
-Container_Boundary(C_DB, "C-DB · PostgreSQL") {
-  ComponentDb(DB_PITCHES, "DB-PITCHES · pitches", "Tabela", "A linha trancada pelo CC-LOCK.")
-  ComponentDb(DB_BLOCKS, "DB-BLOCKS · blocks", "Tabela", "Bloqueios do campo.")
-  ComponentDb(DB_BOOKINGS, "DB-BOOKINGS · bookings", "Tabela", "Reservas; nunca apagadas.")
-  ComponentDb(DB_NOOVERLAP, "DB-NOOVERLAP · bookings_no_overlap", "Exclusion constraint (GiST)", "Nenhuma reserva Confirmed se sobrepõe no mesmo campo.")
-  ComponentDb(DB_OUTBOX, "DB-OUTBOX · outbox_messages", "Tabela", "Emails por enviar.")
+Container_Boundary(C_DB, "PostgreSQL") {
+  ComponentDb(DB_PITCHES, "pitches", "Tabela")
+  ComponentDb(DB_BLOCKS, "blocks", "Tabela")
+  ComponentDb(DB_BOOKINGS, "bookings", "Tabela")
+  ComponentDb(DB_NOOVERLAP, "bookings_no_overlap", "Exclusion constraint (GiST)")
+  ComponentDb(DB_OUTBOX, "outbox_messages", "Tabela")
 }
 
 Rel(API_BOOK_SINGLE, API_AUTH, $plain("Confirma que o dono está ativo (422 club_unavailable)"), "")
@@ -63,6 +63,4 @@ Rel(CC_SLOTCHECK, DB_BLOCKS, $plain("Procura bloqueios sobrepostos"), "SQL")
 Rel(API_BOOK_STORE, DB_BOOKINGS, $plain("Escreve"), "INSERT, UPDATE")
 Rel(DB_BOOKINGS, DB_NOOVERLAP, $plain("Cada escrita é verificada"), "23P01")
 Rel(API_NOTIF, DB_OUTBOX, $plain("Escreve no mesmo SaveChanges"), "INSERT")
-
-SHOW_LEGEND()
 @enduml

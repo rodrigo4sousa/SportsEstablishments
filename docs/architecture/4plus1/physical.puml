@@ -1,5 +1,5 @@
 ' 4+1 vista física - diagrama de implantação UML da produção
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem faz deploy, opera ou dá suporte à aplicação.
 ' Decisão documentada: o site corre na Vercel, a API e o worker de emails no mesmo serviço do Render, a base de dados no Supabase (sempre pelo pooler em modo sessão) e o SMTP no Brevo; o GitHub Actions aplica as migrações como dono do esquema e lança os deploys (ADR 0009).
 ' Só o que existe em produção desde 2026-11-09. O desenvolvimento (docker compose) está em c4/04-deployment-dev.puml.
@@ -8,37 +8,37 @@
 @startuml physical
 !include ../style.puml
 
-title Vista física · produção (T06)
+title Vista física - produção (T06)
 left to right direction
 
-node "C-BROWSER · Browser do utilizador" as C_BROWSER
+node "Browser do utilizador" as C_BROWSER
 
-node "PL-VERCEL · Vercel (Hobby)" as PL_VERCEL {
-    component "PL-VERCEL-EDGE · Borda da Vercel" as PL_VERCEL_EDGE
-    artifact "C-WEB · Aplicação Next.js" as C_WEB
+node "Vercel (Hobby)" as PL_VERCEL {
+    component "Borda da Vercel" as PL_VERCEL_EDGE
+    artifact "Aplicação Next.js" as C_WEB
 }
 
-node "PL-RENDER · Render (plano gratuito, Frankfurt)" as PL_RENDER {
-    component "PL-RENDER-EDGE · Borda do Render" as PL_RENDER_EDGE
-    node "PL-RENDER-API · Serviço web público (Docker)" as PL_RENDER_API {
-        artifact "C-API · API ASP.NET Core" as C_API
-        artifact "C-WORKER · Worker de emails" as C_WORKER
+node "Render (plano gratuito, Frankfurt)" as PL_RENDER {
+    component "Borda do Render" as PL_RENDER_EDGE
+    node "Serviço web público (Docker)" as PL_RENDER_API {
+        artifact "API ASP.NET Core" as C_API
+        artifact "Worker de emails" as C_WORKER
     }
 }
 
-node "PL-SUPABASE · Supabase (Free)" as PL_SUPABASE {
-    component "PL-SUPAPOOL · Pooler de ligações" as PL_SUPAPOOL
-    database "C-DB · Base de dados" as C_DB
+node "Supabase (Free)" as PL_SUPABASE {
+    component "Pooler de ligações" as PL_SUPAPOOL
+    database "Base de dados" as C_DB
 }
 
-node "PL-BREVO · Brevo" as PL_BREVO_NODE {
-    component "PL-BREVO · Servidor SMTP" <<external>> as PL_BREVO
+node "Brevo" as PL_BREVO_NODE {
+    component "Servidor SMTP" <<external>> as PL_BREVO
 }
 
-node "X-GHA · GitHub Actions" as X_GHA {
-    artifact "PL-DEPLOY · deploy.yml" as PL_DEPLOY
-    artifact "PL-PRODDATA · prod-data.yml" as PL_PRODDATA
-    artifact "PL-MIGBUNDLE · Migration bundle" as PL_MIGBUNDLE
+node "GitHub Actions" as X_GHA {
+    artifact "deploy.yml" as PL_DEPLOY
+    artifact "prod-data.yml" as PL_PRODDATA
+    artifact "Migration bundle" as PL_MIGBUNDLE
 }
 
 C_BROWSER --> PL_VERCEL_EDGE : Abre páginas e chama /api/*\n[HTTPS, cookies]

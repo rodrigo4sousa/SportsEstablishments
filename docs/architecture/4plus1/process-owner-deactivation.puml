@@ -1,43 +1,41 @@
 ' 4+1 vista de processo - Desativar um dono (US29) · atualização condicional, registo de auditoria e revogação numa transação
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Atualização condicional, registo de auditoria e revogação das sessões numa só transação (US29).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-owner-deactivation
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Desativar um dono (US29) · atualização condicional, registo de auditoria e revogação numa transação
+title Vista de processo - desativar um dono (US29): atualização condicional, registo de auditoria e revogação numa transação
+autonumber
 
-Component(WEB_F_ADMIN, "WEB-F-ADMIN · Página do dono", "OwnerStatusForm, changeOwnerStatus")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(CC_AUTHZ, "CC-AUTHZ · Autorização", "política Admin, ICurrentUser")
-  Component(API_ADMIN, "API-ADMIN · Administração", "AdminOwnerStatusService, AdminOwnersService, OwnerStatusStore.TryChangeAsync")
-Boundary_End()
-ComponentDb(DB_USERS, "DB-USERS · users", "Tabela")
-ComponentDb(DB_STATUSCHG, "DB-STATUSCHG · owner_status_changes", "Tabela, só de acrescentar (DB-AUDITTRG)")
-ComponentDb(DB_REFRESH, "DB-REFRESH · refresh_tokens", "Tabela")
+participant "Página do dono" as WEB_F_ADMIN
+box "API ASP.NET Core"
+  participant "Autorização" as CC_AUTHZ
+  participant "Administração" as API_ADMIN
+end box
+database "users" as DB_USERS
+database "owner_status_changes" as DB_STATUSCHG
+database "refresh_tokens" as DB_REFRESH
 
-Rel(WEB_F_ADMIN, CC_AUTHZ, $plain("POST /api/admin/owners/{id}/deactivate { reason }"), "apiJson")
-Rel(CC_AUTHZ, API_ADMIN, $plain("Sessão Admin (senão 401 ou 403) → DeactivateAsync"))
-Rel(API_ADMIN, DB_USERS, $plain("AdminOwnersService.GetAsync: um dono? (404 owner_not_found, também para jogador ou admin), antes do corpo"), "SELECT")
-Rel(API_ADMIN, API_ADMIN, $plain("Valida reason: obrigatório, aparado, ≤ 500 (400)"))
-Rel(API_ADMIN, CC_AUTHZ, $plain("adminId = ICurrentUser.UserId (da sessão, nunca do pedido)"))
+WEB_F_ADMIN -> CC_AUTHZ : POST /api/admin/owners/{id}/deactivate { reason } [apiJson]
+CC_AUTHZ -> API_ADMIN : Sessão Admin (senão 401 ou 403) → DeactivateAsync
+API_ADMIN -> DB_USERS : AdminOwnersService.GetAsync: um dono? (404 owner_not_found,\ntambém para jogador ou admin), antes do corpo [SELECT]
+API_ADMIN -> API_ADMIN : Valida reason: obrigatório, aparado, ≤ 500 (400)
+API_ADMIN -> CC_AUTHZ : adminId = ICurrentUser.UserId (da sessão, nunca do pedido)
 group Transação (TryChangeAsync)
-  Rel(API_ADMIN, DB_USERS, $plain("UPDATE users SET deactivated_at = now WHERE id = … AND deactivated_at IS NULL"), "ExecuteUpdate")
+  API_ADMIN -> DB_USERS : UPDATE users SET deactivated_at = now WHERE id = … AND\ndeactivated_at IS NULL [ExecuteUpdate]
   alt 0 linhas (já desativado, ou outro admin ganhou)
-    Rel(API_ADMIN, DB_USERS, $plain("ROLLBACK"), "SQL")
-    Rel_Back(WEB_F_ADMIN, API_ADMIN, $plain("422 owner_already_deactivated"))
+    API_ADMIN -> DB_USERS : ROLLBACK [SQL]
+    API_ADMIN --> WEB_F_ADMIN : 422 owner_already_deactivated
   else 1 linha
-    Rel(API_ADMIN, DB_STATUSCHG, $plain("OwnerStatusChange.Record(ownerId, Deactivated, reason, adminId, now)"), "INSERT")
-    Rel(API_ADMIN, DB_REFRESH, $plain("Revoga todos os refresh tokens do dono"), "UPDATE … SET revoked_at WHERE user_id = … AND revoked_at IS NULL")
-    Rel(API_ADMIN, DB_USERS, $plain("COMMIT"), "SQL")
-    Rel(API_ADMIN, DB_USERS, $plain("GetAsync outra vez (futureBookings: reservas que continuam confirmadas)"), "SELECT")
-    Rel_Back(WEB_F_ADMIN, API_ADMIN, $plain("200 AdminOwnerDetailResponse"))
-    Rel(WEB_F_ADMIN, WEB_F_ADMIN, $plain("invalidateQueries(['admin'])"))
+    API_ADMIN -> DB_STATUSCHG : OwnerStatusChange.Record(ownerId, Deactivated, reason, adminId,\nnow) [INSERT]
+    API_ADMIN -> DB_REFRESH : Revoga todos os refresh tokens do dono [UPDATE … SET revoked_at\nWHERE user_id = … AND revoked_at IS NULL]
+    API_ADMIN -> DB_USERS : COMMIT [SQL]
+    API_ADMIN -> DB_USERS : GetAsync outra vez (futureBookings: reservas que continuam\nconfirmadas) [SELECT]
+    API_ADMIN --> WEB_F_ADMIN : 200 AdminOwnerDetailResponse
+    WEB_F_ADMIN -> WEB_F_ADMIN : invalidateQueries(['admin'])
   end
 end
-note over WEB_F_ADMIN, DB_REFRESH: Nenhuma reserva é cancelada. O access token já emitido vale até 15 min (aceite).\nDepois: login, refresh, páginas públicas e novas reservas recusam pelas verificações de deactivated_at.
-
-SHOW_LEGEND()
+note over WEB_F_ADMIN, DB_REFRESH: Nenhuma reserva é cancelada. O access token já emitido vale até 15 min (aceite).\nDepois: login, refresh, páginas públicas e novas reservas recusam pelas\nverificações de deactivated_at.
 @enduml

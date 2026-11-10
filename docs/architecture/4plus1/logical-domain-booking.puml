@@ -1,16 +1,16 @@
 ' 4+1 vista lógica - Modelo do domínio · clubes, campos, bloqueios e reservas
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa.
 ' Decisão documentada: Entidades com setters privados e métodos com intenção; o Domain não conhece a persistência, o HTTP nem os ecrãs.
 ' Não desenhado: controllers, HTTP e ecrãs; as contas estão em logical-domain-accounts.
 @startuml logical-domain-booking
 !include ../style.puml
-title Modelo do domínio · clubes, campos, bloqueios e reservas
+title Vista lógica - modelo do domínio: clubes, campos, bloqueios e reservas
 
 hide empty members
 
-package "SportsBooking.Domain (L-DOM)" {
-  class Club <<D-CLUB>> {
+package "Domain" as L_DOM {
+  class "Club" as D_CLUB {
     Id : Guid
     OwnerId : Guid
     Slug : string
@@ -26,7 +26,7 @@ package "SportsBooking.Domain (L-DOM)" {
     ChangeNotifyOnNewBooking(notify, now)
   }
 
-  class Pitch <<D-PITCH>> {
+  class "Pitch" as D_PITCH {
     Id : Guid
     ClubId : Guid
     Name, NameKey : string
@@ -47,7 +47,7 @@ package "SportsBooking.Domain (L-DOM)" {
     RemovePriceBand(band)
   }
 
-  class PitchOpeningDay <<D-OPENDAY>> {
+  class "PitchOpeningDay" as D_OPENDAY {
     Day : DayOfWeek
     Opens : TimeOnly
     Closes : TimeOnly
@@ -55,7 +55,7 @@ package "SportsBooking.Domain (L-DOM)" {
     Hours : OpeningHours
   }
 
-  class PitchPriceBand <<D-PRICEBAND>> {
+  class "PitchPriceBand" as D_PRICEBAND {
     Id : Guid
     PitchId : Guid
     DaysMask : int
@@ -67,7 +67,7 @@ package "SportsBooking.Domain (L-DOM)" {
     Overlaps(other)
   }
 
-  class Block <<D-BLOCK>> {
+  class "Block" as D_BLOCK {
     Id : Guid
     PitchId : Guid
     StartsAt : DateTime (UTC)
@@ -79,7 +79,7 @@ package "SportsBooking.Domain (L-DOM)" {
     Overlaps(startsAt, endsAt)
   }
 
-  class Booking <<D-BOOKING>> {
+  class "Booking" as D_BOOKING {
     Id : Guid
     PitchId : Guid
     PlayerId : Guid?
@@ -99,19 +99,19 @@ package "SportsBooking.Domain (L-DOM)" {
     RecordNoShow(now) / UndoNoShow()
   }
 
-  enum Sport <<D-PITCH>> {
+  enum "Sport" as D_PITCH_Sport {
     Futsal
     Football7
     Padel
     Tennis
   }
 
-  enum PitchStatus <<D-PITCH>> {
+  enum "PitchStatus" as D_PITCH_PitchStatus {
     Active
     Inactive
   }
 
-  enum BookingStatus <<D-BOOKING>> {
+  enum "BookingStatus" as D_BOOKING_BookingStatus {
     Confirmed
     CancelledByPlayer
     CancelledByClub
@@ -119,26 +119,26 @@ package "SportsBooking.Domain (L-DOM)" {
   }
 }
 
-package "SportsBooking.Infrastructure (L-INF)" {
-  class AppUser <<D-USER>> {
+package "Infrastructure" as L_INF {
+  class "AppUser" as D_USER {
     Id : Guid
     Email, Name : string
     DeactivatedAt : DateTime?
   }
 }
 
-Club "0..*" --> "1" AppUser : OwnerId (dono)
-Pitch "0..*" --> "1" Club : ClubId
-Pitch *-- "0..7" PitchOpeningDay : OpeningDays
-Pitch *-- "0..20" PitchPriceBand : PriceBands
-Block "0..*" --> "1" Pitch : PitchId
-Booking "0..*" --> "1" Pitch : PitchId
-Booking "0..*" --> "0..1" AppUser : PlayerId (jogador)
-Pitch ..> Sport
-Pitch ..> PitchStatus
-Booking ..> BookingStatus
+D_CLUB "0..*" --> "1" D_USER : OwnerId (dono)
+D_PITCH "0..*" --> "1" D_CLUB : ClubId
+D_PITCH *-- "0..7" D_OPENDAY : OpeningDays
+D_PITCH *-- "0..20" D_PRICEBAND : PriceBands
+D_BLOCK "0..*" --> "1" D_PITCH : PitchId
+D_BOOKING "0..*" --> "1" D_PITCH : PitchId
+D_BOOKING "0..*" --> "0..1" D_USER : PlayerId (jogador)
+D_PITCH ..> D_PITCH_Sport
+D_PITCH ..> D_PITCH_PitchStatus
+D_BOOKING ..> D_BOOKING_BookingStatus
 
-note right of Booking
+note right of D_BOOKING
   De um jogador (PlayerId) **ou** de um cliente
   (CustomerName + CustomerPhone), nunca os dois
   nem nenhum: ck_bookings_player_or_customer.

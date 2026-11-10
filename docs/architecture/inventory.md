@@ -1,6 +1,6 @@
 # Inventário de elementos
 
-Catálogo de tudo o que os diagramas podem usar. Cada elemento tem um **id estável**: os diagramas e as ADRs referem-se a ele por esse id, nunca por um nome solto. Só entra o que existe no código em 2026-10-29 (depois do merge `f4057ca` na `main`); a produção (T06, ids `PL-`) está numa secção à parte, no fim.
+Catálogo de tudo o que os diagramas podem usar. Cada elemento tem um **id estável**: os textos e as ADRs referem-se a ele por esse id, e nos diagramas o id é o alias no PlantUML, nunca texto desenhado (nomes e aliases na [secção 12](#12-nomes-e-aliases-nos-diagramas)). Só entra o que existe no código em 2026-10-29 (depois do merge `f4057ca` na `main`); a produção (T06, ids `PL-`) está numa secção à parte, no fim.
 
 Os caminhos são relativos à raiz do repositório. Para não repetir prefixos longos:
 
@@ -224,8 +224,8 @@ Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pasta
 | DEV-BACKEND | `backend/` | Pasta | Solução .NET: quatro projetos em `src/`, dois de teste em `tests/`, versões centrais dos pacotes, `Dockerfile`. | `backend/` |
 | DEV-FRONTEND | `frontend/` | Pasta | Aplicação Next.js (`src/`), configuração, `Dockerfile`. | `frontend/` |
 | DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
-| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`) e os scripts que os desenham. | `docs/architecture/` |
-| DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações e da galeria dos documentos. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1` |
+| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`), o tipo de letra (`fonts/`) e os scripts que os desenham. | `docs/architecture/` |
+| DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações, da galeria e dos aliases dos diagramas. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1` |
 | DEV-WORKFLOWS | `.github/workflows/` | Pasta | Pipeline de CI. | `.github/workflows/ci.yml` |
 | DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
 | DEV-ROOTCFG | Configuração da raiz | Ficheiros | SDK fixado, estilo de código, fins de linha, ficheiros ignorados, README e AGENTS. | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` |
@@ -260,3 +260,185 @@ Os casos de uso da [vista de cenários](4plus1/scenarios.md). Cada um liga eleme
 | SC-05 | Recuperação da palavra-passe | Cenário | P-VIS (com conta) | US05; idem |
 | SC-06 | Admin desativa um dono | Cenário | P-ADMIN, P-DONO | US29; idem |
 | SC-07 | Corrida pelo mesmo slot | Cenário | P-JOG | T03, US18; idem |
+
+## 12. Nomes e aliases nos diagramas
+
+Os diagramas desenham só nomes. O id fica no alias do PlantUML: o id com `_` (`C-API` → `C_API`) e, quando várias classes pertencem ao mesmo elemento, o id seguido do nome da classe (`D_BOOKING_BookingStatus`). Um elemento pode ter nomes mais curtos em alguns diagramas; esta tabela liga cada alias ao id, aos nomes desenhados e aos diagramas onde aparece, e o verificador (`scripts/check-architecture-docs`) confirma-a nos dois sentidos.
+
+Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inventário (`FEATURES` junta as nove funcionalidades `WEB-F-*`). As caixas dos diagramas de sequência (`box`) não têm alias no PlantUML: API ASP.NET Core = C-API, Next.js = C-WEB, Worker do outbox = C-WORKER.
+
+| Alias | Id | Nome desenhado | Diagramas |
+| --- | --- | --- | --- |
+| `ADDACC` | L-INF | AddAccounts · Identity, IAccountStore, seed do admin, Data Protection, PasswordHasherOptions | development-di |
+| `ADDAPI` | L-API | Extensões próprias da API | development-di |
+| `ADDAPP` | L-APP | AddApplication() | development-di |
+| `ADDINF` | L-INF | AddInfrastructure(config) | development-di |
+| `ADDMAIL` | L-INF | AddEmail · EmailOptions, OutboxOptions, IEmailSender, OutboxProcessor, OutboxDispatcher (HostedService) | development-di |
+| `ADDSES` | L-INF | AddSessions · JwtOptions, ISessionService, PublicSiteOptions, IPasswordResetStore, AccountEmailBuilder | development-di |
+| `API_ADMIN` | API-ADMIN | Administração; Estado dos donos | process-owner-deactivation, 03-components-api-accounts, 03-components-api-overview |
+| `API_ADMINPW` | API-ADMINPW | set-admin-password | 03-components-api-accounts |
+| `API_ADMINSEED` | API-ADMINSEED | Seed do admin | 03-components-api-accounts |
+| `API_AUTH` | API-AUTH | AuthController.Me; Contas e sessões; Contas e sessões (AuthController, api/auth); Contas | process-guard, process-login, process-refresh, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
+| `API_AUTH_ACCOUNTS` | API-AUTH-ACCOUNTS | Contas; Contas no Identity | process-book, process-login, process-series, 03-components-api-accounts |
+| `API_AUTH_LOGIN` | API-AUTH-LOGIN | Login | process-login, 03-components-api-accounts |
+| `API_AUTH_REG` | API-AUTH-REG | Registo | 03-components-api-accounts |
+| `API_AUTH_RESET` | API-AUTH-RESET | AccountEmailBuilder; Recuperação | process-outbox-skip, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-notifications |
+| `API_BLOCKS` | API-BLOCKS | Bloqueios | 03-components-api-overview |
+| `API_BOOK` | API-BOOK | Reservas do jogador (BookingsController, MeBookingsController; política Player); Reservas do jogador | 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
+| `API_BOOK_MINE` | API-BOOK-MINE | Cancelar (jogador); Cancelar; As minhas reservas e cancelar | process-cancel-club, process-cancel-player, 03-components-api-bookings |
+| `API_BOOK_SERIES` | API-BOOK-SERIES | Série semanal | process-series, 03-components-api-bookings |
+| `API_BOOK_SINGLE` | API-BOOK-SINGLE | Uma reserva | process-book, 03-components-api-bookings |
+| `API_BOOK_STORE` | API-BOOK-STORE | Store das reservas | process-book, process-series, 03-components-api-bookings |
+| `API_CATALOG` | API-CATALOG | Clubes visíveis; Catálogo público | 03-components-api-bookings, 03-components-api-overview |
+| `API_CLUBBOOK` | API-CLUBBOOK | Reservas do dono; Calendário e reservas do dono | process-cancel-club, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
+| `API_CLUBS` | API-CLUBS | Clubes do dono | 03-components-api-overview |
+| `API_NOTIF` | API-NOTIF | Outbox; Notificações (outbox) | 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
+| `API_NOTIF_COMPOSE` | API-NOTIF-COMPOSE | Compor; Compor os emails | process-outbox-skip, process-outbox, 03-components-api-notifications |
+| `API_NOTIF_DISPATCH` | API-NOTIF-DISPATCH | Ciclo; Ciclo do worker | process-outbox, 03-components-api-notifications |
+| `API_NOTIF_OUTBOX` | API-NOTIF-OUTBOX | Pôr no outbox | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-notifications |
+| `API_NOTIF_PROC` | API-NOTIF-PROC | Processar; Processar o outbox; Processar o que está devido | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
+| `API_NOTIF_SENDER` | API-NOTIF-SENDER | Enviar | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
+| `API_PERSIST` | API-PERSIST | Persistência | 03-components-api-overview |
+| `API_PITCHES` | API-PITCHES | Campos | 03-components-api-overview |
+| `API_PRICE` | API-PRICE | Faixas de preço | 03-components-api-overview |
+| `API_SCHED` | API-SCHED | Horários | 03-components-api-overview |
+| `API_STATS` | API-STATS | Estatísticas do dono | 03-components-api-overview |
+| `A_SRC` | — | README.md, inventory.md, style.puml, render.sh, render.ps1, c4/ e 4plus1/ (.md e .puml), out/ (.svg), fonts/, adr/ | development-repo |
+| `B_API` | C-API | Processo da API (porta 8080; 5080 no anfitrião) | 02-containers-dev |
+| `B_CFG` | — | Directory.Build.props, Directory.Packages.props, dotnet-tools.json, SportsBooking.slnx, Dockerfile | development-repo |
+| `B_SRC` | — | src/ | development-repo |
+| `B_TESTS` | — | tests/ | development-repo |
+| `CC_AUTHZ` | CC-AUTHZ | Autorização por dono; Autorização | process-cancel-club, process-owner-deactivation, 03-components-api-bookings |
+| `CC_CLUBTIME` | CC-CLUBTIME | Dom/Scheduling | logical-code-slots |
+| `CC_CLUBTIME_BookingWindow` | CC-CLUBTIME | BookingWindow | logical-code-slots |
+| `CC_CLUBTIME_ClubTime` | CC-CLUBTIME | ClubTime | logical-code-slots |
+| `CC_CLUBTIME_OpeningHours` | CC-CLUBTIME | OpeningHours | logical-code-slots |
+| `CC_CLUBTIME_SlotDuration` | CC-CLUBTIME | SlotDuration | logical-code-slots |
+| `CC_CLUBTIME_SlotGenerator` | CC-CLUBTIME | SlotGenerator | logical-code-slots |
+| `CC_COOKIES` | CC-COOKIES | JwtBearer; Sessões e cookies | process-guard, process-login, process-refresh, 03-components-api-accounts |
+| `CC_DATAPROT` | CC-DATAPROT | Data Protection | process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-notifications |
+| `CC_DAYCAL` | CC-DAYCAL | PitchDayCalendar; Slots de um dia e «livre» | logical-code-slots, 03-components-api-overview |
+| `CC_DAYCAL_DaySlot` | CC-DAYCAL | DaySlot | logical-code-slots |
+| `CC_DAYCAL_PitchInZone` | CC-DAYCAL | PitchInZone | logical-code-slots |
+| `CC_LOCK` | CC-LOCK | Trinco do campo | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-bookings |
+| `CC_SLOTCHECK` | CC-SLOTCHECK | BookingSlotCheck; Verificação do slot | logical-code-slots, process-book, process-series, 03-components-api-bookings |
+| `CC_TIME` | CC-TIME | Relógio; Relógio injetado | process-outbox, 03-components-api-notifications |
+| `COMPOSE` | DEP-COMPOSE-NET | docker compose (nome: sportsbooking) | 02-containers-dev |
+| `C_API` | C-API | API ASP.NET Core; API; API ASP.NET Core (pedidos); serviço api | logical-layers, physical, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_BROWSER` | C-BROWSER | Browser do utilizador; Browser | physical, process-guard, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_CLI` | C-CLI | seed-demo, set-admin-password [O mesmo executável, outro processo] | process-runtime |
+| `C_DB` | C-DB | Base de dados; PostgreSQL; serviço postgres | physical, process-book, process-cancel-club, process-cancel-player, process-login, process-outbox-skip, process-outbox, process-reset-confirm, process-reset-request, process-runtime, process-series, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 04-deployment-dev, 04-deployment-prod |
+| `C_WEB` | C-WEB | Aplicação Next.js; Next.js; serviço frontend | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-overview, 03-components-web-features, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_WORKER` | C-WORKER | Worker de emails; Worker do outbox; Worker de emails (BackgroundService no processo da API) | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-notifications, 04-deployment-dev, 04-deployment-prod |
+| `DB_BLOCKS` | DB-BLOCKS | blocks | 03-components-api-bookings |
+| `DB_BOOKINGS` | DB-BOOKINGS | bookings | 03-components-api-bookings, 03-components-api-notifications |
+| `DB_DPKEYS` | DB-DPKEYS | data_protection_keys | 03-components-api-accounts |
+| `DB_NOOVERLAP` | DB-NOOVERLAP | bookings_no_overlap | 03-components-api-bookings |
+| `DB_OUTBOX` | DB-OUTBOX | outbox_messages | 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications |
+| `DB_OUTBOXUQ` | DB-OUTBOXUQ | ux_outbox_messages_booking_notification | 03-components-api-notifications |
+| `DB_PITCHES` | DB-PITCHES | pitches | 03-components-api-bookings |
+| `DB_REFRESH` | DB-REFRESH | refresh_tokens | process-owner-deactivation, process-refresh, 03-components-api-accounts |
+| `DB_STATUSCHG` | DB-STATUSCHG | owner_status_changes | process-owner-deactivation, 03-components-api-accounts |
+| `DB_USERS` | DB-USERS | users; users, user_roles; users, roles, user_roles | process-owner-deactivation, process-refresh, 03-components-api-accounts, 03-components-api-notifications |
+| `DEP_COMPOSE_NET` | DEP-COMPOSE-NET | Projeto compose «sportsbooking», rede por omissão | 04-deployment-dev |
+| `DEP_DEVHOST` | DEP-DEVHOST | Máquina de desenvolvimento | 04-deployment-dev |
+| `DEP_PGVOLUME` | DEP-PGVOLUME | volume postgres-data | 04-deployment-dev |
+| `DEV_ARCHDOCS` | DEV-ARCHDOCS | architecture/ | development-repo |
+| `DEV_BACKEND` | DEV-BACKEND | backend/ | development-repo |
+| `DEV_COMPOSE` | DEV-COMPOSE | docker-compose.yml | development-repo |
+| `DEV_DOCS` | DEV-DOCS | docs/ | development-repo |
+| `DEV_FRONTEND` | DEV-FRONTEND | frontend/ | development-repo |
+| `DEV_ROOTCFG` | DEV-ROOTCFG | Configuração da raiz | development-repo |
+| `DEV_SCRIPTS` | DEV-SCRIPTS | scripts/ | development-repo |
+| `DEV_TEST_INT` | DEV-TEST-INT | SportsBooking.IntegrationTests | development-backend |
+| `DEV_TEST_UNIT` | DEV-TEST-UNIT | SportsBooking.UnitTests | development-backend |
+| `DEV_TEST_WEB` | DEV-TEST-WEB | Testes do front end | development-frontend |
+| `DEV_WEBTYPES` | DEV-WEBTYPES | Tipos da API gerados | development-frontend |
+| `DEV_WORKFLOWS` | DEV-WORKFLOWS | .github/workflows/ | development-repo |
+| `D_BLOCK` | D-BLOCK | Block | logical-domain-booking |
+| `D_BOOKING` | D-BOOKING | Booking | logical-code-booking, logical-domain-accounts, logical-domain-booking |
+| `D_BOOKING_BookingRules` | D-BOOKING | BookingRules | logical-code-booking |
+| `D_BOOKING_BookingStatus` | D-BOOKING | BookingStatus | logical-code-booking, logical-domain-booking |
+| `D_BOOKING_BookingStatuses` | D-BOOKING | BookingStatuses | logical-code-booking |
+| `D_BOOKING_CancellationOutcome` | D-BOOKING | CancellationOutcome | logical-code-booking |
+| `D_BOOKING_ClubCancellationOutcome` | D-BOOKING | ClubCancellationOutcome | logical-code-booking |
+| `D_BOOKING_NoShowOutcome` | D-BOOKING | NoShowOutcome | logical-code-booking |
+| `D_CLUB` | D-CLUB | Club | logical-domain-booking |
+| `D_OPENDAY` | D-OPENDAY | PitchOpeningDay | logical-domain-booking |
+| `D_OUTBOX` | D-OUTBOX | OutboxMessage | logical-domain-accounts |
+| `D_OUTBOX_OutboxRetry` | D-OUTBOX | OutboxRetry | logical-domain-accounts |
+| `D_PITCH` | D-PITCH | Pitch | logical-code-slots, logical-domain-booking |
+| `D_PITCH_PitchStatus` | D-PITCH | PitchStatus | logical-domain-booking |
+| `D_PITCH_Sport` | D-PITCH | Sport | logical-domain-booking |
+| `D_POLICIES` | D-POLICIES | EmailAddressPolicy, AccountNamePolicy, PhoneNumberPolicy, PasswordPolicy, TermsAcceptancePolicy | logical-domain-accounts |
+| `D_POLICIES_Profiles` | D-POLICIES | Profiles | logical-domain-accounts |
+| `D_PRICEBAND` | D-PRICEBAND | PitchPriceBand | logical-code-slots, logical-domain-booking |
+| `D_REFRESH` | D-REFRESH | RefreshToken | logical-domain-accounts |
+| `D_SLOT` | D-SLOT | TimeSlot | logical-code-slots |
+| `D_SRC` | — | backlog.md, stack.md | development-repo |
+| `D_STATUSCHG` | D-STATUSCHG | OwnerStatusChange | logical-domain-accounts |
+| `D_STATUSCHG_OwnerStatusAction` | D-STATUSCHG | OwnerStatusAction | logical-domain-accounts |
+| `D_USER` | D-USER | AppUser | logical-domain-accounts, logical-domain-booking |
+| `FEATURES` | — | Contas, Catálogo, Reservar, As minhas reservas, Clubes do dono, Campos, Calendário, Estatísticas, Admin | development-frontend |
+| `F_CFG` | — | package.json, package-lock.json, next.config.ts, vitest.config.mts, eslint.config.mjs, tsconfig.json, components.json, Dockerfile | development-repo |
+| `F_SRC` | — | src/ | development-repo |
+| `LIBMISC` | — | lib/auth/ · redirects.ts, request-path.ts lib/guid.ts, lib/utils.ts | development-frontend |
+| `L_API` | L-API | SportsBooking.Api | development-backend, logical-layers |
+| `L_APP` | L-APP | SportsBooking.Application; Application | development-backend, logical-domain-accounts, logical-layers |
+| `L_DOM` | L-DOM | SportsBooking.Domain; Domain | development-backend, logical-domain-accounts, logical-domain-booking, logical-layers |
+| `L_INF` | L-INF | SportsBooking.Infrastructure; Infrastructure | development-backend, logical-domain-accounts, logical-domain-booking, logical-layers |
+| `PIPE` | L-API | Pipeline e arranque | development-di |
+| `PL_BREVO` | PL-BREVO | Brevo | 01-context, 02-containers-prod, 04-deployment-prod |
+| `PL_BREVO_NODE` | PL-BREVO | Brevo | physical |
+| `PL_DEPLOY` | PL-DEPLOY | deploy.yml | physical, 04-deployment-prod |
+| `PL_MIGBUNDLE` | PL-MIGBUNDLE | Migration bundle | physical, 04-deployment-prod |
+| `PL_PRODDATA` | PL-PRODDATA | prod-data.yml | physical, 04-deployment-prod |
+| `PL_RENDER` | PL-RENDER | Render (plano gratuito, Frankfurt); Render | physical, 01-context, 02-containers-prod, 04-deployment-prod |
+| `PL_RENDER_API` | PL-RENDER-API | Serviço web público (Docker); Serviço web público | physical, 02-containers-prod, 04-deployment-prod |
+| `PL_RENDER_EDGE` | PL-RENDER-EDGE | Borda do Render | physical, 04-deployment-prod |
+| `PL_SUPABASE` | PL-SUPABASE | Supabase (Free); Supabase | physical, 02-containers-prod, 04-deployment-prod |
+| `PL_SUPAPOOL` | PL-SUPAPOOL | Pooler de ligações | physical, 04-deployment-prod |
+| `PL_VERCEL` | PL-VERCEL | Vercel (Hobby); Vercel | physical, 01-context, 02-containers-prod, 04-deployment-prod |
+| `PL_VERCEL_EDGE` | PL-VERCEL-EDGE | Borda da Vercel | physical, 04-deployment-prod |
+| `PROG` | L-API | Program.cs | development-di |
+| `P_ADMIN` | P-ADMIN | Admin | scenarios-use-cases, 01-context |
+| `P_CLI` | P-CLI | Cliente sem conta | 01-context |
+| `P_DONO` | P-DONO | Dono | scenarios-use-cases, 01-context |
+| `P_JOG` | P-JOG | Jogador | scenarios-use-cases, 01-context |
+| `P_OPS` | P-OPS | Operador | process-runtime, 01-context |
+| `P_VIS` | P-VIS | Visitante | scenarios-use-cases, 01-context |
+| `ROOT` | — | / · raiz do repositório | development-repo |
+| `SC_01` | SC-01 | Pesquisa e reserva um slot | scenarios-use-cases |
+| `SC_02` | SC-02 | Configura clube, campos, horários e preços | scenarios-use-cases |
+| `SC_03` | SC-03 | Cancela uma reserva | scenarios-use-cases |
+| `SC_04` | SC-04 | Reserva semanal | scenarios-use-cases |
+| `SC_05` | SC-05 | Recupera a palavra-passe | scenarios-use-cases |
+| `SC_06` | SC-06 | Desativa um dono | scenarios-use-cases |
+| `SC_07` | SC-07 | Corrida pelo mesmo slot | scenarios-use-cases |
+| `SYS` | — | App de Reservas de Campos | 01-context |
+| `S_SRC` | — | check-architecture-docs.sh, check-architecture-docs.ps1 | development-repo |
+| `WEB_API_CLIENT` | WEB-API-CLIENT | Cliente da API (browser); separador A; Cliente da API | development-frontend, process-refresh-client, process-refresh, 03-components-web |
+| `WEB_API_CLIENT_B` | WEB-API-CLIENT | separador B | process-refresh-client |
+| `WEB_AREA_ACCOUNT` | WEB-AREA-ACCOUNT | Páginas de conta | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_AREA_ADMIN` | WEB-AREA-ADMIN | Área do admin | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_AREA_MANAGE` | WEB-AREA-MANAGE | Área do dono; app/manage/layout.tsx | development-frontend, process-guard, 03-components-web-features, 03-components-web |
+| `WEB_AREA_PLAYER` | WEB-AREA-PLAYER | Área do jogador | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_DATETIME` | WEB-DATETIME | Datas em hora de Lisboa | development-frontend |
+| `WEB_F_ADMIN` | WEB-F-ADMIN | Página do dono; Admin | process-owner-deactivation, 03-components-web-features |
+| `WEB_F_AUTH` | WEB-F-AUTH | Contas; Página de login | process-login, process-refresh-client, process-reset-confirm, process-reset-request, 03-components-web-features |
+| `WEB_F_BOOKING` | WEB-F-BOOKING | Reservar | process-book, process-series, 03-components-web-features |
+| `WEB_F_CALENDAR` | WEB-F-CALENDAR | Calendário | process-cancel-club, 03-components-web-features |
+| `WEB_F_CATALOG` | WEB-F-CATALOG | Catálogo | 03-components-web-features |
+| `WEB_F_CLUBS` | WEB-F-CLUBS | Clubes do dono | 03-components-web-features |
+| `WEB_F_MYBOOK` | WEB-F-MYBOOK | As minhas reservas | process-cancel-player, 03-components-web-features |
+| `WEB_F_PITCHES` | WEB-F-PITCHES | Campos | 03-components-web-features |
+| `WEB_F_STATS` | WEB-F-STATS | Estatísticas | 03-components-web-features |
+| `WEB_GUARDS` | WEB-GUARDS | Guardas das áreas; AreaGuard; Guardas | development-frontend, process-guard, 03-components-web |
+| `WEB_PROXY` | WEB-PROXY | src/proxy.ts; proxy.ts | development-frontend, process-guard, 03-components-web |
+| `WEB_REWRITE` | WEB-REWRITE | Rewrites | 03-components-web |
+| `WEB_SERVER` | WEB-SERVER | Chamadas à API no servidor; lib/server/session.ts; Chamadas no servidor | development-frontend, process-guard, 03-components-web |
+| `WEB_UI` | WEB-UI | Componentes partilhados | development-frontend |
+| `W_SRC` | — | ci.yml | development-repo |
+| `X_GHA` | X-GHA | GitHub Actions | physical, 04-deployment-prod |
+| `X_MAILPIT` | X-MAILPIT | Mailpit; serviço mailpit | 02-containers-dev, 04-deployment-dev |
+| `X_SMTP` | X-SMTP | Servidor SMTP | process-outbox, process-reset-request, process-runtime, 01-context, 03-components-api-notifications |

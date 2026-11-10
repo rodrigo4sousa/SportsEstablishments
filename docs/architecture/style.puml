@@ -1,12 +1,13 @@
 ' Shared visual style, included by every diagram (after the C4 include in C4 diagrams).
 ' plantuml-version: 1.2026.8
 ' The line above pins the PlantUML image used by render.sh, render.ps1 and the CI (plantuml/plantuml:<version>).
-' FONT: DejaVu Sans ships in that image, and the render scripts mount nothing from the host. Text is measured with
-' the font found in the container, so the same image gives the same SVG on every machine and in the CI.
+' FONT: Liberation Sans (metric-compatible with Arial) is vendored in fonts/ and mounted read-only by the render scripts.
+' Text is measured with it inside the container, so the same image gives the same SVG on every machine and in the CI;
+' postprocess-svg.sh then writes the font stack "Arial, Liberation Sans, Helvetica, sans-serif" in the SVGs.
 
 skinparam backgroundColor #FFFFFE
 skinparam shadowing false
-skinparam defaultFontName DejaVu Sans
+skinparam defaultFontName Liberation Sans
 skinparam NoteBackgroundColor #FAFAFA
 skinparam NoteBorderColor #9CA3AF
 !if %function_exists("UpdateElementStyle")

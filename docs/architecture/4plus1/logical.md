@@ -10,6 +10,13 @@ Do mais geral ao mais detalhado: as camadas do back end, os componentes da API e
 
 Fonte: [logical-layers.puml](logical-layers.puml).
 
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| SportsBooking.Api | ASP.NET Core, controllers | Controllers finos, cookies e JWT, políticas por perfil, ProblemDetails, verificação do Origin, rate limiting. Program.cs só compõe. |
+| SportsBooking.Infrastructure | EF Core, Npgsql, Identity, MailKit | AppDbContext, migrações, stores (I\*Store), PitchLock, sessões, Identity, envio SMTP, worker do outbox, comandos. |
+| SportsBooking.Application | FluentValidation, EF Core (DbSet e LINQ, sem Npgsql) | Serviços por caso de uso, validação, Result/ServiceError, IAppDbContext e as interfaces que a Infrastructure implementa. |
+| SportsBooking.Domain | C# sem dependências | Entidades com setters privados e métodos com intenção; regras de horas, slots e contas. |
+
 **Regra de dependência.** As dependências apontam só para dentro: L-API → L-INF → L-APP → L-DOM. É o que dizem as referências dos projetos: `SportsBooking.Api` referencia só a Infrastructure (e chega à Application por ela), a Infrastructure referencia a Application, a Application referencia o Domain, e o Domain não referencia nada (nem pacotes). Cada camada regista-se a si mesma (`AddApplication()`, `AddInfrastructure(config)`); `Program.cs` só compõe.
 
 | Id | Projeto | O que lá vive |

@@ -1,11 +1,11 @@
 ' 4+1 vista lógica - Estados de uma reserva (D-BOOKING) · Booking.Status
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa.
 ' Decisão documentada: O estado de uma reserva muda só por métodos da entidade Booking; a exclusion constraint só cobre as reservas Confirmed (ADR 0003).
 ' Não desenhado: controllers, HTTP e ecrãs.
 @startuml logical-state-booking
 !include ../style.puml
-title Estados de uma reserva (D-BOOKING) · Booking.Status
+title Vista lógica - estados de uma reserva: Booking.Status
 
 hide empty description
 state Confirmed : confirmada\nocupa o slot (bookings_no_overlap)
@@ -14,10 +14,10 @@ state CancelledByClub : cancelada pelo clube\nCancelledAt, CancellationReason
 state NoShow : falta\nnão ocupa o slot
 
 [*] --> Confirmed : Booking.ForPlayer(…)\n(BookingService, RecurringBookingService)\nBooking.ForCustomer(…)\n(ClubBookingService.CreateAsync)
-Confirmed --> CancelledByPlayer : CancelByPlayer(window, now)\n[now < StartsAt − janela atual do clube]\nBookingCancellationService, sob CC-LOCK
-Confirmed --> CancelledByClub : CancelByClub(reason, now)\n[ainda não começou]\nClubBookingService.CancelAsync, sob CC-LOCK
-Confirmed --> NoShow : RecordNoShow(now)\n[now ≥ EndsAt]\nClubBookingService.MarkNoShowAsync, sob CC-LOCK
-NoShow --> Confirmed : UndoNoShow()\n[a constraint aceita; 23P01 → 409 slot_taken]\nClubBookingService.UndoNoShowAsync, sob CC-LOCK
+Confirmed --> CancelledByPlayer : CancelByPlayer(window, now)\n[now < StartsAt − janela atual do clube]\nBookingCancellationService, sob o trinco do campo
+Confirmed --> CancelledByClub : CancelByClub(reason, now)\n[ainda não começou]\nClubBookingService.CancelAsync, sob o trinco do campo
+Confirmed --> NoShow : RecordNoShow(now)\n[now ≥ EndsAt]\nClubBookingService.MarkNoShowAsync, sob o trinco do campo
+NoShow --> Confirmed : UndoNoShow()\n[a constraint aceita; 23P01 → 409 slot_taken]\nClubBookingService.UndoNoShowAsync, sob o trinco do campo
 
 note right of CancelledByPlayer
   Os dois cancelamentos são finais:

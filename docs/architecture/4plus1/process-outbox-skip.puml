@@ -1,42 +1,40 @@
 ' 4+1 vista de processo - Avisos ao dono e lembretes (US21, US23, US29) · lidos no envio; ignorados quando já não se aplicam
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Avisos e lembretes são lidos no envio e ignorados (skipped_at) quando já não se aplicam (US21, US23, US29).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-outbox-skip
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Avisos ao dono e lembretes (US21, US23, US29) · lidos no envio; ignorados quando já não se aplicam
+title Vista de processo - avisos ao dono e lembretes (US21, US23, US29): lidos no envio; ignorados quando já não se aplicam
+autonumber
 
-Container_Boundary(C_WORKER, "C-WORKER · Worker do outbox (no processo da API)")
-  Component(API_NOTIF_PROC, "API-NOTIF-PROC · Processar", "OutboxProcessor.BuildBookingNotificationAsync")
-  Component(API_AUTH_RESET, "API-AUTH-RESET · AccountEmailBuilder", "IsActiveAsync")
-  Component(API_NOTIF_COMPOSE, "API-NOTIF-COMPOSE · Compor", "BookingNotificationComposer.Reminder, OwnerNewBooking")
-  Component(API_NOTIF_SENDER, "API-NOTIF-SENDER · Enviar", "SmtpEmailSender")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "outbox_messages, bookings, pitches, clubs, users")
+box "Worker do outbox (no processo da API)"
+  participant "Processar" as API_NOTIF_PROC
+  participant "AccountEmailBuilder" as API_AUTH_RESET
+  participant "Compor" as API_NOTIF_COMPOSE
+  participant "Enviar" as API_NOTIF_SENDER
+end box
+database "PostgreSQL" as C_DB
 
-note over API_NOTIF_PROC, C_DB: Antes: a reserva pôs booking_reminder (devido a startsAt − 3 h) e owner_new_booking no outbox, com BookingRefPayload { bookingId } apenas.\nDepois, o jogador cancelou, ou o admin desativou o dono do clube.
+note over API_NOTIF_PROC, C_DB: Antes: a reserva pôs booking_reminder (devido a startsAt − 3 h) e\nowner_new_booking no outbox, com BookingRefPayload { bookingId } apenas.\nDepois, o jogador cancelou, ou o admin desativou o dono do clube.
 
-Rel(API_NOTIF_PROC, C_DB, $plain("Lê a reserva com o campo e o clube, agora"), "SELECT bookings JOIN pitches JOIN clubs")
+API_NOTIF_PROC -> C_DB : Lê a reserva com o campo e o clube, agora [SELECT bookings JOIN\npitches JOIN clubs]
 alt reserva desaparecida ou de um cliente (sem player_id)
-  Rel(API_NOTIF_PROC, API_NOTIF_PROC, $plain("GiveUp(recipient_not_found)"))
+  API_NOTIF_PROC -> API_NOTIF_PROC : GiveUp(recipient_not_found)
 else booking_reminder e status ≠ Confirmed
-  Rel(API_NOTIF_PROC, C_DB, $plain("Skip(booking_not_confirmed): skipped_at, sem envio, sem tentativa contada"), "UPDATE outbox_messages")
+  API_NOTIF_PROC -> C_DB : Skip(booking_not_confirmed): skipped_at, sem envio, sem\ntentativa contada [UPDATE outbox_messages]
 else booking_reminder e startsAt ≤ now (o worker esteve parado)
-  Rel(API_NOTIF_PROC, C_DB, $plain("Skip(booking_started)"), "UPDATE outbox_messages")
+  API_NOTIF_PROC -> C_DB : Skip(booking_started) [UPDATE outbox_messages]
 else
-  Rel(API_NOTIF_PROC, C_DB, $plain("O jogador e o destinatário (o jogador, ou o dono do clube)"), "SELECT users")
+  API_NOTIF_PROC -> C_DB : O jogador e o destinatário (o jogador, ou o dono do clube)\n[SELECT users]
   alt owner_new_booking
-    Rel(API_NOTIF_PROC, API_AUTH_RESET, $plain("IsActiveAsync(ownerId)"))
+    API_NOTIF_PROC -> API_AUTH_RESET : IsActiveAsync(ownerId)
     alt dono desativado
-      Rel(API_NOTIF_PROC, C_DB, $plain("Skip(owner_deactivated)"), "UPDATE outbox_messages")
+      API_NOTIF_PROC -> C_DB : Skip(owner_deactivated) [UPDATE outbox_messages]
     end
   end
-  Rel(API_NOTIF_PROC, API_NOTIF_COMPOSE, $plain("Reminder(details, nome) ou OwnerNewBooking(details, nome)"))
-  Rel(API_NOTIF_PROC, API_NOTIF_SENDER, $plain("SendAsync(email) e MarkSent, ou RecordFailure (diagrama anterior)"))
+  API_NOTIF_PROC -> API_NOTIF_COMPOSE : Reminder(details, nome) ou OwnerNewBooking(details, nome)
+  API_NOTIF_PROC -> API_NOTIF_SENDER : SendAsync(email) e MarkSent, ou RecordFailure (diagrama\nanterior)
 end
-
-SHOW_LEGEND()
 @enduml
