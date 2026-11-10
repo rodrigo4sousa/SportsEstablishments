@@ -166,4 +166,4 @@ The detailed documentation under `docs/` is written in Portuguese.
 
 ## License and credits
 
-Released under the [MIT License](LICENSE), Copyright (c) 2026 Rodrigo Sousa. The Liberation Sans fonts used to render the diagrams keep their own license (SIL Open Font License 1.1, in [`docs/architecture/fonts`](docs/architecture/fonts/LICENSE)). To report a vulnerability, see [SECURITY.md](SECURITY.md). The names of clubs, people and demo addresses are invented (`example.test`).
+Released under the [MIT License](LICENSE), Copyright (c) 2026 Rodrigo Sousa. The site icon is an original drawing made for this project, under the same licence ([how it is generated](scripts/README.md)). The Liberation Sans fonts used to render the diagrams keep their own license (SIL Open Font License 1.1, in [`docs/architecture/fonts`](docs/architecture/fonts/LICENSE)). To report a vulnerability, see [SECURITY.md](SECURITY.md). The names of clubs, people and demo addresses are invented (`example.test`).

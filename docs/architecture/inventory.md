@@ -229,7 +229,7 @@ Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pasta
 | DEV-FRONTEND | `frontend/` | Pasta | Aplicação Next.js (`src/`), configuração, `Dockerfile`. | `frontend/` |
 | DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
 | DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`), o tipo de letra (`fonts/`) e os scripts que os desenham. | `docs/architecture/` |
-| DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações, da galeria e dos aliases dos diagramas. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1` |
+| DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações, da galeria e dos aliases dos diagramas; geração dos ícones do site. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1`, `scripts/generate-icons.mjs` |
 | DEV-WORKFLOWS | `.github/workflows/` | Pasta | Os workflows: CI, CodeQL, E2E, deploy, dados de produção e keepalive. | `.github/workflows/` |
 | DEV-E2E | `e2e/` | Pasta | Testes end-to-end: Playwright (Chromium), quatro fluxos, `scripts/stack.mjs` que sobe a stack do `docker compose` com os dados de demonstração, e `compose.e2e.yml`. Não depende de código do front end nem da API. | `e2e/`, [ADR 0010](adr/0010-testes-end-to-end-playwright.md) |
 | DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
@@ -421,7 +421,7 @@ Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inve
 | `SC_06` | SC-06 | Desativa um dono | scenarios-use-cases |
 | `SC_07` | SC-07 | Corrida pelo mesmo slot | scenarios-use-cases |
 | `SYS` | — | App de Reservas de Campos | 01-context |
-| `S_SRC` | — | check-architecture-docs.sh, check-architecture-docs.ps1 | development-repo |
+| `S_SRC` | — | check-architecture-docs.sh, check-architecture-docs.ps1, generate-icons.mjs | development-repo |
 | `WEB_API_CLIENT` | WEB-API-CLIENT | Cliente da API (browser); separador A; Cliente da API | development-frontend, process-refresh-client, process-refresh, 03-components-web |
 | `WEB_API_CLIENT_B` | WEB-API-CLIENT | separador B | process-refresh-client |
 | `WEB_AREA_ACCOUNT` | WEB-AREA-ACCOUNT | Páginas de conta | development-frontend, 03-components-web-features, 03-components-web |
