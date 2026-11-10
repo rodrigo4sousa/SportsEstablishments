@@ -46,9 +46,11 @@ describe("legal pages", () => {
     for (const fact of ["na Irlanda", "A API corre em Frankfurt", "Brevo, em França", "Washington DC", "Decisão 2021/914", "EU-U.S. Data Privacy Framework"]) {
       expect(text).toContain(fact);
     }
-    // The one item that cannot be checked from the repository.
-    expect(text.match(/a confirmar/g)).toHaveLength(1);
-    expect(text).toContain("registos (logs) ficam guardados no Render e na Vercel está a confirmar");
+    // Nothing is left to confirm: the log retention is the free plans' (7 days on Render, 1 hour on Vercel).
+    expect(text).not.toContain("a confirmar");
+    expect(text).toContain("7 dias no Render");
+    expect(text).toContain("durante 1 hora");
+    expect(text).toContain("não escreve palavras-passe, tokens nem endereços de email");
   });
 
   it("the terms say it is a demo and which law applies", () => {

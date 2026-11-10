@@ -149,6 +149,7 @@ Cada migração tem de funcionar com a versão anterior da API, porque o esquema
 - [ ] Em `<VERCEL_URL>`, entra com o admin e confirma que vais para `/admin`.
 - [ ] Nas ferramentas do browser, confirma os cookies `access_token` e `refresh_token` no domínio da Vercel.
 - [ ] Entra com um jogador de demonstração (ver o README), faz uma reserva e cancela-a.
+- [ ] Os logs ficam 7 dias no Render (workspace Hobby) e 1 hora na Vercel (Hobby): verifica-os logo a seguir ao deploy. A Política de Privacidade indica estes prazos; se mudares de plano, atualiza-a.
 - [ ] Confirma o email: o log do Render não deve mostrar falhas do worker, e a mensagem chega à caixa do jogador. Os jogadores de demonstração usam `example.test`, que não recebe email: para ver um email real, regista um jogador com um endereço teu. No SQL Editor:
   ```sql
   select type, sent_at, attempts, last_error from outbox_messages order by created_at desc limit 10;
