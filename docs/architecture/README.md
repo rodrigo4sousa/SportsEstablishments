@@ -8,7 +8,7 @@ As regras estão no [backlog](../backlog.md), as escolhas técnicas na [Stack](.
 
 Duas formas de ver o mesmo sistema, porque respondem a perguntas diferentes. O **C4** aproxima-se por níveis (o sistema, os contentores, os componentes, o código). As **vistas 4+1** de Kruchten olham de uma preocupação de cada vez (lógica, processo, desenvolvimento, física e, ao centro, os cenários).
 
-- [`inventory.md`](inventory.md) é o catálogo do que existe: cada elemento tem um id estável (`C-API`, `API-BOOK`, `D-BOOKING`, `PL-RENDER`, …) e o caminho no código. Os diagramas desenham-se a partir dele.
+- [`inventory.md`](inventory.md) é o catálogo do que existe: cada elemento tem um id estável (`C-API`, `API-BOOK`, `D-BOOKING`, `PL-RENDER`, …) e o caminho no código, e a secção 12 liga os ids aos nomes desenhados. Os diagramas desenham-se a partir dele.
 - [`c4/README.md`](c4/README.md) tem o texto do contexto, dos contentores e da implantação; [`4plus1/README.md`](4plus1/README.md) diz, por vista, para quem é e que decisão documenta, e liga ao texto de cada uma.
 - [`adr/`](adr/README.md) tem as decisões, com contexto, alternativas e consequências. Uma ADR aceite não se reescreve: se a decisão mudar, escreve-se outra que a substitui.
 
@@ -17,9 +17,12 @@ Todos os diagramas seguem as mesmas regras:
 - **Um nível de abstração por diagrama:** um nível do C4 ou uma vista 4+1.
 - **Sem elementos inventados:** tudo o que se desenha existe no código ou na configuração. Um elemento novo entra primeiro no inventário, no mesmo pull request.
 - **O planeado fica à parte:** desenha-se tracejado (a marca `planned` de [`style.puml`](style.puml)) e só se ainda não existe. Hoje nenhum diagrama a usa.
-- **O mesmo nome é o mesmo elemento** em todos os diagramas: o nome visível começa pelo id do inventário (`C-API · API ASP.NET Core`) e o alias no PlantUML é o id com `_` (`C_API`).
+- **Os ids vivem no inventário e nos aliases, não nos rótulos:** um diagrama desenha só nomes, sem ids nos nomes, nos estereótipos ou nos pacotes (um estereótipo fica só quando tem significado, como `<<external>>` ou `<<sealed>>`). O alias no PlantUML é o id com `_` (`C_API`), e a [secção 12 do inventário](inventory.md#12-nomes-e-aliases-nos-diagramas) liga cada alias ao id e aos nomes desenhados.
+- **Includes do C4 só em `c4/`:** os diagramas de `4plus1/` são UML simples, e as sequências usam `participant`, `box`, `database` e `autonumber`.
+- **Caixas compactas no C4:** nome e tecnologia, sem descrição nem legenda; a responsabilidade de cada elemento está nas tabelas de [`c4/README.md`](c4/README.md#elementos-de-cada-diagrama) e, para as sequências, na [vista de processo](4plus1/process.md#5-participantes-de-cada-diagrama).
+- **Títulos** no formato `<nível ou vista> - <assunto>`.
 - **Um estilo comum:** todos incluem [`style.puml`](style.puml) e começam por um comentário com o título, a versão, a data, o que não está desenhado e, nas vistas 4+1, para quem é e que decisão documenta.
-- **Setas com verbo em pt-PT** do ponto de vista de quem chama, e o protocolo ou formato no argumento da tecnologia.
+- **Setas com verbo em pt-PT** do ponto de vista de quem chama, e o protocolo ou formato no argumento da tecnologia ou, nas sequências e no UML simples, entre parênteses retos no próprio texto.
 - **Cerca de 10 elementos por diagrama** (ver [Limitações conhecidas](#limitações-conhecidas)).
 
 Um pull request que cria, remove ou muda de responsabilidade ou de caminho um elemento atualiza o inventário e os diagramas que o mostram.
@@ -98,7 +101,7 @@ Os mais largos ficam ilegíveis quando reduzidos à largura de uma página; abre
 - Os pontos que o primeiro deploy real não confirmou, e os riscos aceites, estão na [vista física, secção 5](4plus1/physical.md#5-riscos-e-pontos-em-aberto-para-a-t06).
 - Os dados de planos e preços dos fornecedores mudam; os que estão na vista física têm data e fonte.
 
-**Texto e código.** `docs/stack.md` mostra um `Caddyfile` na árvore do repositório que não existe. Tudo foi conferido à mão com o código; não há teste que prove que um diagrama corresponde ao código, nem que os ids existem no inventário. O que a verificação automática garante está em [Renderizar os diagramas](#renderizar-os-diagramas).
+**Texto e código.** `docs/stack.md` mostra um `Caddyfile` na árvore do repositório que não existe. Tudo foi conferido à mão com o código; não há teste que prove que um diagrama corresponde ao código. O que a verificação automática garante está em [Renderizar os diagramas](#renderizar-os-diagramas).
 
 ## Renderizar os diagramas
 
@@ -109,9 +112,9 @@ bash docs/architecture/render.sh
 powershell -ExecutionPolicy Bypass -File docs\architecture\render.ps1
 ```
 
-1. Edita o `.puml` (os de C4 usam `!include <C4/…>`, que o PlantUML traz, e depois `!include ../style.puml`) e, se há elementos novos, o inventário.
+1. Edita o `.puml` (os de `c4/` usam `!include <C4/…>`, que o PlantUML traz, e depois `!include ../style.puml`; os de `4plus1/` só o `style.puml`) e, se há elementos novos, o inventário.
 2. Desenha, e faz commit do `.puml` e do `.svg` juntos.
 3. Põe o diagrama no [índice](#índice) deste ficheiro. Para mudar a versão do PlantUML, altera a linha de `style.puml` e volta a desenhar tudo.
-4. Corre `scripts/check-architecture-docs.sh` (ou `.ps1`): falha se algum `.svg` de `out/` não tiver ligação neste ficheiro, se este ficheiro ou outro `.md` de `docs/` ou o `README.md` da raiz tiver uma ligação ou imagem relativa que não chega a um ficheiro, ou se algum `.puml` não incluir `../style.puml`. Não verifica as âncoras (`#secção`).
+4. Corre `scripts/check-architecture-docs.sh` (ou `.ps1`): falha se algum `.svg` de `out/` não tiver ligação neste ficheiro, se este ficheiro ou outro `.md` de `docs/` ou o `README.md` da raiz tiver uma ligação ou imagem relativa que não chega a um ficheiro, se algum `.puml` não incluir `../style.puml`, se algum `.svg` mencionar DejaVu, se algum ficheiro de `4plus1/` incluir o C4, ou se os aliases dos diagramas e a secção 12 do inventário não coincidirem (nos dois sentidos, com cada id a existir no inventário). Não verifica as âncoras (`#secção`) nem o texto dos rótulos.
 
 O job `diagrams` do CI («Docs (architecture diagrams)») corre `render.sh`, falha se algum `.svg` mudou ou falta (o `git status` de `out/` tem de ficar limpo) e corre o verificador.
