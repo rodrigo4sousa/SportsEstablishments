@@ -72,7 +72,7 @@ Fonte: [development-frontend.puml](development-frontend.puml).
 | `src/features/<nome>/` | WEB-F-* | Uma pasta por funcionalidade (`admin`, `auth`, `booking`, `calendar`, `catalog`, `clubs`, `my-bookings`, `pitches`, `statistics`) com `api.ts`, `components/`, `schemas/` onde há formulários, e os testes ao lado. |
 | `src/components/` | WEB-GUARDS, WEB-UI | Peças partilhadas: guardas (`area-guard`, `player-guard`, `guest-only`), `providers`, `form-field`, cabeçalhos e erros de rota; `ui/` tem os cinco componentes shadcn em uso (`button`, `input`, `label`, `native-select`, `sonner`). |
 | `src/lib/` | WEB-API-CLIENT, WEB-SERVER, WEB-DATETIME, DEV-WEBTYPES | `api/` (cliente, mensagens de erro por `code`, `form-errors`, `schema.d.ts` gerado), `server/` (só no servidor), `auth/` (decisões de redirecionamento), `datetime.ts`, `guid.ts`, `utils.ts`. |
-| `src/proxy.ts` | WEB-PROXY | Em `/manage/*`, `/admin/*` e `/bookings`, escreve o caminho no cabeçalho `x-pathname`. |
+| `src/proxy.ts` | WEB-PROXY | Em `/manage/*`, `/admin/*` e `/bookings`, escreve o caminho no cabeçalho `x-pathname`; responde 404 a um id impossível nessas áreas e a um clube público que a API não tem (`/clubs/{slug}`), antes de a página começar a enviar. |
 | `src/test/` | DEV-TEST-WEB | `msw.ts`, `render.tsx`, `navigation.tsx` e `server-only.ts` (apoio dos testes). |
 
 O alias `@/*` aponta para `src/*` (`tsconfig.json` e `vitest.config.mts`). Há 49 ficheiros com `"use client"` (sem contar testes): o resto é código de servidor ou partilhado.
