@@ -152,4 +152,4 @@ The detailed documentation under `docs/` is written in Portuguese.
 
 ## License and credits
 
-The repository has no license file, so no license is granted. The author and contact are still to be filled in. The names of clubs, people and demo addresses are invented (`example.test`).
+Released under the [MIT License](LICENSE), Copyright (c) 2026 Rodrigo Sousa. The Liberation Sans fonts used to render the diagrams keep their own license (SIL Open Font License 1.1, in [`docs/architecture/fonts`](docs/architecture/fonts/LICENSE)). To report a vulnerability, see [SECURITY.md](SECURITY.md). The names of clubs, people and demo addresses are invented (`example.test`).
