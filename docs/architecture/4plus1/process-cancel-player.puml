@@ -1,51 +1,49 @@
 ' 4+1 vista de processo - Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: A janela de cancelamento lida no momento e o trinco que faz de dois cancelamentos ao mesmo tempo um só (US19).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-cancel-player
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+title Vista de processo - jogador cancela (US19): a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+autonumber
 
-Component(WEB_F_MYBOOK, "WEB-F-MYBOOK · As minhas reservas", "MyBookings, cancelBooking")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_BOOK_MINE, "API-BOOK-MINE · Cancelar", "BookingCancellationService.CancelAsync")
-  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
-  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "bookings, pitches, clubs, outbox_messages")
+participant "As minhas reservas" as WEB_F_MYBOOK
+box "API ASP.NET Core"
+  participant "Cancelar" as API_BOOK_MINE
+  participant "Trinco do campo" as CC_LOCK
+  participant "Pôr no outbox" as API_NOTIF_OUTBOX
+end box
+database "PostgreSQL" as C_DB
 
-Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("POST /api/bookings/{id}/cancel"), "apiJson; política Player")
-Rel(API_BOOK_MINE, C_DB, $plain("pitch_id da reserva, só se for do jogador da sessão (404 booking_not_found)"), "SELECT bookings")
+WEB_F_MYBOOK -> API_BOOK_MINE : POST /api/bookings/{id}/cancel [apiJson; política Player]
+API_BOOK_MINE -> C_DB : pitch_id da reserva, só se for do jogador da sessão (404\nbooking_not_found) [SELECT bookings]
 group Transação do trinco
-  Rel(API_BOOK_MINE, CC_LOCK, $plain("LockAsync(pitchId)"))
-  Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches … FOR UPDATE"), "SQL")
-  Rel(API_BOOK_MINE, C_DB, $plain("Volta a ler a reserva (com tracking)"), "SELECT bookings")
-  Rel(API_BOOK_MINE, C_DB, $plain("A janela do clube agora, nunca a da reserva"), "SELECT clubs.cancellation_window_hours")
-  Rel(API_BOOK_MINE, API_BOOK_MINE, $plain("booking.CancelByPlayer(window, now) → CancellationOutcome"))
+  API_BOOK_MINE -> CC_LOCK : LockAsync(pitchId)
+  CC_LOCK -> C_DB : BEGIN; SELECT 1 FROM pitches … FOR UPDATE [SQL]
+  API_BOOK_MINE -> C_DB : Volta a ler a reserva (com tracking) [SELECT bookings]
+  API_BOOK_MINE -> C_DB : A janela do clube agora, nunca a da reserva [SELECT\nclubs.cancellation_window_hours]
+  API_BOOK_MINE -> API_BOOK_MINE : booking.CancelByPlayer(window, now) → CancellationOutcome
   alt NotConfirmed
-    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("422 booking_not_confirmed (ROLLBACK ao descartar)"))
+    API_BOOK_MINE --> WEB_F_MYBOOK : 422 booking_not_confirmed (ROLLBACK ao descartar)
   else OutsideWindow (now ≥ startsAt − janela)
-    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("422 outside_cancellation_window, extensão cancellationDeadline (UTC)"))
+    API_BOOK_MINE --> WEB_F_MYBOOK : 422 outside_cancellation_window, extensão cancellationDeadline\n(UTC)
   else Cancelled
-    Rel(API_BOOK_MINE, API_NOTIF_OUTBOX, $plain("EnqueuePlayerCancellationAsync(booking)"))
-    Rel(API_BOOK_MINE, C_DB, $plain("SaveChanges: UPDATE bookings (CancelledByPlayer, cancelled_at) e INSERT outbox_messages"), "SQL")
-    Rel(CC_LOCK, C_DB, $plain("COMMIT; o slot volta a estar livre (a constraint só vê Confirmed)"), "SQL")
-    Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("200 MyBookingResponse"))
+    API_BOOK_MINE -> API_NOTIF_OUTBOX : EnqueuePlayerCancellationAsync(booking)
+    API_BOOK_MINE -> C_DB : SaveChanges: UPDATE bookings (CancelledByPlayer, cancelled_at) e\nINSERT outbox_messages [SQL]
+    CC_LOCK -> C_DB : COMMIT; o slot volta a estar livre (a constraint só vê\nConfirmed) [SQL]
+    API_BOOK_MINE --> WEB_F_MYBOOK : 200 MyBookingResponse
   end
 end
 
 == Dois cancelamentos da mesma reserva ao mesmo tempo (dois separadores, duplo clique) ==
 
-Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("Pedido A: POST …/cancel"))
-Rel(WEB_F_MYBOOK, API_BOOK_MINE, $plain("Pedido B: POST …/cancel"))
-Rel(CC_LOCK, C_DB, $plain("A obtém FOR UPDATE; B fica à espera na mesma linha de pitches"), "SQL")
-Rel(API_BOOK_MINE, C_DB, $plain("A: relê Confirmed, cancela, COMMIT"), "SQL")
-Rel(API_BOOK_MINE, C_DB, $plain("B: obtém o trinco e relê a reserva já CancelledByPlayer"), "SQL")
-Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("A: 200"))
-Rel_Back(WEB_F_MYBOOK, API_BOOK_MINE, $plain("B: 422 booking_not_confirmed (nunca 500, nunca dois emails)"))
-
-SHOW_LEGEND()
+WEB_F_MYBOOK -> API_BOOK_MINE : Pedido A: POST …/cancel
+WEB_F_MYBOOK -> API_BOOK_MINE : Pedido B: POST …/cancel
+CC_LOCK -> C_DB : A obtém FOR UPDATE; B fica à espera na mesma linha de pitches\n[SQL]
+API_BOOK_MINE -> C_DB : A: relê Confirmed, cancela, COMMIT [SQL]
+API_BOOK_MINE -> C_DB : B: obtém o trinco e relê a reserva já CancelledByPlayer [SQL]
+API_BOOK_MINE --> WEB_F_MYBOOK : A: 200
+API_BOOK_MINE --> WEB_F_MYBOOK : B: 422 booking_not_confirmed (nunca 500, nunca dois emails)
 @enduml

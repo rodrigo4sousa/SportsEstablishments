@@ -1,65 +1,63 @@
 ' 4+1 vista de processo - Série semanal (US20) · uma transação por data, sucesso parcial e o resumo no fim
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Uma transação por data, sucesso parcial e um resumo no fim (US20).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-series
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Série semanal (US20) · uma transação por data, sucesso parcial e o resumo no fim
+title Vista de processo - série semanal (US20): uma transação por data, sucesso parcial e o resumo no fim
+autonumber
 
-Component(WEB_F_BOOKING, "WEB-F-BOOKING · Reservar", "ClubBooking, createRecurring")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_BOOK_SERIES, "API-BOOK-SERIES · Série semanal", "RecurringBookingService.CreateAsync")
-  Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas", "IAccountStore.IsActiveAsync")
-  Component(CC_LOCK, "CC-LOCK · Trinco do campo", "IPitchLock, PitchLock")
-  Component(CC_SLOTCHECK, "CC-SLOTCHECK · Verificação do slot", "BookingSlotCheck.CheckAsync")
-  Component(API_NOTIF_OUTBOX, "API-NOTIF-OUTBOX · Pôr no outbox", "BookingEmailOutbox")
-  Component(API_BOOK_STORE, "API-BOOK-STORE · Store das reservas", "BookingStore.TryAddAsync")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "pitches, blocks, bookings, outbox_messages")
+participant "Reservar" as WEB_F_BOOKING
+box "API ASP.NET Core"
+  participant "Série semanal" as API_BOOK_SERIES
+  participant "Contas" as API_AUTH_ACCOUNTS
+  participant "Trinco do campo" as CC_LOCK
+  participant "Verificação do slot" as CC_SLOTCHECK
+  participant "Pôr no outbox" as API_NOTIF_OUTBOX
+  participant "Store das reservas" as API_BOOK_STORE
+end box
+database "PostgreSQL" as C_DB
 
-Rel(WEB_F_BOOKING, API_BOOK_SERIES, $plain("POST /api/bookings/recurring { pitchId, startsAt, weeks }"), "apiJson; política Player")
-Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("Valida (400; weeks de 1 a 4)"))
-Rel(API_BOOK_SERIES, C_DB, $plain("Lê o campo e o clube (404 pitch_not_found)"), "SELECT pitches JOIN clubs")
-Rel(API_BOOK_SERIES, API_AUTH_ACCOUNTS, $plain("O dono está ativo? (422 club_unavailable)"))
-Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("seriesId = Guid.CreateVersion7(); RecurringOccurrences.Starts(startsAt, weeks, timeZone)"))
+WEB_F_BOOKING -> API_BOOK_SERIES : POST /api/bookings/recurring { pitchId, startsAt, weeks }\n[apiJson; política Player]
+API_BOOK_SERIES -> API_BOOK_SERIES : Valida (400; weeks de 1 a 4)
+API_BOOK_SERIES -> C_DB : Lê o campo e o clube (404 pitch_not_found) [SELECT pitches JOIN\nclubs]
+API_BOOK_SERIES -> API_AUTH_ACCOUNTS : O dono está ativo? (422 club_unavailable)
+API_BOOK_SERIES -> API_BOOK_SERIES : seriesId = Guid.CreateVersion7();\nRecurringOccurrences.Starts(startsAt, weeks, timeZone)
 
 loop cada data, por ordem (BookOneAsync)
   group Transação própria desta data
-    Rel(API_BOOK_SERIES, CC_LOCK, $plain("LockAsync(pitchId)"))
-    Rel(CC_LOCK, C_DB, $plain("BEGIN; SELECT 1 FROM pitches … FOR UPDATE"), "SQL")
-    Rel(API_BOOK_SERIES, C_DB, $plain("Volta a ler o campo dentro do trinco"), "SELECT pitches")
-    Rel(API_BOOK_SERIES, CC_SLOTCHECK, $plain("CheckAsync(pitch, timeZone, startsAt, now)"))
+    API_BOOK_SERIES -> CC_LOCK : LockAsync(pitchId)
+    CC_LOCK -> C_DB : BEGIN; SELECT 1 FROM pitches … FOR UPDATE [SQL]
+    API_BOOK_SERIES -> C_DB : Volta a ler o campo dentro do trinco [SELECT pitches]
+    API_BOOK_SERIES -> CC_SLOTCHECK : CheckAsync(pitch, timeZone, startsAt, now)
     alt recusa
-      Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("SkippedOccurrence com RecurringOccurrences.ReasonFor: pitch_inactive, outside_window, closed, not_a_slot, started, blocked"))
-      Rel(CC_LOCK, C_DB, $plain("Sem commit → ROLLBACK"), "SQL")
+      API_BOOK_SERIES -> API_BOOK_SERIES : SkippedOccurrence com RecurringOccurrences.ReasonFor:\npitch_inactive, outside_window, closed, not_a_slot, started,\nblocked
+      CC_LOCK -> C_DB : Sem commit → ROLLBACK [SQL]
     else livre
-      Rel(API_BOOK_SERIES, API_BOOK_SERIES, $plain("Booking.ForPlayer(…, PriceForSlot, now, seriesId)"))
-      Rel(API_BOOK_SERIES, API_NOTIF_OUTBOX, $plain("EnqueueOwnerNotificationAsync, EnqueueReminder (sem confirmação individual)"))
-      Rel(API_BOOK_SERIES, API_BOOK_STORE, $plain("TryAddAsync(booking)"))
-      Rel(API_BOOK_STORE, C_DB, $plain("INSERT bookings e outbox_messages"), "SQL")
+      API_BOOK_SERIES -> API_BOOK_SERIES : Booking.ForPlayer(…, PriceForSlot, now, seriesId)
+      API_BOOK_SERIES -> API_NOTIF_OUTBOX : EnqueueOwnerNotificationAsync, EnqueueReminder (sem confirmação\nindividual)
+      API_BOOK_SERIES -> API_BOOK_STORE : TryAddAsync(booking)
+      API_BOOK_STORE -> C_DB : INSERT bookings e outbox_messages [SQL]
       alt 23P01 em bookings_no_overlap
-        Rel_Back(API_BOOK_SERIES, API_BOOK_STORE, $plain("false → SkippedOccurrence(taken)"))
-        Rel(CC_LOCK, C_DB, $plain("ROLLBACK"), "SQL")
+        API_BOOK_STORE --> API_BOOK_SERIES : false → SkippedOccurrence(taken)
+        CC_LOCK -> C_DB : ROLLBACK [SQL]
       else inserida
-        Rel(CC_LOCK, C_DB, $plain("COMMIT: esta data fica feita, aconteça o que acontecer às seguintes"), "SQL")
+        CC_LOCK -> C_DB : COMMIT: esta data fica feita, aconteça o que acontecer às\nseguintes [SQL]
       end
     end
   end
 end
 
 alt nenhuma data feita
-  Rel_Back(WEB_F_BOOKING, API_BOOK_SERIES, $plain("409 series_unavailable, extensions.skipped com o motivo de cada data"))
+  API_BOOK_SERIES --> WEB_F_BOOKING : 409 series_unavailable, extensions.skipped com o motivo de cada\ndata
 else pelo menos uma
   group Transação à parte (a implícita do SaveChanges)
-    Rel(API_BOOK_SERIES, API_NOTIF_OUTBOX, $plain("EnqueueSeriesSummaryAsync(created, skipped)"))
-    Rel(API_BOOK_SERIES, C_DB, $plain("SaveChangesAsync: INSERT outbox_messages (booking_series_confirmed)"), "SQL")
+    API_BOOK_SERIES -> API_NOTIF_OUTBOX : EnqueueSeriesSummaryAsync(created, skipped)
+    API_BOOK_SERIES -> C_DB : SaveChangesAsync: INSERT outbox_messages\n(booking_series_confirmed) [SQL]
   end
-  note over API_BOOK_SERIES, C_DB: Se o processo cair antes deste SaveChanges, as reservas ficam e o resumo perde-se (provisório, US20).
-  Rel_Back(WEB_F_BOOKING, API_BOOK_SERIES, $plain("201 Created { seriesId, created, skipped }, Location da 1.ª reserva"))
+  note over API_BOOK_SERIES, C_DB: Se o processo cair antes deste SaveChanges, as reservas ficam e o resumo\nperde-se (provisório, US20).
+  API_BOOK_SERIES --> WEB_F_BOOKING : 201 Created { seriesId, created, skipped }, Location da 1.ª\nreserva
 end
-
-SHOW_LEGEND()
 @enduml

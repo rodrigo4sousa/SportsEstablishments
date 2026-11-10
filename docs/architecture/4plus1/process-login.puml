@@ -1,57 +1,55 @@
 ' 4+1 vista de processo - Login e logout (US03) · uma só resposta para qualquer falha; o logout revoga o refresh token
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Uma só resposta (401 invalid_credentials) para qualquer falha de login, e sessões em cookies httpOnly (ADR 0002).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-login
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Login e logout (US03) · uma só resposta para qualquer falha; o logout revoga o refresh token
+title Vista de processo - login e logout (US03): uma só resposta para qualquer falha; o logout revoga o refresh token
+autonumber
 
-Component(WEB_F_AUTH, "WEB-F-AUTH · Contas", "LoginForm, LogoutButton, login, logout")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_AUTH, "API-AUTH · Contas e sessões", "AuthController")
-  Component(API_AUTH_LOGIN, "API-AUTH-LOGIN · Login", "LoginService.LoginAsync")
-  Component(API_AUTH_ACCOUNTS, "API-AUTH-ACCOUNTS · Contas no Identity", "AccountStore.AuthenticateAsync")
-  Component(CC_COOKIES, "CC-COOKIES · Sessões e cookies", "SessionService, AuthCookies")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "users, user_roles, refresh_tokens")
+participant "Contas" as WEB_F_AUTH
+box "API ASP.NET Core"
+  participant "Contas e sessões" as API_AUTH
+  participant "Login" as API_AUTH_LOGIN
+  participant "Contas no Identity" as API_AUTH_ACCOUNTS
+  participant "Sessões e cookies" as CC_COOKIES
+end box
+database "PostgreSQL" as C_DB
 
 == Login ==
-Rel(WEB_F_AUTH, API_AUTH, $plain("POST /api/auth/login { email, password }"), "apiJson; [AllowAnonymous], limite auth-login")
-Rel(API_AUTH, API_AUTH_LOGIN, $plain("LoginAsync(request)"))
-Rel(API_AUTH_LOGIN, API_AUTH_LOGIN, $plain("Valida campos vazios (400 validation_failed)"))
-Rel(API_AUTH_LOGIN, API_AUTH_ACCOUNTS, $plain("AuthenticateAsync(email, password)"))
-Rel(API_AUTH_ACCOUNTS, C_DB, $plain("UserManager.FindByEmailAsync"), "SELECT users")
+WEB_F_AUTH -> API_AUTH : POST /api/auth/login { email, password } [apiJson;\n[AllowAnonymous], limite auth-login]
+API_AUTH -> API_AUTH_LOGIN : LoginAsync(request)
+API_AUTH_LOGIN -> API_AUTH_LOGIN : Valida campos vazios (400 validation_failed)
+API_AUTH_LOGIN -> API_AUTH_ACCOUNTS : AuthenticateAsync(email, password)
+API_AUTH_ACCOUNTS -> C_DB : UserManager.FindByEmailAsync [SELECT users]
 alt sem conta, desativada ou bloqueada
-  Rel(API_AUTH_ACCOUNTS, API_AUTH_ACCOUNTS, $plain("FallbackPasswordHash.Verify: o mesmo trabalho PBKDF2, para o tempo não denunciar o caso"))
+  API_AUTH_ACCOUNTS -> API_AUTH_ACCOUNTS : FallbackPasswordHash.Verify: o mesmo trabalho PBKDF2, para o\ntempo não denunciar o caso
 else palavra-passe errada
-  Rel(API_AUTH_ACCOUNTS, C_DB, $plain("AccessFailedAsync (5 seguidas → bloqueio de 15 min)"), "UPDATE users")
+  API_AUTH_ACCOUNTS -> C_DB : AccessFailedAsync (5 seguidas → bloqueio de 15 min) [UPDATE\nusers]
 else certa
-  Rel(API_AUTH_ACCOUNTS, C_DB, $plain("ResetAccessFailedCountAsync; o hash antigo é refeito se tiver menos iterações"), "UPDATE users")
+  API_AUTH_ACCOUNTS -> C_DB : ResetAccessFailedCountAsync; o hash antigo é refeito se tiver\nmenos iterações [UPDATE users]
 end
 alt null
-  Rel_Back(WEB_F_AUTH, API_AUTH, $plain("401 invalid_credentials (igual para todas as falhas)"))
+  API_AUTH --> WEB_F_AUTH : 401 invalid_credentials (igual para todas as falhas)
 else conta
-  Rel(API_AUTH_LOGIN, CC_COOKIES, $plain("SessionService.StartAsync(userId, profile)"))
-  Rel(CC_COOKIES, C_DB, $plain("RefreshToken.Issue: 32 bytes aleatórios; guarda só o SHA-256, expira em 7 dias"), "INSERT refresh_tokens")
-  Rel(CC_COOKIES, CC_COOKIES, $plain("JWT HS256 com sub e role, 15 min"))
-  Rel(API_AUTH, CC_COOKIES, $plain("AuthCookies.Append: access_token (Path=/, Lax) e refresh_token (Path=/api/auth, Strict)"))
-  Rel_Back(WEB_F_AUTH, API_AUTH, $plain("200 AccountResponse + Set-Cookie"))
-  Rel(WEB_F_AUTH, WEB_F_AUTH, $plain("setQueryData(['auth','me']); router.replace(safeNext(next, profile))"))
+  API_AUTH_LOGIN -> CC_COOKIES : SessionService.StartAsync(userId, profile)
+  CC_COOKIES -> C_DB : RefreshToken.Issue: 32 bytes aleatórios; guarda só o SHA-256,\nexpira em 7 dias [INSERT refresh_tokens]
+  CC_COOKIES -> CC_COOKIES : JWT HS256 com sub e role, 15 min
+  API_AUTH -> CC_COOKIES : AuthCookies.Append: access_token (Path=/, Lax) e refresh_token\n(Path=/api/auth, Strict)
+  API_AUTH --> WEB_F_AUTH : 200 AccountResponse + Set-Cookie
+  WEB_F_AUTH -> WEB_F_AUTH : setQueryData(['auth','me']); router.replace(safeNext(next,\nprofile))
 end
 
 == Logout ==
-Rel(WEB_F_AUTH, API_AUTH, $plain("POST /api/auth/logout (o browser junta o cookie refresh_token)"), "apiRequest; [AllowAnonymous]")
-Rel(API_AUTH, CC_COOKIES, $plain("SessionService.EndAsync(refresh_token)"))
-Rel(CC_COOKIES, C_DB, $plain("UPDATE refresh_tokens SET revoked_at = now WHERE id = … AND revoked_at IS NULL"), "ExecuteUpdate")
+WEB_F_AUTH -> API_AUTH : POST /api/auth/logout (o browser junta o cookie refresh_token)\n[apiRequest; [AllowAnonymous]]
+API_AUTH -> CC_COOKIES : SessionService.EndAsync(refresh_token)
+CC_COOKIES -> C_DB : UPDATE refresh_tokens SET revoked_at = now WHERE id = … AND\nrevoked_at IS NULL [ExecuteUpdate]
 alt 0 linhas: o token já tinha sido usado
-  Rel(CC_COOKIES, C_DB, $plain("Sinal de roubo: revoga todos os refresh tokens da conta"), "UPDATE refresh_tokens")
+  CC_COOKIES -> C_DB : Sinal de roubo: revoga todos os refresh tokens da conta [UPDATE\nrefresh_tokens]
 end
-Rel(API_AUTH, CC_COOKIES, $plain("AuthCookies.Delete (os dois cookies)"))
-Rel_Back(WEB_F_AUTH, API_AUTH, $plain("204, sempre (também com o access token expirado)"))
-Rel(WEB_F_AUTH, WEB_F_AUTH, $plain("queryClient.clear(); router.replace('/login')"))
-
-SHOW_LEGEND()
+API_AUTH -> CC_COOKIES : AuthCookies.Delete (os dois cookies)
+API_AUTH --> WEB_F_AUTH : 204, sempre (também com o access token expirado)
+WEB_F_AUTH -> WEB_F_AUTH : queryClient.clear(); router.replace('/login')
 @enduml

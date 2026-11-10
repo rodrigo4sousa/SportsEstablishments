@@ -1,54 +1,52 @@
 ' 4+1 vista de processo - Pedir nova palavra-passe (US05) · sem enumeração, limite por conta, token feito no envio
-' Version 1.0 - 2026-11-09
+' Version 1.1 - 2026-11-10
 ' Para: quem programa e quem depura.
 ' Decisão documentada: Resposta sempre igual, no máximo uma mensagem por conta e intervalo, e o token feito pelo worker no envio (US05).
 ' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
 @startuml process-reset-request
-!include <C4/C4_Sequence>
 !include ../style.puml
 
-title Pedir nova palavra-passe (US05) · sem enumeração, limite por conta, token feito no envio
+title Vista de processo - pedir nova palavra-passe (US05): sem enumeração, limite por conta, token feito no envio
+autonumber
 
-Component(WEB_F_AUTH, "WEB-F-AUTH · Contas", "ForgotPasswordForm, requestPasswordReset")
-Container_Boundary(C_API, "C-API · API ASP.NET Core")
-  Component(API_AUTH, "API-AUTH · Contas e sessões", "AuthController.RequestPasswordReset")
-  Component(API_AUTH_RESET, "API-AUTH-RESET · Recuperação", "PasswordResetService, PasswordResetStore, AccountEmailBuilder")
-  Component(API_NOTIF_PROC, "API-NOTIF-PROC · Processar o outbox", "OutboxProcessor (em C-WORKER)")
-  Component(CC_DATAPROT, "CC-DATAPROT · Data Protection", "DataProtectorTokenProvider do Identity")
-  Component(API_NOTIF_SENDER, "API-NOTIF-SENDER · Enviar", "SmtpEmailSender")
-Boundary_End()
-ContainerDb(C_DB, "C-DB · PostgreSQL", "users, user_roles, outbox_messages, data_protection_keys")
-System_Ext(X_SMTP, "X-SMTP · Servidor SMTP", "")
+participant "Contas" as WEB_F_AUTH
+box "API ASP.NET Core"
+  participant "Contas e sessões" as API_AUTH
+  participant "Recuperação" as API_AUTH_RESET
+  participant "Processar o outbox" as API_NOTIF_PROC
+  participant "Data Protection" as CC_DATAPROT
+  participant "Enviar" as API_NOTIF_SENDER
+end box
+database "PostgreSQL" as C_DB
+participant "Servidor SMTP" as X_SMTP <<external>>
 
 == No pedido ==
-Rel(WEB_F_AUTH, API_AUTH, $plain("POST /api/auth/password-reset/request { email }"), "[AllowAnonymous], limite por IP")
-Rel(API_AUTH, API_AUTH_RESET, $plain("RequestAsync: valida o formato (400 só para um email malformado)"))
-Rel(API_AUTH_RESET, C_DB, $plain("QueueResetEmailAsync: FindByEmailAsync e perfis"), "SELECT users, user_roles")
+WEB_F_AUTH -> API_AUTH : POST /api/auth/password-reset/request { email }\n[[AllowAnonymous], limite por IP]
+API_AUTH -> API_AUTH_RESET : RequestAsync: valida o formato (400 só para um email malformado)
+API_AUTH_RESET -> C_DB : QueueResetEmailAsync: FindByEmailAsync e perfis [SELECT users,\nuser_roles]
 alt sem conta, desativada, ou Admin
-  Rel(API_AUTH_RESET, API_AUTH_RESET, $plain("Não faz nada"))
+  API_AUTH_RESET -> API_AUTH_RESET : Não faz nada
 else Player ou Owner ativo
   group Transação
-    Rel(API_AUTH_RESET, C_DB, $plain("SELECT 1 FROM users WHERE id = … FOR UPDATE (um pedido de cada vez por conta)"), "SQL")
-    Rel(API_AUTH_RESET, C_DB, $plain("max(created_at) das mensagens password_reset desta conta"), "SELECT outbox_messages")
+    API_AUTH_RESET -> C_DB : SELECT 1 FROM users WHERE id = … FOR UPDATE (um pedido de cada\nvez por conta) [SQL]
+    API_AUTH_RESET -> C_DB : max(created_at) das mensagens password_reset desta conta [SELECT\noutbox_messages]
     alt há uma com menos de 5 min
-      Rel(API_AUTH_RESET, C_DB, $plain("ROLLBACK, em silêncio"), "SQL")
+      API_AUTH_RESET -> C_DB : ROLLBACK, em silêncio [SQL]
     else
-      Rel(API_AUTH_RESET, C_DB, $plain("INSERT outbox_messages (password_reset, { accountId }), sem token; COMMIT"), "SQL")
+      API_AUTH_RESET -> C_DB : INSERT outbox_messages (password_reset, { accountId }), sem\ntoken; COMMIT [SQL]
     end
   end
 end
-Rel_Back(WEB_F_AUTH, API_AUTH, $plain("202 PasswordResetRequested.Always: a mesma resposta em todos os casos"))
+API_AUTH --> WEB_F_AUTH : 202 PasswordResetRequested.Always: a mesma resposta em todos os\ncasos
 
 == Mais tarde, no worker ==
-Rel(API_NOTIF_PROC, C_DB, $plain("Reclama a mensagem (FOR UPDATE SKIP LOCKED)"), "SQL")
-Rel(API_NOTIF_PROC, API_AUTH_RESET, $plain("AccountEmailBuilder.BuildAsync(password_reset, payload)"))
-Rel(API_AUTH_RESET, C_DB, $plain("FindByIdAsync; volta a ver se a conta é elegível (senão null → recipient_not_found)"), "SELECT users")
-Rel(API_AUTH_RESET, CC_DATAPROT, $plain("GeneratePasswordResetTokenAsync(user)"))
-Rel(CC_DATAPROT, C_DB, $plain("Chaves do Data Protection"), "SELECT data_protection_keys")
-Rel_Back(API_AUTH_RESET, CC_DATAPROT, $plain("Token com o security stamp; válido 1 h pelo relógio do sistema"))
-Rel(API_AUTH_RESET, API_AUTH_RESET, $plain("PasswordResetRules.Link(PublicSite:BaseUrl, email, token); AccountEmailComposer.PasswordReset"))
-Rel(API_NOTIF_PROC, API_NOTIF_SENDER, $plain("SendAsync(email)"))
-Rel(API_NOTIF_SENDER, X_SMTP, $plain("Envia; o token só existe neste email"), "SMTP")
-
-SHOW_LEGEND()
+API_NOTIF_PROC -> C_DB : Reclama a mensagem (FOR UPDATE SKIP LOCKED) [SQL]
+API_NOTIF_PROC -> API_AUTH_RESET : AccountEmailBuilder.BuildAsync(password_reset, payload)
+API_AUTH_RESET -> C_DB : FindByIdAsync; volta a ver se a conta é elegível (senão null →\nrecipient_not_found) [SELECT users]
+API_AUTH_RESET -> CC_DATAPROT : GeneratePasswordResetTokenAsync(user)
+CC_DATAPROT -> C_DB : Chaves do Data Protection [SELECT data_protection_keys]
+CC_DATAPROT --> API_AUTH_RESET : Token com o security stamp; válido 1 h pelo relógio do sistema
+API_AUTH_RESET -> API_AUTH_RESET : PasswordResetRules.Link(PublicSite:BaseUrl, email, token);\nAccountEmailComposer.PasswordReset
+API_NOTIF_PROC -> API_NOTIF_SENDER : SendAsync(email)
+API_NOTIF_SENDER -> X_SMTP : Envia; o token só existe neste email [SMTP]
 @enduml

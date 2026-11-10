@@ -1,10 +1,10 @@
 # Vista de processo
 
-<!-- Diagramas dinâmicos do C4 (em sequência) · vista 4+1: de processo. Ver README.md. -->
+<!-- Diagramas de sequência UML · vista 4+1: de processo. Ver README.md. -->
 
 O que corre, em que processo e fio de execução, o que corre ao mesmo tempo, e como as partes colaboram nos pedidos que mexem em dados partilhados: as transações, os trincos, o outbox e o worker. Tudo foi tirado do código (a ordem do pipeline vem de `Api/Program.cs`, não dos documentos); os ids estão no [inventário](../inventory.md).
 
-**Como ler os diagramas de sequência.** São diagramas `C4_Sequence` do C4-PlantUML: cada participante é um elemento do inventário, com o id no nome e, entre parênteses retos, a classe ou o método que o representa. Uma seta cheia é uma chamada (rótulo em pt-PT, tecnologia ou SQL entre parênteses retos); uma seta a tracejado é a resposta. `group` marca uma transação, `alt` as saídas possíveis, `loop` uma repetição. Quando o mesmo elemento aparece duas vezes (dois separadores do browser), o segundo alias leva um sufixo (`WEB_API_CLIENT_B`).
+**Como ler os diagramas de sequência.** São diagramas de sequência UML simples, com as mensagens numeradas. Cada participante mostra o nome de um elemento do inventário (o id é o alias no PlantUML, ver a [secção 12 do inventário](../inventory.md#12-nomes-e-aliases-nos-diagramas)) e a caixa à volta dele é o contentor ou o processo onde corre. A classe ou o método que representa cada participante está na [secção 5](#5-participantes-de-cada-diagrama). Uma seta cheia é uma chamada (rótulo em pt-PT, tecnologia ou SQL entre parênteses retos, no mesmo texto); uma seta a tracejado é a resposta. `group` marca uma transação, `alt` as saídas possíveis, `loop` uma repetição. Quando o mesmo elemento aparece duas vezes (dois separadores do browser), o segundo alias leva um sufixo (`WEB_API_CLIENT_B`).
 
 ## 1. Processos, fios e o que corre ao mesmo tempo
 
@@ -221,6 +221,198 @@ Fonte: [process-owner-deactivation.puml](process-owner-deactivation.puml). Códi
 - **Mudança de hora (T04).** A única conversão local→UTC é `ClubTime.ToUtc` (CC-CLUBTIME): uma hora que não existe (último domingo de março, 01:30) avança o tamanho do salto (02:30 WEST); uma hora que se repete (último domingo de outubro) usa a **primeira** ocorrência (WEST). Os slots vêm só de `SlotGenerator`, por tempo real decorrido desde a abertura: nesses dias há menos um ou mais um slot, e cada um dura exatamente a sua duração. Na hora repetida de outubro a UI marca «(verão)» e «(inverno)». `ClubTime.Today` dá a data de Lisboa, que pode não ser a de UTC perto da meia-noite; é ela que define a janela de reservas. O lembrete (`startsAt − 3 h`) é calculado sobre o instante, por isso a mudança de hora não o desloca.
 - **Relógio injetado.** Toda a hora atual vem do `TimeProvider` (CC-TIME: `TimeProvider.System` em execução, `FakeTimeProvider` e `SettableTimeProvider` nos testes), incluindo a espera do worker (`Task.Delay(…, timeProvider)`).
 - **A exceção documentada.** O gerador de tokens de recuperação do Identity (`DataProtectorTokenProvider`, `AddDefaultTokenProviders`) lê o relógio do sistema, não o `TimeProvider`: a validade de 1 hora conta a partir do envio do email, pelo relógio da máquina, e os testes fabricam tokens antigos no formato do Identity em vez de mudar o relógio. O mesmo acontece com a validade do access token, que o JwtBearer verifica contra o relógio do sistema (por isso os testes com relógio falso fazem as sessões no relógio real).
+
+## 5. Participantes de cada diagrama
+
+O que estava escrito por baixo do nome de cada participante, diagrama a diagrama. As caixas são a do contentor (API ASP.NET Core = C-API, Next.js = C-WEB, Worker do outbox = C-WORKER).
+
+### Processos e fios de execução
+
+Fonte: [process-runtime.puml](process-runtime.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Operador | — | Corre os comandos de linha. |
+| Browser | Um fio de JavaScript por separador | Client Components e TanStack Query; os separadores partilham os cookies httpOnly e coordenam o refresh com navigator.locks. |
+| Next.js | Processo Node.js (ciclo de eventos) | Server Components e guardas em paralelo (assíncronos); proxy.ts; rewrites de /api/\*. |
+| API ASP.NET Core | Processo .NET 10, Kestrel, thread pool | Pedidos em paralelo; cada um no seu scope de DI, com o seu AppDbContext e a sua ligação do pool. |
+| Worker do outbox | BackgroundService no processo da API | Um ciclo por instância: uma passagem de cada vez, scope próprio, espera no TimeProvider. |
+| seed-demo, set-admin-password | O mesmo executável, outro processo | Migrações, seed do admin, o comando e sai; não arranca o Kestrel nem o worker. |
+| PostgreSQL | PostgreSQL 18.6, um processo por ligação | Transações READ COMMITTED, trincos de linha, exclusion constraint, índices únicos. |
+| Servidor SMTP | — | Mailpit (X-MAILPIT) em desenvolvimento. |
+
+### Jogador reserva um slot
+
+Fonte: [process-book.puml](process-book.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Reservar | — | ClubBooking, createBooking |
+| Uma reserva | API ASP.NET Core | BookingService.CreateAsync |
+| Contas | API ASP.NET Core | IAccountStore.IsActiveAsync |
+| Trinco do campo | API ASP.NET Core | IPitchLock, PitchLock |
+| Verificação do slot | API ASP.NET Core | BookingSlotCheck.CheckAsync |
+| Pôr no outbox | API ASP.NET Core | BookingEmailOutbox |
+| Store das reservas | API ASP.NET Core | BookingStore.TryAddAsync |
+| PostgreSQL | — | pitches, blocks, bookings, outbox_messages |
+
+### Série semanal
+
+Fonte: [process-series.puml](process-series.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Reservar | — | ClubBooking, createRecurring |
+| Série semanal | API ASP.NET Core | RecurringBookingService.CreateAsync |
+| Contas | API ASP.NET Core | IAccountStore.IsActiveAsync |
+| Trinco do campo | API ASP.NET Core | IPitchLock, PitchLock |
+| Verificação do slot | API ASP.NET Core | BookingSlotCheck.CheckAsync |
+| Pôr no outbox | API ASP.NET Core | BookingEmailOutbox |
+| Store das reservas | API ASP.NET Core | BookingStore.TryAddAsync |
+| PostgreSQL | — | pitches, blocks, bookings, outbox_messages |
+
+### Jogador cancela
+
+Fonte: [process-cancel-player.puml](process-cancel-player.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| As minhas reservas | — | MyBookings, cancelBooking |
+| Cancelar | API ASP.NET Core | BookingCancellationService.CancelAsync |
+| Trinco do campo | API ASP.NET Core | IPitchLock, PitchLock |
+| Pôr no outbox | API ASP.NET Core | BookingEmailOutbox |
+| PostgreSQL | — | bookings, pitches, clubs, outbox_messages |
+
+### Dono cancela com motivo
+
+Fonte: [process-cancel-club.puml](process-cancel-club.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Calendário | — | CancelBookingForm, cancelClubBooking |
+| Reservas do dono | API ASP.NET Core | ClubBookingService.CancelAsync |
+| Autorização por dono | API ASP.NET Core | OwnedPitches.ClubIsOwnedAsync, OwnedBookings.Of |
+| Trinco do campo | API ASP.NET Core | IPitchLock, PitchLock |
+| Pôr no outbox | API ASP.NET Core | BookingEmailOutbox |
+| Cancelar (jogador) | API ASP.NET Core | BookingCancellationService.CancelAsync |
+| PostgreSQL | — | bookings, pitches, clubs, outbox_messages |
+
+### Login e logout
+
+Fonte: [process-login.puml](process-login.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Contas | — | LoginForm, LogoutButton, login, logout |
+| Contas e sessões | API ASP.NET Core | AuthController |
+| Login | API ASP.NET Core | LoginService.LoginAsync |
+| Contas no Identity | API ASP.NET Core | AccountStore.AuthenticateAsync |
+| Sessões e cookies | API ASP.NET Core | SessionService, AuthCookies |
+| PostgreSQL | — | users, user_roles, refresh_tokens |
+
+### Refresh com rotação
+
+Fonte: [process-refresh.puml](process-refresh.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Cliente da API | — | refreshSession |
+| Contas e sessões | API ASP.NET Core | AuthController.Refresh |
+| Sessões e cookies | API ASP.NET Core | SessionService.RefreshAsync, AuthCookies |
+| refresh_tokens | — | Tabela |
+| users, user_roles | — | Tabelas |
+
+### Refresh no browser
+
+Fonte: [process-refresh-client.puml](process-refresh-client.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| separador A | — | apiRequest, retryAfterUnauthorized |
+| separador B | — | apiRequest, retryAfterUnauthorized |
+| Browser | — | navigator.locks, cookies partilhados |
+| API | — | /api/\* |
+| Página de login | — | LoginScreen, trySilentRefresh |
+
+### Pedir nova palavra-passe
+
+Fonte: [process-reset-request.puml](process-reset-request.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Contas | — | ForgotPasswordForm, requestPasswordReset |
+| Contas e sessões | API ASP.NET Core | AuthController.RequestPasswordReset |
+| Recuperação | API ASP.NET Core | PasswordResetService, PasswordResetStore, AccountEmailBuilder |
+| Processar o outbox | API ASP.NET Core | OutboxProcessor (em C-WORKER) |
+| Data Protection | API ASP.NET Core | DataProtectorTokenProvider do Identity |
+| Enviar | API ASP.NET Core | SmtpEmailSender |
+| PostgreSQL | — | users, user_roles, outbox_messages, data_protection_keys |
+| Servidor SMTP | — | — |
+
+### Definir a nova palavra-passe
+
+Fonte: [process-reset-confirm.puml](process-reset-confirm.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Contas | — | ResetPasswordForm, confirmPasswordReset |
+| Contas e sessões | API ASP.NET Core | AuthController.ConfirmPasswordReset |
+| Recuperação | API ASP.NET Core | PasswordResetService.ConfirmAsync, PasswordResetStore.ResetAsync |
+| Data Protection | API ASP.NET Core | DataProtectorTokenProvider do Identity |
+| PostgreSQL | — | users, refresh_tokens, outbox_messages |
+
+### Worker de emails
+
+Fonte: [process-outbox.puml](process-outbox.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Ciclo | Worker do outbox (no processo da API) | OutboxDispatcher.ExecuteAsync |
+| Processar | Worker do outbox (no processo da API) | OutboxProcessor.ProcessDueAsync |
+| Compor | Worker do outbox (no processo da API) | BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer |
+| Enviar | Worker do outbox (no processo da API) | IEmailSender, SmtpEmailSender |
+| Relógio | — | TimeProvider |
+| PostgreSQL | — | outbox_messages, users, bookings |
+| Servidor SMTP | — | — |
+
+### Avisos ao dono e lembretes
+
+Fonte: [process-outbox-skip.puml](process-outbox-skip.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Processar | Worker do outbox (no processo da API) | OutboxProcessor.BuildBookingNotificationAsync |
+| AccountEmailBuilder | Worker do outbox (no processo da API) | IsActiveAsync |
+| Compor | Worker do outbox (no processo da API) | BookingNotificationComposer.Reminder, OwnerNewBooking |
+| Enviar | Worker do outbox (no processo da API) | SmtpEmailSender |
+| PostgreSQL | — | outbox_messages, bookings, pitches, clubs, users |
+
+### Página de uma área com guarda
+
+Fonte: [process-guard.puml](process-guard.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Browser | — | cookies access_token (Path=/) |
+| proxy.ts | Next.js | matcher /manage/\*, /admin/\*, /bookings |
+| app/manage/layout.tsx | Next.js | Suspense com fallback null |
+| AreaGuard | Next.js | areaDecision, safeNext, loginUrl |
+| lib/server/session.ts | Next.js | getSessionAccount |
+| JwtBearer | API ASP.NET Core | lê o cookie access_token |
+| AuthController.Me | API ASP.NET Core | AccountStore.FindAsync |
+
+### Desativar um dono
+
+Fonte: [process-owner-deactivation.puml](process-owner-deactivation.puml).
+
+| Participante | Caixa | Classe, método ou tabelas |
+| --- | --- | --- |
+| Página do dono | — | OwnerStatusForm, changeOwnerStatus |
+| Autorização | API ASP.NET Core | política Admin, ICurrentUser |
+| Administração | API ASP.NET Core | AdminOwnerStatusService, AdminOwnersService, OwnerStatusStore.TryChangeAsync |
+| users | — | Tabela |
+| owner_status_changes | — | Tabela, só de acrescentar (DB-AUDITTRG) |
+| refresh_tokens | — | Tabela |
 
 ## Notas
 

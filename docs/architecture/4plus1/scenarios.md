@@ -1,6 +1,6 @@
 # Cenários
 
-<!-- Vista 4+1: cenários (+1) · diagramas dinâmicos do C4 por caso de uso. Ver README.md. -->
+<!-- Vista 4+1: cenários (+1) · diagramas de sequência por caso de uso. Ver README.md. -->
 
 Sete casos de uso que atravessam várias vistas e as validam: se um cenário não se conseguir contar com os elementos e os diagramas das outras vistas (contexto, contentores, lógica, processo, desenvolvimento e física), falta alguma coisa nessas vistas. Cada cenário diz quem participa, os passos pela ordem em que acontecem, as regras que decidem o resultado e onde ver a mesma coisa desenhada. Não repete o detalhe: aponta para ele. Os ids dos elementos estão no [inventário](../inventory.md) (secção 11 para os cenários, `SC-`); as regras completas estão no [backlog](../../backlog.md) (US e T) e no [AGENTS.md](../../../AGENTS.md).
 

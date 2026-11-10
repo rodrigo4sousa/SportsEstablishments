@@ -17,6 +17,10 @@ O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica par
 - **Provisório (keepalive do Supabase):** a frequência (duas vezes por semana) e o que conta como atividade para o Supabase e para o GitHub não estão definidos em número nas documentações; ver a nota sob a T06.
 - **Provisório (versão do PostgreSQL):** os testes correm em 18.6 e as páginas lidas do Supabase não dizem que versão dá aos projetos novos. As migrações e o `seed-demo` foram também corridos em 17.
 
+## Diagramas de arquitetura
+
+- **Provisório (`process-runtime` e `logical-layers`):** o pedido de alinhar os diagramas com os do Pokédex manda passar a diagrama de sequência todos os que incluem C4 fora de `c4/`, mas estes dois não são sequências: mostram processos e dependências, sem ordem no tempo. Ficaram como diagramas UML de componentes, com as mesmas caixas e setas, sem nenhum include do C4.
+
 ## Melhorias de UX (auditoria)
 
 A auditoria de UX e acessibilidade (`docs/ux-audit.md`, 30 achados em quatro lotes) não é uma história: as correções entram em branches `feat/ux-batch-N-...` próprias, sem mudar regras de negócio nem a API. O estado de cada achado está na secção 9 do relatório.
