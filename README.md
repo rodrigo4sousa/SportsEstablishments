@@ -33,6 +33,7 @@ The stories and their acceptance criteria are in the [backlog](docs/backlog.md).
 
 - Search clubs by sport, locality and date, and see each pitch's free slots with their price (US16, US17). Without an account a visitor can only look; to book, they sign in and come back to the same choice.
 - Sign-up, login and password recovery (US01, US03, US05).
+- "A minha conta": download your own data as a JSON file and delete your account, with your password (US30). Future bookings are cancelled, personal data is removed and past bookings stay for the clubs without identifying you.
 - Book a slot from today up to 30 days ahead, at the price of that moment (US18), and repeat the booking weekly for 2 to 4 weeks (US20).
 - See upcoming and past bookings and cancel within the club's cancellation window (US19).
 - Emails: confirmation and cancellation, a reminder before the booking, and a summary of a series (US21, US22).
@@ -83,7 +84,7 @@ Counted on 2026-11-09:
 
 - **Back end:** 1410 tests, all passing (`dotnet test backend/SportsBooking.slnx`): 553 unit and 857 integration. The integration tests run against a real PostgreSQL 18 with Testcontainers; they need Docker, and without it they all fail. None uses the in-memory EF Core provider.
 - **Front end:** 1171 tests passing (`npm test`, in `frontend/`): Vitest, Testing Library and MSW.
-- **End-to-end:** 3 Playwright tests (Chromium) in `e2e/`, run against the docker compose stack with the demo data in their own workflow ([`e2e.yml`](.github/workflows/e2e.yml)); see [Running the E2E tests](#running-the-e2e-tests). Other UI changes are checked by hand in the browser.
+- **End-to-end:** 4 Playwright tests (Chromium) in `e2e/`, run against the docker compose stack with the demo data in their own workflow ([`e2e.yml`](.github/workflows/e2e.yml)); see [Running the E2E tests](#running-the-e2e-tests). Other UI changes are checked by hand in the browser.
 
 ```bash
 dotnet build backend/SportsBooking.slnx     # warnings are errors; regenerates the OpenAPI document
@@ -96,7 +97,7 @@ npm run gen:api                              # in frontend/, after a back end bu
 
 ### Running the E2E tests
 
-Three Playwright tests (Chromium only) check the main flows through the real stack: a player books and cancels, two players want the same slot (the second gets the conflict), and an owner sees the booking in the calendar while an unknown club answers 404. They need Docker, Node.js 22, and ports 3000 and 5080 free (stop `docker compose up` first; the E2E stack is its own compose project, `sportsbooking-e2e`, with its own database volume, and never touches a development stack).
+Four Playwright tests (Chromium only) check the main flows through the real stack: a player books and cancels, two players want the same slot (the second gets the conflict), an owner sees the booking in the calendar while an unknown club answers 404, and a new user exports their data, deletes the account and can no longer sign in. They need Docker, Node.js 22, and ports 3000 and 5080 free (stop `docker compose up` first; the E2E stack is its own compose project, `sportsbooking-e2e`, with its own database volume, and never touches a development stack).
 
 ```bash
 cd e2e
@@ -105,7 +106,7 @@ npx playwright install chromium     # first time; on Linux add --with-deps
 npm run e2e                         # builds the stack, seeds the demo data, runs the tests, removes the stack
 ```
 
-Or step by step, to run the tests again against the same stack: `npm run stack:up`, then `npm test` (or `npm run test:headed`, `npm run report` for the HTML report), then `npm run stack:down`. The tests use the public demo accounts, book the first free slot from day 20 ahead on and cancel what they book, so they can run repeatedly on the same database; they refuse to run against any address that is not `localhost`. The workflow [`e2e.yml`](.github/workflows/e2e.yml) does the same on every pull request and push to `main`, separately from CI (the deploy does not wait for it), and uploads the report, traces and videos when it fails. Decision: [ADR 0010](docs/architecture/adr/0010-testes-end-to-end-playwright.md).
+Or step by step, to run the tests again against the same stack: `npm run stack:up`, then `npm test` (or `npm run test:headed`, `npm run report` for the HTML report), then `npm run stack:down`. The tests use the public demo accounts (and one throwaway account per run), book the first free slot from day 20 ahead on and cancel what they book, so they can run repeatedly on the same database; they refuse to run against any address that is not `localhost`. The workflow [`e2e.yml`](.github/workflows/e2e.yml) does the same on every pull request and push to `main`, separately from CI (the deploy does not wait for it), and uploads the report, traces and videos when it fails. Decision: [ADR 0010](docs/architecture/adr/0010-testes-end-to-end-playwright.md).
 
 ## Run locally
 

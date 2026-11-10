@@ -75,6 +75,7 @@ Estado em [`adr/`](adr/README.md). Nas ADRs 0001 a 0008 a decisão é mais antig
 | [0008](adr/0008-chaves-data-protection-na-base-de-dados.md) | Chaves do Data Protection na base de dados | Aceite |
 | [0009](adr/0009-alvo-de-implantacao.md) | Alvo de implantação | Aceite em 2026-11-09, depois do primeiro deploy real |
 | [0010](adr/0010-testes-end-to-end-playwright.md) | Testes end-to-end com Playwright | Aceite em 2026-11-10 |
+| [0011](adr/0011-apagar-conta-por-anonimizacao.md) | Apagar a conta por anonimização | Aceite em 2026-11-10 |
 
 ## Limitações conhecidas
 
