@@ -77,7 +77,7 @@ Cada componente junta o controller (Api), os serviços (Application) e o que a I
 | API-ADMIN | Administração | Componente | Totais, reservas e registos ao longo do tempo, lista de donos, top 10 de ocupação, desativar e reativar donos com histórico. | `Api/Controllers/AdminController.cs`; `App/Admin/`; `Inf/Admin/` (`BookingStatistics`, `OwnerStatusStore`, `OwnerStatusChange`); `Inf/Statistics/OccupationStore.cs` (`RegistrationStatistics`, US28, e `OccupationStore` para o top 10, US27) |
 | API-DEMO | Dados de demonstração | Componente (comando) | Cria donos, jogadores, clubes, campos, bloqueios e reservas determinísticos numa base vazia; recusa em produção. | `Inf/Demo/DemoDataCommand.cs`, `DemoDataSeeder.cs`, `DemoCatalog.cs` |
 | API-ADMINPW | Mudar a palavra-passe do admin | Componente (comando) | `set-admin-password`: lê `ADMIN_NEW_PASSWORD`, troca o hash e revoga as sessões do admin. | `Inf/Identity/AdminPasswordCommand.cs` |
-| API-PERSIST | Persistência | Componente | `IAppDbContext` (vista da Application sobre a base de dados), `AppDbContext`, migrações, registo de comandos falhados, health check. | `App/Common/IAppDbContext.cs`; `Inf/Persistence/` (`AppDbContext`, `DatabaseOptions`, `FailedCommandLogger`, `Migrations/`); `Inf/DependencyInjection.cs` |
+| API-PERSIST | Persistência | Componente | `IAppDbContext` (vista da Application sobre a base de dados), `AppDbContext`, migrações, registo de comandos falhados. | `App/Common/IAppDbContext.cs`; `Inf/Persistence/` (`AppDbContext`, `DatabaseOptions`, `FailedCommandLogger`, `Migrations/`); `Inf/DependencyInjection.cs` |
 
 ### Partes dos componentes mais carregados
 
@@ -117,7 +117,7 @@ Usadas nos diagramas de pormenor da [vista lógica](4plus1/logical.md). Cada par
 | CC-LOCK | Trinco do campo | Transversal | Transação com `SELECT … FOR UPDATE` na linha do campo, que serializa reservas, bloqueios, cancelamentos, faltas e faixas de preço. | `App/Pitches/IPitchLock.cs`; `Inf/Pitches/PitchLock.cs` |
 | CC-DATAPROT | Chaves do Data Protection | Transversal | Chaves que protegem os tokens de recuperação de palavra-passe, guardadas na base de dados com um nome de aplicação fixo. | `Inf/DependencyInjection.cs` (`PersistKeysToDbContext`); `Inf/Persistence/AppDbContext.cs` |
 | CC-OPENAPI | Documento OpenAPI | Transversal | Gerado no build (`openapi/sportsbooking-api.json`), Swagger UI em desenvolvimento, fonte dos tipos do front end. | `Api/openapi/`, `Api/ErrorHandling/ProblemDetailsSchemaTransformer.cs`; `Web/lib/api/schema.d.ts` |
-| CC-HEALTH | Health check | Transversal | `GET /health`, com verificação da ligação à base de dados. | `Api/Program.cs`; `Inf/DependencyInjection.cs` (`AddDbContextCheck`) |
+| CC-HEALTH | Health check | Transversal | `GET /health`, só de liveness: responde 200 se o processo está vivo e não toca na base de dados (`AddHealthChecks()` sem nenhuma verificação registada). | `Api/Program.cs` (`AddHealthChecks`, `MapHealthChecks`) |
 
 ## 5. Componentes do front end
 
@@ -235,7 +235,7 @@ Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pasta
 | DEV-WEBTYPES | Tipos da API gerados | Ficheiro gerado | Tipos TypeScript gerados do documento OpenAPI (CC-OPENAPI) por `openapi-typescript`; nunca se editam à mão. | `Web/lib/api/schema.d.ts` |
 | DEV-CI-BACKEND | Job `backend` | Job de CI | «Backend (build + tests)». | `.github/workflows/ci.yml` |
 | DEV-CI-FRONTEND | Job `frontend` | Job de CI | «Frontend (lint, typecheck, tests, build)». | `.github/workflows/ci.yml` |
-| DEV-CI-DIAGRAMS | Job `diagrams` | Job de CI | «Docs (architecture diagrams)»: desenha (com a imagem PlantUML fixada em `style.puml`) e compara os SVG, e verifica as ligações. | `.github/workflows/ci.yml` |
+| DEV-CI-DIAGRAMS | Job `diagrams` | Job de CI | «Docs (architecture diagrams)»: desenha (com a imagem PlantUML fixada em `style.puml`) e compara os SVG, e corre `scripts/check-architecture-docs.sh` (ligações, galeria e aliases). | `.github/workflows/ci.yml` |
 
 ## 10. Vista física (implantação de hoje)
 
