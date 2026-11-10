@@ -1,5 +1,5 @@
 ' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
-' Version 1.2 - 2026-11-10
+' Version 1.3 - 2026-11-10
 ' Para: quem vai mudar o código.
 ' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
 ' Não desenhado: classes, endpoints e regras de negócio.
@@ -11,7 +11,7 @@ skinparam defaultTextAlignment left
 
 folder "/ · raiz do repositório" as ROOT {
   rectangle "Configuração da raiz\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md,\nLICENSE, SECURITY.md" as DEV_ROOTCFG
-  rectangle "docker-compose.yml\npostgres, mailpit, api, frontend" as DEV_COMPOSE
+  rectangle "docker-compose.yml\npostgres, mailpit, api, frontend\n(e2e/: compose.e2e.yml e os testes Playwright)" as DEV_COMPOSE
 
   folder "backend/" as DEV_BACKEND {
     rectangle "src/\nDomain, Application, Infrastructure, Api" as B_SRC
@@ -36,7 +36,7 @@ folder "/ · raiz do repositório" as ROOT {
   }
 
   folder ".github/workflows/" as DEV_WORKFLOWS {
-    rectangle "ci.yml\njobs: backend, frontend, diagrams\ncodeql.yml\ndeploy.yml, prod-data.yml, keepalive.yml" as W_SRC
+    rectangle "ci.yml\njobs: backend, frontend, diagrams\ncodeql.yml\ne2e.yml\ndeploy.yml, prod-data.yml, keepalive.yml" as W_SRC
   }
 }
 
@@ -46,6 +46,7 @@ DEV_WORKFLOWS ..> DEV_BACKEND : "CI backend"
 DEV_WORKFLOWS ..> DEV_FRONTEND : "CI frontend"
 DEV_WORKFLOWS ..> DEV_ARCHDOCS : "CI diagramas: render.sh desenha os .puml em out/"
 DEV_WORKFLOWS ..> DEV_SCRIPTS : "CI docs: ligações e galeria"
+DEV_WORKFLOWS ..> DEV_COMPOSE : "e2e.yml: sobe a stack e corre o Playwright de e2e/"
 DEV_SCRIPTS ..> DEV_ARCHDOCS : "lê os .md e out/"
 
 @enduml

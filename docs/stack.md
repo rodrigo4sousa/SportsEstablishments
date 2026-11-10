@@ -234,9 +234,9 @@ Os testes de integração correm contra um PostgreSQL real, porque as regras mai
 | Unitários (back end) | xUnit, Shouldly, `FakeTimeProvider` | Regras do domínio e dos serviços | Janela de cancelamento, geração de slots nas mudanças de hora |
 | Integração (back end) | xUnit, `WebApplicationFactory`, Testcontainers (PostgreSQL) | Endpoints completos, da autenticação à base de dados | Dono A não vê dados do dono B (T02); pedidos simultâneos para o mesmo slot (T03); códigos e `code` dos erros |
 | Componentes (front end) | Vitest, React Testing Library, MSW | Comportamento da UI com a API simulada | Erros por campo no registo; mensagem e lista atualizada depois de um 409 |
-| End-to-end | Nenhum no repositório | — | Ver a nota abaixo: a prática é a verificação manual no browser |
+| End-to-end | Playwright (Chromium), docker compose com os dados de demonstração | Três fluxos: o jogador reserva e cancela; dois jogadores querem o mesmo horário; o dono vê a reserva e um clube inexistente dá 404 (T08, `e2e/`) | O jogador cancela; o segundo jogador recebe o 409 `slot_taken` |
  
-**End-to-end.** Não há testes Playwright (nem outra ferramenta end-to-end) no repositório nem no CI. A prática usada, antes de cada merge de uma história com interface, é a verificação manual no browser com a stack completa a correr (`docker compose` com os dados de demonstração e o Mailpit): os fluxos críticos (o jogador reserva e cancela, o dono cancela com motivo, o admin vê os totais) percorrem-se à mão ou com scripts de navegador temporários que não ficam no repositório, e conferem-se os emails no Mailpit e o que fica nos logs. Podem vir a ser acrescentados testes end-to-end mais tarde.
+**End-to-end.** Há três testes Playwright em `e2e/` (T08, [ADR 0010](architecture/adr/0010-testes-end-to-end-playwright.md)): só Chromium, contra o `docker compose` do repositório com os dados de demonstração, num workflow à parte (`e2e.yml`) para não atrasar o deploy. Correm em local com `npm run e2e` em `e2e/` (README, «Running the E2E tests»). Os restantes fluxos e os ecrãs continuam a verificar-se à mão no browser antes de cada merge de uma história com interface (com a stack e o Mailpit, ou com scripts temporários que não ficam no repositório), e conferem-se os emails e os logs; não se acrescentam fluxos end-to-end sem necessidade, porque cada um custa tempo de CI e risco de instabilidade.
  
 **Regras**
  
@@ -286,7 +286,7 @@ Um só repositório, `main` só alterada por pull requests (sem proteção de br
  
 - Back end: restore, build e testes, incluindo os de integração com Testcontainers (os runners Ubuntu do GitHub têm Docker).
 - Front end: lint, verificação de tipos, testes e build.
-- Não há testes end-to-end no CI (ver Testes).
+- Testes end-to-end (Playwright) num workflow à parte, `e2e.yml`, que o deploy não espera (ver Testes).
 - Verificação de pacotes vulneráveis em ambos.
 **Deploy**
  

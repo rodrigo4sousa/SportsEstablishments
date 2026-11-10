@@ -79,7 +79,7 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 - Forms: React Hook Form + Zod (UX only; the API always re-validates with FluentValidation). Map API `errors` to fields with `setError`. Zod schemas mirror the API's limits and pt-PT messages (e.g. `features/auth/schemas/register.ts`). Use `noValidate` so browser validation does not replace ours. Pages stay mounted across navigations (`cacheComponents`), so reset forms with secrets after submit.
 - Frontend API access: only via `src/lib/api/client.ts` (`apiRequest`/`apiJson`): same-origin `/api/*`, ProblemDetails → `ApiError` (`status`, `code`, `fieldErrors`, `traceId`), one shared refresh on 401 then one retry. Messages by code in `src/lib/api/error-messages.ts`; unexpected mutation errors go to a toast (sonner). Current user: `useCurrentUser()` (`features/auth`), query key `["auth", "me"]`.
 - Integration tests run against real PostgreSQL (Testcontainers), never the EF in-memory provider.
-- There are no Playwright (end-to-end) tests in the repo or in CI. Before merging a story with a UI, the practice is a manual check in the browser against the full stack (`docker compose` with the demo data and Mailpit), with throwaway browser scripts that are not committed (docs/stack.md, "Testes").
+- End-to-end (T08, `e2e/`, own `package.json`): three Playwright tests (Chromium) against the `docker compose` stack with the demo data, in `.github/workflows/e2e.yml` (separate from `ci.yml`, so `deploy.yml` does not wait for it). Do not add more flows lightly: each costs CI time and flakiness risk (ADR 0010). Role/name locators, no fixed sleeps, one worker, tests clean up the bookings they make and use days 20+ ahead of the seeded ones. Anything else in a UI story is still checked by hand in the browser (docs/stack.md, "Testes").
 
 ## Business rules (decided)
 - One email = one account = one profile.
@@ -107,6 +107,7 @@ See [README.md](README.md) for full setup.
 - API locally: `dotnet run --project backend/src/SportsBooking.Api` (needs `docker compose up -d postgres`)
 - New migration (from `backend/`, local tool): `dotnet ef migrations add <Name> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`
 - Frontend (in `frontend/`): `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
+- E2E (in `e2e/`, Docker running, ports 3000 and 5080 free): `npm ci && npx playwright install chromium`, then `npm run e2e` (fresh stack with demo data, tests, stack down) or `npm run stack:up` / `npm test` / `npm run stack:down`.
 - Regenerate API types after a backend build: `npm run gen:api` in `frontend/` (commit `src/lib/api/schema.d.ts`; CI checks drift)
 
 ## Gotchas

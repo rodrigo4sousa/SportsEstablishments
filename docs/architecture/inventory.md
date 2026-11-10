@@ -29,7 +29,7 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 | --- | --- | --- | --- | --- |
 | X-SMTP | Servidor SMTP | Sistema externo | Recebe os emails da aplicação por SMTP (qualquer servidor; em produção será o Brevo, ver PL-BREVO). | `Inf/Notifications/SmtpEmailSender.cs` (MailKit), `EmailOptions.cs` (`Email:*`) |
 | X-MAILPIT | Mailpit | Sistema externo (só desenvolvimento) | Servidor SMTP falso com interface web: apanha todos os emails em desenvolvimento, nenhum sai para fora. | `docker-compose.yml` (serviço `mailpit`, `axllent/mailpit:v1.31.6`, portas 1025 e 8025) |
-| X-GHA | GitHub Actions | Sistema externo | CI (`ci.yml`): build, testes (com Testcontainers), verificação do OpenAPI e dos tipos gerados, migrações pendentes, pacotes vulneráveis, lint, tipos e build do front end. Não faz deploy; o deploy é o `deploy.yml` (PL-DEPLOY). | `.github/workflows/ci.yml` |
+| X-GHA | GitHub Actions | Sistema externo | CI (`ci.yml`): build, testes (com Testcontainers), verificação do OpenAPI e dos tipos gerados, migrações pendentes, pacotes vulneráveis, lint, tipos e build do front end. Não faz deploy; o deploy é o `deploy.yml` (PL-DEPLOY). Os testes end-to-end são o `e2e.yml` (PL-E2E), à parte. | `.github/workflows/ci.yml` |
 | X-GH | GitHub | Sistema externo | Repositório e pull requests (merge por squash). Não há proteção de branch na `main`: o CI verde confirma-se à mão antes de cada merge. | `README.md`, `AGENTS.md` (convenções) |
 
 ## 3. Contentores
@@ -211,6 +211,7 @@ Estes ids só aparecem nas vistas de implantação em produção, que existe des
 | PL-VERCEL-EDGE | Borda da Vercel | Infraestrutura gerida (proxy de entrada) | HTTPS em `*.vercel.app`, e o rewrite de `/api/*` para a API, fixado no build. Escreve `X-Forwarded-For` com o IP do visitante. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
 | PL-DEPLOYHOOK | Deploy hook do Render | Configuração | URL secreto que lança o deploy de um commit na API; chamado por PL-DEPLOY, com o deploy automático desligado. | `.github/workflows/deploy.yml`, `docs/deployment/runbook.md` |
 | PL-CODEQL | Workflow de CodeQL | Pipeline | `.github/workflows/codeql.yml`: análise de código para C# e JavaScript/TypeScript (`build-mode: none`) em `pull_request`, em `push` à `main` e às segundas-feiras. Independente do CI e do deploy. | `.github/workflows/codeql.yml`, `docs/backlog.md` (T06) |
+| PL-E2E | Workflow de E2E | Pipeline | `.github/workflows/e2e.yml`, em `pull_request` e em `push` à `main`: constrói e sobe a stack do `docker compose` com os dados de demonstração e corre os testes Playwright de `e2e/`; carrega o relatório, os traces e os vídeos se falha. Independente do CI e do deploy. | `.github/workflows/e2e.yml`, [ADR 0010](adr/0010-testes-end-to-end-playwright.md) |
 | PL-KEEPALIVE | Workflow de keepalive | Pipeline | `.github/workflows/keepalive.yml`, às segundas e quintas e à mão, só com `DEPLOY_ENABLED=true`: um `GET /api/localities` pelo site público (consulta de leitura à base de dados, que também acorda a API) para o Supabase não pausar o projeto por inatividade. Sem segredos; usa a variável `SITE_URL`. | `.github/workflows/keepalive.yml`, `docs/deployment/runbook.md`, [ADR 0009](adr/0009-alvo-de-implantacao.md) |
 | PL-PRODDATA | Workflow de dados de produção | Pipeline | `.github/workflows/prod-data.yml`, manual: `migrate-only`, `set-admin-password` e `seed-demo` contra o Supabase, porque o plano gratuito do Render não tem shell. | `.github/workflows/prod-data.yml`, `docs/deployment/runbook.md` |
 
@@ -227,7 +228,8 @@ Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pasta
 | DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
 | DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`), o tipo de letra (`fonts/`) e os scripts que os desenham. | `docs/architecture/` |
 | DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações, da galeria e dos aliases dos diagramas. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1` |
-| DEV-WORKFLOWS | `.github/workflows/` | Pasta | Pipeline de CI. | `.github/workflows/ci.yml` |
+| DEV-WORKFLOWS | `.github/workflows/` | Pasta | Os workflows: CI, CodeQL, E2E, deploy, dados de produção e keepalive. | `.github/workflows/` |
+| DEV-E2E | `e2e/` | Pasta | Testes end-to-end: Playwright (Chromium), três fluxos, `scripts/stack.mjs` que sobe a stack do `docker compose` com os dados de demonstração, e `compose.e2e.yml`. Não depende de código do front end nem da API. | `e2e/`, [ADR 0010](adr/0010-testes-end-to-end-playwright.md) |
 | DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
 | DEV-ROOTCFG | Configuração da raiz | Ficheiros | SDK fixado, estilo de código, fins de linha, ficheiros ignorados, README e AGENTS. | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` |
 | DEV-TEST-UNIT | Testes unitários do back end | Projeto de teste | Domínio, serviços e peças da API sem base de dados (xUnit v3, Shouldly, `FakeTimeProvider`). | `backend/tests/SportsBooking.UnitTests/` |
