@@ -2,7 +2,7 @@
 
 <!-- Modelo C4 · níveis 1 (contexto) e 2 (contentores) e diagramas de implantação. Ver README.md. -->
 
-Os diagramas C4 mais gerais do sistema: o contexto (nível 1), os contentores (nível 2) e a implantação, em desenvolvimento e em produção. Os componentes (nível 3) e o código (nível 4) estão na [vista lógica](../4plus1/logical.md), e os diagramas dinâmicos, em sequência, na [vista de processo](../4plus1/process.md). Os ids estão no [inventário](../inventory.md); os `.puml` e os SVG de todos os diagramas estão ao lado, em `c4/` e `4plus1/` (fontes) e em `out/` (desenhos).
+Os diagramas C4 mais gerais do sistema: o contexto (nível 1), os contentores (nível 2) e a implantação, em desenvolvimento e em produção. Os componentes (nível 3) e o código (nível 4) estão na [vista lógica](../4plus1/logical.md), e os diagramas de sequência na [vista de processo](../4plus1/process.md). Os ids estão no [inventário](../inventory.md); os `.puml` e os SVG de todos os diagramas estão ao lado, em `c4/` e `4plus1/` (fontes) e em `out/` (desenhos).
 
 Para cada nível, para quem é e que decisão documenta:
 
@@ -154,3 +154,212 @@ Fonte: [04-deployment-prod.puml](04-deployment-prod.puml). **Em produção desde
 | Supabase (gratuito) | PL-SUPABASE, PL-SUPAPOOL, C-DB | PostgreSQL gerido e o pooler | Sim (endpoint na Internet, com palavra-passe e TLS) | Sempre pelo pooler em modo sessão (secção 4.6). |
 | Brevo | PL-BREVO | SMTP | — (fornecedor) | Porta 2525 com StartTls (confirmado no primeiro deploy); remetente verificado por email. |
 | GitHub Actions | X-GHA, PL-DEPLOY, PL-PRODDATA, PL-MIGBUNDLE | `deploy.yml`, `prod-data.yml` | — | Secção 4.8. |
+
+## Elementos de cada diagrama
+
+As caixas dos diagramas mostram só o nome e, entre parênteses retos, a tecnologia. A responsabilidade de cada elemento, tal como era escrita dentro da caixa, está nestas tabelas; a correspondência entre nomes e ids está na [secção 12 do inventário](../inventory.md#12-nomes-e-aliases-nos-diagramas).
+
+### Contexto do sistema
+
+Fonte: [01-context.puml](01-context.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Visitante | — | Pesquisa clubes e vê os horários livres, sem sessão. |
+| Jogador | — | Reserva, cancela e vê as suas reservas. |
+| Dono | — | Gere clubes, campos, calendário e reservas. |
+| Admin | — | Dono da plataforma: contagens e estado dos donos. |
+| Cliente sem conta | — | Pede ao clube uma reserva; não usa o sistema. |
+| Operador | — | Arranca a aplicação e define a configuração. |
+| App de Reservas de Campos | — | Mercado único para reservar campos (futsal, futebol 7, padel, ténis) em clubes portugueses. |
+| Servidor SMTP | — | Recebe os emails da aplicação. Em desenvolvimento é o X-MAILPIT. |
+| Brevo | — | O servidor SMTP de produção. |
+| Vercel | — | Onde o site vai correr. |
+| Render | — | Onde a API vai correr. |
+
+### Contentores: desenvolvimento
+
+Fonte: [02-containers-dev.puml](02-containers-dev.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Browser do utilizador | Browser | Corre os Client Components; guarda os cookies httpOnly de sessão. |
+| Aplicação Next.js | Next.js 16, Node.js, porta 3000 | Serve as páginas e reencaminha /api/\* para a API (WEB-REWRITE); é o proxy reverso de hoje. |
+| API ASP.NET Core | .NET 10, controllers | Regras de negócio, autenticação por cookies, acesso à base de dados. |
+| Worker de emails | BackgroundService | Lê o outbox e envia os emails com novas tentativas. |
+| Base de dados | PostgreSQL 18.6, porta 5432 | Todos os dados, as regras que não podem falhar e as chaves do Data Protection. |
+| Mailpit | — | SMTP 1025, interface web 8025 |
+
+### Contentores: produção
+
+Fonte: [02-containers-prod.puml](02-containers-prod.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Browser do utilizador | Browser | Só fala com a origem da Vercel; guarda os cookies httpOnly de sessão. |
+| Aplicação Next.js | Next.js 16 | Páginas com HTTPS; o rewrite de /api/\* envia para a API. |
+| API ASP.NET Core | .NET 10, controllers | Regras de negócio, cookies, base de dados. |
+| Worker de emails | BackgroundService | Envia os emails do outbox enquanto a API estiver acordada. |
+| Base de dados | PostgreSQL gerido | Todos os dados e as chaves do Data Protection. |
+| Brevo | — | Servidor SMTP de produção |
+
+### Componentes da API: visão geral
+
+Fonte: [03-components-api-overview.puml](03-components-api-overview.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Aplicação Next.js | Next.js 16 | Reencaminha /api/\* do browser e lê a API nos Server Components. |
+| Contas e sessões | AuthController, App/Accounts, App/Auth, Inf/Identity, Inf/Auth | Registo, login, logout, me, refresh, recuperação de palavra-passe. |
+| Catálogo público | ClubsController, LocalitiesController, App/Catalog | Pesquisa, localidades, página do clube, slots livres. Só leitura, anónimo. |
+| Reservas do jogador | BookingsController, MeBookingsController | Uma reserva, série semanal, as minhas reservas, cancelar. |
+| Clubes do dono | ManageClubsController, ClubService | Criar, listar e editar clubes. |
+| Campos | ManagePitchesController, PitchService, OwnedPitches | Campos do clube; OwnedPitches é a entrada nos campos do dono. |
+| Horários | ManagePitchScheduleController, PitchScheduleService | Horário semanal e pré-visualização dos slots. |
+| Bloqueios | ManageBlocksController, BlockService | Bloquear e remover períodos. |
+| Faixas de preço | ManagePriceBandsController, PriceBandService | Faixas de preço por dia e hora. |
+| Calendário e reservas do dono | ManageCalendarController, ManageBookingsController | Calendário, detalhes, cancelar, reservar para cliente, faltas. |
+| Estatísticas do dono | ManageStatisticsController, OccupationService | Ocupação, horas, receita. |
+| Administração | AdminController, App/Admin, Inf/Admin | Totais, gráficos, donos, top 10, desativar e reativar. |
+| Notificações (outbox) | App/Notifications, Inf/Notifications | Põe emails no outbox; compõe-nos quando são enviados. |
+| Slots de um dia e «livre» | PitchDayCalendar, DaySlot | O único cálculo dos slots de um dia com bloqueios e reservas. |
+| Persistência | IAppDbContext, AppDbContext | A vista da Application sobre a base de dados; migrações. |
+| PostgreSQL | PostgreSQL 18.6 | Dados, exclusion constraint, triggers. |
+
+### Componentes da API: reservas
+
+Fonte: [03-components-api-bookings.puml](03-components-api-bookings.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Uma reserva | BookingService.CreateAsync | Valida, encontra o campo, confirma o dono ativo, tranca o campo, verifica o slot, preço de PriceForSlot, insere. |
+| Série semanal | RecurringBookingService, RecurringOccurrences | Pré-visualização e criação: cada data em BookOneAsync, com o seu trinco e a sua transação. |
+| As minhas reservas e cancelar | MyBookingsService, BookingCancellationService | Lista e detalhe filtrados pelo jogador da sessão; cancelar com Booking.CancelByPlayer. |
+| Store das reservas | IBookingStore, Inf/Bookings/BookingStore | TryAddAsync e TrySaveChangesAsync: 23P01 → false (409 slot_taken). |
+| Reservas do dono | ClubBookingService, ClubCalendarService | Reserva para cliente, cancelar com motivo, marcar e anular falta, calendário. |
+| Autorização por dono | OwnedClubs, OwnedPitches, OwnedBookings | Só os clubes, campos e reservas do dono da sessão (404 igual para o de outro dono). |
+| Verificação do slot | BookingSlotCheck.CheckAsync | Campo ativo → janela → grelha (SlotStartingAt) → começado → bloqueios. Não olha para outras reservas. |
+| Trinco do campo | IPitchLock, Inf/Pitches/PitchLock | Transação + SELECT … FOR UPDATE na linha do campo. |
+| Clubes visíveis | VisibleClubs | Dono ativo e pelo menos um campo ativo. |
+| Contas | IAccountStore.IsActiveAsync | O dono do clube não está desativado. |
+| Outbox | BookingEmailOutbox | Junta as mensagens ao mesmo IAppDbContext, antes do SaveChanges de quem chama. |
+| pitches | Tabela | A linha trancada pelo CC-LOCK. |
+| blocks | Tabela | Bloqueios do campo. |
+| bookings | Tabela | Reservas; nunca apagadas. |
+| bookings_no_overlap | Exclusion constraint (GiST) | Nenhuma reserva Confirmed se sobrepõe no mesmo campo. |
+| outbox_messages | Tabela | Emails por enviar. |
+
+### Componentes da API: contas
+
+Fonte: [03-components-api-accounts.puml](03-components-api-accounts.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Registo | AccountRegistrationService | Jogador e dono; aceitação dos Termos (400 terms_not_accepted); 409 email_taken; começa a sessão. |
+| Login | LoginService | Qualquer falha é o mesmo 401 invalid_credentials. |
+| Recuperação | PasswordResetService, Inf/Auth/PasswordResetStore, AccountEmailBuilder | Pedido (202 sempre) e confirmação; o token só é feito pelo worker. |
+| Contas no Identity | IAccountStore, Inf/Identity/AccountStore, UserManager&lt;AppUser> | Cria, autentica (FallbackPasswordHash, LoginLockout), procura, IsActiveAsync. |
+| Sessões e cookies | ISessionService, Inf/Auth/SessionService, Api/Auth/AuthCookies | JWT de 15 min (sub, role) e refresh de 7 dias em cookies httpOnly; rotação atómica. |
+| Data Protection | Identity DataProtectorTokenProvider | Faz e verifica os tokens de recuperação; lê o relógio do sistema. |
+| Seed do admin | AdminAccountSeeder | No arranque; único código que dá o perfil Admin. |
+| set-admin-password | AdminPasswordCommand | Troca o hash e revoga as sessões do admin. |
+| Estado dos donos | AdminOwnerStatusService, Inf/Admin/OwnerStatusStore | Desativa e reativa donos numa transação. |
+| Outbox | OutboxMessage | password_reset, password_changed. |
+| users, roles, user_roles | Tabelas (Identity) | deactivated_at, registered_at, accepted_terms_version, terms_accepted_at, email normalizado único. |
+| refresh_tokens | Tabela | Só o SHA-256 do valor. |
+| data_protection_keys | Tabela | Chaves dos tokens. |
+| owner_status_changes | Tabela, só de acrescentar | Histórico dos donos. |
+| outbox_messages | Tabela | Emails por enviar. |
+
+### Componentes da API: notificações
+
+Fonte: [03-components-api-notifications.puml](03-components-api-notifications.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Reservas do jogador | BookingService, RecurringBookingService, BookingCancellationService | Reserva, série, cancelamento. |
+| Reservas do dono | ClubBookingService.CancelAsync | Cancelamento pelo clube (a reserva para cliente não gera email). |
+| Recuperação | PasswordResetStore, AccountEmailBuilder | Põe na fila; no envio, faz o token e o link. |
+| Pôr no outbox | BookingEmailOutbox, OutboxMessage.Create | Junta a mensagem ao IAppDbContext de quem chama; não grava. |
+| Ciclo do worker | OutboxDispatcher | Um scope por passagem; espera o intervalo no TimeProvider; Outbox:Enabled. |
+| Processar o que está devido | OutboxProcessor.ProcessDueAsync | SKIP LOCKED; envia, ignora, desiste ou volta a tentar (OutboxRetry). |
+| Compor os emails | BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer | pt-PT, hora de Lisboa, texto e HTML. |
+| Enviar | IEmailSender, SmtpEmailSender (MailKit) | Uma ligação por mensagem. |
+| Data Protection | Identity | Token de recuperação (relógio do sistema). |
+| Relógio injetado | TimeProvider | A hora de agora e a espera entre passagens. |
+| outbox_messages | Tabela | ck_outbox_messages_one_outcome: no máximo um resultado. |
+| ux_outbox_messages_booking_notification | Índice único parcial | Um lembrete e um aviso ao dono por reserva. |
+| users | Tabela | Endereço e nome atuais do destinatário. |
+| bookings | Tabela | Estado atual da reserva do lembrete e do aviso. |
+| Servidor SMTP | — | Mailpit em desenvolvimento |
+
+### Componentes do front end: rotas e guardas
+
+Fonte: [03-components-web.puml](03-components-web.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Browser | Browser | Corre os Client Components; guarda os cookies httpOnly. |
+| proxy.ts | Next.js proxy | Em /manage/\*, /admin/\* e /bookings escreve o caminho pedido em x-pathname. Não renova sessões. |
+| Área do jogador | app/(player) | / (pesquisa no endereço), /clubs/[slug] (escolha ?pitch=&date=&slot=&weeks= no endereço), /bookings. |
+| Área do dono | app/manage | Clubes, campos, calendário (?date=&view=&pitch=&booking= no endereço), estatísticas. |
+| Área do admin | app/admin | Painel e página de um dono; filtros no endereço. |
+| Páginas de conta | app/login, register, forgot-password, reset-password | Formulários de conta. |
+| Guardas | AreaGuard, PlayerGuard, GuestOnly, lib/auth/redirects | Redirecionam por perfil no servidor; a API decide sempre. |
+| Chamadas no servidor | lib/server (server-only) | getSessionAccount (cookie do utilizador), loadPublicClub (sem cookies), loadAdminStats; no-store. |
+| Cliente da API | lib/api/client.ts (corre no browser) | apiRequest/apiJson: ProblemDetails → ApiError; um refresh partilhado no 401 (Web Lock). |
+| Rewrites | next.config.ts | /api/\* → API_INTERNAL_URL/api/\*; cabeçalhos de /reset-password. |
+| API ASP.NET Core | .NET 10 | Regras, sessões e dados. |
+
+### Componentes do front end: funcionalidades
+
+Fonte: [03-components-web-features.puml](03-components-web-features.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Área do jogador | app/(player) | /, /clubs/[slug], /bookings |
+| Páginas de conta | app/login, register, … | Login, registo, recuperação. |
+| Área do dono | app/manage | /manage/... |
+| Área do admin | app/admin | /admin, /admin/owners/[id] |
+| Contas | features/auth | Formulários; useCurrentUser (chave [auth, me]). |
+| Catálogo | features/catalog | Pesquisa no endereço; slots públicos. |
+| Reservar | features/booking | Escolha no endereço (selection.ts); série semanal. |
+| As minhas reservas | features/my-bookings | Separador e página no endereço; cancelar. |
+| Clubes do dono | features/clubs | Lista e formulário do clube. |
+| Campos | features/pitches | Campos, horário, pré-visualização, bloqueios, faixas de preço. |
+| Calendário | features/calendar | Vista no endereço (calendar-url.ts); layout por tempo real. |
+| Estatísticas | features/statistics | Período e campo no endereço. |
+| Admin | features/admin | Vista no endereço (admin-url.ts); gráficos. |
+
+### Implantação: desenvolvimento
+
+Fonte: [04-deployment-dev.puml](04-deployment-dev.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Browser | Browser | Abre http://localhost:3000; guarda os cookies httpOnly. |
+| serviço frontend | Next.js 16 standalone, Node 22, porta 3000 → localhost:3000 | API_INTERNAL_URL=http://api:8080, como argumento de build e variável de ambiente. |
+| serviço api | .NET 10, porta 8080 → localhost:5080 | ASPNETCORE_ENVIRONMENT=Development: migrações no arranque, Swagger em /swagger. |
+| Worker de emails | BackgroundService no processo da API | Envia o outbox para o Mailpit. |
+| serviço postgres | postgres:18.6, porta 5432 → localhost:5432 | Health check pg_isready; a api só arranca com ele saudável. |
+| serviço mailpit | axllent/mailpit:v1.31.6, SMTP 1025 e web 8025 → localhost | Apanha todos os emails; nenhum sai. |
+| volume postgres-data | Volume do Docker | Montado em /var/lib/postgresql; sobrevive a docker compose down. |
+
+### Implantação: produção
+
+Fonte: [04-deployment-prod.puml](04-deployment-prod.puml).
+
+| Nome | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Browser do utilizador | Browser | Só fala com a origem da Vercel; cookies first-party. |
+| Borda da Vercel | Gerida pela Vercel | HTTPS em \*.vercel.app; rewrite de /api/\* fixado no build; escreve X-Forwarded-For com o IP do visitante. |
+| Aplicação Next.js | Next.js 16, Vercel Functions | Páginas e Server Components, que passam o cookie e o IP do visitante. |
+| Borda do Render | Cloudflare e balanceadores | TLS em \*.onrender.com; a cadeia de X-Forwarded-For não está documentada. |
+| API ASP.NET Core | .NET 10, PORT em 0.0.0.0 | Production; sem migrações no arranque; /health só de liveness. |
+| Worker de emails | BackgroundService no processo da API | Só corre enquanto a API estiver acordada. |
+| Pooler de ligações | Supavisor, modo sessão (porta 5432, IPv4) | Nunca o modo transação nem o anfitrião direto (IPv6). |
+| Base de dados | PostgreSQL gerido | Dados, btree_gist, chaves do Data Protection; dois papéis (PL-DBUSERS). |
+| Brevo | — | SMTP de produção, porta 2525 (a confirmar); remetente verificado por email. |
+| deploy.yml | Depois do CI verde na main | Migrações, API, site, smoke, por esta ordem. |
+| prod-data.yml | Manual | migrate-only, set-admin-password, seed-demo. |
+| Migration bundle | dotnet ef migrations bundle | Corre como dono do esquema. |
