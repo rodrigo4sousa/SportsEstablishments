@@ -1,0 +1,3 @@
+node_modules/
+# Temporary output of the recorder (video and frames)
+out/

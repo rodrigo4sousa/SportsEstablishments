@@ -1,6 +1,6 @@
 # Capturas de ecrã
 
-Oito imagens da aplicação a funcionar com os dados de demonstração (`seed-demo`, ver o [README](../../README.md#run-locally)). Servem de apresentação do projeto; não são geradas pelo CI e podem ficar desatualizadas se a interface mudar.
+Oito imagens (e um GIF, mais abaixo) da aplicação a funcionar com os dados de demonstração (`seed-demo`, ver o [README](../../README.md#run-locally)). Servem de apresentação do projeto; não são geradas pelo CI e podem ficar desatualizadas se a interface mudar.
 
 | Ficheiro | O que mostra | Conta |
 | --- | --- | --- |
@@ -12,6 +12,14 @@ Oito imagens da aplicação a funcionar com os dados de demonstração (`seed-de
 | [screenshot-owner-statistics-club.png](screenshot-owner-statistics-club.png) | Estatísticas do Padel Foz Clube de 09/09/2026 a 10/10/2026: horas reservadas e abertas, ocupação, receita, reservas confirmadas e faltas por campo, e o total. | `dono01@example.test` |
 | [screenshot-admin-dashboard.png](screenshot-admin-dashboard.png) | Painel do admin, página inteira, no mesmo período: totais, reservas ao longo do tempo (por dia), novos registos (os números por cima das barras e a tabela por abrir), clubes com maior ocupação e a tabela de donos (nomes como ligações). | Admin de demonstração |
 | [screenshot-admin-top-occupation-registrations.png](screenshot-admin-top-occupation-registrations.png) | Recorte do mesmo painel: gráfico de novos registos por semana (donos em cinzento escuro, jogadores em cinzento médio, com os números) e o top 10 de ocupação. | Admin de demonstração |
+
+## GIF de demonstração
+
+| Ficheiro | O que mostra | Contas |
+| --- | --- | --- |
+| [demo.gif](demo.gif) | Cerca de 45 s, 960×540 a 12 imagens por segundo, em ciclo: pesquisa de clubes, reserva de um horário livre (com a passagem pelo início de sessão), «As minhas reservas», o calendário do dono nesse dia e o painel do admin. | `jogador01@example.test`, `dono01@example.test` e o admin de demonstração |
+
+Gravado localmente, com os dados de `seed-demo`, por um script que se pode voltar a correr: ver [docs/demo](../demo/README.md). Tal como as capturas, não é gerado pelo CI.
 
 ## Dados
 

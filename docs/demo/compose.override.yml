@@ -1,0 +1,8 @@
+# Used only to record the demo (see README.md): the database and Mailpit are not published on the host, so this
+# stack does not clash with a development stack that already uses port 5432. The site (3000) and the API (5080)
+# keep their ports: the API's origin check allows exactly those two in Development.
+services:
+  postgres:
+    ports: !reset []
+  mailpit:
+    ports: !reset []

@@ -9,6 +9,10 @@ A web application for booking sports pitches and courts (futsal, 7-a-side footba
 
 > **Online demo:** <https://sports-establishments.vercel.app/>. It is a demo that may be taken offline at any time. The API runs on a free plan that sleeps when idle, so the first request can take about a minute. The demo accounts share a public password (see [Run locally](#run-locally)): never use it for a real account.
 
+![Demo: search a club, book a slot as a player, see it in My bookings, in the owner's calendar and in the admin dashboard](docs/images/demo.gif)
+
+Recorded locally with the demo seed data.
+
 ## Screenshots
 
 With the demo data. What each image shows and how they were made: [`docs/images`](docs/images/README.md).
@@ -139,6 +143,7 @@ The detailed documentation under `docs/` is written in Portuguese.
 - [Architecture](docs/architecture/README.md): C4 and 4+1 views, inventory, [decision records (ADR)](docs/architecture/adr/README.md).
 - Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
 - [Screenshots](docs/images/README.md).
+- [Demo GIF](docs/demo/README.md): how to record it again.
 - Legal pages (in Portuguese): [`/terms`][terms-page] and [`/privacy`][privacy-page].
 
 [terms-page]: frontend/src/app/(legal)/terms/page.tsx
