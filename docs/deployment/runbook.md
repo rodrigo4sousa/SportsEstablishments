@@ -109,7 +109,7 @@ O projeto `sports-establishments` **já existe** na Vercel e tem de ficar com o 
 - [ ] Se existir a definição, escolhe uma região das Functions perto de Frankfurt, para os Server Components ficarem perto da API.
 - [ ] **Desliga os deploys automáticos do Git**, para só o workflow publicar: desliga o repositório nas definições Git do projeto (o nome pode variar) e retira também à app da Vercel no GitHub o acesso a este repositório. A CLI funciona sem ligação ao Git. Confirma num commit novo: não pode aparecer nenhum check `Vercel` no GitHub.
 - [ ] Cria um token de acesso na tua conta: é o `<VERCEL_TOKEN>`.
-- [ ] Para obter os ids, numa pasta temporária fora do repositório, corre `npx vercel@65.2.0 link` e lê `.vercel/project.json`: `orgId` é o `<VERCEL_ORG_ID>` e `projectId` é o `<VERCEL_PROJECT_ID>`.
+- [ ] Para obter os ids, numa pasta temporária fora do repositório, corre `npx vercel@65.14.0 link` e lê `.vercel/project.json`: `orgId` é o `<VERCEL_ORG_ID>` e `projectId` é o `<VERCEL_PROJECT_ID>`.
 
 ## 6. GitHub
 

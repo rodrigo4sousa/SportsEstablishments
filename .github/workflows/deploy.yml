@@ -106,7 +106,7 @@ jobs:
           node-version: 22
 
       - name: Install the Vercel CLI
-        run: npm install --global vercel@65.2.0
+        run: npm install --global vercel@65.14.0
 
       - name: Pull the project settings and production variables
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
