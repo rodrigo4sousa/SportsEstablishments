@@ -96,27 +96,61 @@ export default function Page() {
         <p>Estes fornecedores tratam dados em nome do responsável, para que o serviço funcione:</p>
         <LegalList>
           <li>
-            <strong className="font-medium">Vercel</strong> aloja o site. Recebe todos os pedidos do browser: o endereço IP, os cookies de
-            sessão e o que preencheres nos formulários. Funções do site em Frankfurt; a localização do resto do serviço está a confirmar.
+            <strong className="font-medium">Vercel</strong> aloja o site, que é servido pela rede global da Vercel. Recebe todos os pedidos do
+            browser: o endereço IP, os cookies de sessão e o que preencheres nos formulários. As funções do site correm em Washington DC (EUA).
           </li>
           <li>
             <strong className="font-medium">Render</strong> aloja a API. Recebe os pedidos reencaminhados pelo site, com os mesmos dados, e
-            guarda os registos (logs) da aplicação. Em Frankfurt.
+            guarda os registos (logs) da aplicação. Em Frankfurt (Alemanha).
           </li>
           <li>
-            <strong className="font-medium">Supabase</strong> aloja a base de dados, onde ficam guardados os dados descritos nesta página. Em
-            Frankfurt.
+            <strong className="font-medium">Supabase</strong> aloja a base de dados, onde ficam guardados os dados descritos nesta página. Na
+            Irlanda.
           </li>
           <li>
             <strong className="font-medium">Brevo</strong> envia os emails. Recebe o endereço e o nome do destinatário e o conteúdo de cada
-            email. Localização: a confirmar.
+            email. Em França.
           </li>
           <li>
             <strong className="font-medium">GitHub</strong> guarda o código e corre a publicação de novas versões. Não recebe dados dos
             utilizadores.
           </li>
         </LegalList>
-        <p>A existência de transferências de dados para fora da União Europeia está a confirmar.</p>
+      </LegalSection>
+
+      <LegalSection title="Onde ficam os dados e transferências para fora da União Europeia">
+        <p>
+          Os dados ficam guardados na base de dados, na Irlanda. A API corre em Frankfurt e os emails são enviados através da Brevo, em França.
+        </p>
+        <p>
+          O browser só fala com o site, e os pedidos à API passam pela infraestrutura da Vercel, uma empresa dos Estados Unidos, cujas funções para
+          este site correm em Washington DC. Por isso, os pedidos com dados pessoais (entrar, reservar) passam pela rede de uma empresa dos Estados
+          Unidos e há transferência de dados para esse país.
+        </p>
+        <p>
+          Cada fornecedor indica, nos seus próprios documentos, a salvaguarda que aplica às transferências para fora do Espaço Económico Europeu:
+        </p>
+        <LegalList>
+          <li>
+            <strong className="font-medium">Vercel</strong> (Vercel Inc., Estados Unidos): as Cláusulas Contratuais-Tipo aprovadas pela Comissão
+            Europeia (Decisão 2021/914), no seu Data Processing Addendum, e a declaração de adesão ao EU-U.S. Data Privacy Framework, na sua Privacy
+            Notice.
+          </li>
+          <li>
+            <strong className="font-medium">Render</strong> (Render Services, Inc., Estados Unidos): o EU-U.S. Data Privacy Framework e, se este não
+            se aplicar, as mesmas Cláusulas Contratuais-Tipo, no seu Data Processing Addendum. Esse documento indica que as operações principais da
+            Render são nos Estados Unidos, embora a API corra em Frankfurt.
+          </li>
+          <li>
+            <strong className="font-medium">Supabase</strong> (Supabase Pte. Ltd., Singapura): as Cláusulas Contratuais-Tipo, no seu Data Processing
+            Addendum. A sua política de privacidade refere transferências para os Estados Unidos e para Singapura.
+          </li>
+          <li>
+            <strong className="font-medium">Brevo</strong> (sociedade francesa, com sede em Paris): os seus termos indicam alojamento em França e na
+            Bélgica e admitem tratamento fora do Espaço Económico Europeu por subcontratantes, com Cláusulas Contratuais-Tipo e medidas suplementares
+            e, para os Estados Unidos, o EU-U.S. Data Privacy Framework enquanto se mantiver válido.
+          </li>
+        </LegalList>
       </LegalSection>
 
       <LegalSection title="Durante quanto tempo">
