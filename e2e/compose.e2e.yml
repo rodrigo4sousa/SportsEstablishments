@@ -6,3 +6,8 @@ services:
     ports: !reset []
   mailpit:
     ports: !reset []
+  api:
+    environment:
+      # Every browser of a run shares one client address: at the real limit (10 a minute), a second run or a CI retry within the same
+      # minute would get 429 at login. The limits have their own integration tests.
+      RateLimiting__Auth__LoginPermitLimit: "100"
