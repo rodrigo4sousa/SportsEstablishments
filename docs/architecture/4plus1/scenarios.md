@@ -43,7 +43,7 @@ Source: [scenarios-use-cases.puml](scenarios-use-cases.puml). The tests column o
 5. The player confirms: `POST /api/bookings` with only `{ pitchId, startsAt }`.
 6. The API validates, confirms the owner is active, locks the pitch, reads the pitch again, checks the slot (`BookingSlotCheck`), calculates the price (`Pitch.PriceForSlot`) and inserts the booking; in the same transaction the confirmation, the owner notice (if the club wants it) and the reminder (3 h before, if still in the future) go into the outbox. Response 201 with `Location`.
 7. The browser shows the confirmation and invalidates `["catalog"]` and `["my-bookings"]`, so the slot becomes unavailable and the booking appears in `/bookings`.
-8. In the background, the worker reads the outbox, composes the email in pt-PT and sends it (SMTP; in development, Mailpit).
+8. In the background, the worker reads the outbox, composes the email in the recipient's language (pt-PT or English, T09) and sends it (SMTP; in development, Mailpit).
 
 **Rules**
 

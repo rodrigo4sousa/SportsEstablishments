@@ -85,7 +85,7 @@ Source: [03-components-api-accounts.puml](../c4/03-components-api-accounts.puml)
 Source: [03-components-api-notifications.puml](../c4/03-components-api-notifications.puml).
 
 - On the request side, only the `outbox_messages` table is written, in the change's transaction. The DB-OUTBOXUQ index guarantees at most one reminder and one owner notice per booking.
-- The worker (C-WORKER) is a `BackgroundService` in the API process: `OutboxDispatcher` runs `OutboxProcessor.ProcessDueAsync` in a scope per pass; this claims the due messages with `FOR UPDATE SKIP LOCKED`, reads the booking and the recipient **at send time**, composes (pt-PT, Lisbon time) and sends through `IEmailSender`. The message states are in section 5.
+- The worker (C-WORKER) is a `BackgroundService` in the API process: `OutboxDispatcher` runs `OutboxProcessor.ProcessDueAsync` in a scope per pass; this claims the due messages with `FOR UPDATE SKIP LOCKED`, reads the booking and the recipient **at send time**, composes (the recipient's language, pt-PT or English since T09; Lisbon time) and sends through `IEmailSender`. The message states are in section 5.
 
 ## 3. Front end components (C4 level 3)
 

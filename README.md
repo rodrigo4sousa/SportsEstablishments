@@ -11,11 +11,11 @@ A web application for booking sports pitches and courts (futsal, 7-a-side footba
 
 ![Demo: search a club, book a slot as a player, see it in My bookings, in the owner's calendar and in the admin dashboard](docs/images/demo.gif)
 
-Recorded locally with the demo seed data.
+Recorded locally with the demo seed data, with the site in English.
 
 ## Screenshots
 
-With the demo data. What each image shows and how they were made: [`docs/images`](docs/images/README.md).
+With the demo data, in English. What each image shows and how they were made: [`docs/images`](docs/images/README.md).
 
 | Club search | Club page | Weekly booking summary | My bookings |
 |:---:|:---:|:---:|:---:|
@@ -70,7 +70,7 @@ Next.js 16.4 (App Router), React 19.3, TypeScript 5.9, Tailwind CSS 4.3 and shad
 
 ![Production deployment: Vercel, Render, Supabase, Brevo and GitHub Actions](docs/architecture/out/04-deployment-prod.svg)
 
-Context, containers in production and deployment in production. The diagram labels are in Portuguese. All the views (C4 and 4+1), the element inventory and the decisions are in [`docs/architecture`](docs/architecture/README.md).
+Context, containers in production and deployment in production. The diagram labels are in English. All the views (C4 and 4+1), the element inventory and the decisions are in [`docs/architecture`](docs/architecture/README.md).
 
 The main decisions:
 
@@ -157,7 +157,7 @@ The production settings (JWT key, allowed origins, SMTP, database roles) are in 
 
 ## Documentation
 
-The detailed documentation under `docs/` is written in English. The application is in Portuguese (pt-PT) and English, and its API error messages are in Portuguese; documents quote on-screen text in Portuguese followed by its English meaning.
+The detailed documentation under `docs/` is written in English. The UI is available in Portuguese (pt-PT, default) and English, and the API error messages are in Portuguese; documents quote on-screen text in Portuguese followed by its English meaning.
 
 - [Backlog](docs/backlog.md): stories, acceptance criteria, estimates and business rules.
 - [Stack and practices](docs/stack.md): the stack, the back end architecture, authentication, the front end, data, validation and errors, tests and security.

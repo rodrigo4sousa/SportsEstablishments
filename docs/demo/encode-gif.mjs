@@ -1,5 +1,5 @@
-// Turns out/demo.webm (from record-demo.mjs) into ../images/demo.gif with ffmpeg: 960 px wide, 12 fps, own palette, endless loop.
-// Usage: node encode-gif.mjs [width] [fps]   (defaults 960 and 12; lower them if the file is over 8 MB)
+// Turns out/demo.webm (from record-demo.mjs) into ../images/demo.gif with ffmpeg: 960 px wide, 12 fps, own 128-colour palette, endless loop.
+// Usage: node encode-gif.mjs [width] [fps]   (defaults 960 and 12; lower them if the file is over 4 MB)
 
 import { execFileSync } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
@@ -17,7 +17,7 @@ const { trimStart } = JSON.parse(await readFile(path.join(here, "out", "timing.j
 const scale = `fps=${fps},scale=${width}:-1:flags=lanczos`;
 const ffmpeg = (args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
 
-ffmpeg(["-ss", String(trimStart), "-i", video, "-vf", `${scale},palettegen=stats_mode=diff`, palette]);
+ffmpeg(["-ss", String(trimStart), "-i", video, "-vf", `${scale},palettegen=stats_mode=diff:max_colors=128`, palette]);
 ffmpeg([
   "-ss", String(trimStart), "-i", video, "-i", palette,
   "-lavfi", `${scale}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`,
@@ -25,4 +25,4 @@ ffmpeg([
 ]);
 
 const { size } = await stat(gif);
-console.log(`Wrote docs/images/demo.gif: ${(size / 1024 / 1024).toFixed(2)} MB${size > 8 * 1024 * 1024 ? " (over 8 MB: lower the width or fps)" : ""}.`);
+console.log(`Wrote docs/images/demo.gif: ${(size / 1024 / 1024).toFixed(2)} MB${size > 4 * 1000 * 1000 ? " (over 4 MB: lower the width or fps)" : ""}.`);

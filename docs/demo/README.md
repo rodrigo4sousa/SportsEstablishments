@@ -1,12 +1,12 @@
 # Demo GIF
 
-Generates the main README's [`docs/images/demo.gif`](../images/demo.gif): the application running, recorded **locally**, against the `docker compose` stack with the `seed-demo` data (never against production). It is not part of CI and no workflow runs it. Whoever changes the interface can record again with the steps below. The interface is in Portuguese (pt-PT), so on-screen texts are quoted in Portuguese, followed by their English meaning in parentheses.
+Generates the main README's [`docs/images/demo.gif`](../images/demo.gif): the application running, recorded **locally**, against the `docker compose` stack with the `seed-demo` data (never against production). It is not part of CI and no workflow runs it. Whoever changes the interface can record again with the steps below. The recording is in English (the site also has Portuguese, pt-PT; see [ADR 0012](../architecture/adr/0012-languages-without-locale-in-the-url.md)), so on-screen texts are quoted as they appear in `frontend/messages/en.json`.
 
 ## What it shows (about 45 s)
 
-1. Club search by sport (Padel), locality (Porto) and date (tomorrow), and opens Padel Foz Clube.
-2. Picks the first free time tomorrow (read from the page, not fixed in the script), follows `Entrar para reservar` (Sign in to book), signs in as `jogador01@example.test`, returns to the same time and confirms.
-3. `As minhas reservas` (My bookings) with the new booking.
+1. The language switcher in the header (`PT | EN`, English chosen), then club search by sport (Padel), location (Porto) and date (tomorrow), and opens Padel Foz Clube.
+2. Picks the first free time tomorrow (read from the page, not fixed in the script), follows `Sign in to book`, signs in as `jogador01@example.test`, returns to the same time and confirms.
+3. `My bookings` with the new booking.
 4. Signs out, signs in as `dono01@example.test` (owner of Padel Foz Clube), opens the calendar on the day of that booking and opens its details.
 5. Signs out, signs in as admin and shows the dashboard with the charts.
 
@@ -47,10 +47,21 @@ unset ADMIN_NEW_PASSWORD ADMIN_SEED_PASSWORD
 ```
 
 - **Outputs.** The video and the temporary files stay in `docs/demo/out/` (ignored by Git); the result is `docs/images/demo.gif`.
-- **Size.** The goal is 8 MB at most. If it goes over, `npm run encode -- 800 10` (width and frames per second) encodes again without redoing the recording.
-- **What `record-demo.mjs` does.** First it warms up all the routes in a throwaway context (without recording), then it records in a new context: 1280×720, `pt-PT`, `Europe/Lisbon`, no extensions, with a cursor and click animation drawn by the page itself. It refuses to record against an address that is not `localhost`. `DEMO_URL` changes the port, not the host.
-- **Visible window.** Chromium runs with a window (not headless), because the date field in headless mode shows pt-PT as month/day and with a window it shows day/month. Do not touch the mouse during the recording.
+- **Size.** The goal is under 4 MB (the encoder uses a 128-colour palette). If it goes over, `npm run encode -- 800 10` (width and frames per second) encodes again without redoing the recording.
+- **What `record-demo.mjs` does.** First it warms up all the routes in a throwaway context (without recording), then it records in a new context: 1280×720, `en-GB`, the `NEXT_LOCALE=en` cookie set before the first page load, `Europe/Lisbon`, no extensions, with a cursor and click animation drawn by the page itself. It refuses to record against an address that is not `localhost`. `DEMO_URL` changes the port, not the host.
+- **Visible window.** Chromium runs with a window (not headless), because the date field in headless mode shows dates as month/day. A window follows the browser language, and in Chromium every English language (checked: en-GB, en-AU, en-IE, en-NZ) also gives month/day; only `--lang=pt-PT` gives dd/mm/yyyy. So the browser is launched with `--lang=pt-PT` (its own shell, which never appears in the video) while the site is English through the cookie and the `en-GB` context locale. Do not touch the mouse during the recording.
 - **After recording.** Look at frames of the GIF at several moments (`ffmpeg -i ../images/demo.gif -vf fps=1/3 out/f%02d.png`): readable text, no half-loaded states, no spinner at the end and only demo data.
+
+## Screenshots
+
+`capture-screenshots.mjs` takes the eight `docs/images/screenshot-*.png` the same way (English, 1440 px window, same stack, same new-database rule). It first creates the extra data some pictures need (a price band, a block and a customer booking through the API as the demo owners; the weekly series through the interface as `jogador01`), then takes the pictures and reduces each PNG to 128 colours with `ffmpeg`. Use it **right after step 1 and 2 of the recording** (a new database with the demo data) and instead of, or after, the GIF:
+
+```bash
+cd docs/demo
+ADMIN_PASSWORD="$ADMIN_NEW_PASSWORD" npm run screenshots   # writes ../images/screenshot-*.png
+```
+
+It refuses to run against an address that is not `localhost`. Look at every image afterwards (English texts, dd/mm/yyyy dates, nothing cut off); what each shows is in [docs/images](../images/README.md).
 
 ## Data
 
