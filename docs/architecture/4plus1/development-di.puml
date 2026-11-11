@@ -1,29 +1,29 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · composição da injeção de dependências
+' 4+1 development view - Development view · dependency injection composition
 ' Version 1.1 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: Cada camada regista os seus serviços e o Program.cs só compõe.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: Each layer registers its own services and Program.cs only composes.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-di
 !include ../style.puml
-title Vista de desenvolvimento - composição da injeção de dependências
+title Development view - dependency injection composition
 
 skinparam defaultTextAlignment left
 
-rectangle "Program.cs\nWebApplication.CreateBuilder(args)\n(no gerador do OpenAPI: definições de substituição em memória)" as PROG
-rectangle "AddApplication()\nvalidadores (Singleton) e serviços (Scoped):\nOwnedClubs, BookingService, ClubBookingService, …" as ADDAPP
+rectangle "Program.cs\nWebApplication.CreateBuilder(args)\n(in the OpenAPI generator: in-memory placeholder settings)" as PROG
+rectangle "AddApplication()\nvalidators (Singleton) and services (Scoped):\nOwnedClubs, BookingService, ClubBookingService, …" as ADDAPP
 rectangle "AddInfrastructure(config)\nTimeProvider.System, AppDbContext, IAppDbContext,\nI*Store, IPitchLock, DemoDataSeeder, HealthChecks" as ADDINF
-rectangle "AddAccounts · Identity, IAccountStore, seed do admin,\nData Protection, PasswordHasherOptions" as ADDACC
+rectangle "AddAccounts · Identity, IAccountStore, admin seed,\nData Protection, PasswordHasherOptions" as ADDACC
 rectangle "AddSessions · JwtOptions, ISessionService,\nPublicSiteOptions, IPasswordResetStore, AccountEmailBuilder" as ADDSES
 rectangle "AddEmail · EmailOptions, OutboxOptions, IEmailSender,\nOutboxProcessor, OutboxDispatcher (HostedService)" as ADDMAIL
-rectangle "Extensões próprias da API\nAddApiProblemDetails, AddOriginCheck, AddApiRateLimiting,\nAddCookieJwtAuthentication\n(AddControllers e AddOpenApi são do framework)" as ADDAPI
-rectangle "Pipeline e arranque\nUseForwardedHeaders, UseResponseSecurityHeaders,\nUseExceptionHandler, UseOriginCheck,\nUseRateLimiter, UseAuthentication, UseAuthorization;\nvalida as opções, migra, seed do admin, comandos, MapControllers" as PIPE
+rectangle "The API's own extensions\nAddApiProblemDetails, AddOriginCheck, AddApiRateLimiting,\nAddCookieJwtAuthentication\n(AddControllers and AddOpenApi belong to the framework)" as ADDAPI
+rectangle "Pipeline and startup\nUseForwardedHeaders, UseResponseSecurityHeaders,\nUseExceptionHandler, UseOriginCheck,\nUseRateLimiter, UseAuthentication, UseAuthorization;\nvalidates the options, migrates, admin seed, commands, MapControllers" as PIPE
 
-PROG --> ADDAPP : 1.º
-PROG --> ADDINF : 2.º
+PROG --> ADDAPP : 1st
+PROG --> ADDINF : 2nd
 ADDINF --> ADDACC
 ADDINF --> ADDSES
 ADDINF --> ADDMAIL
-PROG --> ADDAPI : 3.º
+PROG --> ADDAPI : 3rd
 PROG --> PIPE : app.Build()
 
 @enduml

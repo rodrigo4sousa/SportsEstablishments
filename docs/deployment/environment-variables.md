@@ -1,123 +1,123 @@
-# Variáveis de ambiente de produção (T06)
+# Production environment variables (T06)
 
-Alvo: **Next.js na Vercel** (Hobby), **API em Docker no Render** (plano gratuito), **PostgreSQL no Supabase**, **SMTP no Brevo** e **GitHub Actions** para os passos do deploy. O browser só fala com a Vercel; o Next.js reescreve `/api/*` para a API, por isso os cookies são first-party e não há CORS.
+Target: **Next.js on Vercel** (Hobby), **API in Docker on Render** (free plan), **PostgreSQL on Supabase**, **SMTP on Brevo** and **GitHub Actions** for the deploy steps. The browser only talks to Vercel; Next.js rewrites `/api/*` to the API, so the cookies are first-party and there is no CORS.
 
-Aqui só há formas de exemplo, **nunca valores reais**. Uma tabela por sítio. Os passos manuais estão no [runbook](runbook.md). Conferido em 2026-11-09; o que depende de um fornecedor está na última secção, com o que foi lido, o que o primeiro deploy real confirmou e o que continua por confirmar.
+Only example shapes appear here, **never real values**. One table per place. The manual steps are in the [runbook](runbook.md). Checked on 2026-11-09; what depends on a provider is in the last section, with what was read, what the first real deploy confirmed and what is still to be confirmed.
 
-## O que quer dizer «lida no build»
+## What "read at build time" means
 
-`API_INTERNAL_URL` é lida duas vezes, em momentos diferentes:
+`API_INTERNAL_URL` is read twice, at different moments:
 
-- **No build** (`next build`, em `next.config.ts`): o destino do rewrite de `/api/*` fica **escrito no resultado do build**. Mudar a variável não altera um deploy que já existe: é preciso um **novo deploy**.
-- **Em execução** (`lib/server/api-url.ts`, código só de servidor): os Server Components chamam a API com o cookie do utilizador. Não é `NEXT_PUBLIC_`, por isso nunca chega ao browser.
+- **At build time** (`next build`, in `next.config.ts`): the destination of the `/api/*` rewrite is **written into the build output**. Changing the variable does not alter a deploy that already exists: a **new deploy** is needed.
+- **At run time** (`lib/server/api-url.ts`, server-only code): Server Components call the API with the user's cookie. It is not `NEXT_PUBLIC_`, so it never reaches the browser.
 
-Na Vercel é a mesma variável para os dois momentos. O build falha de propósito se ela faltar, não for uma origem simples (sem caminho nem barra final) ou não for `https`. Essa verificação usa a variável de sistema `VERCEL`, por isso a opção «Automatically expose System Environment Variables» do projeto tem de ficar ligada.
+On Vercel it is the same variable for both moments. The build fails on purpose if it is missing, is not a plain origin (no path or trailing slash) or is not `https`. That check uses the `VERCEL` system variable, so the project's "Automatically expose System Environment Variables" option has to stay on.
 
-Quando o build recusa o valor, o erro mostra o que recebeu, entre aspas e com os caracteres invisíveis escritos como `\uXXXX`, e o motivo (vazio, barra final, caminho, esquema errado, espaços, aspas, caracteres invisíveis). A origem não é um segredo, por isso pode aparecer no registo do build.
+When the build refuses the value, the error shows what it received, in quotes and with invisible characters written as `\uXXXX`, and the reason (empty, trailing slash, path, wrong scheme, spaces, quotes, invisible characters). The origin is not a secret, so it may appear in the build log.
 
-`ENABLE_HSTS` também é lida só no build: os cabeçalhos ficam escritos no resultado.
+`ENABLE_HSTS` is also read only at build time: the headers are written into the output.
 
 ## Vercel
 
-Root Directory do projeto: `frontend`.
+The project's Root Directory: `frontend`.
 
-| Nome | Quando é lida | Para que serve | Forma de exemplo | De onde vem |
+| Name | When it is read | What it is for | Example shape | Where it comes from |
 | --- | --- | --- | --- | --- |
-| `API_INTERNAL_URL` | Build e execução | Destino do rewrite de `/api/*` e endereço usado pelos Server Components | `https://<serviço>.onrender.com` | URL público do serviço no Render, sem barra final |
-| `ENABLE_HSTS` | Build | Liga o HSTS e o `upgrade-insecure-requests` no site servido por HTTPS | `true` | Escolha; só com HTTPS |
+| `API_INTERNAL_URL` | Build and run time | Destination of the `/api/*` rewrite and address used by Server Components | `https://<service>.onrender.com` | Public URL of the service on Render, without a trailing slash |
+| `ENABLE_HSTS` | Build | Turns on HSTS and `upgrade-insecure-requests` on the site served over HTTPS | `true` | Choice; only with HTTPS |
 
-Depois de mudar qualquer uma, é preciso um novo deploy. Os previews da Vercel têm outro endereço, que não está em `Security__AllowedOrigins__*`: os pedidos que alteram dados recebem 403 `origin_not_allowed`.
+After changing either one, a new deploy is needed. Vercel previews have another address, which is not in `Security__AllowedOrigins__*`: requests that change data get 403 `origin_not_allowed`.
 
 ## Render
 
-Serviço web do tipo Docker, com `backend/Dockerfile` e `backend` como contexto. O Render passa as variáveis de ambiente como argumentos de build; o `Dockerfile` não usa nenhum, por isso nenhum segredo fica na imagem. A API não aplica migrações no arranque em Production.
+A Docker-type web service, with `backend/Dockerfile` and `backend` as the context. Render passes the environment variables as build arguments; the `Dockerfile` uses none, so no secret ends up in the image. The API does not apply migrations at startup in Production.
 
-| Nome | Obrigatória | Para que serve | Forma de exemplo | De onde vem |
+| Name | Required | What it is for | Example shape | Where it comes from |
 | --- | --- | --- | --- | --- |
-| `ASPNETCORE_ENVIRONMENT` | Sim | Liga as regras de produção | `Production` | Fixo |
-| `PORT` | Dada pelo Render | Porta em que a API escuta, em `0.0.0.0` (`8080` se não existir) | `10000` | Render |
-| `ConnectionStrings__Default` | **Sim, a API não arranca sem ela** | Ligação da API à base de dados, como `sportsbooking_app`, sem direitos de DDL (segredo) | `Host=<pooler>;Port=5432;Database=postgres;Username=sportsbooking_app.<ref>;Password=<…>;SSL Mode=Require;Maximum Pool Size=5` | Supabase, modo sessão (porta 5432), nunca o modo transação. Formato do Npgsql, não `postgresql://`. O pool é pequeno porque o plano gratuito tem 15 ligações |
-| `Jwt__SigningKey` | **Sim, com pelo menos 32 bytes** | Assina os access tokens (segredo) | `<48 bytes aleatórios em base64>` | `openssl rand -base64 48`; só deste ambiente |
-| `Security__AllowedOrigins__0` | **Sim, a API não arranca sem ela** | Única origem que pode fazer POST, PUT, PATCH e DELETE | `https://<projeto>.vercel.app` | O endereço público do site, sem barra final |
-| `PublicSite__BaseUrl` | **Sim** | Endereço do site nas ligações dos emails | `https://<projeto>.vercel.app` | Igual ao anterior |
-| `ForwardedHeaders__TrustAnyProxy` | Sim, para os limites por IP funcionarem | Acredita em `X-Forwarded-For` e `X-Forwarded-Proto` vindos de qualquer ligação (ver abaixo) | `true` | Fixo neste alvo |
-| `ForwardedHeaders__ForwardLimit` | Não (1) | Quantas entradas se leem, da direita para a esquerda | `1` | Confirmado no primeiro deploy (2026-11-09); ver «Encontrar o `ForwardLimit`» se mudares de fornecedor |
-| `AdminSeed__Email`, `AdminSeed__Password` | Não definir aqui | O admin é criado pelo `prod-data`. Definidas, a API passaria a precisar da base de dados para arrancar | — | Sem elas, a API avisa no log e arranca |
-| `Email__Host` | Com `Email__FromAddress`, ou nenhuma | Servidor SMTP | `smtp-relay.brevo.com` | Brevo |
-| `Email__Port` | Não (587) | Porta SMTP | `2525` | Funcionou no primeiro deploy. O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587 |
-| `Email__Security` | Não (`StartTls`) | `StartTls`, `SslOnConnect` ou `None` | `StartTls` (funcionou na porta 2525 no primeiro deploy) | Nunca `None` com credenciais reais |
-| `Email__Username`, `Email__Password` | As duas ou nenhuma | Credenciais SMTP (segredo: a chave SMTP, não a chave de API) | `<login SMTP>`, `<chave SMTP>` | Brevo, «SMTP & API» |
-| `Email__FromAddress` | Com `Email__Host`, ou nenhuma | Remetente | `reservas@<domínio verificado>` | Remetente verificado no Brevo |
-| `Email__FromName`, `Email__TimeoutSeconds` | Não | Nome do remetente; limite de cada envio | `Reservas de Campos`, `30` | Opcional |
-| `RateLimiting__Auth__*`, `RateLimiting__Public__*` | Não | Limites por IP | `RateLimiting__Public__ReadPermitLimit=120` | Opcional (valores provisórios) |
-| `Outbox__*` | Não | Worker de emails | `Outbox__PollIntervalSeconds=10` | Opcional |
+| `ASPNETCORE_ENVIRONMENT` | Yes | Turns on the production rules | `Production` | Fixed |
+| `PORT` | Given by Render | Port the API listens on, on `0.0.0.0` (`8080` if absent) | `10000` | Render |
+| `ConnectionStrings__Default` | **Yes, the API does not start without it** | The API's connection to the database, as `sportsbooking_app`, without DDL rights (secret) | `Host=<pooler>;Port=5432;Database=postgres;Username=sportsbooking_app.<ref>;Password=<…>;SSL Mode=Require;Maximum Pool Size=5` | Supabase, session mode (port 5432), never transaction mode. Npgsql format, not `postgresql://`. The pool is small because the free plan has 15 connections |
+| `Jwt__SigningKey` | **Yes, at least 32 bytes** | Signs the access tokens (secret) | `<48 random bytes in base64>` | `openssl rand -base64 48`; for this environment only |
+| `Security__AllowedOrigins__0` | **Yes, the API does not start without it** | The only origin allowed to POST, PUT, PATCH and DELETE | `https://<project>.vercel.app` | The site's public address, without a trailing slash |
+| `PublicSite__BaseUrl` | **Yes** | The site's address in the emails' links | `https://<project>.vercel.app` | Same as the previous one |
+| `ForwardedHeaders__TrustAnyProxy` | Yes, for the per-IP limits to work | Trusts `X-Forwarded-For` and `X-Forwarded-Proto` coming from any connection (see below) | `true` | Fixed for this target |
+| `ForwardedHeaders__ForwardLimit` | No (1) | How many entries are read, from right to left | `1` | Confirmed on the first deploy (2026-11-09); see "Finding the `ForwardLimit`" if you change provider |
+| `AdminSeed__Email`, `AdminSeed__Password` | Do not set here | The admin is created by `prod-data`. If set, the API would need the database to start | — | Without them, the API warns in the log and starts |
+| `Email__Host` | With `Email__FromAddress`, or neither | SMTP server | `smtp-relay.brevo.com` | Brevo |
+| `Email__Port` | No (587) | SMTP port | `2525` | Worked on the first deploy. Render's free plan blocks outbound ports 25, 465 and 587 |
+| `Email__Security` | No (`StartTls`) | `StartTls`, `SslOnConnect` or `None` | `StartTls` (worked on port 2525 on the first deploy) | Never `None` with real credentials |
+| `Email__Username`, `Email__Password` | Both or neither | SMTP credentials (secret: the SMTP key, not the API key) | `<SMTP login>`, `<SMTP key>` | Brevo, "SMTP & API" |
+| `Email__FromAddress` | With `Email__Host`, or neither | Sender | `reservas@<verified domain>` | Sender verified in Brevo |
+| `Email__FromName`, `Email__TimeoutSeconds` | No | Sender name; limit for each send | `Reservas de Campos` (Pitch Bookings), `30` | Optional |
+| `RateLimiting__Auth__*`, `RateLimiting__Public__*` | No | Per-IP limits | `RateLimiting__Public__ReadPermitLimit=120` | Optional (provisional values) |
+| `Outbox__*` | No | Email worker | `Outbox__PollIntervalSeconds=10` | Optional |
 
-**Não definir no Render:** `ADMIN_NEW_PASSWORD` e `DemoData__AllowInProduction` (só para o processo do comando, abaixo). `Database__ApplyMigrationsOnStartup` é ignorada em Production.
+**Do not set on Render:** `ADMIN_NEW_PASSWORD` and `DemoData__AllowInProduction` (only for the command's process, below). `Database__ApplyMigrationsOnStartup` is ignored in Production.
 
-**Sem SMTP** (`Email__Host` e `Email__FromAddress` os dois vazios), a API arranca em Production, avisa no log e não envia nada; as mensagens ficam no outbox até o SMTP existir. Só uma das duas definida, ou um valor inválido, impede o arranque. Reservas e cancelamentos nunca dependem do envio.
+**Without SMTP** (`Email__Host` and `Email__FromAddress` both empty), the API starts in Production, warns in the log and sends nothing; the messages stay in the outbox until SMTP exists. Only one of the two set, or an invalid value, prevents startup. Bookings and cancellations never depend on sending.
 
-## GitHub Actions (segredos)
+## GitHub Actions (secrets)
 
-Os comandos correm no runner contra o Supabase, porque o plano gratuito do Render não tem shell nem one-off jobs. Arrancam o mesmo host da API, por isso as definições obrigatórias têm de existir: os workflows dão-nas, e nenhuma delas é um segredo adicional.
+The commands run on the runner against Supabase, because Render's free plan has no shell or one-off jobs. They start the same host as the API, so the required settings have to exist: the workflows provide them, and none of them is an additional secret.
 
-| Nome | Usado por | Para que serve | Forma de exemplo | De onde vem |
+| Name | Used by | What it is for | Example shape | Where it comes from |
 | --- | --- | --- | --- | --- |
-| `DB_OWNER_CONNECTION_STRING` | `deploy.yml`, `prod-data.yml` | Ligação como `postgres`, para as migrações e os comandos (segredo) | `Host=<pooler>;Port=5432;Database=postgres;Username=postgres.<ref>;Password=<…>;SSL Mode=Require` | Supabase, modo sessão (porta 5432). O runner não tem IPv6, por isso nunca o anfitrião direto |
-| `RENDER_DEPLOY_HOOK_URL` | `deploy.yml` | Lança o deploy da API (segredo) | `https://api.render.com/deploy/srv-<…>?key=<…>` | Render |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | `deploy.yml` | Publicam o site com a CLI (segredos) | `<token>`, `team_<…>`, `prj_<…>` | Vercel |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | `prod-data.yml` (`set-admin-password`) | Criam o admin, se não existir, e definem a sua palavra-passe, sempre pelo ambiente (segredos) | `admin@<domínio>`, `<palavra-passe ≥ 8>` | Escolha |
+| `DB_OWNER_CONNECTION_STRING` | `deploy.yml`, `prod-data.yml` | Connection as `postgres`, for the migrations and the commands (secret) | `Host=<pooler>;Port=5432;Database=postgres;Username=postgres.<ref>;Password=<…>;SSL Mode=Require` | Supabase, session mode (port 5432). The runner has no IPv6, so never the direct host |
+| `RENDER_DEPLOY_HOOK_URL` | `deploy.yml` | Launches the API deploy (secret) | `https://api.render.com/deploy/srv-<…>?key=<…>` | Render |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | `deploy.yml` | Publish the site with the CLI (secrets) | `<token>`, `team_<…>`, `prj_<…>` | Vercel |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | `prod-data.yml` (`set-admin-password`) | Create the admin, if it does not exist, and set its password, always through the environment (secrets) | `admin@<domain>`, `<password ≥ 8>` | Choice |
 
-Variáveis do repositório (não são segredos):
+Repository variables (not secrets):
 
-| Nome | Para que serve | Forma de exemplo |
+| Name | What it is for | Example shape |
 | --- | --- | --- |
-| `DEPLOY_ENABLED` | Sem o valor `true`, os dois workflows não fazem nada | `true` |
-| `RENDER_API_URL` | Onde o workflow confirma `/health` | `https://<serviço>.onrender.com` |
-| `SITE_URL` | O smoke e as definições do arranque dos comandos | `https://<projeto>.vercel.app` |
+| `DEPLOY_ENABLED` | Without the value `true`, the two workflows do nothing | `true` |
+| `RENDER_API_URL` | Where the workflow confirms `/health` | `https://<service>.onrender.com` |
+| `SITE_URL` | The smoke test and the commands' startup settings | `https://<project>.vercel.app` |
 
-Definidos no próprio workflow: `ASPNETCORE_ENVIRONMENT=Production`, `Security__AllowedOrigins__0` e `PublicSite__BaseUrl` (a partir de `SITE_URL`), `Jwt__SigningKey` (gerada em cada execução e nunca usada) e, só no passo do `seed-demo`, `DemoData__AllowInProduction=true`. As migrações leem `ConnectionStrings__Default` do ambiente, por isso a ligação nunca aparece numa linha de comandos.
+Defined in the workflow itself: `ASPNETCORE_ENVIRONMENT=Production`, `Security__AllowedOrigins__0` and `PublicSite__BaseUrl` (from `SITE_URL`), `Jwt__SigningKey` (generated on each run and never used) and, only in the `seed-demo` step, `DemoData__AllowInProduction=true`. The migrations read `ConnectionStrings__Default` from the environment, so the connection never appears on a command line.
 
-Sem `DemoData__AllowInProduction=true`, o `seed-demo` recusa-se em Production (código de saída 1); com ela, continua a recusar uma base de dados que já tenha donos ou jogadores. As contas de demonstração têm a palavra-passe pública do README: qualquer pessoa pode entrar com elas enquanto a demo estiver online.
+Without `DemoData__AllowInProduction=true`, `seed-demo` refuses in Production (exit code 1); with it, it still refuses a database that already has owners or players. The demo accounts have the README's public password: anyone can sign in with them while the demo is online.
 
-## Encontrar o `ForwardLimit`
+## Finding the `ForwardLimit`
 
-**Provisório.** A API é pública no Render, por isso quem lhe ligar diretamente pode enviar o seu próprio `X-Forwarded-For`: o limite por IP é só de melhor esforço, e a proteção real contra adivinhar palavras-passe é o bloqueio de conta do Identity (5 tentativas, 15 minutos).
+**Provisional.** The API is public on Render, so whoever connects to it directly can send their own `X-Forwarded-For`: the per-IP limit is best-effort only, and the real protection against guessing passwords is Identity's account lockout (5 attempts, 15 minutes).
 
-Quantas entradas chegam à API depende da Vercel, da Cloudflare e dos balanceadores do Render, e isso não está documentado. Para o descobrir, depois de um deploy novo:
+How many entries reach the API depends on Vercel, Cloudflare and Render's load balancers, and that is not documented. To find out, after a new deploy:
 
-1. Com `ForwardedHeaders__ForwardLimit=1`, fazer mais de 10 logins num minuto, no site, a partir da própria ligação, com um email que não exista (para não bloquear nenhuma conta), até receber 429.
-2. Procurar no log do Render a linha `Too many requests from client <endereço> to /api/auth/login`.
-3. Se o endereço for o da própria ligação, está certo. Se for outro (da Vercel, por exemplo), subir o limite em 1 e repetir, com um novo deploy.
-4. Usar o valor mais baixo que dê o endereço certo: quanto maior, mais fácil é forjá-lo.
+1. With `ForwardedHeaders__ForwardLimit=1`, make more than 10 logins in a minute, on the site, from your own connection, with an email that does not exist (so as not to lock any account), until you get 429.
+2. Look in the Render log for the line `Too many requests from client <address> to /api/auth/login`.
+3. If the address is that of your own connection, it is right. If it is another (Vercel's, for example), raise the limit by 1 and repeat, with a new deploy.
+4. Use the lowest value that gives the right address: the higher it is, the easier it is to forge.
 
-**Resultado do primeiro deploy (2026-11-09):** o valor que deu o IP certo do cliente foi `1`.
+**Result of the first deploy (2026-11-09):** the value that gave the client's right IP was `1`.
 
-## Limites conhecidos desta configuração
+## Known limits of this configuration
 
-- **Render gratuito:** o serviço adormece ao fim de 15 minutos sem tráfego e demora cerca de um minuto a acordar. Enquanto dorme, o worker de emails para: os emails saem quando alguém acordar a API, e um lembrete cuja reserva já começou é ignorado.
-- **Primeiro pedido depois de adormecer:** a Vercel espera no máximo 120 segundos por um rewrite externo.
-- **Base de dados parada:** `/health` só diz que o processo está vivo e não toca na base de dados. Mas com `AdminSeed__*` definidas, a API lê a base no arranque e não arranca se ela não responder.
+- **Free Render:** the service goes to sleep after 15 minutes without traffic and takes about a minute to wake up. While it sleeps, the email worker stops: emails go out when someone wakes the API, and a reminder whose booking has already started is skipped.
+- **First request after sleeping:** Vercel waits at most 120 seconds for an external rewrite.
+- **Database down:** `/health` only says the process is alive and does not touch the database. But with `AdminSeed__*` set, the API reads the database at startup and does not start if it does not answer.
 
-## O que foi confirmado nos fornecedores (2026-11-09)
+## What was confirmed with the providers (2026-11-09)
 
-**Lido na documentação atual:**
+**Read in the current documentation:**
 
-- **Vercel** ([Request headers](https://vercel.com/docs/headers/request-headers), [Rewrites](https://vercel.com/docs/rewrites), [Limits](https://vercel.com/docs/limits), [Environment variables](https://vercel.com/docs/environment-variables)): reescreve o `X-Forwarded-For` com o IP público do visitante; num rewrite externo envia à origem `x-forwarded-for`, `x-real-ip`, `x-forwarded-host` e `x-forwarded-proto`; limite de 120 segundos; a alteração de uma variável só vale num novo deploy; `VERCEL` existe no build e em execução, se as variáveis de sistema estiverem expostas.
-- **Render** ([Free](https://render.com/docs/free), [Web services](https://render.com/docs/web-services), [Docker](https://render.com/docs/docker), [Health checks](https://render.com/docs/health-checks), [artigo sobre DDoS](https://render.com/articles/how-render-handles-ddos-attacks)): adormece após 15 minutos, acorda em cerca de um minuto; portas 25, 465 e 587 bloqueadas à saída; sem shell nem one-off jobs; `PORT` (por omissão 10000) e `0.0.0.0`; o tráfego passa pela Cloudflare e pelos balanceadores do Render, e a aplicação deve ler `x-forwarded-for`; as variáveis de ambiente passam a argumentos de build.
-- **Brevo** ([SMTP integration](https://developers.brevo.com/docs/smtp-integration)): portas 587 e 2525, e 465 com SSL/TLS; usar uma chave SMTP.
+- **Vercel** ([Request headers](https://vercel.com/docs/headers/request-headers), [Rewrites](https://vercel.com/docs/rewrites), [Limits](https://vercel.com/docs/limits), [Environment variables](https://vercel.com/docs/environment-variables)): rewrites `X-Forwarded-For` with the visitor's public IP; on an external rewrite it sends the origin `x-forwarded-for`, `x-real-ip`, `x-forwarded-host` and `x-forwarded-proto`; 120-second limit; changing a variable only takes effect on a new deploy; `VERCEL` exists at build time and at run time, if system variables are exposed.
+- **Render** ([Free](https://render.com/docs/free), [Web services](https://render.com/docs/web-services), [Docker](https://render.com/docs/docker), [Health checks](https://render.com/docs/health-checks), [DDoS article](https://render.com/articles/how-render-handles-ddos-attacks)): sleeps after 15 minutes, wakes in about a minute; ports 25, 465 and 587 blocked outbound; no shell or one-off jobs; `PORT` (default 10000) and `0.0.0.0`; traffic goes through Cloudflare and Render's load balancers, and the application should read `x-forwarded-for`; environment variables become build arguments.
+- **Brevo** ([SMTP integration](https://developers.brevo.com/docs/smtp-integration)): ports 587 and 2525, and 465 with SSL/TLS; use an SMTP key.
 
-- **Supabase** ([Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4](https://supabase.com/docs/guides/platform/ipv4-address), [Securing the Data API](https://supabase.com/docs/guides/api/securing-your-api)): o anfitrião direto é IPv6, ou IPv4 com um add-on pago; o pooler partilhado é IPv4; o modo sessão usa a porta 5432 e suporta prepared statements; o utilizador é `<papel>.<project-ref>`; `sslmode=require` é o recomendado.
+- **Supabase** ([Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4](https://supabase.com/docs/guides/platform/ipv4-address), [Securing the Data API](https://supabase.com/docs/guides/api/securing-your-api)): the direct host is IPv6, or IPv4 with a paid add-on; the shared pooler is IPv4; session mode uses port 5432 and supports prepared statements; the user is `<role>.<project-ref>`; `sslmode=require` is the recommended setting.
 
-**Confirmado no primeiro deploy real (2026-11-09):**
+**Confirmed on the first real deploy (2026-11-09):**
 
-- `ForwardedHeaders__ForwardLimit=1` deu o IP certo do cliente.
-- Brevo: o SMTP na porta 2525 com `StartTls` funcionou.
-- O login e um pedido que altera dados pelo rewrite da Vercel funcionaram, com o `Origin` e o `Set-Cookie`.
-- Cache da Vercel nos rewrites: nada ficou em cache.
-- Render: o Dockerfile, o contexto de build e o health check usados foram os do runbook.
-- Nada mais diferiu do que a documentação dizia.
+- `ForwardedHeaders__ForwardLimit=1` gave the client's right IP.
+- Brevo: SMTP on port 2525 with `StartTls` worked.
+- Login and a request that changes data through the Vercel rewrite worked, with the `Origin` and the `Set-Cookie`.
+- Vercel's caching on the rewrites: nothing was cached.
+- Render: the Dockerfile, the build context and the health check used were those in the runbook.
+- Nothing else differed from what the documentation said.
 
-**Não reportado (continua por confirmar):**
+**Not reported (still to be confirmed):**
 
-- O `X-Forwarded-For` nas chamadas dos Server Components a caminho do Render: o valor `1` foi confirmado, mas o resultado reportado não as distingue.
-- A versão do PostgreSQL que o Supabase dá aos projetos novos.
+- `X-Forwarded-For` on the Server Components' calls on their way to Render: the value `1` was confirmed, but the reported result does not distinguish them.
+- The PostgreSQL version Supabase gives to new projects.

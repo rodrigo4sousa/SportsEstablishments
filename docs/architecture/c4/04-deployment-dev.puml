@@ -1,33 +1,33 @@
-' C4 implantação - Implantação · desenvolvimento (docker compose, uma máquina)
+' C4 deployment - Deployment · development (docker compose, one machine)
 ' Version 1.1 - 2026-11-10
-' Não desenhado: lógica de negócio.
+' Not drawn: business logic.
 @startuml 04-deployment-dev
 !include <C4/C4_Deployment>
 !include ../style.puml
 
-title Implantação - desenvolvimento (docker compose, uma máquina)
+title Deployment - development (docker compose, one machine)
 
 LAYOUT_LEFT_RIGHT()
 
-Deployment_Node(DEP_DEVHOST, "Máquina de desenvolvimento", "Docker Engine ou Docker Desktop") {
+Deployment_Node(DEP_DEVHOST, "Development machine", "Docker Engine or Docker Desktop") {
   Container(C_BROWSER, "Browser", "Browser")
 
-  Deployment_Node(DEP_COMPOSE_NET, "Projeto compose «sportsbooking», rede por omissão", "Rede bridge do Docker; os serviços chamam-se pelo nome") {
-    Container(C_WEB, "serviço frontend", "Next.js 16 standalone, Node 22, porta 3000 → localhost:3000")
-    Container(C_API, "serviço api", ".NET 10, porta 8080 → localhost:5080")
-    Container(C_WORKER, "Worker de emails", "BackgroundService no processo da API")
-    ContainerDb(C_DB, "serviço postgres", "postgres:18.6, porta 5432 → localhost:5432")
-    Container_Ext(X_MAILPIT, "serviço mailpit", "axllent/mailpit:v1.31.6, SMTP 1025 e web 8025 → localhost")
-    ContainerDb(DEP_PGVOLUME, "volume postgres-data", "Volume do Docker")
+  Deployment_Node(DEP_COMPOSE_NET, "Compose project «sportsbooking», default network", "Docker bridge network; services call each other by name") {
+    Container(C_WEB, "frontend service", "Next.js 16 standalone, Node 22, port 3000 → localhost:3000")
+    Container(C_API, "api service", ".NET 10, port 8080 → localhost:5080")
+    Container(C_WORKER, "Email worker", "BackgroundService in the API process")
+    ContainerDb(C_DB, "postgres service", "postgres:18.6, port 5432 → localhost:5432")
+    Container_Ext(X_MAILPIT, "mailpit service", "axllent/mailpit:v1.31.6, SMTP 1025 and web 8025 → localhost")
+    ContainerDb(DEP_PGVOLUME, "postgres-data volume", "Docker volume")
   }
 }
 
-Rel(C_BROWSER, C_WEB, $plain("Abre páginas e chama /api/*"), "HTTP, localhost:3000")
-Rel(C_BROWSER, C_API, $plain("Swagger e chamadas diretas (ferramentas)"), "HTTP, localhost:5080")
-Rel(C_BROWSER, X_MAILPIT, $plain("Lê os emails apanhados"), "HTTP, localhost:8025")
-Rel(C_WEB, C_API, $plain("Reencaminha /api/* e lê a API nos Server Components"), "HTTP, api:8080")
-Rel(C_API, C_DB, $plain("Lê e escreve; aplica as migrações no arranque"), "SQL, postgres:5432")
-Rel(C_WORKER, C_DB, $plain("Reclama o outbox e grava o resultado"), "SQL")
-Rel(C_WORKER, X_MAILPIT, $plain("Envia o email"), "SMTP sem TLS, mailpit:1025")
-Rel(C_DB, DEP_PGVOLUME, $plain("Guarda os ficheiros de dados"), "Montagem de volume")
+Rel(C_BROWSER, C_WEB, $plain("Opens pages and calls /api/*"), "HTTP, localhost:3000")
+Rel(C_BROWSER, C_API, $plain("Swagger and direct calls (tools)"), "HTTP, localhost:5080")
+Rel(C_BROWSER, X_MAILPIT, $plain("Reads the captured emails"), "HTTP, localhost:8025")
+Rel(C_WEB, C_API, $plain("Forwards /api/* and reads the API in Server Components"), "HTTP, api:8080")
+Rel(C_API, C_DB, $plain("Reads and writes; applies migrations at startup"), "SQL, postgres:5432")
+Rel(C_WORKER, C_DB, $plain("Claims the outbox and saves the result"), "SQL")
+Rel(C_WORKER, X_MAILPIT, $plain("Sends the email"), "SMTP without TLS, mailpit:1025")
+Rel(C_DB, DEP_PGVOLUME, $plain("Stores the data files"), "Volume mount")
 @enduml

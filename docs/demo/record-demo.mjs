@@ -242,7 +242,7 @@ await click(confirm, { after: 0 });
 await page.getByRole("heading", { name: "Reserva confirmada" }).waitFor();
 await pause(1800);
 
-// ---- c. As minhas reservas ----
+// ---- c. My bookings (the "As minhas reservas" page) ----
 await click(page.getByRole("link", { name: "As minhas reservas" }).first(), { after: 0 });
 await page.waitForURL(/\/bookings/);
 await afterLoad();

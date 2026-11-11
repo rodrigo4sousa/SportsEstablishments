@@ -1,51 +1,51 @@
-# Vistas 4+1 (Kruchten)
+# 4+1 views (Kruchten)
 
-Vistas do sistema, cada uma para um leitor e uma preocupação. Os nomes são os dos diagramas C4 de [`../c4/`](../c4/README.md) e do [inventário](../inventory.md): o mesmo nome é o mesmo elemento. Os SVG estão em [`../out/`](../out/); o índice de todos os diagramas está no [README da arquitetura](../README.md#índice).
+Views of the system, each for one reader and one concern. The names are those of the C4 diagrams in [`../c4/`](../c4/README.md) and of the [inventory](../inventory.md): the same name is the same element. The SVGs are in [`../out/`](../out/); the index of all the diagrams is in the [architecture README](../README.md#index).
 
-## Vista lógica: [`logical.md`](logical.md)
+## Logical view: [`logical.md`](logical.md)
 
-Diagramas: `logical-*.puml` e, como componentes (nível 3 do C4), `../c4/03-components-*.puml`.
+Diagrams: `logical-*.puml` and, as components (C4 level 3), `../c4/03-components-*.puml`.
 
-**Para:** quem programa ou acrescenta funcionalidades.
-**Decisão documentada:** Clean Architecture no back end, em quatro projetos com as dependências só para dentro (Api → Infrastructure → Application → Domain), sem repositório genérico: a Application usa o `IAppDbContext`. As entidades têm setters privados e métodos com intenção, e as falhas esperadas são resultados, não exceções. O que a base de dados tem de garantir fica na base de dados: a exclusion constraint só cobre as reservas `Confirmed` ([ADR 0003](../adr/0003-exclusion-constraint-reservas.md)), e os slots são calculados, nunca guardados ([ADR 0007](../adr/0007-slots-calculados.md)). Uma conta, um refresh token e a mudança de estado de um dono vivem na Infrastructure, e a mensagem do outbox na Application ([Limitações conhecidas](../README.md#limitações-conhecidas), 3).
+**For:** whoever writes code or adds features.
+**Documented decision:** Clean Architecture in the back end, in four projects with dependencies pointing inward only (Api → Infrastructure → Application → Domain), with no generic repository: Application uses `IAppDbContext`. Entities have private setters and intention-revealing methods, and expected failures are results, not exceptions. What the database has to guarantee stays in the database: the exclusion constraint only covers `Confirmed` bookings ([ADR 0003](../adr/0003-booking-exclusion-constraint.md)), and slots are calculated, never stored ([ADR 0007](../adr/0007-calculated-slots.md)). An account, a refresh token and an owner's status change live in Infrastructure, and the outbox message in Application ([Known limitations](../README.md#known-limitations), 3).
 
-## Vista de processo: [`process.md`](process.md)
+## Process view: [`process.md`](process.md)
 
-Diagramas: `process-*.puml`.
+Diagrams: `process-*.puml`.
 
-**Para:** quem programa ou depura pedidos, transações, concorrência, sessões e emails.
-**Decisões documentadas:**
-- **Concorrência:** reservar, bloquear e cancelar tomam o trinco do campo (`SELECT … FOR UPDATE`) e voltam a ler o que vão alterar; a sobreposição com outra reserva é da exclusion constraint, que dá 409 `slot_taken` ([ADR 0003](../adr/0003-exclusion-constraint-reservas.md)). A secção 3 do texto diz o que está e o que não está protegido.
-- **Sessões:** cookies httpOnly, refresh com rotação, e o servidor nunca renova a sessão ([ADR 0002](../adr/0002-sessao-em-cookies-httponly.md)).
-- **Emails:** gravados no outbox na transação de quem os pede e enviados por um worker com `SKIP LOCKED`, que corre no processo da API ([ADR 0004](../adr/0004-outbox-para-emails.md)).
+**For:** whoever writes or debugs requests, transactions, concurrency, sessions and emails.
+**Documented decisions:**
+- **Concurrency:** booking, blocking and cancelling take the pitch lock (`SELECT … FOR UPDATE`) and read again what they are about to change; overlap with another booking is the exclusion constraint's job, which gives 409 `slot_taken` ([ADR 0003](../adr/0003-booking-exclusion-constraint.md)). Section 3 of the text says what is and is not protected.
+- **Sessions:** httpOnly cookies, refresh with rotation, and the server never renews the session ([ADR 0002](../adr/0002-session-in-httponly-cookies.md)).
+- **Emails:** saved in the outbox in the requester's transaction and sent by a worker with `SKIP LOCKED`, which runs in the API process ([ADR 0004](../adr/0004-outbox-for-emails.md)).
 
-## Vista de desenvolvimento: [`development.md`](development.md)
+## Development view: [`development.md`](development.md)
 
-Diagramas: `development-*.puml`.
+Diagrams: `development-*.puml`.
 
-**Para:** quem vai mudar o código, o CI ou o deploy.
-**Decisão documentada:** um repositório com o back end, o front end, a documentação e os workflows. Cada camada regista os seus serviços e o `Program.cs` só compõe. Os tipos da API no front end são gerados a partir do OpenAPI, e o CI falha se o OpenAPI, os tipos ou os SVG dos diagramas não corresponderem ao que o código e os `.puml` produzem. O deploy corre depois do CI verde na `main`, com as migrações aplicadas antes da API ([ADR 0009](../adr/0009-alvo-de-implantacao.md)).
+**For:** whoever is going to change the code, CI or the deploy.
+**Documented decision:** one repository with the back end, the front end, the documentation and the workflows. Each layer registers its own services and `Program.cs` only composes. The API types in the front end are generated from OpenAPI, and CI fails if the OpenAPI, the types or the diagram SVGs do not match what the code and the `.puml` files produce. The deploy runs after green CI on `main`, with the migrations applied before the API ([ADR 0009](../adr/0009-deployment-target.md)).
 
-## Vista física: [`physical.md`](physical.md)
+## Physical view: [`physical.md`](physical.md)
 
-Diagrama: [`physical.puml`](physical.puml). A implantação em C4 está em [`../c4/README.md`](../c4/README.md#implantação).
+Diagram: [`physical.puml`](physical.puml). The C4 deployment is in [`../c4/README.md`](../c4/README.md#deployment).
 
-**Para:** quem faz deploy, opera ou dá suporte.
-**Decisão documentada:** o site na Vercel, a API e o worker de emails no mesmo serviço público do Render, a base de dados no Supabase (sempre pelo pooler em modo sessão) e o SMTP no Brevo, todos em planos gratuitos; o browser só conhece a origem da Vercel ([ADR 0009](../adr/0009-alvo-de-implantacao.md)). O texto cobre o que é público, o TLS, o IP do cliente, os papéis da base de dados, os segredos, as migrações e os riscos em aberto.
+**For:** whoever deploys, operates or supports.
+**Documented decision:** the site on Vercel, the API and the email worker in the same public Render service, the database on Supabase (always through the pooler in session mode) and SMTP on Brevo, all on free plans; the browser only knows Vercel's origin ([ADR 0009](../adr/0009-deployment-target.md)). The text covers what is public, TLS, the client IP, the database roles, the secrets, the migrations and the open risks.
 
-## Cenários (+1): [`scenarios.md`](scenarios.md)
+## Scenarios (+1): [`scenarios.md`](scenarios.md)
 
-Diagrama: [`scenarios-use-cases.puml`](scenarios-use-cases.puml). Não há uma sequência por cenário: cada um liga aos `process-*.puml`.
+Diagram: [`scenarios-use-cases.puml`](scenarios-use-cases.puml). There is no sequence per scenario: each one links to the `process-*.puml` files.
 
-**Para:** toda a gente (produto, quem programa, quem avalia).
-**Decisão documentada:** que casos de uso atravessam as outras vistas e as validam. Se um cenário não se conseguir contar com os elementos e os diagramas das outras vistas, falta alguma coisa nelas.
+**For:** everyone (product, whoever writes the code, whoever evaluates).
+**Documented decision:** which use cases cut across the other views and validate them. If a scenario cannot be told with the elements and diagrams of the other views, something is missing in them.
 
-| Cenário | Histórias | Testes |
+| Scenario | Stories | Tests |
 |---|---|---|
-| SC-01 · Visitante pesquisa e reserva um slot | US16, US17, US18, US01, US03, US22 | ver a [tabela](scenarios.md#cenários-histórias-diagramas-e-testes) |
-| SC-02 · Dono configura clube, campos, horários e preços | US02, US06, US07, US08, US09, US10 | idem |
-| SC-03 · Dono cancela uma reserva no calendário | US11, US12, US22 | idem |
-| SC-04 · Reserva semanal com uma data saltada | US20, US18 | idem |
-| SC-05 · Recuperação da palavra-passe | US05 | idem |
-| SC-06 · Admin desativa um dono | US29, US04 | idem |
-| SC-07 · Corrida pelo mesmo slot | T03, US18 | idem |
+| SC-01 · Visitor searches for and books a slot | US16, US17, US18, US01, US03, US22 | see the [table](scenarios.md#scenarios-stories-diagrams-and-tests) |
+| SC-02 · Owner sets up club, pitches, schedules and prices | US02, US06, US07, US08, US09, US10 | same |
+| SC-03 · Owner cancels a booking in the calendar | US11, US12, US22 | same |
+| SC-04 · Weekly booking with one date skipped | US20, US18 | same |
+| SC-05 · Password recovery | US05 | same |
+| SC-06 · Admin deactivates an owner | US29, US04 | same |
+| SC-07 · Race for the same slot | T03, US18 | same |

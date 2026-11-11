@@ -1,27 +1,27 @@
-' 4+1 cenários (+1) - casos de uso
+' 4+1 scenarios (+1) - use cases
 ' Version 1.1 - 2026-11-10
-' Para: toda a gente (produto, quem programa, quem avalia).
-' Decisão documentada: quais os casos de uso que atravessam as outras vistas e as validam; cada um é um cenário (SC-) de scenarios.md, que o liga às histórias do backlog, aos diagramas de processo e aos testes.
-' Não desenhado: a sequência de cada cenário (os cenários apontam para os process-*.puml); o P-CLI e o P-OPS, que não usam a aplicação (ver c4/README.md).
+' For: everyone (product, whoever writes the code, whoever evaluates).
+' Documented decision: which use cases cut across the other views and validate them; each one is a scenario (SC-) of scenarios.md, which links it to the backlog stories, the process diagrams and the tests.
+' Not drawn: the sequence of each scenario (the scenarios point to the process-*.puml files); P-CLI and P-OPS, who do not use the application (see c4/README.md).
 @startuml scenarios-use-cases
 !include ../style.puml
 
-title Cenários - casos de uso
+title Scenarios - use cases
 left to right direction
 
-actor "Visitante" as P_VIS
-actor "Jogador" as P_JOG
-actor "Dono" as P_DONO
+actor "Visitor" as P_VIS
+actor "Player" as P_JOG
+actor "Owner" as P_DONO
 actor "Admin" as P_ADMIN
 
-rectangle "App de Reservas de Campos" {
-    usecase "Pesquisa e reserva um slot" as SC_01
-    usecase "Configura clube, campos,\nhorários e preços" as SC_02
-    usecase "Cancela uma reserva\nno calendário" as SC_03
-    usecase "Reserva semanal\ncom uma data saltada" as SC_04
-    usecase "Recupera a palavra-passe" as SC_05
-    usecase "Desativa um dono" as SC_06
-    usecase "Corrida pelo mesmo slot" as SC_07
+rectangle "Pitch Booking App" {
+    usecase "Searches for and books a slot" as SC_01
+    usecase "Sets up club, pitches,\nschedules and prices" as SC_02
+    usecase "Cancels a booking\nin the calendar" as SC_03
+    usecase "Weekly booking\nwith one date skipped" as SC_04
+    usecase "Recovers the password" as SC_05
+    usecase "Deactivates an owner" as SC_06
+    usecase "Race for the same slot" as SC_07
 }
 
 P_VIS --> SC_01

@@ -1,40 +1,40 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pastas do front end (frontend/src)
+' 4+1 development view - Development view · front end folders (frontend/src)
 ' Version 1.1 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: O código que lê cookies ou o URL interno da API fica atrás da fronteira server-only.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: Code that reads cookies or the internal API URL sits behind the server-only boundary.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-frontend
 !include ../style.puml
-title Vista de desenvolvimento - pastas do front end (frontend/src)
+title Development view - front end folders (frontend/src)
 
 skinparam defaultTextAlignment left
 
-package "app/ · rotas (Server Components por omissão)" {
-  rectangle "Área do jogador\n(player)/ · /, /clubs/[slug], /bookings" as WEB_AREA_PLAYER
-  rectangle "Área do dono\nmanage/ · clubes, calendário, estatísticas" as WEB_AREA_MANAGE
-  rectangle "Área do admin\nadmin/ · painel, owners/[id]" as WEB_AREA_ADMIN
-  rectangle "Páginas de conta\nlogin/, register/, forgot-password/, reset-password/" as WEB_AREA_ACCOUNT
+package "app/ · routes (Server Components by default)" {
+  rectangle "Player area\n(player)/ · /, /clubs/[slug], /bookings" as WEB_AREA_PLAYER
+  rectangle "Owner area\nmanage/ · clubs, calendar, statistics" as WEB_AREA_MANAGE
+  rectangle "Admin area\nadmin/ · dashboard, owners/[id]" as WEB_AREA_ADMIN
+  rectangle "Account pages\nlogin/, register/, forgot-password/, reset-password/" as WEB_AREA_ACCOUNT
 }
 
-package "features/<funcionalidade>/ · api.ts, components/, schemas/, testes" {
-  rectangle "Contas, Catálogo, Reservar, As minhas reservas,\nClubes do dono, Campos, Calendário,\nEstatísticas, Admin" as FEATURES
+package "features/<feature>/ · api.ts, components/, schemas/, tests" {
+  rectangle "Accounts, Catalogue, Booking, My bookings,\nOwner's clubs, Pitches, Calendar,\nStatistics, Admin" as FEATURES
 }
 
-package "components/ · partilhados" {
-  rectangle "Guardas das áreas\narea-guard, player-guard, guest-only" as WEB_GUARDS
-  rectangle "Componentes partilhados\nui/ (shadcn: button, input, label, native-select, sonner),\nproviders, form-field, route-error, route-loading, …" as WEB_UI
+package "components/ · shared" {
+  rectangle "Area guards\narea-guard, player-guard, guest-only" as WEB_GUARDS
+  rectangle "Shared components\nui/ (shadcn: button, input, label, native-select, sonner),\nproviders, form-field, route-error, route-loading, …" as WEB_UI
 }
 
 package "lib/" {
-  rectangle "Cliente da API (browser)\nlib/api/client.ts, error-messages.ts, form-errors.ts" as WEB_API_CLIENT
-  rectangle "Tipos da API gerados\nlib/api/schema.d.ts (gerado)" as DEV_WEBTYPES
-  rectangle "Chamadas à API no servidor\nlib/server/ · import 'server-only'" as WEB_SERVER
-  rectangle "Datas em hora de Lisboa\nlib/datetime.ts" as WEB_DATETIME
+  rectangle "API client (browser)\nlib/api/client.ts, error-messages.ts, form-errors.ts" as WEB_API_CLIENT
+  rectangle "Generated API types\nlib/api/schema.d.ts (generated)" as DEV_WEBTYPES
+  rectangle "Server-side API calls\nlib/server/ · import 'server-only'" as WEB_SERVER
+  rectangle "Dates in Lisbon time\nlib/datetime.ts" as WEB_DATETIME
   rectangle "lib/auth/ · redirects.ts, request-path.ts\nlib/guid.ts, lib/utils.ts" as LIBMISC
 }
 
 rectangle "src/proxy.ts" as WEB_PROXY
-rectangle "Testes do front end\nsrc/test/ · msw.ts, render.tsx, navigation.tsx, server-only.ts" as DEV_TEST_WEB
+rectangle "Front end tests\nsrc/test/ · msw.ts, render.tsx, navigation.tsx, server-only.ts" as DEV_TEST_WEB
 
 WEB_AREA_PLAYER --> FEATURES
 WEB_AREA_MANAGE --> FEATURES
@@ -42,16 +42,16 @@ WEB_AREA_ADMIN --> FEATURES
 WEB_AREA_ACCOUNT --> FEATURES
 WEB_AREA_MANAGE --> WEB_GUARDS
 WEB_AREA_ADMIN --> WEB_GUARDS
-WEB_AREA_PLAYER --> WEB_SERVER : páginas do servidor
-WEB_AREA_ADMIN --> WEB_SERVER : totais no servidor
+WEB_AREA_PLAYER --> WEB_SERVER : server pages
+WEB_AREA_ADMIN --> WEB_SERVER : totals on the server
 WEB_GUARDS --> WEB_SERVER
-FEATURES --> WEB_API_CLIENT : pedidos do browser
+FEATURES --> WEB_API_CLIENT : browser requests
 FEATURES --> WEB_UI
 FEATURES --> WEB_DATETIME
 FEATURES --> DEV_WEBTYPES : import type
 WEB_API_CLIENT --> DEV_WEBTYPES : import type
 WEB_SERVER --> DEV_WEBTYPES : import type
 WEB_GUARDS --> LIBMISC
-DEV_TEST_WEB ..> WEB_SERVER : substitui "server-only" nos testes
+DEV_TEST_WEB ..> WEB_SERVER : replaces "server-only" in tests
 
 @enduml

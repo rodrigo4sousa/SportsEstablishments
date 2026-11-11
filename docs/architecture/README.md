@@ -1,122 +1,122 @@
-# Arquitetura
+# Architecture
 
-Arquitetura da App de Reservas de Campos, em diagramas PlantUML e texto. Cada ligação de diagrama abre o SVG; a ligação `.puml` é a fonte. Os documentos descrevem o sistema como está no código e em produção (no ar desde 2026-11-09, T06): um Next.js com três áreas (jogador, dono, admin) sobre uma API ASP.NET Core e uma base PostgreSQL, com um worker de emails dentro da API.
+Architecture of the Pitch Booking App, in PlantUML diagrams and text. Each diagram link opens the SVG; the `.puml` link is the source. The documents describe the system as it is in the code and in production (live since 2026-11-09, T06): a Next.js app with three areas (player, owner, admin) on top of an ASP.NET Core API and a PostgreSQL database, with an email worker inside the API.
 
-As regras estão no [backlog](../backlog.md), as escolhas técnicas na [Stack](../stack.md) e o mapa do código no [AGENTS.md](../../AGENTS.md). Estes documentos não repetem as regras: mostram como as partes se ligam e apontam para o detalhe.
+The rules are in the [backlog](../backlog.md), the technical choices in the [Stack](../stack.md) and the map of the code in [AGENTS.md](../../AGENTS.md). These documents do not repeat the rules: they show how the parts connect and point to the detail.
 
-## Como estão organizados estes documentos
+## How these documents are organized
 
-Duas formas de ver o mesmo sistema, porque respondem a perguntas diferentes. O **C4** aproxima-se por níveis (o sistema, os contentores, os componentes, o código). As **vistas 4+1** de Kruchten olham de uma preocupação de cada vez (lógica, processo, desenvolvimento, física e, ao centro, os cenários).
+Two ways of looking at the same system, because they answer different questions. **C4** zooms in by levels (the system, the containers, the components, the code). Kruchten's **4+1 views** look at one concern at a time (logical, process, development, physical and, in the centre, the scenarios).
 
-- [`inventory.md`](inventory.md) é o catálogo do que existe: cada elemento tem um id estável (`C-API`, `API-BOOK`, `D-BOOKING`, `PL-RENDER`, …) e o caminho no código, e a secção 12 liga os ids aos nomes desenhados. Os diagramas desenham-se a partir dele.
-- [`c4/README.md`](c4/README.md) tem o texto do contexto, dos contentores e da implantação; [`4plus1/README.md`](4plus1/README.md) diz, por vista, para quem é e que decisão documenta, e liga ao texto de cada uma.
-- [`adr/`](adr/README.md) tem as decisões, com contexto, alternativas e consequências. Uma ADR aceite não se reescreve: se a decisão mudar, escreve-se outra que a substitui.
+- [`inventory.md`](inventory.md) is the catalogue of what exists: each element has a stable id (`C-API`, `API-BOOK`, `D-BOOKING`, `PL-RENDER`, …) and the path in the code, and section 12 links the ids to the drawn names. The diagrams are drawn from it.
+- [`c4/README.md`](c4/README.md) has the text for the context, the containers and the deployment; [`4plus1/README.md`](4plus1/README.md) says, per view, who it is for and which decision it documents, and links to the text of each.
+- [`adr/`](adr/README.md) has the decisions, with context, alternatives and consequences. An accepted ADR is not rewritten: if the decision changes, another one that replaces it is written.
 
-Todos os diagramas seguem as mesmas regras:
+All the diagrams follow the same rules:
 
-- **Um nível de abstração por diagrama:** um nível do C4 ou uma vista 4+1.
-- **Sem elementos inventados:** tudo o que se desenha existe no código ou na configuração. Um elemento novo entra primeiro no inventário, no mesmo pull request.
-- **O planeado fica à parte:** desenha-se tracejado (a marca `planned` de [`style.puml`](style.puml)) e só se ainda não existe. Hoje nenhum diagrama a usa.
-- **Os ids vivem no inventário e nos aliases, não nos rótulos:** um diagrama desenha só nomes, sem ids nos nomes, nos estereótipos ou nos pacotes (um estereótipo fica só quando tem significado, como `<<external>>` ou `<<sealed>>`). O alias no PlantUML é o id com `_` (`C_API`), e a [secção 12 do inventário](inventory.md#12-nomes-e-aliases-nos-diagramas) liga cada alias ao id e aos nomes desenhados.
-- **Includes do C4 só em `c4/`:** os diagramas de `4plus1/` são UML simples, e as sequências usam `participant`, `box`, `database` e `autonumber`.
-- **Caixas compactas no C4:** nome e tecnologia, sem descrição nem legenda; a responsabilidade de cada elemento está nas tabelas de [`c4/README.md`](c4/README.md#elementos-de-cada-diagrama) e, para as sequências, na [vista de processo](4plus1/process.md#5-participantes-de-cada-diagrama).
-- **Títulos** no formato `<nível ou vista> - <assunto>`.
-- **Um estilo comum:** todos incluem [`style.puml`](style.puml) e começam por um comentário com o título, a versão, a data, o que não está desenhado e, nas vistas 4+1, para quem é e que decisão documenta.
-- **Setas com verbo em pt-PT** do ponto de vista de quem chama, e o protocolo ou formato no argumento da tecnologia ou, nas sequências e no UML simples, entre parênteses retos no próprio texto.
-- **Cerca de 10 elementos por diagrama** (ver [Limitações conhecidas](#limitações-conhecidas)).
+- **One level of abstraction per diagram:** one C4 level or one 4+1 view.
+- **No invented elements:** everything drawn exists in the code or in the configuration. A new element goes into the inventory first, in the same pull request.
+- **What is planned is kept apart:** it is drawn dashed (the `planned` tag in [`style.puml`](style.puml)) and only if it does not exist yet. Today no diagram uses it.
+- **Ids live in the inventory and in the aliases, not in the labels:** a diagram draws only names, with no ids in names, stereotypes or packages (a stereotype stays only when it has meaning, such as `<<external>>` or `<<sealed>>`). The PlantUML alias is the id with `_` (`C_API`), and [section 12 of the inventory](inventory.md#12-names-and-aliases-in-the-diagrams) links each alias to the id and to the drawn names.
+- **C4 includes only in `c4/`:** the diagrams in `4plus1/` are plain UML, and the sequences use `participant`, `box`, `database` and `autonumber`.
+- **Compact boxes in C4:** name and technology, with no description or legend; each element's responsibility is in the tables of [`c4/README.md`](c4/README.md#elements-of-each-diagram) and, for the sequences, in the [process view](4plus1/process.md#5-participants-in-each-diagram).
+- **Titles** in the format `<level or view> - <subject>`.
+- **A common style:** all include [`style.puml`](style.puml) and start with a comment with the title, the version, the date, what is not drawn and, in the 4+1 views, who it is for and which decision it documents.
+- **Arrows with a verb in English** from the caller's point of view, and the protocol or format in the technology argument or, in the sequences and plain UML, in square brackets in the text itself.
+- **About 10 elements per diagram** (see [Known limitations](#known-limitations)).
 
-Um pull request que cria, remove ou muda de responsabilidade ou de caminho um elemento atualiza o inventário e os diagramas que o mostram.
+A pull request that creates, removes or changes the responsibility or the path of an element updates the inventory and the diagrams that show it.
 
-## Índice
+## Index
 
 ### C4 ([`c4/`](c4/))
 
-O texto está em [`c4/README.md`](c4/README.md), exceto o dos componentes (nível 3), que está na [vista lógica](4plus1/logical.md).
+The text is in [`c4/README.md`](c4/README.md), except that of the components (level 3), which is in the [logical view](4plus1/logical.md).
 
-| Diagrama | Fonte | Mostra |
+| Diagram | Source | Shows |
 |---|---|---|
-| [1. Contexto](out/01-context.svg) | [`01-context.puml`](c4/01-context.puml) | Pessoas (visitante, jogador, dono, admin), o sistema como uma caixa, o servidor SMTP e as plataformas de alojamento |
-| [2. Contentores: desenvolvimento](out/02-containers-dev.svg) | [`02-containers-dev.puml`](c4/02-containers-dev.puml) | Browser, Next.js, API com o worker de emails, PostgreSQL e Mailpit (docker compose) |
-| [2. Contentores: produção](out/02-containers-prod.svg) | [`02-containers-prod.puml`](c4/02-containers-prod.puml) | Browser, Next.js na Vercel, API e worker no Render, PostgreSQL no Supabase, Brevo |
-| [3. Componentes da API: visão geral](out/03-components-api-overview.svg) | [`03-components-api-overview.puml`](c4/03-components-api-overview.puml) | Os componentes por funcionalidade e as peças transversais |
-| [3. Componentes da API: reservas](out/03-components-api-bookings.svg) | [`03-components-api-bookings.puml`](c4/03-components-api-bookings.puml) | Uma reserva, série semanal, as minhas reservas, o lado do dono, e a verificação do slot partilhada |
-| [3. Componentes da API: contas](out/03-components-api-accounts.svg) | [`03-components-api-accounts.puml`](c4/03-components-api-accounts.puml) | Registo, login, sessões, recuperação de palavra-passe, seeds e comandos |
-| [3. Componentes da API: notificações](out/03-components-api-notifications.svg) | [`03-components-api-notifications.puml`](c4/03-components-api-notifications.puml) | Outbox, worker, composição e envio dos emails |
-| [3. Componentes do front end: rotas e guardas](out/03-components-web.svg) | [`03-components-web.puml`](c4/03-components-web.puml) | Rotas, guardas e os caminhos do front end até à API |
-| [3. Componentes do front end: funcionalidades](out/03-components-web-features.svg) | [`03-components-web-features.puml`](c4/03-components-web-features.puml) | As áreas e as pastas de funcionalidades de cada uma |
-| [Implantação: desenvolvimento](out/04-deployment-dev.svg) | [`04-deployment-dev.puml`](c4/04-deployment-dev.puml) | A máquina de desenvolvimento, a rede do compose, as portas e o volume da base de dados |
-| [Implantação: produção](out/04-deployment-prod.svg) | [`04-deployment-prod.puml`](c4/04-deployment-prod.puml) | Vercel, Render, Supabase, Brevo e GitHub Actions |
+| [1. Context](out/01-context.svg) | [`01-context.puml`](c4/01-context.puml) | People (visitor, player, owner, admin), the system as one box, the SMTP server and the hosting platforms |
+| [2. Containers: development](out/02-containers-dev.svg) | [`02-containers-dev.puml`](c4/02-containers-dev.puml) | Browser, Next.js, API with the email worker, PostgreSQL and Mailpit (docker compose) |
+| [2. Containers: production](out/02-containers-prod.svg) | [`02-containers-prod.puml`](c4/02-containers-prod.puml) | Browser, Next.js on Vercel, API and worker on Render, PostgreSQL on Supabase, Brevo |
+| [3. API components: overview](out/03-components-api-overview.svg) | [`03-components-api-overview.puml`](c4/03-components-api-overview.puml) | The components by feature and the cross-cutting pieces |
+| [3. API components: bookings](out/03-components-api-bookings.svg) | [`03-components-api-bookings.puml`](c4/03-components-api-bookings.puml) | A single booking, weekly series, my bookings, the owner's side, and the shared slot check |
+| [3. API components: accounts](out/03-components-api-accounts.svg) | [`03-components-api-accounts.puml`](c4/03-components-api-accounts.puml) | Registration, login, sessions, password recovery, seeds and commands |
+| [3. API components: notifications](out/03-components-api-notifications.svg) | [`03-components-api-notifications.puml`](c4/03-components-api-notifications.puml) | Outbox, worker, composing and sending the emails |
+| [3. Front end components: routes and guards](out/03-components-web.svg) | [`03-components-web.puml`](c4/03-components-web.puml) | Routes, guards and the front end's paths to the API |
+| [3. Front end components: features](out/03-components-web-features.svg) | [`03-components-web-features.puml`](c4/03-components-web-features.puml) | The areas and the feature folders of each |
+| [Deployment: development](out/04-deployment-dev.svg) | [`04-deployment-dev.puml`](c4/04-deployment-dev.puml) | The development machine, the compose network, the ports and the database volume |
+| [Deployment: production](out/04-deployment-prod.svg) | [`04-deployment-prod.puml`](c4/04-deployment-prod.puml) | Vercel, Render, Supabase, Brevo and GitHub Actions |
 
 ### 4+1 ([`4plus1/`](4plus1/))
 
-Para quem é cada vista e que decisão documenta: [`4plus1/README.md`](4plus1/README.md).
+Who each view is for and which decision it documents: [`4plus1/README.md`](4plus1/README.md).
 
-| Vista | Texto | Diagramas |
+| View | Text | Diagrams |
 |---|---|---|
-| Lógica | [`logical.md`](4plus1/logical.md) | [camadas do back end](out/logical-layers.svg) ([`.puml`](4plus1/logical-layers.puml)), [domínio: clubes, campos, bloqueios e reservas](out/logical-domain-booking.svg) ([`.puml`](4plus1/logical-domain-booking.puml)), [domínio: contas, sessões, histórico dos donos e outbox](out/logical-domain-accounts.svg) ([`.puml`](4plus1/logical-domain-accounts.puml)), [estados de uma reserva](out/logical-state-booking.svg) ([`.puml`](4plus1/logical-state-booking.puml)), [estados de uma mensagem do outbox](out/logical-state-outbox.svg) ([`.puml`](4plus1/logical-state-outbox.puml)), [estados de um dono](out/logical-state-owner.svg) ([`.puml`](4plus1/logical-state-owner.puml)), [código: o agregado Booking](out/logical-code-booking.svg) ([`.puml`](4plus1/logical-code-booking.puml)), [código: slots, «livre» e preço](out/logical-code-slots.svg) ([`.puml`](4plus1/logical-code-slots.puml)) |
-| Processo | [`process.md`](4plus1/process.md) | [processos e fios](out/process-runtime.svg) ([`.puml`](4plus1/process-runtime.puml)), [pipeline de um pedido na API](out/process-pipeline.svg) ([`.puml`](4plus1/process-pipeline.puml)), [reservar um slot](out/process-book.svg) ([`.puml`](4plus1/process-book.puml)), [série semanal](out/process-series.svg) ([`.puml`](4plus1/process-series.puml)), [cancelar (jogador)](out/process-cancel-player.svg) ([`.puml`](4plus1/process-cancel-player.puml)), [cancelar (dono)](out/process-cancel-club.svg) ([`.puml`](4plus1/process-cancel-club.puml)), [login e logout](out/process-login.svg) ([`.puml`](4plus1/process-login.puml)), [refresh na API](out/process-refresh.svg) ([`.puml`](4plus1/process-refresh.puml)), [refresh no browser](out/process-refresh-client.svg) ([`.puml`](4plus1/process-refresh-client.puml)), [pedir nova palavra-passe](out/process-reset-request.svg) ([`.puml`](4plus1/process-reset-request.puml)), [definir a nova palavra-passe](out/process-reset-confirm.svg) ([`.puml`](4plus1/process-reset-confirm.puml)), [worker de emails](out/process-outbox.svg) ([`.puml`](4plus1/process-outbox.puml)), [avisos e lembretes ignorados](out/process-outbox-skip.svg) ([`.puml`](4plus1/process-outbox-skip.puml)), [página com guarda](out/process-guard.svg) ([`.puml`](4plus1/process-guard.puml)), [desativar um dono](out/process-owner-deactivation.svg) ([`.puml`](4plus1/process-owner-deactivation.puml)) |
-| Desenvolvimento | [`development.md`](4plus1/development.md) | [estrutura do repositório](out/development-repo.svg) ([`.puml`](4plus1/development-repo.puml)), [projetos do back end](out/development-backend.svg) ([`.puml`](4plus1/development-backend.puml)), [injeção de dependências](out/development-di.svg) ([`.puml`](4plus1/development-di.puml)), [pastas do front end](out/development-frontend.svg) ([`.puml`](4plus1/development-frontend.puml)), [do controller aos tipos](out/development-api-types.svg) ([`.puml`](4plus1/development-api-types.puml)), [CI (ci.yml)](out/development-ci.svg) ([`.puml`](4plus1/development-ci.puml)), [deploy, dados de produção e keepalive (deploy.yml, prod-data.yml, keepalive.yml)](out/development-deploy.svg) ([`.puml`](4plus1/development-deploy.puml)) |
-| Física | [`physical.md`](4plus1/physical.md) | [implantação UML da produção](out/physical.svg) ([`.puml`](4plus1/physical.puml)) |
-| Cenários (+1) | [`scenarios.md`](4plus1/scenarios.md) | [casos de uso](out/scenarios-use-cases.svg) ([`.puml`](4plus1/scenarios-use-cases.puml)) |
+| Logical | [`logical.md`](4plus1/logical.md) | [back end layers](out/logical-layers.svg) ([`.puml`](4plus1/logical-layers.puml)), [domain: clubs, pitches, blocks and bookings](out/logical-domain-booking.svg) ([`.puml`](4plus1/logical-domain-booking.puml)), [domain: accounts, sessions, owner history and outbox](out/logical-domain-accounts.svg) ([`.puml`](4plus1/logical-domain-accounts.puml)), [states of a booking](out/logical-state-booking.svg) ([`.puml`](4plus1/logical-state-booking.puml)), [states of an outbox message](out/logical-state-outbox.svg) ([`.puml`](4plus1/logical-state-outbox.puml)), [states of an owner](out/logical-state-owner.svg) ([`.puml`](4plus1/logical-state-owner.puml)), [code: the Booking aggregate](out/logical-code-booking.svg) ([`.puml`](4plus1/logical-code-booking.puml)), [code: slots, «free» and price](out/logical-code-slots.svg) ([`.puml`](4plus1/logical-code-slots.puml)) |
+| Process | [`process.md`](4plus1/process.md) | [processes and threads](out/process-runtime.svg) ([`.puml`](4plus1/process-runtime.puml)), [pipeline of an API request](out/process-pipeline.svg) ([`.puml`](4plus1/process-pipeline.puml)), [booking a slot](out/process-book.svg) ([`.puml`](4plus1/process-book.puml)), [weekly series](out/process-series.svg) ([`.puml`](4plus1/process-series.puml)), [cancelling (player)](out/process-cancel-player.svg) ([`.puml`](4plus1/process-cancel-player.puml)), [cancelling (owner)](out/process-cancel-club.svg) ([`.puml`](4plus1/process-cancel-club.puml)), [login and logout](out/process-login.svg) ([`.puml`](4plus1/process-login.puml)), [refresh on the API](out/process-refresh.svg) ([`.puml`](4plus1/process-refresh.puml)), [refresh in the browser](out/process-refresh-client.svg) ([`.puml`](4plus1/process-refresh-client.puml)), [requesting a new password](out/process-reset-request.svg) ([`.puml`](4plus1/process-reset-request.puml)), [setting the new password](out/process-reset-confirm.svg) ([`.puml`](4plus1/process-reset-confirm.puml)), [email worker](out/process-outbox.svg) ([`.puml`](4plus1/process-outbox.puml)), [skipped notices and reminders](out/process-outbox-skip.svg) ([`.puml`](4plus1/process-outbox-skip.puml)), [guarded page](out/process-guard.svg) ([`.puml`](4plus1/process-guard.puml)), [deactivating an owner](out/process-owner-deactivation.svg) ([`.puml`](4plus1/process-owner-deactivation.puml)) |
+| Development | [`development.md`](4plus1/development.md) | [repository structure](out/development-repo.svg) ([`.puml`](4plus1/development-repo.puml)), [back end projects](out/development-backend.svg) ([`.puml`](4plus1/development-backend.puml)), [dependency injection](out/development-di.svg) ([`.puml`](4plus1/development-di.puml)), [front end folders](out/development-frontend.svg) ([`.puml`](4plus1/development-frontend.puml)), [from the controller to the types](out/development-api-types.svg) ([`.puml`](4plus1/development-api-types.puml)), [CI (ci.yml)](out/development-ci.svg) ([`.puml`](4plus1/development-ci.puml)), [deploy, production data and keepalive (deploy.yml, prod-data.yml, keepalive.yml)](out/development-deploy.svg) ([`.puml`](4plus1/development-deploy.puml)) |
+| Physical | [`physical.md`](4plus1/physical.md) | [UML deployment of production](out/physical.svg) ([`.puml`](4plus1/physical.puml)) |
+| Scenarios (+1) | [`scenarios.md`](4plus1/scenarios.md) | [use cases](out/scenarios-use-cases.svg) ([`.puml`](4plus1/scenarios-use-cases.puml)) |
 
-### Decisões (ADR)
+### Decisions (ADR)
 
-Estado em [`adr/`](adr/README.md). Nas ADRs 0001 a 0008 a decisão é mais antiga que o registo e vem da Stack ou do backlog, como cada uma indica.
+Status in [`adr/`](adr/README.md). In ADRs 0001 to 0008 the decision is older than the record and comes from the Stack or the backlog, as each one indicates.
 
-| N.º | Decisão | Estado |
+| No. | Decision | Status |
 |---|---|---|
-| [0001](adr/0001-uma-app-tres-areas.md) | Uma só aplicação com três áreas | Aceite |
-| [0002](adr/0002-sessao-em-cookies-httponly.md) | Sessão em cookies httpOnly em vez de localStorage | Aceite |
-| [0003](adr/0003-exclusion-constraint-reservas.md) | Exclusion constraint contra reservas duplicadas | Aceite |
-| [0004](adr/0004-outbox-para-emails.md) | Outbox para os emails | Aceite |
-| [0005](adr/0005-marketplace-unico.md) | Um marketplace em vez de um site por dono | Aceite |
-| [0006](adr/0006-ids-guid-v7.md) | Ids públicos GUID v7 | Aceite |
-| [0007](adr/0007-slots-calculados.md) | Slots calculados, não guardados | Aceite |
-| [0008](adr/0008-chaves-data-protection-na-base-de-dados.md) | Chaves do Data Protection na base de dados | Aceite |
-| [0009](adr/0009-alvo-de-implantacao.md) | Alvo de implantação | Aceite em 2026-11-09, depois do primeiro deploy real |
-| [0010](adr/0010-testes-end-to-end-playwright.md) | Testes end-to-end com Playwright | Aceite em 2026-11-10 |
-| [0011](adr/0011-apagar-conta-por-anonimizacao.md) | Apagar a conta por anonimização | Aceite em 2026-11-10 |
+| [0001](adr/0001-one-app-three-areas.md) | A single application with three areas | Accepted |
+| [0002](adr/0002-session-in-httponly-cookies.md) | Session in httpOnly cookies instead of localStorage | Accepted |
+| [0003](adr/0003-booking-exclusion-constraint.md) | Exclusion constraint against duplicate bookings | Accepted |
+| [0004](adr/0004-outbox-for-emails.md) | Outbox for emails | Accepted |
+| [0005](adr/0005-single-marketplace.md) | One marketplace instead of one site per owner | Accepted |
+| [0006](adr/0006-guid-v7-ids.md) | GUID v7 public ids | Accepted |
+| [0007](adr/0007-calculated-slots.md) | Slots are calculated, not stored | Accepted |
+| [0008](adr/0008-data-protection-keys-in-the-database.md) | Data Protection keys in the database | Accepted |
+| [0009](adr/0009-deployment-target.md) | Deployment target | Accepted on 2026-11-09, after the first real deploy |
+| [0010](adr/0010-playwright-end-to-end-tests.md) | End-to-end tests with Playwright | Accepted on 2026-11-10 |
+| [0011](adr/0011-account-deletion-by-anonymization.md) | Deleting the account by anonymization | Accepted on 2026-11-10 |
 
-## Limitações conhecidas
+## Known limitations
 
-Os diagramas mostram o código como está, com as falhas. Estes são factos do código que as vistas e as ADRs dizem tal como são; não são erros.
+The diagrams show the code as it is, with its flaws. These are facts about the code that the views and the ADRs state as they are; they are not mistakes.
 
-1. **A API também se alcança diretamente, em desenvolvimento.** Além de passar pelo Next.js, a API está na porta 5080 do compose (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. Os diagramas de contentores e de implantação de desenvolvimento mostram as duas entradas.
-2. **O proxy reverso é o Next.js, não o Caddy.** O browser fala com C-WEB e é o Next.js (WEB-REWRITE) que reencaminha `/api/*` para C-API, em desenvolvimento e em produção. O IP do cliente está na [vista física, 4.4](4plus1/physical.md#44-o-ip-do-cliente).
-3. **Entidades persistidas fora do Domain.** A conta (`AppUser`, do Identity), o refresh token e a mudança de estado de um dono vivem na Infrastructure, e a mensagem do outbox na Application. No Domain a conta existe só como regras (`Dom/Accounts`). O diagrama do domínio mostra-as com a camada a que pertencem.
-4. **Uma exceção ao relógio injetado.** Toda a hora atual vem de `TimeProvider` (CC-TIME), exceto o gerador de tokens de recuperação de palavra-passe do Identity, que lê o relógio do sistema; por isso os testes fabricam tokens antigos no formato do Identity.
-5. **A exclusion constraint só cobre reservas `Confirmed`.** `bookings_no_overlap` (DB-NOOVERLAP) tem `WHERE status = 'Confirmed'`: uma reserva cancelada ou uma falta não ocupa o slot, e anular uma falta só tem sucesso se mais nenhuma reserva confirmada se sobrepuser entretanto; senão a base de dados recusa (23P01 → 409 `slot_taken`).
+1. **The API can also be reached directly, in development.** Besides going through Next.js, the API is on compose port 5080 (Swagger at `/swagger`), and `http://localhost:5080` is one of the origins accepted in Development. The development container and deployment diagrams show both entry points.
+2. **The reverse proxy is Next.js, not Caddy.** The browser talks to C-WEB and it is Next.js (WEB-REWRITE) that forwards `/api/*` to C-API, in development and in production. The client IP is in the [physical view, 4.4](4plus1/physical.md#44-the-client-ip).
+3. **Persisted entities outside Domain.** The account (`AppUser`, from Identity), the refresh token and an owner's status change live in Infrastructure, and the outbox message in Application. In Domain the account exists only as rules (`Dom/Accounts`). The domain diagram shows them with the layer they belong to.
+4. **One exception to the injected clock.** All current time comes from `TimeProvider` (CC-TIME), except Identity's password-reset token generator, which reads the system clock; that is why the tests fabricate old tokens in Identity's format.
+5. **The exclusion constraint only covers `Confirmed` bookings.** `bookings_no_overlap` (DB-NOOVERLAP) has `WHERE status = 'Confirmed'`: a cancelled booking or a no-show does not occupy the slot, and undoing a no-show only succeeds if no other confirmed booking overlaps in the meantime; otherwise the database refuses (23P01 → 409 `slot_taken`).
 
-**Tamanho dos diagramas.** A regra é cerca de 10 elementos; os diagramas de componentes da API vão até 16 porque já estão divididos por área. A contagem abaixo é aproximada (linhas de elementos nos `.puml`, passos nos diagramas de atividade). Passam de 12:
+**Diagram size.** The rule is about 10 elements; the API component diagrams go up to 16 because they are already split by area. The count below is approximate (element lines in the `.puml` files, steps in the activity diagrams). These exceed 12:
 
-- `development-ci` (24 passos, em três jobs com no máximo 10 cada), `physical` (18) e `04-deployment-prod` (17);
-- `03-components-api-overview` e `03-components-api-bookings` (16), `03-components-api-notifications` e `03-components-api-accounts` (15);
-- `development-frontend` (14), `03-components-web-features` (13) e `process-pipeline` (13).
+- `development-ci` (24 steps, in three jobs with at most 10 each), `physical` (18) and `04-deployment-prod` (17);
+- `03-components-api-overview` and `03-components-api-bookings` (16), `03-components-api-notifications` and `03-components-api-accounts` (15);
+- `development-frontend` (14), `03-components-web-features` (13) and `process-pipeline` (13).
 
-Os mais largos ficam ilegíveis quando reduzidos à largura de uma página; abre o SVG ao tamanho real.
+The widest ones become unreadable when reduced to the width of a page; open the SVG at real size.
 
-**Implantação.** As secções de deploy da [Stack](../stack.md) (o Caddy, a máquina virtual, o `Caddyfile`, o GitHub Container Registry, o deploy por SSH) estão substituídas pela [ADR 0009](adr/0009-alvo-de-implantacao.md), que as nomeia; a Stack não foi alterada. Nesse ponto valem os diagramas e a ADR, não a Stack. O que as vistas de implantação **não** cobrem ou deixam em aberto:
+**Deployment.** The deploy sections of the [Stack](../stack.md) (Caddy, the virtual machine, the `Caddyfile`, the GitHub Container Registry, deploy over SSH) are replaced by [ADR 0009](adr/0009-deployment-target.md), which names them; the Stack was not changed. On this point the diagrams and the ADR prevail, not the Stack. What the deployment views do **not** cover or leave open:
 
-- O IP do cliente em produção é de melhor esforço: a API acredita em `X-Forwarded-For` com `ForwardLimit=1` e é pública, por isso os limites por IP não são uma proteção forte. A cadeia de `X-Forwarded-For` do Render não está documentada ([vista física, 4.4](4plus1/physical.md#44-o-ip-do-cliente)).
-- O worker corre dentro da API, que adormece sem tráfego no plano gratuito do Render: os emails e lembretes só saem enquanto a API estiver acordada.
-- Não estão adotados (ADR 0009): domínio próprio, cópias de segurança automáticas, rede privada entre a Vercel e o Render.
-- Os pontos que o primeiro deploy real não confirmou, e os riscos aceites, estão na [vista física, secção 5](4plus1/physical.md#5-riscos-e-pontos-em-aberto-para-a-t06).
-- Os dados de planos e preços dos fornecedores mudam; os que estão na vista física têm data e fonte.
+- The client IP in production is best-effort: the API believes `X-Forwarded-For` with `ForwardLimit=1` and is public, so the per-IP limits are not a strong protection. Render's `X-Forwarded-For` chain is not documented ([physical view, 4.4](4plus1/physical.md#44-the-client-ip)).
+- The worker runs inside the API, which goes to sleep without traffic on Render's free plan: emails and reminders only go out while the API is awake.
+- Not adopted (ADR 0009): a domain of our own, automatic backups, a private network between Vercel and Render.
+- The points the first real deploy did not confirm, and the accepted risks, are in the [physical view, section 5](4plus1/physical.md#5-risks-and-open-points-for-t06).
+- The providers' plan and price data change; the data in the physical view carry a date and a source.
 
-**Texto e código.** `docs/stack.md` mostra um `Caddyfile` na árvore do repositório que não existe. Tudo foi conferido à mão com o código; não há teste que prove que um diagrama corresponde ao código. O que a verificação automática garante está em [Renderizar os diagramas](#renderizar-os-diagramas).
+**Text and code.** `docs/stack.md` shows a `Caddyfile` in the repository tree that does not exist. Everything was checked by hand against the code; there is no test that proves a diagram matches the code. What the automatic check guarantees is in [Rendering the diagrams](#rendering-the-diagrams).
 
-## Renderizar os diagramas
+## Rendering the diagrams
 
-Os SVG de [`out/`](out/) são gerados a partir dos `.puml`; não se editam à mão. [`render.sh`](render.sh) (Git Bash, macOS, Linux) e [`render.ps1`](render.ps1) (Windows PowerShell) desenham todos com a imagem Docker `plantuml/plantuml`, **cuja versão está fixada em [`style.puml`](style.puml)** (linha `' plantuml-version: X.Y.Z`). O tipo de letra (Liberation Sans, métrico-compatível com o Arial) está em [`fonts/`](fonts/README.md) e é montado só de leitura no contentor, onde o PlantUML mede o texto. Depois, [`postprocess-svg.sh`](postprocess-svg.sh) troca em todos os SVG o nome do tipo de letra pela lista `Arial, Liberation Sans, Helvetica, sans-serif`. Não se usa nenhum tipo de letra do computador nem a rede, por isso o resultado é o mesmo em qualquer máquina e no CI. É preciso ter o Docker a correr.
+The SVGs in [`out/`](out/) are generated from the `.puml` files; they are not edited by hand. [`render.sh`](render.sh) (Git Bash, macOS, Linux) and [`render.ps1`](render.ps1) (Windows PowerShell) draw them all with the `plantuml/plantuml` Docker image, **whose version is pinned in [`style.puml`](style.puml)** (the line `' plantuml-version: X.Y.Z`). The typeface (Liberation Sans, metric-compatible with Arial) is in [`fonts/`](fonts/README.md) and is mounted read-only in the container, where PlantUML measures the text. Afterwards, [`postprocess-svg.sh`](postprocess-svg.sh) replaces, in every SVG, the typeface name with the list `Arial, Liberation Sans, Helvetica, sans-serif`. No font from the computer and no network is used, so the result is the same on any machine and in CI. Docker has to be running.
 
 ```bash
 bash docs/architecture/render.sh
 powershell -ExecutionPolicy Bypass -File docs\architecture\render.ps1
 ```
 
-1. Edita o `.puml` (os de `c4/` usam `!include <C4/…>`, que o PlantUML traz, e depois `!include ../style.puml`; os de `4plus1/` só o `style.puml`) e, se há elementos novos, o inventário.
-2. Desenha, e faz commit do `.puml` e do `.svg` juntos.
-3. Põe o diagrama no [índice](#índice) deste ficheiro. Para mudar a versão do PlantUML, altera a linha de `style.puml` e volta a desenhar tudo.
-4. Corre `scripts/check-architecture-docs.sh` (ou `.ps1`): falha se algum `.svg` de `out/` não tiver ligação neste ficheiro, se este ficheiro ou outro `.md` de `docs/` ou o `README.md` da raiz tiver uma ligação ou imagem relativa que não chega a um ficheiro, se algum `.puml` não incluir `../style.puml`, se algum `.svg` mencionar DejaVu, se algum ficheiro de `4plus1/` incluir o C4, ou se os aliases dos diagramas e a secção 12 do inventário não coincidirem (nos dois sentidos, com cada id a existir no inventário). Não verifica as âncoras (`#secção`) nem o texto dos rótulos.
+1. Edit the `.puml` (those in `c4/` use `!include <C4/…>`, which PlantUML ships, and then `!include ../style.puml`; those in `4plus1/` only `style.puml`) and, if there are new elements, the inventory.
+2. Render, and commit the `.puml` and the `.svg` together.
+3. Put the diagram in the [index](#index) of this file. To change the PlantUML version, change the line in `style.puml` and render everything again.
+4. Run `scripts/check-architecture-docs.sh` (or `.ps1`): it fails if any `.svg` in `out/` has no link in this file, if this file or another `.md` in `docs/` or the root `README.md` has a relative link or image that does not reach a file, if any `.puml` does not include `../style.puml`, if any `.svg` mentions DejaVu, if any file in `4plus1/` includes C4, or if the diagrams' aliases and section 12 of the inventory do not match (in both directions, with each id existing in the inventory). It does not check the anchors (`#section`) or the text of the labels.
 
-O job `diagrams` do CI («Docs (architecture diagrams)») corre `render.sh`, falha se algum `.svg` mudou ou falta (o `git status` de `out/` tem de ficar limpo) e corre o verificador.
+The `diagrams` job in CI ("Docs (architecture diagrams)") runs `render.sh`, fails if any `.svg` changed or is missing (`git status` of `out/` must stay clean) and runs the checker.

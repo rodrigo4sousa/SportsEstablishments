@@ -1,14 +1,14 @@
 # Liberation Sans
 
-Tipo de letra dos diagramas. O [`style.puml`](../style.puml) pede-o, e o [`render.sh`](../render.sh) e o [`render.ps1`](../render.ps1) montam esta pasta, só de leitura, no contentor do PlantUML. É métrico-compatível com o Arial, por isso as caixas ficam com as medidas certas em quem tem Arial instalado.
+The typeface of the diagrams. [`style.puml`](../style.puml) asks for it, and [`render.sh`](../render.sh) and [`render.ps1`](../render.ps1) mount this folder, read-only, in the PlantUML container. It is metric-compatible with Arial, so the boxes have the right measurements for anyone who has Arial installed.
 
-- **Fonte:** release oficial [2.1.5](https://github.com/liberationfonts/liberation-fonts/releases/tag/2.1.5) do projeto liberation-fonts, a mais recente em 2026-11-10.
-- **Arquivo:** [`liberation-fonts-ttf-2.1.5.tar.gz`](https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz) (SHA-256 `7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0`).
-- **Licença:** SIL Open Font License 1.1, em [`LICENSE`](LICENSE), copiado do mesmo arquivo.
+- **Source:** the official [2.1.5](https://github.com/liberationfonts/liberation-fonts/releases/tag/2.1.5) release of the liberation-fonts project, the latest on 2026-11-10.
+- **Archive:** [`liberation-fonts-ttf-2.1.5.tar.gz`](https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz) (SHA-256 `7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0`).
+- **Licence:** SIL Open Font License 1.1, in [`LICENSE`](LICENSE), copied from the same archive.
 
-Os ficheiros não foram alterados.
+The files were not modified.
 
-| Ficheiro | SHA-256 |
+| File | SHA-256 |
 | --- | --- |
 | `LiberationSans-Regular.ttf` | `76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8` |
 | `LiberationSans-Bold.ttf` | `788abee4c806d660e8aee46689dd8540cd4bb98da03dcc9d171ce3efd99a9173` |

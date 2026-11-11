@@ -1,168 +1,177 @@
-# Stack e Boas Práticas — App de Reservas
+# Stack and Good Practices — Booking App
  
 Oct 22, 2026 · @Rodri
  
-Next.js (App Router) no front end, ASP.NET Core no back end e PostgreSQL, servidos na mesma origem e com a sessão em cookies httpOnly. A API é a única dona das regras de negócio; o Next.js só apresenta.
+Next.js (App Router) on the front end, ASP.NET Core on the back end and PostgreSQL, served on the same origin and with the session in httpOnly cookies. The API is the sole owner of the business rules; Next.js only presents.
  
-## Arquitetura
+## Architecture
  
-A arquitetura está descrita, com diagramas C4 e vistas 4+1, em [docs/architecture/README.md](architecture/README.md); o inventário de todos os elementos é [docs/architecture/inventory.md](architecture/inventory.md). Nota: o Caddy é o desenho de produção (T06); hoje, em desenvolvimento, o browser fala com o Next.js, que reencaminha `/api/*` para a API.
+The architecture is described, with C4 diagrams and 4+1 views, in [docs/architecture/README.md](architecture/README.md); the inventory of all the elements is [docs/architecture/inventory.md](architecture/inventory.md). Note: Caddy is the production design (T06); today, in development, the browser talks to Next.js, which forwards `/api/*` to the API.
  
-O browser só fala com o Caddy. Os Server Components chamam a API por dentro, a passar o cookie do utilizador, e nada além da API acede ao PostgreSQL.
+The browser only talks to Caddy. Server Components call the API from the inside, passing on the user's cookie, and nothing but the API accesses PostgreSQL.
  
 ## Stack
  
-Cada escolha tem uma razão; o que não tem razão para estar aqui ficou de fora.
+Each choice has a reason; what has no reason to be here was left out.
  
-| Camada | Tecnologia | Porquê |
+| Layer | Technology | Why |
 | --- | --- | --- |
-| Front end | Next.js (App Router), React, TypeScript em modo strict | Server Components lêem dados no servidor com o cookie; Client Components tratam da interação |
-| UI | Tailwind CSS e shadcn/ui | Tailwind aparece nas vagas; shadcn/ui dá componentes acessíveis que ficam no teu código |
-| Dados do servidor no cliente | TanStack Query | Cache, recarregamento e invalidação depois de reservar ou cancelar |
-| Estado de UI | O endereço da página (`useSearchParams`) | O passo da reserva e a vista do calendário vivem no URL, não numa store (ver Estado) |
-| Formulários | React Hook Form e Zod | Validação no browser com mensagens por campo |
-| Tipos da API | Gerados do OpenAPI (openapi-typescript) | Os DTOs em C# são a única fonte de verdade; o front end não reescreve tipos à mão |
-| Gráficos | Recharts | Gráficos do admin |
-| Back end | ASP.NET Core 10 (LTS), Web API com controllers | Controllers são o que a maioria das vagas .NET usa |
-| Utilizadores | ASP.NET Core Identity (só o core, sem UI) | Hash de palavras-passe, bloqueio por tentativas e tokens de recuperação sem reinventar |
-| Sessão | JWT curto e refresh token, ambos em cookies httpOnly | Ver Autenticação |
-| Validação na API | FluentValidation | Regras dos pedidos fora dos controllers e testáveis |
-| Acesso a dados | EF Core com Npgsql | Migrações, LINQ e o equivalente ao Prisma que já usaste |
-| Base de dados | PostgreSQL | Exclusion constraints para impedir reservas sobrepostas |
-| Trabalho em segundo plano | BackgroundService e tabela outbox | Emails e lembretes sem bloquear pedidos e sem se perderem |
-| Email | SMTP: Brevo em produção, Mailpit em desenvolvimento | Nenhum email real sai durante o desenvolvimento |
-| Testes | xUnit, Testcontainers, Vitest, React Testing Library, MSW | Ver Testes |
-| Infraestrutura | Docker, docker compose, GitHub Actions, Caddy | Tudo arranca com um comando; Caddy trata do HTTPS e junta front end e API na mesma origem |
+| Front end | Next.js (App Router), React, TypeScript in strict mode | Server Components read data on the server with the cookie; Client Components handle interaction |
+| UI | Tailwind CSS and shadcn/ui | Tailwind shows up in job listings; shadcn/ui gives accessible components that live in your own code |
+| Server data on the client | TanStack Query | Cache, refetching and invalidation after booking or cancelling |
+| UI state | The page address (`useSearchParams`) | The booking step and the calendar view live in the URL, not in a store (see State) |
+| Forms | React Hook Form and Zod | Validation in the browser with per-field messages |
+| API types | Generated from OpenAPI (openapi-typescript) | The C# DTOs are the single source of truth; the front end does not rewrite types by hand |
+| Charts | Recharts | Admin charts |
+| Back end | ASP.NET Core 10 (LTS), Web API with controllers | Controllers are what most .NET job listings use |
+| Users | ASP.NET Core Identity (core only, no UI) | Password hashing, lockout after failed attempts and recovery tokens without reinventing them |
+| Session | Short-lived JWT and refresh token, both in httpOnly cookies | See Authentication |
+| API validation | FluentValidation | Request rules outside the controllers and testable |
+| Data access | EF Core with Npgsql | Migrations, LINQ and the equivalent of the Prisma you have already used |
+| Database | PostgreSQL | Exclusion constraints to prevent overlapping bookings |
+| Background work | BackgroundService and an outbox table | Emails and reminders without blocking requests and without getting lost |
+| Email | SMTP: Brevo in production, Mailpit in development | No real email goes out during development |
+| Tests | xUnit, Testcontainers, Vitest, React Testing Library, MSW | See Tests |
+| Infrastructure | Docker, docker compose, GitHub Actions, Caddy | Everything starts with one command; Caddy handles HTTPS and puts the front end and the API on the same origin |
  
-## Back end: arquitetura e injeção de dependências
+## Back end: architecture and dependency injection
  
-Clean Architecture em quatro projetos, com as dependências a apontar só para dentro: Api → Infrastructure → Application → Domain.
+Clean Architecture in four projects, with dependencies pointing inward only: Api → Infrastructure → Application → Domain.
  
 ```text
 backend/
   src/
-    SportsBooking.Domain/          entidades, regras de negócio, sem dependências
-    SportsBooking.Application/     casos de uso (serviços), DTOs, validadores, interfaces
-    SportsBooking.Infrastructure/  EF Core, migrações, Identity, JWT, email, outbox
-    SportsBooking.Api/             controllers, autenticação, ProblemDetails, composição da DI
+    SportsBooking.Domain/          entities, business rules, no dependencies
+    SportsBooking.Application/     use cases (services), DTOs, validators, interfaces
+    SportsBooking.Infrastructure/  EF Core, migrations, Identity, JWT, email, outbox
+    SportsBooking.Api/             controllers, authentication, ProblemDetails, DI composition
   tests/
     SportsBooking.UnitTests/
     SportsBooking.IntegrationTests/
 ```
  
-**Pragmatismo, sem cerimónia a mais**
+**Pragmatism, without too much ceremony**
  
-- Sem repositório genérico por cima do EF Core: o `DbContext` já é a unidade de trabalho. A Application usa uma interface `IAppDbContext`; um repositório só aparece onde a query for complexa.
-- Serviços de aplicação simples (`BookingService.CreateAsync`) em vez de MediatR, e mapeamento à mão em vez de AutoMapper. As duas bibliotecas passaram a ter licença comercial em 2025, e aqui não fazem falta.
-**Injeção de dependências**
- 
-- Contentor nativo do ASP.NET Core e só injeção por construtor; nada de pedir serviços ao `IServiceProvider` no código de negócio.
-- Cada camada regista-se a si própria: `services.AddApplication()` e `services.AddInfrastructure(config)`; o `Program.cs` só compõe.
-- Tempos de vida: `DbContext` e serviços que o usam são Scoped; helpers sem estado são Singleton. Nunca injetar um Scoped num Singleton: um `BackgroundService` cria o seu scope com `IServiceScopeFactory`.
-- A hora atual vem de um `TimeProvider` injetado, nunca de `DateTime.UtcNow`; nos testes usa-se um relógio falso (janela de cancelamento, lembretes).
-- Configuração com o padrão Options (`IOptions<JwtOptions>`), validada no arranque com `ValidateOnStart`.
-**Regras de código**
- 
-- Controllers finos: recebem o DTO, chamam o serviço e devolvem a resposta. Nada de EF Core nos controllers.
-- As entidades protegem as suas regras: setters privados e métodos com intenção, como `booking.CancelByPlayer(window, now)` e `booking.CancelByClub(reason, now)`, que devolvem o resultado (`CancellationOutcome`, `ClubCancellationOutcome`) e só mudam o estado quando a regra o permite.
-- Falhas esperadas (slot ocupado, fora da janela) são resultados devolvidos pelo serviço, não exceções; exceções ficam para o inesperado.
-- `async` em todo o caminho, com `CancellationToken` até ao EF Core.
-- Nullable reference types ligados e avisos tratados como erros.
-- IDs públicos são GUID v7 (`Guid.CreateVersion7()`): não se adivinham como um número sequencial e indexam bem.
-## Autenticação: cookies httpOnly
- 
-O JavaScript do browser nunca toca nos tokens: ficam em cookies httpOnly, que um ataque XSS não consegue ler. Para saber quem está autenticado, o front end chama `GET /api/auth/me`.
- 
-**Os dois cookies**
- 
-| Cookie | Conteúdo | Validade | Atributos |
-| --- | --- | --- | --- |
-| `access_token` | JWT com `sub` e `role`, sem dados pessoais | 15 minutos | HttpOnly, Secure, SameSite=Lax, Path=/ |
-| `refresh_token` | Valor aleatório opaco, guardado na BD só como hash | 7 dias | HttpOnly, Secure, SameSite=Strict, Path=/api/auth |
- 
-**Fluxo**
- 
-1. `POST /api/auth/login`: a API valida as credenciais com o Identity e responde com os dois cookies.
-2. Cada pedido leva o `access_token` automaticamente; o JwtBearer do ASP.NET Core lê-o do cookie (evento `OnMessageReceived`).
-3. Com um 401, o cliente chama `POST /api/auth/refresh` uma vez e repete o pedido. Só há um refresh em curso de cada vez: dentro do separador, os pedidos partilham o mesmo refresh; entre separadores, a Web Locks API (`navigator.locks`) deixa um separador de cada vez renovar, e quem obtém o lock repete primeiro o pedido original, porque outro separador pode já ter renovado (os cookies são partilhados). Sem `navigator.locks`, vale só a regra por separador.
-4. Cada refresh roda o token: o antigo fica inválido e sai um novo. Se um token já usado voltar a aparecer no refresh, todos os tokens desse utilizador são revogados (sinal de roubo); o mesmo acontece quando o `POST /api/auth/logout` recebe um token já usado, e quando o refresh é pedido para uma conta desativada.
-5. `POST /api/auth/logout` revoga o refresh token na BD e apaga os dois cookies.
-**Mesma origem, obrigatório**
- 
-O front end e a API têm de estar no mesmo site: o Caddy (em produção) ou os rewrites do Next.js (em desenvolvimento) mandam `/api/*` para o .NET. Assim os cookies são first-party e não há CORS. Front end num domínio `vercel.app` e API noutro domínio tornam os cookies de terceiros, e os browsers bloqueiam-nos.
- 
-**No Next.js**
- 
-- Os Server Components leem o cookie com `cookies()` e passam o cabeçalho `Cookie` quando chamam a API.
-- Os Server Components não conseguem escrever cookies, e o servidor nunca renova a sessão. Decidido (US03): o cookie `refresh_token` tem `Path=/api/auth`, por isso os pedidos de páginas não o levam e o Next.js não tem como fazer refresh. Não há renovação de tokens no `proxy.ts`; os refreshes vêm sempre do browser.
-- Os guardas do servidor vivem nos layouts das áreas (`/manage` para o Dono, `/admin` para o Admin) e, para as reservas do jogador, no layout de `/bookings` (`PlayerGuard`): um helper em `lib/server` (`import 'server-only'`) chama `GET /api/auth/me` no URL interno da API com o cabeçalho `Cookie` do utilizador e `cache: 'no-store'`. Sem sessão válida → `/login?next=<caminho da área>`; sessão de outro perfil → a área desse utilizador. Com `cacheComponents`, o guarda lê cookies, por isso fica dentro de um `<Suspense>`. As páginas públicas (`/`, pesquisa, páginas de clube) ficam abertas a todos.
-- O `proxy.ts` (`src/proxy.ts`) põe o caminho pedido (com a query) no cabeçalho de pedido `x-pathname`, sempre por cima de qualquer valor enviado pelo cliente, para `/manage`, `/admin` e `/bookings`. Os guardas leem-no para construir `next=<caminho completo>`, que passa por `safeNext`. Não renova tokens, não redireciona e não decide acessos. Faz ainda uma segunda coisa, para o estado HTTP: responde **404** a um id que não pode existir (um GUID mal formado em `/manage/clubs/{id}…` e `/admin/owners/{id}`, um slug impossível em `/clubs/{slug}`) e a um clube público que a API não tem (`GET /api/clubs/{slug}` com 404). Uma página que faz *streaming* (`loading.tsx`, `<Suspense>`) fixa o 200 no primeiro byte, e um `notFound()` depois disso mostra a página mas mantém o 200 (com `noindex`); o Next.js documenta a verificação no Proxy, antes de a página começar a enviar. O clube é pedido à API uma vez por minuto e por slug (memória do processo), só em carregamentos reais da página (não nos *prefetch* nem nas navegações do cliente) e, se a API falhar ou demorar mais de 3 s, a página passa e decide ela (nunca um erro por causa do proxy). Limite conhecido: um GUID bem formado que não existe (o clube de outro dono, por exemplo) só se sabe com a sessão, que o proxy não lê; continua a responder 200 com o ecrã «não encontrado» no cliente (são páginas atrás de login). O estado está testado em `src/proxy-not-found.test.ts` e em `frontend/scripts/check-not-found.mjs`, que corre no CI contra o build com uma API simulada.
-- Um access token expirado leva ao `/login?next=...`. A página de login tenta primeiro, no browser, um `POST /api/auth/refresh` silencioso: com 204 segue para `next` (se for um caminho relativo da área do utilizador; senão, a página inicial do perfil), caso contrário mostra o formulário.
-- Os guardas são só uma conveniência (redirecionamentos). Quem decide o acesso é sempre a API (401/403).
-**CSRF e força bruta**
- 
-- Como o browser envia os cookies sozinho, os pedidos que alteram dados precisam de proteção: o SameSite=Lax bloqueia POST vindos de outros sites, e a API rejeita POST, PUT, PATCH e DELETE cujo cabeçalho `Origin` não seja o do site.
-- Bloqueio de conta do Identity depois de várias tentativas falhadas e rate limiting (middleware nativo) por IP no login, nos dois registos, no refresh e nos dois passos da recuperação de palavra-passe (não no logout nem no `GET /api/auth/me`) e nos endpoints públicos de leitura (pesquisa, localidades, página do clube e slots).
-- Desativar um dono (US29) ou mudar a palavra-passe revoga os refresh tokens; a sessão acaba no máximo quando o access token expira (15 minutos).
-- O `POST /api/auth/refresh` verifica sempre que a conta está ativa antes de emitir tokens; uma conta desativada recebe 401 e não renova a sessão.
-- **Compromisso conhecido:** o access token é um JWT sem estado, validado sem ir à base de dados. Um token já emitido continua válido até expirar (no máximo 15 minutos), mesmo depois de a conta ser desativada. A validade curta e a verificação no refresh limitam essa janela. Não há verificação de conta ativa em cada pedido.
-## Front end: servidor e cliente
- 
-Server Components por omissão; `'use client'` só onde há interação, e o mais abaixo possível na árvore.
- 
-| Onde corre | Para quê | Exemplos | Como obtém os dados |
-| --- | --- | --- | --- |
-| Server Component | Mostrar dados na primeira renderização | Página do clube, totais do admin | `fetch` à API interna com o cabeçalho `Cookie`, sem cache (`cache: 'no-store'`) |
-| Client Component | Interação | Formulários, fluxo de reserva, «As minhas reservas», navegação do calendário, gráficos, filtros | TanStack Query sobre `/api/*` (mesma origem, os cookies seguem sozinhos) |
- 
-**Regras**
- 
-- O código que lê cookies ou usa o URL interno da API importa `server-only`, para nunca acabar no bundle do browser.
-- Cada área tem o seu `layout.tsx`, que no servidor chama `/api/auth/me` e redireciona se o perfil não corresponder. É conveniência: a API continua a decidir o acesso.
-- `loading.tsx` e `error.tsx` em cada segmento de rota; erros de mutações aparecem como toast.
-- Só as variáveis `NEXT_PUBLIC_*` chegam ao browser; nenhum segredo usa esse prefixo.
-**Estado: TanStack Query e o endereço da página**
+- No generic repository on top of EF Core: the `DbContext` is already the unit of work. Application uses an `IAppDbContext` interface; a repository only appears where the query is complex.
+- Simple application services (`BookingService.CreateAsync`) instead of MediatR, and hand-written mapping instead of AutoMapper. Both libraries got a commercial licence in 2025, and they are not needed here.
 
-- Dados que vêm da API ficam no TanStack Query. Depois de reservar ou cancelar, invalida as queries afetadas (slots livres, as minhas reservas); com um 409, volta a carregar os slots.
-- **Não há Zustand.** O que o utilizador escolhe vive no endereço da página, lido com `useSearchParams` e escrito com `router.replace`: na reserva `?pitch=&date=&slot=&weeks=` (`features/booking/selection.ts`), no calendário `?date=&view=&pitch=&cancelled=&booking=`, nas pesquisas e nas listas os filtros e a página. Há duas razões. Quem não tem sessão e é enviado para o login (`/login?next=<este endereço>`) volta ao mesmo clube, campo, data e slot. E a ligação é partilhável e funciona com o botão «Voltar» e ao recarregar. Uma store em memória perdia a escolha a cada redirecionamento e criava uma segunda versão da verdade.
-- Os valores por omissão não se escrevem no endereço (hoje, uma semana, a primeira página) e um valor sem sentido conta como o valor por omissão.
-- Nunca copiar dados da API para outro estado; nunca tokens nem dados pessoais em `localStorage`.
-- Se um dia for preciso estado de UI partilhado que não faça sentido no endereço, usa-se uma store pequena por funcionalidade, só em Client Components e criada por pedido se for precisa no SSR; hoje nenhuma funcionalidade o pede.
-**Formulários com Zod**
+**Dependency injection**
  
-- React Hook Form com `zodResolver`; um schema por formulário, na pasta da funcionalidade.
-- O Zod serve a experiência do utilizador, não a segurança: a API valida sempre outra vez.
-- Os erros de validação da API (`errors` no ProblemDetails) são postos no campo certo com `setError`.
-**Estrutura**
+- ASP.NET Core's built-in container and constructor injection only; no asking `IServiceProvider` for services in business code.
+- Each layer registers itself: `services.AddApplication()` and `services.AddInfrastructure(config)`; `Program.cs` only composes.
+- Lifetimes: `DbContext` and the services that use it are Scoped; stateless helpers are Singleton. Never inject a Scoped into a Singleton: a `BackgroundService` creates its own scope with `IServiceScopeFactory`.
+- The current time comes from an injected `TimeProvider`, never from `DateTime.UtcNow`; tests use a fake clock (cancellation window, reminders).
+- Configuration with the Options pattern (`IOptions<JwtOptions>`), validated at startup with `ValidateOnStart`.
+
+**Code rules**
+ 
+- Thin controllers: they receive the DTO, call the service and return the response. No EF Core in controllers.
+- Entities protect their rules: private setters and intention-revealing methods, such as `booking.CancelByPlayer(window, now)` and `booking.CancelByClub(reason, now)`, which return the result (`CancellationOutcome`, `ClubCancellationOutcome`) and only change the state when the rule allows it.
+- Expected failures (slot taken, outside the window) are results returned by the service, not exceptions; exceptions are for the unexpected.
+- `async` all the way, with `CancellationToken` down to EF Core.
+- Nullable reference types on and warnings treated as errors.
+- Public IDs are GUID v7 (`Guid.CreateVersion7()`): they cannot be guessed like a sequential number and they index well.
+
+## Authentication: httpOnly cookies
+ 
+The browser's JavaScript never touches the tokens: they stay in httpOnly cookies, which an XSS attack cannot read. To know who is signed in, the front end calls `GET /api/auth/me`.
+ 
+**The two cookies**
+ 
+| Cookie | Content | Lifetime | Attributes |
+| --- | --- | --- | --- |
+| `access_token` | JWT with `sub` and `role`, no personal data | 15 minutes | HttpOnly, Secure, SameSite=Lax, Path=/ |
+| `refresh_token` | Opaque random value, stored in the DB only as a hash | 7 days | HttpOnly, Secure, SameSite=Strict, Path=/api/auth |
+ 
+**Flow**
+ 
+1. `POST /api/auth/login`: the API validates the credentials with Identity and answers with the two cookies.
+2. Every request carries the `access_token` automatically; ASP.NET Core's JwtBearer reads it from the cookie (`OnMessageReceived` event).
+3. On a 401, the client calls `POST /api/auth/refresh` once and repeats the request. Only one refresh is in progress at a time: within a tab, requests share the same refresh; between tabs, the Web Locks API (`navigator.locks`) lets one tab at a time renew, and whoever gets the lock first repeats the original request, because another tab may already have renewed (the cookies are shared). Without `navigator.locks`, only the per-tab rule applies.
+4. Each refresh rotates the token: the old one becomes invalid and a new one is issued. If an already used token shows up again on refresh, all of that user's tokens are revoked (a theft signal); the same happens when `POST /api/auth/logout` receives an already used token, and when refresh is requested for a deactivated account.
+5. `POST /api/auth/logout` revokes the refresh token in the DB and deletes the two cookies.
+
+**Same origin, mandatory**
+ 
+The front end and the API have to be on the same site: Caddy (in production) or the Next.js rewrites (in development) send `/api/*` to .NET. That way the cookies are first-party and there is no CORS. A front end on a `vercel.app` domain and an API on another domain make the cookies third-party, and browsers block them.
+ 
+**In Next.js**
+ 
+- Server Components read the cookie with `cookies()` and pass the `Cookie` header when they call the API.
+- Server Components cannot write cookies, and the server never renews the session. Decided (US03): the `refresh_token` cookie has `Path=/api/auth`, so page requests do not carry it and Next.js has no way to refresh. There is no token renewal in `proxy.ts`; refreshes always come from the browser.
+- The server guards live in the layouts of the areas (`/manage` for the Owner, `/admin` for the Admin) and, for the player's bookings, in the layout of `/bookings` (`PlayerGuard`): a helper in `lib/server` (`import 'server-only'`) calls `GET /api/auth/me` at the API's internal URL with the user's `Cookie` header and `cache: 'no-store'`. No valid session → `/login?next=<area path>`; session of another profile → that user's area. With `cacheComponents`, the guard reads cookies, so it sits inside a `<Suspense>`. The public pages (`/`, search, club pages) stay open to everyone.
+- `proxy.ts` (`src/proxy.ts`) puts the requested path (with the query) in the `x-pathname` request header, always over any value sent by the client, for `/manage`, `/admin` and `/bookings`. The guards read it to build `next=<full path>`, which goes through `safeNext`. It does not renew tokens, does not redirect and does not decide access. It also does a second thing, for the HTTP status: it answers **404** to an id that cannot exist (a malformed GUID in `/manage/clubs/{id}…` and `/admin/owners/{id}`, an impossible slug in `/clubs/{slug}`) and to a public club that the API does not have (`GET /api/clubs/{slug}` with 404). A page that streams (`loading.tsx`, `<Suspense>`) fixes the 200 on the first byte, and a `notFound()` after that shows the page but keeps the 200 (with `noindex`); Next.js documents the check in the Proxy, before the page starts sending. The club is requested from the API once a minute per slug (process memory), only on real page loads (not on prefetches or client navigations) and, if the API fails or takes longer than 3 s, the page goes through and decides for itself (never an error because of the proxy). Known limit: a well-formed GUID that does not exist (another owner's club, for example) is only known with the session, which the proxy does not read; it still answers 200 with the client's "not found" screen (these are pages behind a login). The status is tested in `src/proxy-not-found.test.ts` and in `frontend/scripts/check-not-found.mjs`, which runs in CI against the build with a simulated API.
+- An expired access token leads to `/login?next=...`. The login page first tries, in the browser, a silent `POST /api/auth/refresh`: with 204 it goes on to `next` (if it is a relative path in the user's area; otherwise, the profile's home page), otherwise it shows the form.
+- The guards are only a convenience (redirects). Whoever decides access is always the API (401/403).
+
+**CSRF and brute force**
+ 
+- Since the browser sends cookies by itself, requests that change data need protection: SameSite=Lax blocks POSTs coming from other sites, and the API rejects POST, PUT, PATCH and DELETE whose `Origin` header is not the site's.
+- Identity account lockout after several failed attempts and rate limiting (built-in middleware) per IP on login, the two registrations, refresh and the two password recovery steps (not on logout or on `GET /api/auth/me`) and on the public read endpoints (search, localities, club page and slots).
+- Deactivating an owner (US29) or changing the password revokes the refresh tokens; the session ends at most when the access token expires (15 minutes).
+- `POST /api/auth/refresh` always checks that the account is active before issuing tokens; a deactivated account gets 401 and does not renew the session.
+- **Known trade-off:** the access token is a stateless JWT, validated without going to the database. An already issued token stays valid until it expires (15 minutes at most), even after the account is deactivated. The short lifetime and the check on refresh limit that window. There is no active-account check on every request.
+
+## Front end: server and client
+ 
+Server Components by default; `'use client'` only where there is interaction, and as low as possible in the tree.
+ 
+| Where it runs | What for | Examples | How it gets data |
+| --- | --- | --- | --- |
+| Server Component | Showing data on the first render | Club page, admin totals | `fetch` to the internal API with the `Cookie` header, no cache (`cache: 'no-store'`) |
+| Client Component | Interaction | Forms, booking flow, `As minhas reservas` (My bookings), calendar navigation, charts, filters | TanStack Query over `/api/*` (same origin, the cookies go along by themselves) |
+ 
+**Rules**
+ 
+- Code that reads cookies or uses the API's internal URL imports `server-only`, so it never ends up in the browser bundle.
+- Each area has its own `layout.tsx`, which on the server calls `/api/auth/me` and redirects if the profile does not match. It is a convenience: the API still decides access.
+- `loading.tsx` and `error.tsx` in each route segment; mutation errors appear as a toast.
+- Only `NEXT_PUBLIC_*` variables reach the browser; no secret uses that prefix.
+
+**State: TanStack Query and the page address**
+
+- Data that comes from the API stays in TanStack Query. After booking or cancelling, it invalidates the affected queries (free slots, my bookings); on a 409, it reloads the slots.
+- **There is no Zustand.** What the user chooses lives in the page address, read with `useSearchParams` and written with `router.replace`: in booking `?pitch=&date=&slot=&weeks=` (`features/booking/selection.ts`), in the calendar `?date=&view=&pitch=&cancelled=&booking=`, in searches and lists the filters and the page. There are two reasons. Someone without a session who is sent to login (`/login?next=<this address>`) comes back to the same club, pitch, date and slot. And the link is shareable and works with the "Back" button and on reload. An in-memory store lost the choice on every redirect and created a second version of the truth.
+- Default values are not written in the address (today, one week, the first page) and a meaningless value counts as the default.
+- Never copy API data into other state; never tokens or personal data in `localStorage`.
+- If one day shared UI state is needed that makes no sense in the address, a small store per feature is used, only in Client Components and created per request if it is needed in SSR; today no feature asks for it.
+
+**Forms with Zod**
+ 
+- React Hook Form with `zodResolver`; one schema per form, in the feature's folder.
+- Zod serves the user experience, not security: the API always validates again.
+- The API's validation errors (`errors` in the ProblemDetails) are put on the right field with `setError`.
+
+**Structure**
  
 ```text
 frontend/src/
   app/
-    (player)/      início e pesquisa, clubs/[slug], bookings (as minhas reservas)
-    manage/        área do dono (clubes, calendário, estatísticas)
-    admin/         área do admin (painel, owners/[id])
-    login/  register/ (e register/owner)  forgot-password/  reset-password/
-  proxy.ts         escreve o caminho pedido no cabeçalho x-pathname (regresso depois do login) e responde 404 a ids que não existem
+    (player)/      home and search, clubs/[slug], bookings (my bookings)
+    manage/        owner area (clubs, calendar, statistics)
+    admin/         admin area (dashboard, owners/[id])
+    login/  register/ (and register/owner)  forgot-password/  reset-password/
+  proxy.ts         writes the requested path to the x-pathname header (return after login) and answers 404 to ids that do not exist
   features/
     auth/  catalog/  booking/  my-bookings/
     clubs/  pitches/  calendar/  statistics/  admin/
-                   cada uma com components/, schemas/ quando há formulários, api.ts e testes ao lado
+                   each with components/, schemas/ when there are forms, api.ts and tests next to them
   lib/
-    api/           tipos gerados do OpenAPI, cliente do browser, mensagens por código
-    server/        chamadas à API a partir do servidor (server-only)
-    auth/          decisões de redirecionamento (funções puras)
-    datetime.ts    datas sempre em hora de Lisboa
-  components/      cabeçalhos e guardas das áreas, campos de formulário, filtro de período
-  components/ui/   componentes shadcn/ui
+    api/           types generated from OpenAPI, browser client, messages by code
+    server/        API calls from the server (server-only)
+    auth/          redirect decisions (pure functions)
+    datetime.ts    dates always in Lisbon time
+  components/      area headers and guards, form fields, period filter
+  components/ui/   shadcn/ui components
 ```
  
-## Dados: EF Core, PostgreSQL e concorrência
+## Data: EF Core, PostgreSQL and concurrency
  
-A regra mais importante da app, nunca haver duas reservas no mesmo campo e hora, vive na base de dados e não só no código.
+The app's most important rule, never two bookings on the same pitch and time, lives in the database and not only in the code.
  
-**Reservas sobrepostas (T03)**
+**Overlapping bookings (T03)**
  
-Uma exclusion constraint, criada numa migração com `migrationBuilder.Sql`:
+An exclusion constraint, created in a migration with `migrationBuilder.Sql`:
  
 ```sql
 CREATE EXTENSION IF NOT EXISTS btree_gist;
@@ -174,103 +183,110 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_no_overlap
   ) WHERE (status = 'Confirmed');
 ```
  
-- O estado guarda-se como texto (`HasConversion<string>()`) para a condição funcionar.
-- Uma violação dá o erro PostgreSQL `23P01` (exclusion\_violation), que a API traduz para 409.
-- Bloqueios e reservas estão em tabelas diferentes, e a constraint não cobre as duas. Criar uma reserva e criar um bloqueio começam ambos por trancar a linha do campo (`SELECT … FOR UPDATE`) dentro da transação, e só depois verificam a sobreposição.
-**Datas (T04)**
+- The status is stored as text (`HasConversion<string>()`) so the condition works.
+- A violation gives PostgreSQL error `23P01` (exclusion\_violation), which the API translates into 409.
+- Blocks and bookings are in different tables, and the constraint does not cover both. Creating a booking and creating a block both start by locking the pitch's row (`SELECT … FOR UPDATE`) inside the transaction, and only then check the overlap.
+
+**Dates (T04)**
  
-- Colunas `timestamptz` e `DateTime` sempre em UTC no C# (o Npgsql recusa `DateTime` sem `Kind` UTC nessas colunas).
-- Horários de funcionamento como dia da semana e `TimeOnly`, mais o fuso do clube (`Europe/Lisbon`).
-- A geração de slots converte hora local para UTC com `TimeZoneInfo.FindSystemTimeZoneById("Europe/Lisbon")`.
-- Testes para as mudanças de hora de 2026: 29 de março (a hora entre a 1h e as 2h não existe) e 25 de outubro (a hora entre a 1h e as 2h repete-se).
-- Regras decididas: uma hora local que não existe avança para depois do salto (01:30 passa a 02:30); uma hora que se repete usa a primeira ocorrência (hora de verão). Os slots são blocos de tempo real a partir da abertura, por isso nesses dias há menos um ou mais um slot. Na hora repetida, a UI mostra «(verão)» ou «(inverno)».
-- Limitação conhecida do MVP: o fecho mais tarde é às 00:00; horários que passam da meia-noite não são suportados.
+- `timestamptz` columns and `DateTime` always in UTC in C# (Npgsql refuses a `DateTime` without UTC `Kind` in those columns).
+- Opening hours as weekday and `TimeOnly`, plus the club's time zone (`Europe/Lisbon`).
+- Slot generation converts local time to UTC with `TimeZoneInfo.FindSystemTimeZoneById("Europe/Lisbon")`.
+- Tests for the 2026 clock changes: 29 March (the hour between 1:00 and 2:00 does not exist) and 25 October (the hour between 1:00 and 2:00 repeats).
+- Decided rules: a local time that does not exist moves forward past the gap (01:30 becomes 02:30); a time that repeats uses the first occurrence (summer time). Slots are blocks of real time from opening, so on those days there is one slot fewer or one more. In the repeated hour, the UI shows `(verão)` ("(summer)") or `(inverno)` ("(winter)").
+- Known MVP limitation: the latest closing time is 00:00; schedules that go past midnight are not supported.
+
 **Queries**
  
-- Leituras com `AsNoTracking()` e projeção direta para DTOs com `Select`; nunca devolver entidades na API.
-- Listas sempre paginadas e com ordem definida.
-- Índices nas colunas dos filtros: reservas por campo e início, reservas por jogador e início, clubes por localidade.
-- Estatísticas do admin com `GROUP BY`, `COUNT(DISTINCT …)` e `date_trunc`; os períodos sem reservas são preenchidos com zero (no serviço, ou com `generate_series` em SQL).
-- Dinheiro em `numeric(10,2)` e `decimal` no C#, nunca `float`.
-**Migrações**
+- Reads with `AsNoTracking()` and direct projection to DTOs with `Select`; never return entities in the API.
+- Lists always paginated and with a defined order.
+- Indexes on the filter columns: bookings by pitch and start, bookings by player and start, clubs by locality.
+- Admin statistics with `GROUP BY`, `COUNT(DISTINCT …)` and `date_trunc`; periods without bookings are filled with zero (in the service, or with `generate_series` in SQL).
+- Money in `numeric(10,2)` and `decimal` in C#, never `float`.
+
+**Migrations**
  
-- Versionadas no repositório; uma migração já aplicada nunca se edita, corrige-se com outra.
-- Em produção aplicam-se no deploy com um migration bundle (`dotnet ef migrations bundle`), não no arranque da API.
-- Os dados de demonstração (T05) ficam fora das migrações.
-## Validação e erros
+- Versioned in the repository; an already applied migration is never edited, it is fixed with another one.
+- In production they are applied on deploy with a migration bundle (`dotnet ef migrations bundle`), not at API startup.
+- Demo data (T05) stays outside the migrations.
+
+## Validation and errors
  
-Três camadas de validação, cada uma com o seu papel, e todos os erros da API no mesmo formato: ProblemDetails (RFC 9457).
+Three layers of validation, each with its own role, and all API errors in the same format: ProblemDetails (RFC 9457).
  
-| Camada | Ferramenta | Valida | Exemplo |
+| Layer | Tool | Validates | Example |
 | --- | --- | --- | --- |
-| Browser | Zod | Forma dos dados, para feedback imediato | Email válido, palavra-passe com 8 caracteres |
-| API | FluentValidation | Forma dos pedidos, sempre, venha de onde vier | Data de fim depois da de início |
-| Domínio | Métodos das entidades e serviços | Regras de negócio | Cancelamento dentro da janela, slot livre |
+| Browser | Zod | Shape of the data, for immediate feedback | Valid email, password with 8 characters |
+| API | FluentValidation | Shape of the requests, always, wherever they come from | End date after the start date |
+| Domain | Entity and service methods | Business rules | Cancellation within the window, free slot |
  
-**Códigos HTTP**
+**HTTP codes**
  
-| Código | Quando |
+| Code | When |
 | --- | --- |
-| 400 | Pedido inválido; o ProblemDetails traz `errors` por campo |
-| 401 | Sem sessão ou token expirado |
-| 403 | Sessão válida, perfil errado |
-| 404 | Não existe, ou pertence a outro dono |
-| 409 | Conflito: slot ocupado, sobreposição com bloqueio |
-| 422 | Regra de negócio violada: cancelamento fora da janela, campo inativo |
-| 429 | Demasiados pedidos (rate limiting) |
-| 500 | Erro inesperado: registado no log, sem detalhes internos na resposta |
+| 400 | Invalid request; the ProblemDetails carries `errors` per field |
+| 401 | No session or expired token |
+| 403 | Valid session, wrong profile |
+| 404 | Does not exist, or belongs to another owner |
+| 409 | Conflict: slot taken, overlap with a block |
+| 422 | Business rule violated: cancellation outside the window, inactive pitch |
+| 429 | Too many requests (rate limiting) |
+| 500 | Unexpected error: logged, with no internal details in the response |
  
-**Regras**
+**Rules**
  
-- `AddProblemDetails()` e um `IExceptionHandler` global; nenhum controller tem `try/catch` para erros genéricos.
-- Cada erro leva um `code` estável (por exemplo, `slot_taken`, `outside_cancellation_window`) e o `traceId`. O front end escolhe a mensagem pelo `code`, nunca pelo texto.
-- Nada de stack traces nem mensagens de exceção nas respostas em produção.
-## Testes
+- `AddProblemDetails()` and a global `IExceptionHandler`; no controller has a `try/catch` for generic errors.
+- Each error carries a stable `code` (for example, `slot_taken`, `outside_cancellation_window`) and the `traceId`. The front end picks the message by `code`, never by the text.
+- No stack traces or exception messages in responses in production.
+
+## Tests
  
-Os testes de integração correm contra um PostgreSQL real, porque as regras mais importantes (sobreposição, fusos) só existem lá.
+Integration tests run against a real PostgreSQL, because the most important rules (overlap, time zones) only exist there.
  
-| Tipo | Ferramentas | O que cobre | Exemplos |
+| Type | Tools | What it covers | Examples |
 | --- | --- | --- | --- |
-| Unitários (back end) | xUnit, Shouldly, `FakeTimeProvider` | Regras do domínio e dos serviços | Janela de cancelamento, geração de slots nas mudanças de hora |
-| Integração (back end) | xUnit, `WebApplicationFactory`, Testcontainers (PostgreSQL) | Endpoints completos, da autenticação à base de dados | Dono A não vê dados do dono B (T02); pedidos simultâneos para o mesmo slot (T03); códigos e `code` dos erros |
-| Componentes (front end) | Vitest, React Testing Library, MSW | Comportamento da UI com a API simulada | Erros por campo no registo; mensagem e lista atualizada depois de um 409 |
-| End-to-end | Playwright (Chromium), docker compose com os dados de demonstração | Quatro fluxos: o jogador reserva e cancela; dois jogadores querem o mesmo horário; o dono vê a reserva e um clube inexistente dá 404 (T08, `e2e/`); uma conta nova exporta os dados, apaga-se e deixa de entrar (US30) | O jogador cancela; o segundo jogador recebe o 409 `slot_taken` |
+| Unit (back end) | xUnit, Shouldly, `FakeTimeProvider` | Domain and service rules | Cancellation window, slot generation on clock changes |
+| Integration (back end) | xUnit, `WebApplicationFactory`, Testcontainers (PostgreSQL) | Complete endpoints, from authentication to the database | Owner A does not see owner B's data (T02); simultaneous requests for the same slot (T03); error codes and `code`s |
+| Components (front end) | Vitest, React Testing Library, MSW | UI behaviour with the API simulated | Per-field errors on registration; message and updated list after a 409 |
+| End-to-end | Playwright (Chromium), docker compose with the demo data | Four flows: the player books and cancels; two players want the same time; the owner sees the booking and a non-existent club gives 404 (T08, `e2e/`); a new account exports its data, deletes itself and can no longer sign in (US30) | The player cancels; the second player gets the 409 `slot_taken` |
  
-**End-to-end.** Há quatro testes Playwright em `e2e/` (T08, [ADR 0010](architecture/adr/0010-testes-end-to-end-playwright.md)): só Chromium, contra o `docker compose` do repositório com os dados de demonstração, num workflow à parte (`e2e.yml`) para não atrasar o deploy. Correm em local com `npm run e2e` em `e2e/` (README, «Running the E2E tests»). Os restantes fluxos e os ecrãs continuam a verificar-se à mão no browser antes de cada merge de uma história com interface (com a stack e o Mailpit, ou com scripts temporários que não ficam no repositório), e conferem-se os emails e os logs; não se acrescentam fluxos end-to-end sem necessidade, porque cada um custa tempo de CI e risco de instabilidade.
+**End-to-end.** There are four Playwright tests in `e2e/` (T08, [ADR 0010](architecture/adr/0010-playwright-end-to-end-tests.md)): Chromium only, against the repository's `docker compose` with the demo data, in a separate workflow (`e2e.yml`) so it does not slow down the deploy. They run locally with `npm run e2e` in `e2e/` (README, "Running the E2E tests"). The remaining flows and screens are still checked by hand in the browser before each merge of a story with an interface (with the stack and Mailpit, or with temporary scripts that do not stay in the repository), and the emails and logs are checked; end-to-end flows are not added without need, because each one costs CI time and a risk of instability.
  
-**Regras**
+**Rules**
  
-- O provider em memória do EF Core não serve para integração: não aplica constraints nem transações como o PostgreSQL.
-- Cada bug encontrado ganha primeiro um teste que o reproduz, e só depois a correção.
-- Sem meta de percentagem de cobertura: o que tem de estar coberto são as regras de negócio e os casos de erro.
-- Evitar o FluentAssertions 8, que passou a licença comercial; o Shouldly (ou os `Assert` do xUnit) chegam.
-## Segurança: checklist
+- EF Core's in-memory provider is no good for integration: it does not apply constraints or transactions like PostgreSQL.
+- Each bug found first gets a test that reproduces it, and only then the fix.
+- No percentage coverage target: what has to be covered are the business rules and the error cases.
+- Avoid FluentAssertions 8, which moved to a commercial licence; Shouldly (or xUnit's `Assert`) is enough.
+
+## Security: checklist
  
-Para ir marcando à medida que fica feito.
+To tick off as it gets done.
  
-- [x] Política de fallback que exige autenticação em todos os endpoints; os públicos (pesquisa, página do clube, login, registo) levam `[AllowAnonymous]` de forma explícita. (US01)
-- [x] Autorização por perfil e por dono em todos os endpoints de clube, com testes (T02, `OwnedClubs`; o teste de acesso descobre os endpoints novos sozinho). (US06)
-- [x] Cookies httpOnly, Secure e SameSite como na secção de autenticação; verificação do `Origin` em POST, PUT, PATCH e DELETE. (US01)
-- [x] Conta de admin só por seed; nenhum caminho na API dá o perfil Admin (US04, com teste de guarda).
-- [x] Bloqueio de conta do Identity e rate limiting nas rotas de autenticação (login, registo, refresh e os dois passos da recuperação de palavra-passe). (US03, US05)
-- [x] Mensagens genéricas no login e na recuperação de palavra-passe (não revelam se o email existe). (US03, US05: o pedido responde sempre o mesmo 202 e a confirmação dá sempre o mesmo 400 para uma ligação má.)
-- [x] HTTPS em todo o lado e HSTS em produção. Verificado em 2026-11-10: o site publicado envia `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, um valor que vem da plataforma (a Vercel), não do código (que escreve `max-age=31536000`). `ENABLE_HSTS=true` no build é a opção da própria aplicação (desligada por omissão); não se verificou se está ligada no build de produção. A API não envia HSTS (ver o backlog, T06).
-- [x] Cabeçalhos de segurança: Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy e `frame-ancestors` no site; `X-Content-Type-Options` e sem `Server` na API (T06, `frontend/src/lib/security-headers.ts`, testado). A `/reset-password` mantém `Referrer-Policy: no-referrer` e `Cache-Control: no-store`. **Limite conhecido:** a política permite `'unsafe-inline'` em scripts e estilos (ver o backlog, T06).
-- [x] Segredos em variáveis de ambiente (user-secrets em desenvolvimento); `.env` no `.gitignore`. O código lê a chave do JWT, a conta de admin, o SMTP e a ligação à base de dados de variáveis de ambiente, e a API não arranca com definições obrigatórias em falta (testado com os validadores das opções); a única chave no repositório é a de desenvolvimento, que só serve em desenvolvimento. A configuração dos segredos em produção é a T06.
-- [x] SQL à mão só com parâmetros (`FromSql`, `SqlQuery` e `ExecuteSql` com interpolação, que parametriza); nunca concatenar strings. Todo o SQL à mão da Infrastructure é assim.
-- [x] Nada de palavras-passe, tokens nem cookies nos logs. Testado onde o risco existe: o comando do admin, as reservas e os emails (nenhum endereço, corpo ou segredo chega aos logs) e a recuperação de palavra-passe.
-- [x] Admin vê só contagens, nunca nomes ou emails de jogadores. Cada endpoint da área tem um teste que procura o nome, o email e o id de um jogador na resposta.
-- [x] `dotnet list package --vulnerable` e `npm audit` no CI.
-- [x] Dependabot ligado (`.github/dependabot.yml`: NuGet, npm, GitHub Actions e os `Dockerfile` do back end e do front end, todas as semanas, uma PR agrupada por ecossistema para as atualizações menores e de correção, com 14 dias de espera para versões novas; as atualizações maiores vêm uma a uma e revêem-se à mão). (T06)
-## Repositório, Git, CI e deploy
+- [x] Fallback policy that requires authentication on every endpoint; the public ones (search, club page, login, registration) carry `[AllowAnonymous]` explicitly. (US01)
+- [x] Authorization by profile and by owner on every club endpoint, with tests (T02, `OwnedClubs`; the access test discovers new endpoints by itself). (US06)
+- [x] httpOnly, Secure and SameSite cookies as in the authentication section; `Origin` check on POST, PUT, PATCH and DELETE. (US01)
+- [x] Admin account only by seed; no path in the API gives the Admin profile (US04, with a guard test).
+- [x] Identity account lockout and rate limiting on the authentication routes (login, registration, refresh and the two password recovery steps). (US03, US05)
+- [x] Generic messages on login and password recovery (they do not reveal whether the email exists). (US03, US05: the request always answers the same 202 and the confirmation always gives the same 400 for a bad link.)
+- [x] HTTPS everywhere and HSTS in production. Verified on 2026-11-10: the published site sends `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, a value that comes from the platform (Vercel), not from the code (which writes `max-age=31536000`). `ENABLE_HSTS=true` at build time is the application's own option (off by default); it was not verified whether it is on in the production build. The API does not send HSTS (see the backlog, T06).
+- [x] Security headers: Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy and `frame-ancestors` on the site; `X-Content-Type-Options` and no `Server` on the API (T06, `frontend/src/lib/security-headers.ts`, tested). `/reset-password` keeps `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. **Known limit:** the policy allows `'unsafe-inline'` in scripts and styles (see the backlog, T06).
+- [x] Secrets in environment variables (user-secrets in development); `.env` in `.gitignore`. The code reads the JWT key, the admin account, SMTP and the database connection from environment variables, and the API does not start with required settings missing (tested with the options validators); the only key in the repository is the development one, which is only good in development. Configuring the secrets in production is T06.
+- [x] Hand-written SQL only with parameters (`FromSql`, `SqlQuery` and `ExecuteSql` with interpolation, which parameterizes); never concatenate strings. All the hand-written SQL in Infrastructure is like this.
+- [x] No passwords, tokens or cookies in the logs. Tested where the risk exists: the admin command, bookings and emails (no address, body or secret reaches the logs) and password recovery.
+- [x] The admin sees only counts, never players' names or emails. Every endpoint of the area has a test that looks for a player's name, email and id in the response.
+- [x] `dotnet list package --vulnerable` and `npm audit` in CI.
+- [x] Dependabot on (`.github/dependabot.yml`: NuGet, npm, GitHub Actions and the back end and front end `Dockerfile`s, every week, one PR grouped per ecosystem for minor and patch updates, with a 14-day wait for new versions; major updates come one by one and are reviewed by hand). (T06)
+
+## Repository, Git, CI and deploy
  
-Um só repositório, `main` só alterada por pull requests (sem proteção de branch no GitHub, ver abaixo) e deploy automático de tudo o que passa no CI.
+A single repository, `main` changed only by pull requests (no branch protection on GitHub, see below) and automatic deploy of everything that passes CI.
  
 ```text
 /
   backend/
   frontend/
-  docs/                backlog, diagramas C4, decisões (ADRs)
+  docs/                backlog, C4 diagrams, decisions (ADRs)
   docker-compose.yml
   Caddyfile
   .github/workflows/   ci.yml, deploy.yml
@@ -278,26 +294,30 @@ Um só repositório, `main` só alterada por pull requests (sem proteção de br
  
 **Git**
  
-- A regra é que a `main` só recebe pull requests com o CI verde, mesmo trabalhando sozinho. **Hoje não há proteção de branch na `main`** (nenhuma regra nas definições do GitHub): o CI verde confirma-se à mão antes de cada merge.
-- Branches curtas com o ID da história (`feat/US18-reservar-slot`) e squash merge.
-- Commits no formato Conventional Commits (`feat:`, `fix:`, `test:`), com o ID da história.
-- Decisões importantes em ADRs curtos em `docs/architecture/adr/` (uma app em vez de duas, cookies em vez de localStorage, a exclusion constraint).
+- The rule is that `main` only receives pull requests with green CI, even when working alone. **Today there is no branch protection on `main`** (no rule in GitHub's settings): green CI is checked by hand before each merge.
+- Short branches with the story ID (`feat/US18-book-slot`) and squash merge.
+- Commits in Conventional Commits format (`feat:`, `fix:`, `test:`), with the story ID.
+- Important decisions in short ADRs in `docs/architecture/adr/` (one app instead of two, cookies instead of localStorage, the exclusion constraint).
+
 **CI (GitHub Actions)**
  
-- Back end: restore, build e testes, incluindo os de integração com Testcontainers (os runners Ubuntu do GitHub têm Docker).
-- Front end: lint, verificação de tipos, testes e build.
-- Testes end-to-end (Playwright) num workflow à parte, `e2e.yml`, que o deploy não espera (ver Testes).
-- Verificação de pacotes vulneráveis em ambos.
+- Back end: restore, build and tests, including the integration ones with Testcontainers (GitHub's Ubuntu runners have Docker).
+- Front end: lint, type check, tests and build.
+- End-to-end tests (Playwright) in a separate workflow, `e2e.yml`, which the deploy does not wait for (see Tests).
+- Check for vulnerable packages in both.
+
 **Deploy**
  
-- Uma máquina virtual com docker compose: Caddy, Next.js (imagem com `output: 'standalone'`), API e PostgreSQL.
-- O CI constrói as imagens e publica-as no GitHub Container Registry; o deploy entra por SSH, aplica o migration bundle e faz `docker compose up -d`.
-- O Caddy trata dos certificados HTTPS e encaminha `/api/*` para a API e o resto para o Next.js, na mesma origem.
-- Cópia diária da base de dados com `pg_dump`.
-- Alternativa, se quiseres Azure no CV: Azure Container Apps com Azure Database for PostgreSQL. Confirma os custos e os níveis gratuitos antes de escolher.
-## Fontes
+- A virtual machine with docker compose: Caddy, Next.js (image with `output: 'standalone'`), API and PostgreSQL.
+- CI builds the images and publishes them to the GitHub Container Registry; the deploy comes in over SSH, applies the migration bundle and runs `docker compose up -d`.
+- Caddy handles the HTTPS certificates and forwards `/api/*` to the API and the rest to Next.js, on the same origin.
+- Daily database backup with `pg_dump`.
+- Alternative, if you want Azure on your CV: Azure Container Apps with Azure Database for PostgreSQL. Check the costs and the free tiers before choosing.
+
+## Sources
  
-- [MediatR and MassTransit Going Commercial: What This Means For You](https://www.milanjovanovic.tech/blog/mediatr-and-masstransit-going-commerical-what-this-means-for-you) — MediatR e AutoMapper passam a licença comercial (2025).
-- [Fluent Assertions shifts to restrictive license](https://www.devclass.com/development/2025/01/16/another-open-source-project-shifts-to-restrictive-license-fluent-assertions-following-xceed-partnership/1621343) — a versão 8 exige licença paga para uso comercial; a 7 continua gratuita.
-- [Next.js Proxy Replaces Middleware](https://johnkavanagh.co.uk/articles/next-js-proxy-replaces-middleware/) — no Next.js 16, `middleware.ts` passa a `proxy.ts`.
-O resto do documento vem de conhecimento geral das ferramentas, sem fonte específica; confirma as versões na documentação oficial quando criares o projeto.
+- [MediatR and MassTransit Going Commercial: What This Means For You](https://www.milanjovanovic.tech/blog/mediatr-and-masstransit-going-commerical-what-this-means-for-you) — MediatR and AutoMapper move to a commercial licence (2025).
+- [Fluent Assertions shifts to restrictive license](https://www.devclass.com/development/2025/01/16/another-open-source-project-shifts-to-restrictive-license-fluent-assertions-following-xceed-partnership/1621343) — version 8 requires a paid licence for commercial use; version 7 stays free.
+- [Next.js Proxy Replaces Middleware](https://johnkavanagh.co.uk/articles/next-js-proxy-replaces-middleware/) — in Next.js 16, `middleware.ts` becomes `proxy.ts`.
+
+The rest of the document comes from general knowledge of the tools, with no specific source; check the versions in the official documentation when you create the project.

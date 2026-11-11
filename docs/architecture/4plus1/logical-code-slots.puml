@@ -1,11 +1,11 @@
-' 4+1 vista lógica (código, C4 nível 4) - Código (C4 nível 4) · geração de slots, «livre» e preço de um slot
+' 4+1 logical view (code, C4 level 4) - Code (C4 level 4) · slot generation, «free» and a slot's price
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: Os slots são calculados por SlotGenerator, nunca guardados (ADR 0007); «livre» e o preço de um slot têm uma só definição.
-' Não desenhado: os componentes que chamam estas classes.
+' For: whoever writes the code.
+' Documented decision: Slots are calculated by SlotGenerator, never stored (ADR 0007); «free» and a slot's price each have a single definition.
+' Not drawn: the components that call these classes.
 @startuml logical-code-slots
 !include ../style.puml
-title Vista lógica - código (C4 nível 4): geração de slots, «livre» e preço de um slot
+title Logical view - code (C4 level 4): slot generation, «free» and a slot's price
 
 hide empty members
 
@@ -55,7 +55,7 @@ package "Dom/Pitches" {
   }
 }
 
-package "App/Pitches e App/Bookings" {
+package "App/Pitches and App/Bookings" {
   class "PitchDayCalendar" as CC_DAYCAL {
     + SlotsAsync(pitches, date, ct) : Task<IReadOnlyDictionary<Guid, IReadOnlyList<DaySlot>>>
   }
@@ -74,41 +74,41 @@ package "App/Pitches e App/Bookings" {
   }
 }
 
-D_PITCH --> CC_CLUBTIME_OpeningHours : HoursOn (de PitchOpeningDay)
-D_PITCH ..> CC_CLUBTIME_SlotGenerator : SlotsOn chama Generate
-D_PITCH ..> CC_CLUBTIME_ClubTime : SlotStartingAt e PriceForSlot: ToLocal
-D_PITCH --> "0..20" D_PRICEBAND : PriceForSlot: a primeira que Covers
+D_PITCH --> CC_CLUBTIME_OpeningHours : HoursOn (from PitchOpeningDay)
+D_PITCH ..> CC_CLUBTIME_SlotGenerator : SlotsOn calls Generate
+D_PITCH ..> CC_CLUBTIME_ClubTime : SlotStartingAt and PriceForSlot: ToLocal
+D_PITCH --> "0..20" D_PRICEBAND : PriceForSlot: the first one that Covers
 CC_CLUBTIME_SlotGenerator ..> CC_CLUBTIME_OpeningHours : UtcIntervalOn
 CC_CLUBTIME_SlotGenerator ..> CC_CLUBTIME_SlotDuration : Length
-CC_CLUBTIME_SlotGenerator ..> D_SLOT : cria
+CC_CLUBTIME_SlotGenerator ..> D_SLOT : creates
 CC_CLUBTIME_OpeningHours ..> CC_CLUBTIME_ClubTime : ToUtc
-CC_DAYCAL ..> CC_DAYCAL_PitchInZone : recebe
+CC_DAYCAL ..> CC_DAYCAL_PitchInZone : receives
 CC_DAYCAL ..> D_PITCH : SlotsOn
-CC_DAYCAL ..> CC_DAYCAL_DaySlot : cria
+CC_DAYCAL ..> CC_DAYCAL_DaySlot : creates
 CC_DAYCAL_DaySlot --> D_SLOT : HasStartedBy
 CC_SLOTCHECK ..> D_PITCH : SlotStartingAt
 CC_SLOTCHECK ..> CC_CLUBTIME_BookingWindow : Contains
 CC_SLOTCHECK ..> CC_CLUBTIME_ClubTime : ToLocal, Today
 
 note bottom of CC_CLUBTIME_SlotGenerator
-  Slots consecutivos de duração exata desde a abertura,
-  medidos em tempo real entre instantes UTC:
+  Consecutive slots of exact duration from opening,
+  measured in real time between UTC instants:
   for (start = opensAt; start + length ≤ closesAt; start += length).
-  25 h a 25/10/2026 e 23 h a 29/03/2026 em Lisboa.
+  25 h on 2026-10-25 and 23 h on 2026-03-29 in Lisbon.
 end note
 
 note bottom of CC_CLUBTIME_ClubTime
-  Hora que não existe (adiantar): avança pelo intervalo
-  (01:30 → 02:30 WEST). Hora repetida (atrasar): a primeira
-  ocorrência (WEST). Fecho 00:00 = meia-noite (dia seguinte).
+  A time that does not exist (clocks forward): moves forward past the gap
+  (01:30 → 02:30 WEST). A repeated time (clocks back): the first
+  occurrence (WEST). Closing 00:00 = midnight (next day).
 end note
 
 note bottom of CC_DAYCAL_DaySlot
   IsFreeAt = !Blocked && !Booked && !Slot.HasStartedBy(now):
-  a única definição de «livre» (pré-visualização do dono,
-  slots públicos, pesquisa). Blocked/Booked: qualquer
-  sobreposição meio aberta com um bloqueio ou uma
-  reserva Confirmed (uma consulta de cada para todos os campos).
+  the single definition of «free» (owner preview,
+  public slots, search). Blocked/Booked: any
+  half-open overlap with a block or a
+  Confirmed booking (one query of each for all pitches).
 end note
 
 @enduml

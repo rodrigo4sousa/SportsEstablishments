@@ -1,11 +1,11 @@
-' 4+1 vista lógica - Modelo do domínio · contas, sessões, histórico dos donos e outbox
+' 4+1 logical view - Domain model · accounts, sessions, owner history and outbox
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: A conta (AppUser), o refresh token e o histórico dos donos vivem na Infrastructure e a mensagem do outbox na Application; no Domain a conta existe só como regras (Dom/Accounts).
-' Não desenhado: controllers, HTTP e ecrãs; os clubes, campos e reservas estão em logical-domain-booking.
+' For: whoever writes the code.
+' Documented decision: The account (AppUser), the refresh token and the owner history live in Infrastructure and the outbox message in Application; in Domain the account exists only as rules (Dom/Accounts).
+' Not drawn: controllers, HTTP and screens; clubs, pitches and bookings are in logical-domain-booking.
 @startuml logical-domain-accounts
 !include ../style.puml
-title Vista lógica - modelo do domínio: contas, sessões, histórico dos donos e outbox
+title Logical view - domain model: accounts, sessions, owner history and outbox
 
 hide empty members
 
@@ -99,15 +99,15 @@ package "Application" as L_APP {
   }
 }
 
-D_USER "1" --> "1" D_POLICIES_Profiles : user_roles (um perfil)
-D_USER ..> D_POLICIES : regras no registo e no seed
+D_USER "1" --> "1" D_POLICIES_Profiles : user_roles (one profile)
+D_USER ..> D_POLICIES : rules at registration and in the seed
 D_REFRESH "0..*" --> "1" D_USER : UserId
 D_STATUSCHG "0..*" --> "1" D_USER : OwnerId (RESTRICT)
 D_STATUSCHG "0..*" --> "1" D_USER : AdminId (RESTRICT)
 D_STATUSCHG ..> D_STATUSCHG_OwnerStatusAction
 D_BOOKING "0..*" --> "0..1" D_USER : PlayerId
 D_OUTBOX ..> D_OUTBOX_OutboxRetry : RecordFailure
-D_OUTBOX ..> D_BOOKING : payload: bookingId (JSON, sem FK)
-D_OUTBOX ..> D_USER : payload: playerId / accountId (JSON, sem FK)
+D_OUTBOX ..> D_BOOKING : payload: bookingId (JSON, no FK)
+D_OUTBOX ..> D_USER : payload: playerId / accountId (JSON, no FK)
 
 @enduml

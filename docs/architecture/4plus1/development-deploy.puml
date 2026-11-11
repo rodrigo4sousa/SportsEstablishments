@@ -1,28 +1,28 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipelines de deploy, de dados de produção e de keepalive (deploy.yml, prod-data.yml, keepalive.yml)
+' 4+1 development view - Development view · deploy, production data and keepalive pipelines (deploy.yml, prod-data.yml, keepalive.yml)
 ' Version 1.1 - 2026-11-10
-' Para: quem vai mudar o código ou fazer deploy.
-' Decisão documentada: uma consulta de leitura à base de dados duas vezes por semana (keepalive.yml) evita que o Supabase pause o projeto gratuito por inatividade; as migrações correm no GitHub Actions como dono do esquema, antes da API; o Render e a Vercel só são chamados com o CI verde na main; os comandos de dados de produção são um workflow manual (ADR 0009).
-' Não desenhado: classes, endpoints e regras de negócio; os segredos e as variáveis do repositório (estão em docs/deployment/environment-variables.md).
+' For: whoever is going to change the code or deploy.
+' Documented decision: a read query against the database twice a week (keepalive.yml) stops Supabase from pausing the free project for inactivity; migrations run in GitHub Actions as the schema owner, before the API; Render and Vercel are called only with green CI on main; the production data commands are a manual workflow (ADR 0009).
+' Not drawn: classes, endpoints and business rules; the repository secrets and variables (they are in docs/deployment/environment-variables.md).
 @startuml development-deploy
 !include ../style.puml
-title Vista de desenvolvimento - pipelines de deploy, de dados de produção e de keepalive (.github/workflows/deploy.yml, prod-data.yml, keepalive.yml)
+title Development view - deploy, production data and keepalive pipelines (.github/workflows/deploy.yml, prod-data.yml, keepalive.yml)
 
 start
 fork
-  partition "Deploy · depois do CI verde num push à main · ubuntu-latest" {
-    :Só corre com DEPLOY_ENABLED = true\ne com o commit da execução do CI;
-    :migrate: instalar o SDK .NET\ndotnet tool restore + dotnet restore;
-    :Migration bundle\ndotnet ef migrations bundle\n./efbundle como dono do esquema;
-    :deploy-api: deploy hook do Render\nchama o deploy hook do Render para este commit;
-    :Espera 200 em /health da API (até 6 minutos);
+  partition "Deploy · after green CI on a push to main · ubuntu-latest" {
+    :Runs only with DEPLOY_ENABLED = true\nand with the commit of the CI run;
+    :migrate: install the .NET SDK\ndotnet tool restore + dotnet restore;
+    :Migration bundle\ndotnet ef migrations bundle\n./efbundle as the schema owner;
+    :deploy-api: Render deploy hook\ncalls the Render deploy hook for this commit;
+    :Waits for 200 on the API's /health (up to 6 minutes);
     :deploy-web: Vercel CLI\npull, build ~-~-prod, deploy ~-~-prebuilt;
-    :smoke: o site e a API respondem 200;
+    :smoke: the site and the API answer 200;
   }
 fork again
   partition "Production data · manual (workflow_dispatch) · ubuntu-latest" {
-    :Só corre com DEPLOY_ENABLED = true;
-    if (ação?) then (migrate-only)
-      :Migration bundle\nbuild e ./efbundle;
+    :Runs only with DEPLOY_ENABLED = true;
+    if (action?) then (migrate-only)
+      :Migration bundle\nbuild and ./efbundle;
     elseif (set-admin-password) then
       :dotnet run -- set-admin-password;
     else (seed-demo)
@@ -30,15 +30,15 @@ fork again
     endif
   }
 fork again
-  partition "Keepalive · segundas e quintas 07:23 UTC, e manual · ubuntu-latest" {
-    :Só corre com DEPLOY_ENABLED = true;
-    :GET SITE_URL/api/localities?keepalive=<hora>\nCache-Control: no-cache, até 130 s por pedido;
-    :Se falhar, repete de 20 em 20 s até cerca de 5 minutos;
-    :HTTP 200 com um corpo JSON = a base de dados respondeu\n(passa pelo rewrite da Vercel e acorda a API no Render);
+  partition "Keepalive · Mondays and Thursdays 07:23 UTC, and manual · ubuntu-latest" {
+    :Runs only with DEPLOY_ENABLED = true;
+    :GET SITE_URL/api/localities?keepalive=<time>\nCache-Control: no-cache, up to 130 s per request;
+    :If it fails, retries every 20 s for about 5 minutes;
+    :HTTP 200 with a JSON body = the database answered\n(goes through the Vercel rewrite and wakes the API on Render);
   }
 end fork
-:deploy.yml e prod-data.yml partilham o grupo de concurrency "deploy"\n(nunca correm ao mesmo tempo, sem cancelar o que está a correr);
-:keepalive.yml tem o seu próprio grupo, "keepalive";
+:deploy.yml and prod-data.yml share the concurrency group "deploy"\n(they never run at the same time, without cancelling the one running);
+:keepalive.yml has its own group, "keepalive";
 stop
 
 @enduml

@@ -1,43 +1,43 @@
-' 4+1 vista lógica - Vista lógica · camadas do back end (Clean Architecture)
+' 4+1 logical view - Logical view · back end layers (Clean Architecture)
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: Clean Architecture no back end: as dependências apontam só para dentro (Api → Infrastructure → Application → Domain).
-' Não desenhado: classes individuais.
+' For: whoever writes the code.
+' Documented decision: Clean Architecture in the back end: dependencies point inward only (Api → Infrastructure → Application → Domain).
+' Not drawn: individual classes.
 @startuml logical-layers
 !include ../style.puml
 
-title Vista lógica - camadas do back end (Clean Architecture)
+title Logical view - back end layers (Clean Architecture)
 
 
-package "API ASP.NET Core" as C_API {
+package "ASP.NET Core API" as C_API {
   component "SportsBooking.Api\n[ASP.NET Core, controllers]" as L_API
   component "SportsBooking.Infrastructure\n[EF Core, Npgsql, Identity, MailKit]" as L_INF
-  component "SportsBooking.Application\n[FluentValidation, EF Core (DbSet e LINQ, sem\nNpgsql)]" as L_APP
-  component "SportsBooking.Domain\n[C# sem dependências]" as L_DOM
+  component "SportsBooking.Application\n[FluentValidation, EF Core (DbSet and LINQ, no\nNpgsql)]" as L_APP
+  component "SportsBooking.Domain\n[C# with no dependencies]" as L_DOM
 }
 
-L_API --> L_INF : Referencia e compõe\n[AddInfrastructure(config)]
-L_API --> L_APP : Chama os serviços\n[AddApplication(), referência transitiva]
-L_INF --> L_APP : Implementa as interfaces\n[IAppDbContext, IBookingStore, IPitchLock,\nISessionService, IEmailSender…]
-L_APP --> L_DOM : Usa as entidades e as regras\n[referência de projeto]
+L_API --> L_INF : References and composes\n[AddInfrastructure(config)]
+L_API --> L_APP : Calls the services\n[AddApplication(), transitive reference]
+L_INF --> L_APP : Implements the interfaces\n[IAppDbContext, IBookingStore, IPitchLock,\nISessionService, IEmailSender…]
+L_APP --> L_DOM : Uses the entities and the rules\n[project reference]
 
 note right of L_INF
-  **Exceções reais**
-  Entidades persistidas fora do Domain:
+  **Real exceptions**
+  Persisted entities outside Domain:
   AppUser, RefreshToken
-  e OwnerStatusChange na Infrastructure.
-  O gerador de tokens de recuperação do Identity
-  lê o relógio do sistema, não o TimeProvider.
+  and OwnerStatusChange in Infrastructure.
+  Identity's password-reset token generator
+  reads the system clock, not TimeProvider.
 end note
 
 note right of L_APP
-  **Exceção real**
-  OutboxMessage é uma entidade
-  persistida que vive na Application.
+  **Real exception**
+  OutboxMessage is a persisted entity
+  that lives in Application.
 end note
 
 note right of L_DOM
-  O Domain não referencia nenhum projeto
-  nem pacote; não conhece EF Core nem HTTP.
+  Domain references no project
+  and no package; it knows neither EF Core nor HTTP.
 end note
 @enduml

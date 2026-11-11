@@ -1,200 +1,200 @@
-# Runbook de implantação (T06)
+# Deployment runbook (T06)
 
-Os passos que só o dono do projeto pode fazer, pela ordem certa. O alvo é Vercel, Render, Supabase, Brevo e GitHub Actions, com **custo zero**. As variáveis estão explicadas em [environment-variables.md](environment-variables.md).
+The steps that only the project owner can do, in the right order. The target is Vercel, Render, Supabase, Brevo and GitHub Actions, at **zero cost**. The variables are explained in [environment-variables.md](environment-variables.md).
 
-Estes passos foram seguidos no primeiro deploy real (2026-11-09), sem diferenças em relação ao que está escrito.
+These steps were followed on the first real deploy (2026-11-09), with no differences from what is written.
 
-Os nomes dos botões e campos podem mudar nos painéis dos fornecedores: onde está «(o nome pode variar)», procura a definição descrita.
+The names of buttons and fields may change in the providers' dashboards: where it says "(the name may vary)", look for the setting described.
 
-## Valores a anotar
+## Values to note down
 
-Guarda estes valores num sítio privado. Nunca os escrevas no repositório.
+Keep these values in a private place. Never write them in the repository.
 
-| Valor | De onde vem |
+| Value | Where it comes from |
 | --- | --- |
-| `<REF>` | Referência do projeto Supabase |
-| `<POOLER_HOST>` | Anfitrião do pooler em modo sessão, do Supabase |
-| `<OWNER_PASSWORD>` | Palavra-passe da base de dados, escolhida ao criar o projeto Supabase |
-| `<APP_PASSWORD>` | Palavra-passe de `sportsbooking_app`, escolhida por ti (longa e aleatória, só letras e números) |
-| `<SMTP_LOGIN>`, `<SMTP_KEY>`, `<REMETENTE>` | Brevo |
-| `<RENDER_URL>` | `https://<serviço>.onrender.com`, sem barra final |
-| `<VERCEL_URL>` | `https://<projeto>.vercel.app`, sem barra final (o endereço de produção, não o de um deploy) |
+| `<REF>` | Supabase project reference |
+| `<POOLER_HOST>` | Host of the session-mode pooler, from Supabase |
+| `<OWNER_PASSWORD>` | Database password, chosen when creating the Supabase project |
+| `<APP_PASSWORD>` | Password of `sportsbooking_app`, chosen by you (long and random, letters and digits only) |
+| `<SMTP_LOGIN>`, `<SMTP_KEY>`, `<SENDER>` | Brevo |
+| `<RENDER_URL>` | `https://<service>.onrender.com`, without a trailing slash |
+| `<VERCEL_URL>` | `https://<project>.vercel.app`, without a trailing slash (the production address, not that of a deploy) |
 | `<DEPLOY_HOOK>` | Render |
 | `<VERCEL_TOKEN>`, `<VERCEL_ORG_ID>`, `<VERCEL_PROJECT_ID>` | Vercel |
 
 ## 1. Supabase
 
-- [ ] Cria uma conta e um projeto no plano gratuito, numa **região perto de Frankfurt**. Guarda `<OWNER_PASSWORD>`. Na instalação atual é West EU (Irlanda), a região que a Política de Privacidade indica.
-- [ ] Anota `<REF>`.
-- [ ] No SQL Editor, confirma que a extensão está disponível (tem de devolver uma linha). **Não a atives**: a migração cria-a.
+- [ ] Create an account and a project on the free plan, in a **region near Frankfurt**. Keep `<OWNER_PASSWORD>`. In the current installation it is West EU (Ireland), the region the Privacy Policy states.
+- [ ] Note `<REF>`.
+- [ ] In the SQL Editor, confirm that the extension is available (it must return a row). **Do not enable it**: the migration creates it.
   ```sql
   select name from pg_available_extensions where name = 'btree_gist';
   ```
-- [ ] Abre [`supabase-roles.sql`](supabase-roles.sql), troca `REPLACE_WITH_A_LONG_RANDOM_PASSWORD` por `<APP_PASSWORD>`, cola no SQL Editor e corre. Corre **antes** da primeira migração. Não guardes o ficheiro alterado no repositório.
-- [ ] No diálogo de ligação do projeto, escolhe o **Session pooler** e copia o anfitrião: é o `<POOLER_HOST>`. Não o deduzas da região.
-- [ ] Monta as duas ligações. **Têm de estar neste formato**, não no formato `postgresql://` que o painel mostra:
-  - Dono (segredo do GitHub):
+- [ ] Open [`supabase-roles.sql`](supabase-roles.sql), replace `REPLACE_WITH_A_LONG_RANDOM_PASSWORD` with `<APP_PASSWORD>`, paste it in the SQL Editor and run it. Run it **before** the first migration. Do not save the changed file in the repository.
+- [ ] In the project's connection dialog, choose the **Session pooler** and copy the host: it is `<POOLER_HOST>`. Do not deduce it from the region.
+- [ ] Build the two connections. **They must be in this format**, not the `postgresql://` format the dashboard shows:
+  - Owner (GitHub secret):
     `Host=<POOLER_HOST>;Port=5432;Database=postgres;Username=postgres.<REF>;Password=<OWNER_PASSWORD>;SSL Mode=Require`
-  - Aplicação (Render):
+  - Application (Render):
     `Host=<POOLER_HOST>;Port=5432;Database=postgres;Username=sportsbooking_app.<REF>;Password=<APP_PASSWORD>;SSL Mode=Require;Maximum Pool Size=5`
-- [ ] Usa sempre a porta **5432** do pooler. Não uses o anfitrião direto `db.<REF>.supabase.co` (é IPv6 e os runners do GitHub não têm IPv6) nem o modo transação (porta 6543).
+- [ ] Always use the pooler's port **5432**. Do not use the direct host `db.<REF>.supabase.co` (it is IPv6 and GitHub's runners have no IPv6) or transaction mode (port 6543).
 
 ## 2. Brevo
 
-- [ ] Cria uma conta gratuita.
-- [ ] Adiciona e **verifica um remetente por email**: é o `<REMETENTE>`. Sem domínio próprio, os emails podem ir para o spam.
-- [ ] Nas definições de SMTP e API, gera uma **chave SMTP** (não uma chave de API). Anota `<SMTP_LOGIN>` e `<SMTP_KEY>`.
-- [ ] Usa o servidor `smtp-relay.brevo.com` e a porta **2525** com STARTTLS (funcionou no primeiro deploy). O plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587.
+- [ ] Create a free account.
+- [ ] Add and **verify a sender by email**: it is the `<SENDER>`. Without a domain of your own, emails may land in spam.
+- [ ] In the SMTP and API settings, generate an **SMTP key** (not an API key). Note `<SMTP_LOGIN>` and `<SMTP_KEY>`.
+- [ ] Use the server `smtp-relay.brevo.com` and port **2525** with STARTTLS (it worked on the first deploy). Render's free plan blocks outbound ports 25, 465 and 587.
 
-## 3. As duas URLs dependem uma da outra
+## 3. The two URLs depend on each other
 
-O Render precisa do endereço da Vercel (`Security__AllowedOrigins__0`, `PublicSite__BaseUrl`) e a Vercel precisa do endereço do Render (`API_INTERNAL_URL`). Para quebrar o ciclo:
+Render needs Vercel's address (`Security__AllowedOrigins__0`, `PublicSite__BaseUrl`) and Vercel needs Render's address (`API_INTERNAL_URL`). To break the cycle:
 
-1. Cria primeiro o serviço no Render (secção 4), com `https://placeholder.invalid` nas duas variáveis do site. O primeiro deploy pode falhar, sem problema: o endereço já existe. Anota `<RENDER_URL>`.
-2. Cria o projeto na Vercel (secção 5), com `API_INTERNAL_URL=<RENDER_URL>`. Anota `<VERCEL_URL>`.
-3. Volta ao Render e troca as duas variáveis pelo `<VERCEL_URL>` real.
+1. Create the service on Render first (section 4), with `https://placeholder.invalid` in the two site variables. The first deploy may fail, no problem: the address already exists. Note `<RENDER_URL>`.
+2. Create the project on Vercel (section 5), with `API_INTERNAL_URL=<RENDER_URL>`. Note `<VERCEL_URL>`.
+3. Go back to Render and replace the two variables with the real `<VERCEL_URL>`.
 
 ## 4. Render
 
-- [ ] Cria um **Web Service** a partir do repositório do GitHub, ramo `main`.
-- [ ] **Não adiciones nenhum meio de pagamento.** Sem ele, ultrapassar um limite suspende o serviço em vez de cobrar.
-- [ ] Definições:
+- [ ] Create a **Web Service** from the GitHub repository, branch `main`.
+- [ ] **Do not add any payment method.** Without one, exceeding a limit suspends the service instead of charging.
+- [ ] Settings:
 
-  | Definição (o nome pode variar) | Valor |
+  | Setting (the name may vary) | Value |
   | --- | --- |
   | Language / Runtime | `Docker` |
   | Root Directory | `backend` |
-  | Dockerfile Path | `Dockerfile` (relativo ao Root Directory) |
-  | Docker Build Context Directory | `.` (relativo ao Root Directory) |
+  | Dockerfile Path | `Dockerfile` (relative to the Root Directory) |
+  | Docker Build Context Directory | `.` (relative to the Root Directory) |
   | Instance Type | `Free` |
   | Region | Frankfurt |
   | Auto-Deploy | **Off** |
-  | Health Check Path, se existir no plano gratuito | `/health` |
+  | Health Check Path, if it exists on the free plan | `/health` |
 
-- [ ] Variáveis de ambiente:
+- [ ] Environment variables:
 
-  | Nome | Valor |
+  | Name | Value |
   | --- | --- |
   | `ASPNETCORE_ENVIRONMENT` | `Production` |
-  | `ConnectionStrings__Default` | A ligação da **aplicação** (secção 1) |
-  | `Jwt__SigningKey` | O resultado de `openssl rand -base64 48` |
+  | `ConnectionStrings__Default` | The **application** connection (section 1) |
+  | `Jwt__SigningKey` | The output of `openssl rand -base64 48` |
   | `Security__AllowedOrigins__0` | `<VERCEL_URL>` |
   | `PublicSite__BaseUrl` | `<VERCEL_URL>` |
   | `ForwardedHeaders__TrustAnyProxy` | `true` |
-  | `ForwardedHeaders__ForwardLimit` | `1` (confirmado no primeiro deploy; ver a secção 8) |
+  | `ForwardedHeaders__ForwardLimit` | `1` (confirmed on the first deploy; see section 8) |
   | `Email__Host` | `smtp-relay.brevo.com` |
   | `Email__Port` | `2525` |
   | `Email__Security` | `StartTls` |
   | `Email__Username` | `<SMTP_LOGIN>` |
   | `Email__Password` | `<SMTP_KEY>` |
-  | `Email__FromAddress` | `<REMETENTE>` |
+  | `Email__FromAddress` | `<SENDER>` |
 
-- [ ] Não definas `PORT` (o Render dá-a), `AdminSeed__*`, `ADMIN_NEW_PASSWORD` nem `DemoData__AllowInProduction`. O admin é criado pelo `prod-data`.
-- [ ] Copia o **Deploy Hook** do serviço: é o `<DEPLOY_HOOK>`. É um segredo: quem o tiver pode lançar deploys.
+- [ ] Do not set `PORT` (Render provides it), `AdminSeed__*`, `ADMIN_NEW_PASSWORD` or `DemoData__AllowInProduction`. The admin is created by `prod-data`.
+- [ ] Copy the service's **Deploy Hook**: it is `<DEPLOY_HOOK>`. It is a secret: whoever has it can launch deploys.
 
 ## 5. Vercel
 
-O projeto `sports-establishments` **já existe** na Vercel e tem de ficar com o Git desligado: ligado, cada push lança um deploy fora do workflow, que falha sem `API_INTERNAL_URL`. Se o estiveres a usar, salta a criação e confirma as definições abaixo.
+The `sports-establishments` project **already exists** on Vercel and must have Git disconnected: connected, every push launches a deploy outside the workflow, which fails without `API_INTERNAL_URL`. If you are using it, skip the creation and confirm the settings below.
 
-- [ ] Se o projeto não existir, cria-o a partir do repositório, numa conta **Hobby** (só uso não comercial).
+- [ ] If the project does not exist, create it from the repository, on a **Hobby** account (non-commercial use only).
 - [ ] **Root Directory:** `frontend`. Framework: Next.js.
-- [ ] Variáveis de ambiente, no ambiente Production:
+- [ ] Environment variables, in the Production environment:
 
-  | Nome | Valor |
+  | Name | Value |
   | --- | --- |
   | `API_INTERNAL_URL` | `<RENDER_URL>` |
   | `ENABLE_HSTS` | `true` |
 
-- [ ] Mantém ligada a exposição das variáveis de sistema da Vercel (o nome pode variar).
-- [ ] Se existir a definição, escolhe uma região das Functions perto de Frankfurt, para os Server Components ficarem perto da API. Na instalação atual é Washington DC (EUA). Se mudares uma região, atualiza a Política de Privacidade (`/privacy`), que as indica.
-- [ ] **Desliga os deploys automáticos do Git**, para só o workflow publicar: desliga o repositório nas definições Git do projeto (o nome pode variar) e retira também à app da Vercel no GitHub o acesso a este repositório. A CLI funciona sem ligação ao Git. Confirma num commit novo: não pode aparecer nenhum check `Vercel` no GitHub.
-- [ ] Cria um token de acesso na tua conta: é o `<VERCEL_TOKEN>`.
-- [ ] Para obter os ids, numa pasta temporária fora do repositório, corre `npx vercel@65.14.0 link` e lê `.vercel/project.json`: `orgId` é o `<VERCEL_ORG_ID>` e `projectId` é o `<VERCEL_PROJECT_ID>`.
+- [ ] Keep Vercel's system variables exposure turned on (the name may vary).
+- [ ] If the setting exists, choose a Functions region near Frankfurt, so Server Components are close to the API. In the current installation it is Washington DC (USA). If you change a region, update the Privacy Policy (`/privacy`), which states them.
+- [ ] **Turn off the automatic Git deploys**, so only the workflow publishes: disconnect the repository in the project's Git settings (the name may vary) and also remove the Vercel GitHub app's access to this repository. The CLI works without a Git connection. Confirm on a new commit: no `Vercel` check may appear on GitHub.
+- [ ] Create an access token in your account: it is `<VERCEL_TOKEN>`.
+- [ ] To get the ids, in a temporary folder outside the repository, run `npx vercel@65.14.0 link` and read `.vercel/project.json`: `orgId` is `<VERCEL_ORG_ID>` and `projectId` is `<VERCEL_PROJECT_ID>`.
 
 ## 6. GitHub
 
-Em Settings → Secrets and variables → Actions:
+In Settings → Secrets and variables → Actions:
 
 - [ ] **Secrets:**
 
-  | Nome | Valor |
+  | Name | Value |
   | --- | --- |
-  | `DB_OWNER_CONNECTION_STRING` | A ligação do **dono** (secção 1) |
+  | `DB_OWNER_CONNECTION_STRING` | The **owner** connection (section 1) |
   | `RENDER_DEPLOY_HOOK_URL` | `<DEPLOY_HOOK>` |
   | `VERCEL_TOKEN` | `<VERCEL_TOKEN>` |
   | `VERCEL_ORG_ID` | `<VERCEL_ORG_ID>` |
   | `VERCEL_PROJECT_ID` | `<VERCEL_PROJECT_ID>` |
-  | `ADMIN_EMAIL` | O email do admin |
-  | `ADMIN_PASSWORD` | A palavra-passe do admin (pelo menos 8 caracteres) |
+  | `ADMIN_EMAIL` | The admin's email |
+  | `ADMIN_PASSWORD` | The admin's password (at least 8 characters) |
 
 - [ ] **Variables:**
 
-  | Nome | Valor |
+  | Name | Value |
   | --- | --- |
   | `RENDER_API_URL` | `<RENDER_URL>` |
   | `SITE_URL` | `<VERCEL_URL>` |
-  | `DEPLOY_ENABLED` | `true`, **só depois** de tudo acima estar feito |
+  | `DEPLOY_ENABLED` | `true`, **only after** everything above is done |
 
-## 7. Primeira execução, por esta ordem
+## 7. First run, in this order
 
-- [ ] Em Actions → **Production data** → Run workflow, ramo `main`, ação **`migrate-only`**. Tem de terminar a verde.
-- [ ] Em Actions → **Deploy**, volta a correr a última execução (Re-run all jobs), ou faz merge de uma alteração na `main`. Tem de terminar a verde, incluindo o `smoke`.
-- [ ] **Production data** → **`set-admin-password`**. Cria o admin, se ainda não existir, com `ADMIN_EMAIL` e `ADMIN_PASSWORD`.
-- [ ] **Production data** → **`seed-demo`**, se quiseres dados de demonstração. O log diz que correu.
+- [ ] In Actions → **Production data** → Run workflow, branch `main`, action **`migrate-only`**. It must finish green.
+- [ ] In Actions → **Deploy**, re-run the last run (Re-run all jobs), or merge a change into `main`. It must finish green, including `smoke`.
+- [ ] **Production data** → **`set-admin-password`**. It creates the admin, if it does not exist yet, with `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+- [ ] **Production data** → **`seed-demo`**, if you want demo data. The log says it ran.
 
-Cada migração tem de funcionar com a versão anterior da API, porque o esquema novo fica ativo antes da API nova.
+Every migration must work with the previous version of the API, because the new schema goes live before the new API.
 
-## 8. Verificação
+## 8. Verification
 
-- [ ] Em `<VERCEL_URL>`, entra com o admin e confirma que vais para `/admin`.
-- [ ] Nas ferramentas do browser, confirma os cookies `access_token` e `refresh_token` no domínio da Vercel.
-- [ ] Entra com um jogador de demonstração (ver o README), faz uma reserva e cancela-a.
-- [ ] Os logs ficam 7 dias no Render (workspace Hobby) e 1 hora na Vercel (Hobby): verifica-os logo a seguir ao deploy. A Política de Privacidade indica estes prazos; se mudares de plano, atualiza-a.
-- [ ] Confirma o email: o log do Render não deve mostrar falhas do worker, e a mensagem chega à caixa do jogador. Os jogadores de demonstração usam `example.test`, que não recebe email: para ver um email real, regista um jogador com um endereço teu. No SQL Editor:
+- [ ] At `<VERCEL_URL>`, sign in as the admin and confirm that you go to `/admin`.
+- [ ] In the browser tools, confirm the `access_token` and `refresh_token` cookies on Vercel's domain.
+- [ ] Sign in as a demo player (see the README), make a booking and cancel it.
+- [ ] Logs are kept 7 days on Render (Hobby workspace) and 1 hour on Vercel (Hobby): check them right after the deploy. The Privacy Policy states these periods; if you change plan, update it.
+- [ ] Confirm the email: the Render log must show no worker failures, and the message reaches the player's inbox. The demo players use `example.test`, which does not receive email: to see a real email, register a player with an address of your own. In the SQL Editor:
   ```sql
   select type, sent_at, attempts, last_error from outbox_messages order by created_at desc limit 10;
   ```
-- [ ] Confirma que nenhuma tabela é alcançável pela API de dados do Supabase. Tem de devolver `0`:
+- [ ] Confirm that no table is reachable through Supabase's data API. It must return `0`:
   ```sql
   select count(*) from information_schema.role_table_grants
   where grantee in ('anon', 'authenticated', 'service_role') and table_schema = 'public';
   ```
-- [ ] **`ForwardLimit`:** com o valor `1`, faz mais de 10 logins num minuto no site, a partir da tua ligação, com um email que não exista, até receberes 429. Procura no log do Render:
+- [ ] **`ForwardLimit`:** with the value `1`, make more than 10 logins in a minute on the site, from your connection, with an email that does not exist, until you get 429. Look in the Render log for:
   ```
-  Too many requests from client <endereço> to /api/auth/login
+  Too many requests from client <address> to /api/auth/login
   ```
-  Se for o teu endereço, está certo (em IPv6, aparece a tua rede /64). Se não for, sobe `ForwardedHeaders__ForwardLimit` em 1, faz um novo deploy e repete. Usa o valor mais baixo que dê o endereço certo. No primeiro deploy, o valor `1` deu o endereço certo.
-- [x] O estado da ADR 0009 passou a «Aceite» depois do primeiro deploy (2026-11-09).
+  If it is your address, it is right (on IPv6, your /64 network appears). If not, raise `ForwardedHeaders__ForwardLimit` by 1, deploy again and repeat. Use the lowest value that gives the right address. On the first deploy, the value `1` gave the right address.
+- [x] ADR 0009's status became "Accepted" after the first deploy (2026-11-09).
 
-## 9. Limitações conhecidas
+## 9. Known limitations
 
-- **Arranque a frio:** a API adormece ao fim de 15 minutos sem tráfego e demora cerca de um minuto a acordar.
-- **Emails e lembretes** só saem enquanto a API estiver acordada; um lembrete cuja reserva já começou é ignorado.
-- **Rate limiting de melhor esforço:** a API é pública, e quem lhe ligar diretamente pode forjar o IP. A proteção real contra adivinhar palavras-passe é o bloqueio de conta.
-- **As palavras-passe das contas de demonstração são públicas** (estão no README): qualquer pessoa pode entrar com elas enquanto a demo estiver online.
-- **Supabase:** um projeto gratuito com pouca atividade na base de dados durante 7 dias é pausado. O workflow `keepalive.yml` faz uma consulta por esse motivo (secção 10), mas não é garantia: se o projeto for pausado, reativa-o no painel («Resume project»).
-- **Sem cópias de segurança** e sem domínio próprio.
+- **Cold start:** the API goes to sleep after 15 minutes without traffic and takes about a minute to wake up.
+- **Emails and reminders** only go out while the API is awake; a reminder whose booking has already started is skipped.
+- **Best-effort rate limiting:** the API is public, and whoever connects to it directly can forge the IP. The real protection against guessing passwords is the account lockout.
+- **The demo accounts' passwords are public** (they are in the README): anyone can sign in with them while the demo is online.
+- **Supabase:** a free project with little database activity for 7 days is paused. The `keepalive.yml` workflow makes a query for that reason (section 10), but it is not a guarantee: if the project is paused, reactivate it in the dashboard ("Resume project").
+- **No backups** and no domain of your own.
 
-## 10. Manter a demo ativa
+## 10. Keep the demo alive
 
-O plano gratuito do Supabase pausa um projeto com pouca atividade, e o `/health` não toca na base de dados, por isso não conta. O workflow `.github/workflows/keepalive.yml` faz um `GET {SITE_URL}/api/localities` pelo site público: é uma consulta de leitura à base de dados (os clubes visíveis), que também acorda a API no Render. Não usa segredos, só a variável `SITE_URL`, e não corre enquanto `DEPLOY_ENABLED` não for `true`.
+Supabase's free plan pauses a project with little activity, and `/health` does not touch the database, so it does not count. The `.github/workflows/keepalive.yml` workflow makes a `GET {SITE_URL}/api/localities` through the public site: it is a read query against the database (the visible clubs), which also wakes the API on Render. It uses no secrets, only the `SITE_URL` variable, and does not run while `DEPLOY_ENABLED` is not `true`.
 
-- **Quando corre:** às segundas e quintas-feiras às 07:23 UTC, e à mão.
-- **O que faz:** pede com `Cache-Control: no-cache` e um parâmetro `keepalive=<hora>` que muda de cada vez. Cada pedido espera até 130 s (um arranque a frio do Render demora cerca de um minuto e a Vercel dá 120 s ao rewrite); se falhar, repete de 20 em 20 s durante cerca de 5 minutos. Dá sucesso com HTTP 200 e um corpo que seja JSON. Nunca escreve o corpo no registo. Se não conseguir, o job falha com uma mensagem a dizer para ver o Render e o painel do Supabase.
-- **Correr à mão:** Actions → Keepalive → *Run workflow*, ou `gh workflow run keepalive.yml`.
-- **Desligar:** muda `DEPLOY_ENABLED` para `false` (desliga também o deploy), ou desativa só este workflow em Actions → Keepalive → «⋯» → *Disable workflow* (`gh workflow disable keepalive.yml`).
-- **Só corre na branch por omissão** (`main`): a documentação do GitHub diz que os workflows agendados só correm aí, no último commit. O workflow não pôde ser experimentado antes de entrar na `main`; a primeira execução pode ser pedida à mão com `workflow_dispatch`.
+- **When it runs:** on Mondays and Thursdays at 07:23 UTC, and by hand.
+- **What it does:** it requests with `Cache-Control: no-cache` and a `keepalive=<time>` parameter that changes each time. Each request waits up to 130 s (a Render cold start takes about a minute and Vercel gives the rewrite 120 s); if it fails, it retries every 20 s for about 5 minutes. It succeeds with HTTP 200 and a body that is JSON. It never writes the body to the log. If it cannot, the job fails with a message telling you to look at Render and the Supabase dashboard.
+- **Run it by hand:** Actions → Keepalive → *Run workflow*, or `gh workflow run keepalive.yml`.
+- **Turn it off:** change `DEPLOY_ENABLED` to `false` (this also turns off the deploy), or disable only this workflow in Actions → Keepalive → "⋯" → *Disable workflow* (`gh workflow disable keepalive.yml`).
+- **It only runs on the default branch** (`main`): GitHub's documentation says scheduled workflows only run there, on the latest commit. The workflow could not be tried before it reached `main`; the first run can be requested by hand with `workflow_dispatch`.
 
-**O que dizem as documentações** (lidas a 2026-11-09, sem data de atualização nas páginas):
+**What the documentation says** (read on 2026-11-09, with no update date on the pages):
 
-- **Supabase** ([free-project-pausing](https://supabase.com/docs/guides/platform/free-project-pausing)): «Supabase pauses Free Plan projects that show low activity over a 7-day period» e um projeto é considerado inativo se não tiver «sufficient user database activity over the past week»; «Typically a few user requests to the database each day over the previous week is enough». O limiar de «low activity» não é dado em números. Avisam por email cerca de uma semana antes de pausar. Um projeto pausado pode ser restaurado até 1 ano depois, no painel (*Resume project*). **Não é claro** se uma visita ao painel conta como atividade na base de dados (a página sugere-o como forma de gerar atividade), nem se uma consulta duas vezes por semana chega: o texto fala em alguns pedidos por dia. Por isso a frequência é **provisória**.
-- **GitHub** ([disabling and enabling a workflow](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow)): «In a public repository, scheduled workflows are automatically disabled when no repository activity has occurred in 60 days.» A documentação **não define** «repository activity», e as páginas lidas não dizem se o dono é avisado. Reativar: Actions → o workflow → *Enable workflow*, ou `gh workflow enable keepalive.yml`; um commit com permissões de escrita que mude o `cron` também o reativa. A execução agendada pode atrasar-se nas horas de carga (por isso 07:23 e não 07:00) e, com muita carga, alguns jobs podem ser descartados.
+- **Supabase** ([free-project-pausing](https://supabase.com/docs/guides/platform/free-project-pausing)): "Supabase pauses Free Plan projects that show low activity over a 7-day period" and a project is considered inactive if it does not have "sufficient user database activity over the past week"; "Typically a few user requests to the database each day over the previous week is enough". The "low activity" threshold is not given in numbers. They warn by email about a week before pausing. A paused project can be restored up to 1 year later, in the dashboard (*Resume project*). **It is not clear** whether a visit to the dashboard counts as database activity (the page suggests it as a way to generate activity), nor whether one query twice a week is enough: the text speaks of a few requests per day. That is why the frequency is **provisional**.
+- **GitHub** ([disabling and enabling a workflow](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow)): "In a public repository, scheduled workflows are automatically disabled when no repository activity has occurred in 60 days." The documentation **does not define** "repository activity", and the pages read do not say whether the owner is notified. To re-enable: Actions → the workflow → *Enable workflow*, or `gh workflow enable keepalive.yml`; a commit with write permissions that changes the `cron` also re-enables it. The scheduled run may be delayed at times of load (hence 07:23 and not 07:00) and, under heavy load, some jobs may be dropped.
 
-## 11. Desligar tudo e evitar qualquer cobrança
+## 11. Shutting everything down and avoiding any charge
 
-- [ ] **GitHub:** muda `DEPLOY_ENABLED` para `false` e apaga os secrets e as variables da secção 6.
-- [ ] **Render:** apaga o serviço web.
-- [ ] **Vercel:** apaga o projeto e revoga o token.
-- [ ] **Supabase:** apaga o projeto.
-- [ ] **Brevo:** apaga a chave SMTP.
-- [ ] Confirma que nenhum dos fornecedores tem um meio de pagamento associado.
+- [ ] **GitHub:** change `DEPLOY_ENABLED` to `false` and delete the secrets and variables from section 6.
+- [ ] **Render:** delete the web service.
+- [ ] **Vercel:** delete the project and revoke the token.
+- [ ] **Supabase:** delete the project.
+- [ ] **Brevo:** delete the SMTP key.
+- [ ] Confirm that none of the providers has a payment method attached.

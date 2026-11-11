@@ -1,54 +1,54 @@
-' C4 nível 3 - Componentes do front end · áreas e funcionalidades
+' C4 level 3 - Front end components · areas and features
 ' Version 1.1 - 2026-11-10
-' Não desenhado: classes individuais, salvo quando são o próprio componente.
+' Not drawn: individual classes, except when they are the component itself.
 @startuml 03-components-web-features
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes do front end - áreas e funcionalidades
+title Front end components - areas and features
 
 LAYOUT_TOP_DOWN()
 
-Container_Boundary(C_WEB, "Aplicação Next.js") {
-  Component(WEB_AREA_PLAYER, "Área do jogador", "app/(player)")
-  Component(WEB_AREA_ACCOUNT, "Páginas de conta", "app/login, register, …")
-  Component(WEB_AREA_MANAGE, "Área do dono", "app/manage")
-  Component(WEB_AREA_ADMIN, "Área do admin", "app/admin")
+Container_Boundary(C_WEB, "Next.js application") {
+  Component(WEB_AREA_PLAYER, "Player area", "app/(player)")
+  Component(WEB_AREA_ACCOUNT, "Account pages", "app/login, register, …")
+  Component(WEB_AREA_MANAGE, "Owner area", "app/manage")
+  Component(WEB_AREA_ADMIN, "Admin area", "app/admin")
 
-  Component(WEB_F_AUTH, "Contas", "features/auth")
-  Component(WEB_F_CATALOG, "Catálogo", "features/catalog")
-  Component(WEB_F_BOOKING, "Reservar", "features/booking")
-  Component(WEB_F_MYBOOK, "As minhas reservas", "features/my-bookings")
-  Component(WEB_F_CLUBS, "Clubes do dono", "features/clubs")
-  Component(WEB_F_PITCHES, "Campos", "features/pitches")
-  Component(WEB_F_CALENDAR, "Calendário", "features/calendar")
-  Component(WEB_F_STATS, "Estatísticas", "features/statistics")
+  Component(WEB_F_AUTH, "Accounts", "features/auth")
+  Component(WEB_F_CATALOG, "Catalogue", "features/catalog")
+  Component(WEB_F_BOOKING, "Booking", "features/booking")
+  Component(WEB_F_MYBOOK, "My bookings", "features/my-bookings")
+  Component(WEB_F_CLUBS, "Owner's clubs", "features/clubs")
+  Component(WEB_F_PITCHES, "Pitches", "features/pitches")
+  Component(WEB_F_CALENDAR, "Calendar", "features/calendar")
+  Component(WEB_F_STATS, "Statistics", "features/statistics")
   Component(WEB_F_ADMIN, "Admin", "features/admin")
 }
 
-Rel(WEB_AREA_PLAYER, WEB_F_CATALOG, $plain("Pesquisa e página do clube"), "")
-Rel(WEB_AREA_PLAYER, WEB_F_BOOKING, $plain("Reserva na página do clube"), "ClubBooking")
+Rel(WEB_AREA_PLAYER, WEB_F_CATALOG, $plain("Search and club page"), "")
+Rel(WEB_AREA_PLAYER, WEB_F_BOOKING, $plain("Books on the club page"), "ClubBooking")
 Rel(WEB_AREA_PLAYER, WEB_F_MYBOOK, $plain("/bookings"), "MyBookings")
-Rel(WEB_AREA_PLAYER, WEB_F_AUTH, $plain("Estado da sessão no cabeçalho"), "AccountStatus")
-Rel(WEB_AREA_ACCOUNT, WEB_F_AUTH, $plain("Formulários de conta"), "")
-Rel(WEB_AREA_MANAGE, WEB_F_CLUBS, $plain("Clubes"), "ClubList, EditClub")
-Rel(WEB_AREA_MANAGE, WEB_F_CALENDAR, $plain("Calendário"), "ClubCalendar")
-Rel(WEB_AREA_MANAGE, WEB_F_STATS, $plain("Estatísticas"), "")
-Rel(WEB_AREA_ADMIN, WEB_F_ADMIN, $plain("Painel e página do dono"), "")
+Rel(WEB_AREA_PLAYER, WEB_F_AUTH, $plain("Session state in the header"), "AccountStatus")
+Rel(WEB_AREA_ACCOUNT, WEB_F_AUTH, $plain("Account forms"), "")
+Rel(WEB_AREA_MANAGE, WEB_F_CLUBS, $plain("Clubs"), "ClubList, EditClub")
+Rel(WEB_AREA_MANAGE, WEB_F_CALENDAR, $plain("Calendar"), "ClubCalendar")
+Rel(WEB_AREA_MANAGE, WEB_F_STATS, $plain("Statistics"), "")
+Rel(WEB_AREA_ADMIN, WEB_F_ADMIN, $plain("Dashboard and owner page"), "")
 
-Rel(WEB_F_CLUBS, WEB_F_PITCHES, $plain("Mostra os campos do clube"), "PitchSection")
-Rel(WEB_F_CALENDAR, WEB_F_PITCHES, $plain("Lê os slots livres para a nova reserva"), "fetchSlots")
-Rel(WEB_F_BOOKING, WEB_F_CATALOG, $plain("Lê os slots públicos do campo"), "fetchPublicSlots")
-Rel(WEB_F_BOOKING, WEB_F_AUTH, $plain("Sabe se quem reserva é jogador"), "useCurrentUser")
-Rel(WEB_F_BOOKING, WEB_F_MYBOOK, $plain("Invalida as minhas reservas"), "myBookingsQueryKey")
-Rel(WEB_F_MYBOOK, WEB_F_CATALOG, $plain("Invalida o catálogo ao cancelar"), "catalogQueryKey")
-Rel(WEB_F_ADMIN, WEB_F_STATS, $plain("Formata horas e ocupação"), "formatHours, formatOccupation")
-Rel(WEB_F_STATS, WEB_F_CLUBS, $plain("Clube não encontrado"), "ClubNotFound")
+Rel(WEB_F_CLUBS, WEB_F_PITCHES, $plain("Shows the club's pitches"), "PitchSection")
+Rel(WEB_F_CALENDAR, WEB_F_PITCHES, $plain("Reads the free slots for the new booking"), "fetchSlots")
+Rel(WEB_F_BOOKING, WEB_F_CATALOG, $plain("Reads the pitch's public slots"), "fetchPublicSlots")
+Rel(WEB_F_BOOKING, WEB_F_AUTH, $plain("Knows whether the person booking is a player"), "useCurrentUser")
+Rel(WEB_F_BOOKING, WEB_F_MYBOOK, $plain("Invalidates my bookings"), "myBookingsQueryKey")
+Rel(WEB_F_MYBOOK, WEB_F_CATALOG, $plain("Invalidates the catalogue when cancelling"), "catalogQueryKey")
+Rel(WEB_F_ADMIN, WEB_F_STATS, $plain("Formats hours and occupation"), "formatHours, formatOccupation")
+Rel(WEB_F_STATS, WEB_F_CLUBS, $plain("Club not found"), "ClubNotFound")
 
 note bottom of WEB_F_PITCHES
-  Campos também dá a quase todas as funcionalidades
-  formatPrice, sportLabel e previewDateRange (setas omitidas).
-  Todas as funcionalidades chamam a API só pelo Cliente da API
-  e mostram datas só por lib/datetime.ts.
+  Pitches also gives almost every feature
+  formatPrice, sportLabel and previewDateRange (arrows omitted).
+  Every feature calls the API only through the API client
+  and shows dates only through lib/datetime.ts.
 end note
 @enduml

@@ -1,11 +1,11 @@
-' 4+1 vista lógica (código, C4 nível 4) - Código (C4 nível 4) · o agregado Booking (Dom/Bookings/Booking.cs)
+' 4+1 logical view (code, C4 level 4) - Code (C4 level 4) · the Booking aggregate (Dom/Bookings/Booking.cs)
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: As regras de uma reserva estão na entidade, que devolve resultados (CancellationOutcome e outros) em vez de lançar exceções.
-' Não desenhado: os componentes que chamam a entidade.
+' For: whoever writes the code.
+' Documented decision: The rules of a booking are in the entity, which returns results (CancellationOutcome and others) instead of throwing exceptions.
+' Not drawn: the components that call the entity.
 @startuml logical-code-booking
 !include ../style.puml
-title Vista lógica - código (C4 nível 4): o agregado Booking (Dom/Bookings/Booking.cs)
+title Logical view - code (C4 level 4): the Booking aggregate (Dom/Bookings/Booking.cs)
 
 hide empty members
 
@@ -86,17 +86,17 @@ D_BOOKING ..> D_BOOKING_NoShowOutcome : RecordNoShow
 D_BOOKING_BookingStatuses ..> D_BOOKING_BookingStatus : confirmed, cancelled_by_player,\ncancelled_by_club, no_show
 
 note right of D_BOOKING
-  **Invariantes nos métodos**
-  Todas as propriedades têm private set; o construtor é privado.
-  ForPlayer: playerId ≠ Guid.Empty; ForCustomer: nome e telemóvel
-  preenchidos (aparados); ambos: EndsAt > StartsAt, Price > 0,
-  Status = Confirmed, Id = Guid.CreateVersion7(), instantes UTC.
-  Um método que devolve um resultado só muda o estado quando
-  o resultado é o de sucesso (Cancelled, Marked, true).
-  CancelByClub sem motivo é erro de programação (exceção):
-  o serviço valida antes. A janela de cancelamento entra como
-  argumento e nunca é guardada na reserva.
-  Overlaps é meio aberto [início, fim), como bookings_no_overlap.
+  **Invariants in the methods**
+  Every property has a private set; the constructor is private.
+  ForPlayer: playerId ≠ Guid.Empty; ForCustomer: name and phone
+  filled in (trimmed); both: EndsAt > StartsAt, Price > 0,
+  Status = Confirmed, Id = Guid.CreateVersion7(), UTC instants.
+  A method that returns a result changes the state only when
+  the result is the success one (Cancelled, Marked, true).
+  CancelByClub without a reason is a programming error (exception):
+  the service validates first. The cancellation window comes in
+  as an argument and is never stored in the booking.
+  Overlaps is half-open [start, end), like bookings_no_overlap.
 end note
 
 @enduml

@@ -1,44 +1,44 @@
-' 4+1 vista de processo - Refresh com rotação e deteção de reutilização (US01, US03) · lado da API
+' 4+1 process view - Refresh with rotation and reuse detection (US01, US03) · API side
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: Rotação do refresh token e revogação de todas as sessões da conta se um token já usado reaparecer (ADR 0002).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: Refresh token rotation and revocation of all the account's sessions if an already used token reappears (ADR 0002).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-refresh
 !include ../style.puml
 
-title Vista de processo - refresh com rotação e deteção de reutilização (US01, US03): lado da API
+title Process view - refresh with rotation and reuse detection (US01, US03): API side
 autonumber
 
-participant "Cliente da API" as WEB_API_CLIENT
-box "API ASP.NET Core"
-  participant "Contas e sessões" as API_AUTH
-  participant "Sessões e cookies" as CC_COOKIES
+participant "API client" as WEB_API_CLIENT
+box "ASP.NET Core API"
+  participant "Accounts and sessions" as API_AUTH
+  participant "Sessions and cookies" as CC_COOKIES
 end box
 database "refresh_tokens" as DB_REFRESH
 database "users, user_roles" as DB_USERS
 
-WEB_API_CLIENT -> API_AUTH : POST /api/auth/refresh (o cookie refresh_token só vai para\n/api/auth) [fetch; [AllowAnonymous], limite auth-refresh]
+WEB_API_CLIENT -> API_AUTH : POST /api/auth/refresh (the refresh_token cookie is only sent to\n/api/auth) [fetch; [AllowAnonymous], auth-refresh limit]
 API_AUTH -> CC_COOKIES : RefreshAsync(cookie)
-CC_COOKIES -> DB_REFRESH : Procura pelo SHA-256 do valor (sem cookie ou sem linha → 401)\n[SELECT … WHERE token_hash = …]
-alt revoked_at preenchido: token já usado
-  CC_COOKIES -> DB_REFRESH : Log Warning; revoga todos os da conta [UPDATE … WHERE user_id =\n… AND revoked_at IS NULL]
-  API_AUTH --> WEB_API_CLIENT : 401 invalid_refresh_token, cookies apagados
-else expirado
+CC_COOKIES -> DB_REFRESH : Looks up the value's SHA-256 (no cookie or no row → 401)\n[SELECT … WHERE token_hash = …]
+alt revoked_at set: token already used
+  CC_COOKIES -> DB_REFRESH : Warning log; revokes all the account's [UPDATE … WHERE user_id =\n… AND revoked_at IS NULL]
+  API_AUTH --> WEB_API_CLIENT : 401 invalid_refresh_token, cookies deleted
+else expired
   API_AUTH --> WEB_API_CLIENT : 401 invalid_refresh_token
-else válido
-  CC_COOKIES -> DB_USERS : deactivated_at e o perfil [SELECT]
-  alt conta desativada ou sem perfil
-    CC_COOKIES -> DB_REFRESH : Revoga todos os da conta [UPDATE]
+else valid
+  CC_COOKIES -> DB_USERS : deactivated_at and the profile [SELECT]
+  alt account deactivated or without a profile
+    CC_COOKIES -> DB_REFRESH : Revokes all the account's [UPDATE]
     API_AUTH --> WEB_API_CLIENT : 401 invalid_refresh_token
-  else ativa
-    group Transação
-      CC_COOKIES -> DB_REFRESH : Consome: SET revoked_at = now WHERE id = … AND revoked_at IS\nNULL [ExecuteUpdate]
-      alt 0 linhas: outro pedido usou-o primeiro
-        CC_COOKIES -> DB_REFRESH : ROLLBACK; revoga todos os da conta (tratado como reutilização)\n[UPDATE]
+  else active
+    group Transaction
+      CC_COOKIES -> DB_REFRESH : Consumes: SET revoked_at = now WHERE id = … AND revoked_at IS\nNULL [ExecuteUpdate]
+      alt 0 rows: another request used it first
+        CC_COOKIES -> DB_REFRESH : ROLLBACK; revokes all the account's (treated as reuse)\n[UPDATE]
         API_AUTH --> WEB_API_CLIENT : 401 invalid_refresh_token
-      else 1 linha
-        CC_COOKIES -> DB_REFRESH : Novo token com o mesmo expires_at (validade absoluta); COMMIT\n[INSERT]
-        API_AUTH -> CC_COOKIES : AuthCookies.Append (novo JWT de 15 min e novo refresh token)
+      else 1 row
+        CC_COOKIES -> DB_REFRESH : New token with the same expires_at (absolute lifetime); COMMIT\n[INSERT]
+        API_AUTH -> CC_COOKIES : AuthCookies.Append (new 15 min JWT and new refresh token)
         API_AUTH --> WEB_API_CLIENT : 204 + Set-Cookie
       end
     end

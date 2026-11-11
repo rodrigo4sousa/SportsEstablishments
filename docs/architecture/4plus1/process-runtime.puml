@@ -1,30 +1,30 @@
-' 4+1 vista de processo - Vista de processo · processos e fios de execução (desenvolvimento e compose)
+' 4+1 process view - Process view · processes and threads of execution (development and compose)
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: A API e o worker de emails correm no mesmo processo; SKIP LOCKED permite várias instâncias (ADR 0004).
-' Não desenhado: detalhe interno das classes.
+' For: whoever writes code and whoever debugs.
+' Documented decision: The API and the email worker run in the same process; SKIP LOCKED allows several instances (ADR 0004).
+' Not drawn: internal detail of the classes.
 @startuml process-runtime
 !include ../style.puml
 
-title Vista de processo - processos e fios de execução (desenvolvimento e compose)
+title Process view - processes and threads of execution (development and compose)
 
 left to right direction
 
-actor "Operador" as P_OPS
-component "Browser\n[Um fio de JavaScript por separador]" as C_BROWSER
-component "Next.js\n[Processo Node.js (ciclo de eventos)]" as C_WEB
-component "API ASP.NET Core\n[Processo .NET 10, Kestrel, thread pool]" as C_API
-component "Worker do outbox\n[BackgroundService no processo da API]" as C_WORKER
-component "seed-demo, set-admin-password\n[O mesmo executável, outro processo]" as C_CLI
-database "PostgreSQL\n[PostgreSQL 18.6, um processo por ligação]" as C_DB
-component "Servidor SMTP" as X_SMTP <<external>>
+actor "Operator" as P_OPS
+component "Browser\n[One JavaScript thread per tab]" as C_BROWSER
+component "Next.js\n[Node.js process (event loop)]" as C_WEB
+component "ASP.NET Core API\n[.NET 10 process, Kestrel, thread pool]" as C_API
+component "Outbox worker\n[BackgroundService in the API process]" as C_WORKER
+component "seed-demo, set-admin-password\n[The same executable, another process]" as C_CLI
+database "PostgreSQL\n[PostgreSQL 18.6, one process per connection]" as C_DB
+component "SMTP server" as X_SMTP <<external>>
 
-C_BROWSER --> C_WEB : Pede páginas e chama /api/* (mesma origem)\n[HTTP, cookies]
-C_WEB --> C_API : Reencaminha /api/* (rewrites do Next.js);\nServer Components chamam /api/auth/me e a\npágina do clube\n[HTTP, API_INTERNAL_URL]
-C_API --> C_WORKER : Aloja no mesmo processo; arranca e para com\no host\n[AddHostedService]
-C_API --> C_DB : Lê e escreve em transações curtas\n[SQL (Npgsql)]
-C_WORKER --> C_DB : Reclama um lote e grava o resultado\n[FOR UPDATE SKIP LOCKED]
-C_WORKER --> X_SMTP : Envia, uma ligação por mensagem (assíncrono)\n[SMTP (MailKit)]
-P_OPS --> C_CLI : Corre\n[docker compose run --rm api …]
-C_CLI --> C_DB : Migrações, seed do admin e o comando\n[SQL]
+C_BROWSER --> C_WEB : Requests pages and calls /api/* (same origin)\n[HTTP, cookies]
+C_WEB --> C_API : Forwards /api/* (Next.js rewrites);\nServer Components call /api/auth/me and the\nclub page\n[HTTP, API_INTERNAL_URL]
+C_API --> C_WORKER : Hosts it in the same process; starts and stops with\nthe host\n[AddHostedService]
+C_API --> C_DB : Reads and writes in short transactions\n[SQL (Npgsql)]
+C_WORKER --> C_DB : Claims a batch and saves the result\n[FOR UPDATE SKIP LOCKED]
+C_WORKER --> X_SMTP : Sends, one connection per message (asynchronous)\n[SMTP (MailKit)]
+P_OPS --> C_CLI : Runs\n[docker compose run --rm api …]
+C_CLI --> C_DB : Migrations, admin seed and the command\n[SQL]
 @enduml

@@ -1,61 +1,61 @@
-' C4 nível 3 - Componentes da API · contas, sessões e recuperação de palavra-passe
+' C4 level 3 - API components · accounts, sessions and password recovery
 ' Version 1.2 - 2026-11-10
-' Não desenhado: classes individuais, salvo quando são o próprio componente.
+' Not drawn: individual classes, except when they are the component itself.
 @startuml 03-components-api-accounts
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes da API - contas, sessões e recuperação de palavra-passe
+title API components - accounts, sessions and password recovery
 
 LAYOUT_TOP_DOWN()
 
-Container_Boundary(C_API, "API ASP.NET Core") {
-  Boundary(API_AUTH, "Contas e sessões (AuthController, api/auth; MeAccountController, api/me)") {
-    Component(API_AUTH_REG, "Registo", "AccountRegistrationService")
+Container_Boundary(C_API, "ASP.NET Core API") {
+  Boundary(API_AUTH, "Accounts and sessions (AuthController, api/auth; MeAccountController, api/me)") {
+    Component(API_AUTH_REG, "Registration", "AccountRegistrationService")
     Component(API_AUTH_LOGIN, "Login", "LoginService")
-    Component(API_AUTH_RESET, "Recuperação", "PasswordResetService, Inf/Auth/PasswordResetStore, AccountEmailBuilder")
-    Component(API_AUTH_ACCOUNTS, "Contas no Identity", "IAccountStore, Inf/Identity/AccountStore, UserManager<AppUser>")
+    Component(API_AUTH_RESET, "Recovery", "PasswordResetService, Inf/Auth/PasswordResetStore, AccountEmailBuilder")
+    Component(API_AUTH_ACCOUNTS, "Accounts in Identity", "IAccountStore, Inf/Identity/AccountStore, UserManager<AppUser>")
   }
-  Component(CC_COOKIES, "Sessões e cookies", "ISessionService, Inf/Auth/SessionService, Api/Auth/AuthCookies")
+  Component(CC_COOKIES, "Sessions and cookies", "ISessionService, Inf/Auth/SessionService, Api/Auth/AuthCookies")
   Component(CC_DATAPROT, "Data Protection", "Identity DataProtectorTokenProvider")
-  Component(API_ADMINSEED, "Seed do admin", "AdminAccountSeeder")
+  Component(API_ADMINSEED, "Admin seed", "AdminAccountSeeder")
   Component(API_ADMINPW, "set-admin-password", "AdminPasswordCommand")
-  Component(API_ADMIN, "Estado dos donos", "AdminOwnerStatusService, Inf/Admin/OwnerStatusStore")
+  Component(API_ADMIN, "Owner status", "AdminOwnerStatusService, Inf/Admin/OwnerStatusStore")
   Component(API_NOTIF, "Outbox", "OutboxMessage")
 }
 
 Container_Boundary(C_DB, "PostgreSQL") {
-  ComponentDb(DB_USERS, "users, roles, user_roles", "Tabelas (Identity)")
-  ComponentDb(DB_REFRESH, "refresh_tokens", "Tabela")
-  ComponentDb(DB_DPKEYS, "data_protection_keys", "Tabela")
-  ComponentDb(DB_STATUSCHG, "owner_status_changes", "Tabela, só de acrescentar")
-  ComponentDb(DB_OUTBOX, "outbox_messages", "Tabela")
+  ComponentDb(DB_USERS, "users, roles, user_roles", "Tables (Identity)")
+  ComponentDb(DB_REFRESH, "refresh_tokens", "Table")
+  ComponentDb(DB_DPKEYS, "data_protection_keys", "Table")
+  ComponentDb(DB_STATUSCHG, "owner_status_changes", "Table, append-only")
+  ComponentDb(DB_OUTBOX, "outbox_messages", "Table")
 }
 
-Rel(API_AUTH_REG, API_AUTH_ACCOUNTS, $plain("Cria a conta com o perfil"), "CreateAsync")
-Rel(API_AUTH_REG, CC_COOKIES, $plain("Começa a sessão"), "StartAsync")
-Rel(API_AUTH_LOGIN, API_AUTH_ACCOUNTS, $plain("Confirma email e palavra-passe"), "AuthenticateAsync")
-Rel(API_AUTH_LOGIN, CC_COOKIES, $plain("Começa a sessão"), "StartAsync")
-Rel(API_AUTH_ACCOUNTS, DB_USERS, $plain("Lê e escreve"), "Identity, SQL")
-Rel(CC_COOKIES, DB_REFRESH, $plain("Emite, roda e revoga"), "UPDATE condicional")
-Rel(CC_COOKIES, DB_USERS, $plain("Refresh: recusa conta desativada"), "deactivated_at")
-Rel(API_AUTH_RESET, DB_USERS, $plain("Tranca a conta e muda o hash"), "FOR UPDATE, ResetPasswordAsync")
-Rel(API_AUTH_RESET, DB_REFRESH, $plain("Revoga todas as sessões"), "UPDATE")
-Rel(API_AUTH_RESET, API_NOTIF, $plain("Põe os emails no outbox"), "OutboxMessage.Create")
-Rel(API_AUTH_RESET, CC_DATAPROT, $plain("Faz e verifica o token"), "UserManager")
-Rel(CC_DATAPROT, DB_DPKEYS, $plain("Guarda as chaves"), "PersistKeysToDbContext")
-Rel(API_NOTIF, DB_OUTBOX, $plain("Escreve"), "INSERT")
-Rel(API_ADMINSEED, DB_USERS, $plain("Cria o admin, se não houver"), "UserManager")
-Rel(API_ADMINPW, DB_USERS, $plain("Muda o hash do admin"), "UserManager")
-Rel(API_ADMINPW, DB_REFRESH, $plain("Revoga as sessões do admin"), "UPDATE")
-Rel(API_ADMIN, DB_USERS, $plain("Muda deactivated_at"), "UPDATE condicional")
-Rel(API_ADMIN, DB_STATUSCHG, $plain("Acrescenta a mudança"), "INSERT")
-Rel(API_ADMIN, DB_REFRESH, $plain("Desativar: revoga as sessões do dono"), "UPDATE")
+Rel(API_AUTH_REG, API_AUTH_ACCOUNTS, $plain("Creates the account with its profile"), "CreateAsync")
+Rel(API_AUTH_REG, CC_COOKIES, $plain("Starts the session"), "StartAsync")
+Rel(API_AUTH_LOGIN, API_AUTH_ACCOUNTS, $plain("Checks email and password"), "AuthenticateAsync")
+Rel(API_AUTH_LOGIN, CC_COOKIES, $plain("Starts the session"), "StartAsync")
+Rel(API_AUTH_ACCOUNTS, DB_USERS, $plain("Reads and writes"), "Identity, SQL")
+Rel(CC_COOKIES, DB_REFRESH, $plain("Issues, rotates and revokes"), "Conditional UPDATE")
+Rel(CC_COOKIES, DB_USERS, $plain("Refresh: refuses a deactivated account"), "deactivated_at")
+Rel(API_AUTH_RESET, DB_USERS, $plain("Locks the account and changes the hash"), "FOR UPDATE, ResetPasswordAsync")
+Rel(API_AUTH_RESET, DB_REFRESH, $plain("Revokes all sessions"), "UPDATE")
+Rel(API_AUTH_RESET, API_NOTIF, $plain("Puts the emails in the outbox"), "OutboxMessage.Create")
+Rel(API_AUTH_RESET, CC_DATAPROT, $plain("Makes and checks the token"), "UserManager")
+Rel(CC_DATAPROT, DB_DPKEYS, $plain("Stores the keys"), "PersistKeysToDbContext")
+Rel(API_NOTIF, DB_OUTBOX, $plain("Writes"), "INSERT")
+Rel(API_ADMINSEED, DB_USERS, $plain("Creates the admin, if there is none"), "UserManager")
+Rel(API_ADMINPW, DB_USERS, $plain("Changes the admin's hash"), "UserManager")
+Rel(API_ADMINPW, DB_REFRESH, $plain("Revokes the admin's sessions"), "UPDATE")
+Rel(API_ADMIN, DB_USERS, $plain("Changes deactivated_at"), "Conditional UPDATE")
+Rel(API_ADMIN, DB_STATUSCHG, $plain("Appends the change"), "INSERT")
+Rel(API_ADMIN, DB_REFRESH, $plain("Deactivate: revokes the owner's sessions"), "UPDATE")
 
 note left of API_AUTH_LOGIN
-  À frente dos controllers: verificação do Origin
-  (Origin nos pedidos que alteram) e
-  rate limiting (limites por IP no registo,
-  login, refresh e recuperação).
+  In front of the controllers: Origin check
+  (Origin on requests that change data) and
+  rate limiting (per-IP limits on registration,
+  login, refresh and recovery).
 end note
 @enduml

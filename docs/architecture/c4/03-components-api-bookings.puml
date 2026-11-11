@@ -1,66 +1,66 @@
-' C4 nível 3 - Componentes da API · reservas (uma, série semanal, do dono) e verificação partilhada do slot
+' C4 level 3 - API components · bookings (single, weekly series, owner's) and the shared slot check
 ' Version 1.1 - 2026-11-10
-' Não desenhado: classes individuais, salvo quando são o próprio componente.
+' Not drawn: individual classes, except when they are the component itself.
 @startuml 03-components-api-bookings
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes da API - reservas (uma, série semanal, do dono) e verificação partilhada do slot
+title API components - bookings (single, weekly series, owner's) and the shared slot check
 
 LAYOUT_TOP_DOWN()
 
-Container_Boundary(C_API, "API ASP.NET Core") {
-  Boundary(API_BOOK, "Reservas do jogador (BookingsController, MeBookingsController; política Player)") {
-    Component(API_BOOK_SINGLE, "Uma reserva", "BookingService.CreateAsync")
-    Component(API_BOOK_SERIES, "Série semanal", "RecurringBookingService, RecurringOccurrences")
-    Component(API_BOOK_MINE, "As minhas reservas e cancelar", "MyBookingsService, BookingCancellationService")
-    Component(API_BOOK_STORE, "Store das reservas", "IBookingStore, Inf/Bookings/BookingStore")
+Container_Boundary(C_API, "ASP.NET Core API") {
+  Boundary(API_BOOK, "Player bookings (BookingsController, MeBookingsController; Player policy)") {
+    Component(API_BOOK_SINGLE, "Single booking", "BookingService.CreateAsync")
+    Component(API_BOOK_SERIES, "Weekly series", "RecurringBookingService, RecurringOccurrences")
+    Component(API_BOOK_MINE, "My bookings and cancelling", "MyBookingsService, BookingCancellationService")
+    Component(API_BOOK_STORE, "Booking store", "IBookingStore, Inf/Bookings/BookingStore")
   }
-  Component(API_CLUBBOOK, "Reservas do dono", "ClubBookingService, ClubCalendarService")
-  Component(CC_AUTHZ, "Autorização por dono", "OwnedClubs, OwnedPitches, OwnedBookings")
-  Component(CC_SLOTCHECK, "Verificação do slot", "BookingSlotCheck.CheckAsync")
-  Component(CC_LOCK, "Trinco do campo", "IPitchLock, Inf/Pitches/PitchLock")
-  Component(API_CATALOG, "Clubes visíveis", "VisibleClubs")
-  Component(API_AUTH, "Contas", "IAccountStore.IsActiveAsync")
+  Component(API_CLUBBOOK, "Owner bookings", "ClubBookingService, ClubCalendarService")
+  Component(CC_AUTHZ, "Per-owner authorization", "OwnedClubs, OwnedPitches, OwnedBookings")
+  Component(CC_SLOTCHECK, "Slot check", "BookingSlotCheck.CheckAsync")
+  Component(CC_LOCK, "Pitch lock", "IPitchLock, Inf/Pitches/PitchLock")
+  Component(API_CATALOG, "Visible clubs", "VisibleClubs")
+  Component(API_AUTH, "Accounts", "IAccountStore.IsActiveAsync")
   Component(API_NOTIF, "Outbox", "BookingEmailOutbox")
 }
 
 Container_Boundary(C_DB, "PostgreSQL") {
-  ComponentDb(DB_PITCHES, "pitches", "Tabela")
-  ComponentDb(DB_BLOCKS, "blocks", "Tabela")
-  ComponentDb(DB_BOOKINGS, "bookings", "Tabela")
+  ComponentDb(DB_PITCHES, "pitches", "Table")
+  ComponentDb(DB_BLOCKS, "blocks", "Table")
+  ComponentDb(DB_BOOKINGS, "bookings", "Table")
   ComponentDb(DB_NOOVERLAP, "bookings_no_overlap", "Exclusion constraint (GiST)")
-  ComponentDb(DB_OUTBOX, "outbox_messages", "Tabela")
+  ComponentDb(DB_OUTBOX, "outbox_messages", "Table")
 }
 
-Rel(API_BOOK_SINGLE, API_AUTH, $plain("Confirma que o dono está ativo (422 club_unavailable)"), "")
-Rel(API_BOOK_SINGLE, CC_LOCK, $plain("Tranca o campo"), "LockAsync")
-Rel(API_BOOK_SINGLE, CC_SLOTCHECK, $plain("Verifica o slot no campo lido dentro do trinco"), "CheckAsync")
-Rel(API_BOOK_SINGLE, API_NOTIF, $plain("Confirmação, aviso ao dono e lembrete"), "Enqueue*")
-Rel(API_BOOK_SINGLE, API_BOOK_STORE, $plain("Insere"), "TryAddAsync")
+Rel(API_BOOK_SINGLE, API_AUTH, $plain("Checks that the owner is active (422 club_unavailable)"), "")
+Rel(API_BOOK_SINGLE, CC_LOCK, $plain("Locks the pitch"), "LockAsync")
+Rel(API_BOOK_SINGLE, CC_SLOTCHECK, $plain("Checks the slot on the pitch read inside the lock"), "CheckAsync")
+Rel(API_BOOK_SINGLE, API_NOTIF, $plain("Confirmation, owner notice and reminder"), "Enqueue*")
+Rel(API_BOOK_SINGLE, API_BOOK_STORE, $plain("Inserts"), "TryAddAsync")
 
-Rel(API_BOOK_SERIES, API_CATALOG, $plain("Pré-visualização: só um campo ativo de um clube visível"), "")
-Rel(API_BOOK_SERIES, API_AUTH, $plain("Confirma que o dono está ativo"), "")
-Rel(API_BOOK_SERIES, CC_LOCK, $plain("Tranca o campo, uma vez por data"), "LockAsync")
-Rel(API_BOOK_SERIES, CC_SLOTCHECK, $plain("Verifica cada data"), "CheckAsync")
-Rel(API_BOOK_SERIES, API_NOTIF, $plain("Aviso ao dono e lembrete por reserva; um resumo da série"), "EnqueueSeriesSummaryAsync")
-Rel(API_BOOK_SERIES, API_BOOK_STORE, $plain("Insere cada data (23P01 → taken)"), "TryAddAsync")
+Rel(API_BOOK_SERIES, API_CATALOG, $plain("Preview: only an active pitch of a visible club"), "")
+Rel(API_BOOK_SERIES, API_AUTH, $plain("Checks that the owner is active"), "")
+Rel(API_BOOK_SERIES, CC_LOCK, $plain("Locks the pitch, once per date"), "LockAsync")
+Rel(API_BOOK_SERIES, CC_SLOTCHECK, $plain("Checks each date"), "CheckAsync")
+Rel(API_BOOK_SERIES, API_NOTIF, $plain("Owner notice and reminder per booking; one series summary"), "EnqueueSeriesSummaryAsync")
+Rel(API_BOOK_SERIES, API_BOOK_STORE, $plain("Inserts each date (23P01 → taken)"), "TryAddAsync")
 
-Rel(API_BOOK_MINE, CC_LOCK, $plain("Cancelar: tranca e volta a ler a reserva"), "LockAsync")
-Rel(API_BOOK_MINE, API_NOTIF, $plain("Email do cancelamento"), "EnqueuePlayerCancellationAsync")
-Rel(API_BOOK_MINE, DB_BOOKINGS, $plain("Lê as do jogador; grava o cancelamento"), "SQL")
+Rel(API_BOOK_MINE, CC_LOCK, $plain("Cancel: locks and reads the booking again"), "LockAsync")
+Rel(API_BOOK_MINE, API_NOTIF, $plain("Cancellation email"), "EnqueuePlayerCancellationAsync")
+Rel(API_BOOK_MINE, DB_BOOKINGS, $plain("Reads the player's; saves the cancellation"), "SQL")
 
-Rel(API_CLUBBOOK, CC_AUTHZ, $plain("Chega ao clube, ao campo e à reserva"), "OwnedPitches, OwnedBookings")
-Rel(API_CLUBBOOK, API_AUTH, $plain("Reserva para cliente: dono ativo"), "")
-Rel(API_CLUBBOOK, CC_LOCK, $plain("Tranca o campo (criar, cancelar, faltas)"), "LockAsync")
-Rel(API_CLUBBOOK, CC_SLOTCHECK, $plain("Reserva para cliente: as mesmas regras"), "CheckAsync")
-Rel(API_CLUBBOOK, API_BOOK_STORE, $plain("Insere; anula a falta"), "TryAddAsync, TrySaveChangesAsync")
-Rel(API_CLUBBOOK, API_NOTIF, $plain("Email do cancelamento pelo clube"), "EnqueueClubCancellationAsync")
-Rel(API_CLUBBOOK, DB_BOOKINGS, $plain("Lê o calendário; grava o cancelamento e a falta"), "SQL")
+Rel(API_CLUBBOOK, CC_AUTHZ, $plain("Reaches the club, the pitch and the booking"), "OwnedPitches, OwnedBookings")
+Rel(API_CLUBBOOK, API_AUTH, $plain("Customer booking: owner is active"), "")
+Rel(API_CLUBBOOK, CC_LOCK, $plain("Locks the pitch (create, cancel, no-shows)"), "LockAsync")
+Rel(API_CLUBBOOK, CC_SLOTCHECK, $plain("Customer booking: the same rules"), "CheckAsync")
+Rel(API_CLUBBOOK, API_BOOK_STORE, $plain("Inserts; undoes the no-show"), "TryAddAsync, TrySaveChangesAsync")
+Rel(API_CLUBBOOK, API_NOTIF, $plain("Club cancellation email"), "EnqueueClubCancellationAsync")
+Rel(API_CLUBBOOK, DB_BOOKINGS, $plain("Reads the calendar; saves the cancellation and the no-show"), "SQL")
 
-Rel(CC_LOCK, DB_PITCHES, $plain("Tranca a linha"), "SELECT … FOR UPDATE")
-Rel(CC_SLOTCHECK, DB_BLOCKS, $plain("Procura bloqueios sobrepostos"), "SQL")
-Rel(API_BOOK_STORE, DB_BOOKINGS, $plain("Escreve"), "INSERT, UPDATE")
-Rel(DB_BOOKINGS, DB_NOOVERLAP, $plain("Cada escrita é verificada"), "23P01")
-Rel(API_NOTIF, DB_OUTBOX, $plain("Escreve no mesmo SaveChanges"), "INSERT")
+Rel(CC_LOCK, DB_PITCHES, $plain("Locks the row"), "SELECT … FOR UPDATE")
+Rel(CC_SLOTCHECK, DB_BLOCKS, $plain("Looks for overlapping blocks"), "SQL")
+Rel(API_BOOK_STORE, DB_BOOKINGS, $plain("Writes"), "INSERT, UPDATE")
+Rel(DB_BOOKINGS, DB_NOOVERLAP, $plain("Every write is checked"), "23P01")
+Rel(API_NOTIF, DB_OUTBOX, $plain("Writes in the same SaveChanges"), "INSERT")
 @enduml

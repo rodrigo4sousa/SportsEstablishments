@@ -1,38 +1,38 @@
-' 4+1 vista física - diagrama de implantação UML da produção
+' 4+1 physical view - UML deployment diagram of production
 ' Version 1.1 - 2026-11-10
-' Para: quem faz deploy, opera ou dá suporte à aplicação.
-' Decisão documentada: o site corre na Vercel, a API e o worker de emails no mesmo serviço do Render, a base de dados no Supabase (sempre pelo pooler em modo sessão) e o SMTP no Brevo; o GitHub Actions aplica as migrações como dono do esquema e lança os deploys (ADR 0009).
-' Só o que existe em produção desde 2026-11-09. O desenvolvimento (docker compose) está em c4/04-deployment-dev.puml.
-' Mesmos nós e nomes que c4/04-deployment-prod.puml.
-' Não desenhado: o que não foi adotado (Caddy, máquina virtual, GHCR, domínio próprio, cópias diárias; ver ADR 0009), os segredos e as variáveis de ambiente (docs/deployment/environment-variables.md).
+' For: whoever deploys, operates or supports the application.
+' Documented decision: the site runs on Vercel, the API and the email worker in the same Render service, the database on Supabase (always through the pooler in session mode) and SMTP on Brevo; GitHub Actions applies the migrations as the schema owner and launches the deploys (ADR 0009).
+' Only what exists in production since 2026-11-09. Development (docker compose) is in c4/04-deployment-dev.puml.
+' Same nodes and names as c4/04-deployment-prod.puml.
+' Not drawn: what was not adopted (Caddy, virtual machine, GHCR, custom domain, daily backups; see ADR 0009), the secrets and the environment variables (docs/deployment/environment-variables.md).
 @startuml physical
 !include ../style.puml
 
-title Vista física - produção (T06)
+title Physical view - production (T06)
 left to right direction
 
-node "Browser do utilizador" as C_BROWSER
+node "User's browser" as C_BROWSER
 
 node "Vercel (Hobby)" as PL_VERCEL {
-    component "Borda da Vercel" as PL_VERCEL_EDGE
-    artifact "Aplicação Next.js" as C_WEB
+    component "Vercel edge" as PL_VERCEL_EDGE
+    artifact "Next.js application" as C_WEB
 }
 
-node "Render (plano gratuito, Frankfurt)" as PL_RENDER {
-    component "Borda do Render" as PL_RENDER_EDGE
-    node "Serviço web público (Docker)" as PL_RENDER_API {
-        artifact "API ASP.NET Core" as C_API
-        artifact "Worker de emails" as C_WORKER
+node "Render (free plan, Frankfurt)" as PL_RENDER {
+    component "Render edge" as PL_RENDER_EDGE
+    node "Public web service (Docker)" as PL_RENDER_API {
+        artifact "ASP.NET Core API" as C_API
+        artifact "Email worker" as C_WORKER
     }
 }
 
 node "Supabase (Free)" as PL_SUPABASE {
-    component "Pooler de ligações" as PL_SUPAPOOL
-    database "Base de dados" as C_DB
+    component "Connection pooler" as PL_SUPAPOOL
+    database "Database" as C_DB
 }
 
 node "Brevo" as PL_BREVO_NODE {
-    component "Servidor SMTP" <<external>> as PL_BREVO
+    component "SMTP server" <<external>> as PL_BREVO
 }
 
 node "GitHub Actions" as X_GHA {
@@ -41,19 +41,19 @@ node "GitHub Actions" as X_GHA {
     artifact "Migration bundle" as PL_MIGBUNDLE
 }
 
-C_BROWSER --> PL_VERCEL_EDGE : Abre páginas e chama /api/*\n[HTTPS, cookies]
-PL_VERCEL_EDGE --> C_WEB : Encaminha as páginas
-PL_VERCEL_EDGE --> PL_RENDER_EDGE : Reescreve /api/*\n[HTTPS, Internet]
-C_WEB --> PL_RENDER_EDGE : Server Components leem a API\n[HTTPS, API_INTERNAL_URL]
-PL_RENDER_EDGE --> C_API : Encaminha o pedido\n[HTTP, PORT]
-C_API --> PL_SUPAPOOL : Lê e escreve como sportsbooking_app\n[SQL, TLS]
-C_WORKER --> PL_SUPAPOOL : Reclama o outbox e grava o resultado\n[SQL, TLS]
-PL_SUPAPOOL --> C_DB : Liga\n[PostgreSQL]
-C_WORKER --> PL_BREVO : Envia o email\n[SMTP, StartTls]
-PL_DEPLOY --> PL_MIGBUNDLE : Constrói e corre
+C_BROWSER --> PL_VERCEL_EDGE : Opens pages and calls /api/*\n[HTTPS, cookies]
+PL_VERCEL_EDGE --> C_WEB : Routes the pages
+PL_VERCEL_EDGE --> PL_RENDER_EDGE : Rewrites /api/*\n[HTTPS, Internet]
+C_WEB --> PL_RENDER_EDGE : Server Components read the API\n[HTTPS, API_INTERNAL_URL]
+PL_RENDER_EDGE --> C_API : Forwards the request\n[HTTP, PORT]
+C_API --> PL_SUPAPOOL : Reads and writes as sportsbooking_app\n[SQL, TLS]
+C_WORKER --> PL_SUPAPOOL : Claims the outbox and saves the result\n[SQL, TLS]
+PL_SUPAPOOL --> C_DB : Connects\n[PostgreSQL]
+C_WORKER --> PL_BREVO : Sends the email\n[SMTP, StartTls]
+PL_DEPLOY --> PL_MIGBUNDLE : Builds and runs
 PL_PRODDATA --> PL_MIGBUNDLE : migrate-only
-PL_MIGBUNDLE --> PL_SUPAPOOL : Aplica as migrações como postgres\n[SQL, TLS]
-PL_PRODDATA --> PL_SUPAPOOL : Corre os comandos como postgres\n[SQL, TLS]
-PL_DEPLOY --> PL_RENDER_API : Dispara o deploy deste commit\n[Deploy hook]
-PL_DEPLOY --> PL_VERCEL : Publica o build\n[Vercel CLI]
+PL_MIGBUNDLE --> PL_SUPAPOOL : Applies the migrations as postgres\n[SQL, TLS]
+PL_PRODDATA --> PL_SUPAPOOL : Runs the commands as postgres\n[SQL, TLS]
+PL_DEPLOY --> PL_RENDER_API : Triggers the deploy of this commit\n[Deploy hook]
+PL_DEPLOY --> PL_VERCEL : Publishes the build\n[Vercel CLI]
 @enduml
