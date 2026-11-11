@@ -135,7 +135,7 @@ describe("PriceBandsSection", () => {
     await user.type(within(form).getByLabelText("Preço por horário (€)"), "30");
     await user.click(within(form).getByRole("button", { name: "Criar faixa" }));
 
-    expect(await within(form).findByText("O preço não pode passar de 500 €.")).toBeInTheDocument();
+    expect(await within(form).findByText("O preço tem de ser maior que 0 € e no máximo 500 €, com até duas casas decimais.")).toBeInTheDocument();
     expect(within(form).getByText("Escolhe pelo menos um dia da semana.")).toBeInTheDocument();
     expect(within(form).getByLabelText("Preço por horário (€)")).toHaveAttribute("aria-invalid", "true");
   });

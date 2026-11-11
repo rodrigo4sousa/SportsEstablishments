@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { trySilentRefresh } from "@/lib/api/client";
 import { registerUrl, safeNext } from "@/lib/auth/redirects";
@@ -15,6 +16,7 @@ import { LoginForm } from "./login-form";
  * home of their profile); otherwise the form shows.
  */
 export function LoginScreen() {
+  const t = useTranslations("auth.loginScreen");
   const router = useRouter();
   const queryClient = useQueryClient();
   const next = useSearchParams().get("next");
@@ -40,7 +42,7 @@ export function LoginScreen() {
   if (silentSession.isPending || account) {
     return (
       <p role="status" className="text-muted-foreground">
-        A verificar a sessão…
+        {t("checkingSession")}
       </p>
     );
   }
@@ -50,14 +52,17 @@ export function LoginScreen() {
       <LoginForm next={next} />
       <p className="text-sm text-muted-foreground">
         <Link href="/forgot-password" className="underline underline-offset-4">
-          Esqueci-me da palavra-passe
+          {t("forgotPassword")}
         </Link>
       </p>
       <p className="text-sm text-muted-foreground">
-        Ainda não tens conta?{" "}
-        <Link href={registerUrl(next)} className="underline underline-offset-4">
-          Criar conta
-        </Link>
+        {t.rich("noAccount", {
+          link: (chunks) => (
+            <Link href={registerUrl(next)} className="underline underline-offset-4">
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
     </>
   );

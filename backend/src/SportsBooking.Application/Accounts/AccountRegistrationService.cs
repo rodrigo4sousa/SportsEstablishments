@@ -37,7 +37,7 @@ public sealed class AccountRegistrationService(
         }
 
         var account = await accounts.CreateAsync(
-            new NewAccount(normalized.Name, normalized.Email, normalized.Password, normalized.Phone, normalized.AcceptedTermsVersion),
+            new NewAccount(normalized.Name, normalized.Email, normalized.Password, normalized.Phone, normalized.AcceptedTermsVersion, normalized.PreferredLanguage),
             profile,
             cancellationToken);
         if (account is null)

@@ -1,0 +1,1197 @@
+{
+  "metadata": {
+    "siteName": "Reservas de Campos",
+    "titleTemplate": "%s · Reservas de Campos",
+    "description": "Pesquisa clubes e reserva campos de futsal, futebol 7, padel e ténis."
+  },
+  "time": {
+    "summerTime": "(verão)",
+    "winterTime": "(inverno)",
+    "today": "Hoje",
+    "tomorrow": "Amanhã",
+    "yesterday": "Ontem",
+    "lisbonTimeNote": "Horas de Lisboa."
+  },
+  "apiErrors": {
+    "invalid_credentials": "Email ou palavra-passe incorretos.",
+    "invalid_password": "A palavra-passe está incorreta.",
+    "owner_has_clubs": "Uma conta com clubes não pode ser apagada aqui. Contacta a administração:",
+    "admin_cannot_delete_account": "A conta de administração não pode ser apagada.",
+    "club_not_found": "Este clube não existe ou não é teu.",
+    "pitch_not_found": "Este campo já não existe neste clube.",
+    "block_not_found": "Este bloqueio já não existe.",
+    "block_overlap": "Este período sobrepõe-se a outro bloqueio deste campo.",
+    "block_already_started": "Um bloqueio que já começou não pode ser removido.",
+    "series_unavailable": "Nenhuma das datas escolhidas está disponível, por isso não foi feita nenhuma reserva.",
+    "price_band_not_found": "Esta faixa de preço já não existe.",
+    "price_band_overlap": "Esta faixa sobrepõe-se a outra faixa de preço deste campo num dos dias escolhidos.",
+    "price_band_limit_reached": "Um campo pode ter no máximo 20 faixas de preço.",
+    "slot_taken": "Este horário acabou de ser reservado. Escolhe outro.",
+    "slot_blocked": "Este horário não está disponível. Escolhe outro.",
+    "slot_started": "Este horário já começou. Escolhe outro.",
+    "invalid_slot": "Este horário já não existe. Escolhe outro.",
+    "outside_booking_window": "Só é possível reservar de hoje até 30 dias à frente.",
+    "pitch_inactive": "Este campo já não está a aceitar reservas.",
+    "club_unavailable": "Este clube já não está a aceitar reservas.",
+    "booking_not_found": "Esta reserva já não existe.",
+    "booking_already_started": "Esta reserva já começou, por isso já não pode ser cancelada.",
+    "booking_not_ended": "Só é possível marcar falta depois de a reserva terminar.",
+    "booking_not_no_show": "Esta reserva não está marcada como falta.",
+    "booking_not_confirmed": "Esta reserva já não está confirmada, por isso não pode ser cancelada.",
+    "outside_cancellation_window": "O prazo para cancelar esta reserva já terminou.",
+    "invalid_or_expired_reset_link": "Esta ligação já não é válida: expirou ou já foi usada. Pede uma nova.",
+    "owner_not_found": "Este dono já não existe.",
+    "owner_already_deactivated": "Este dono já está desativado.",
+    "owner_not_deactivated": "Este dono não está desativado.",
+    "forbidden": "Não tens permissão para fazer esta ação.",
+    "email_taken": "Já existe uma conta com este email.",
+    "terms_not_accepted": "Para criar conta, tens de aceitar os Termos e Condições e tomar conhecimento da Política de Privacidade.",
+    "validation_failed": "Há campos com erros. Corrige-os e tenta novamente.",
+    "origin_not_allowed": "O pedido foi recusado. Recarrega a página e tenta novamente.",
+    "too_many_requests": "Fizeste demasiados pedidos seguidos. Espera um pouco e tenta novamente.",
+    "network_error": "Não foi possível contactar o servidor. Verifica a ligação e tenta novamente.",
+    "unknown_error": "Ocorreu um erro inesperado. Tenta novamente mais tarde.",
+    "pitch_has_future_bookings": "Este campo tem reservas confirmadas que ainda não terminaram, por isso não pode ser desativado.",
+    "block_overlaps_bookings": "Este período tem reservas confirmadas. Cancela-as primeiro ou escolhe outro período."
+  },
+  "header": {
+    "brand": "Reservas de Campos"
+  },
+  "accountMenu": {
+    "label": "Conta",
+    "toggle": "Conta",
+    "greeting": "Olá, <strong>{name}</strong>"
+  },
+  "areaLinks": {
+    "myClubs": "Os meus clubes",
+    "statistics": "Estatísticas",
+    "myAccount": "A minha conta"
+  },
+  "footer": {
+    "legalLabel": "Informação legal",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade"
+  },
+  "languageSwitcher": {
+    "label": "Idioma",
+    "ptShort": "PT",
+    "enShort": "EN",
+    "ptName": "Português",
+    "enName": "English"
+  },
+  "skipLink": {
+    "label": "Saltar para o conteúdo"
+  },
+  "loading": {
+    "page": "A carregar…"
+  },
+  "routeError": {
+    "title": "Ocorreu um erro inesperado.",
+    "body": "Não foi possível mostrar esta página. Tenta novamente; se continuar, volta ao início.",
+    "retry": "Tentar novamente",
+    "home": "Voltar ao início"
+  },
+  "rateLimit": {
+    "waiting": "Fizeste demasiados pedidos seguidos. Podes tentar novamente dentro de <timer>{seconds, plural, one {# segundo} other {# segundos}}</timer>.",
+    "ready": "Já podes tentar novamente."
+  },
+  "periodFilter": {
+    "label": "Período",
+    "from": "De",
+    "to": "Até",
+    "last30Days": "Últimos 30 dias"
+  },
+  "areas": {
+    "owner": "Área do dono",
+    "admin": "Administração"
+  },
+  "notFound": {
+    "documentTitle": "Página não encontrada · Reservas de Campos",
+    "title": "Página não encontrada",
+    "body": "Este endereço não existe ou já não está disponível.",
+    "searchClubs": "Pesquisar clubes"
+  },
+  "globalError": {
+    "documentTitle": "Erro · Reservas de Campos",
+    "title": "Ocorreu um erro inesperado.",
+    "body": "Não foi possível mostrar a aplicação. Tenta novamente; se continuar, volta mais tarde.",
+    "retry": "Tentar novamente",
+    "home": "Voltar ao início"
+  },
+  "pages": {
+    "search": {
+      "metaTitle": "Pesquisar clubes",
+      "title": "Encontra onde jogar",
+      "intro": "Pesquisa clubes de futsal, futebol 7, padel e ténis, vê os horários livres e reserva o teu campo.",
+      "noAccount": "Podes pesquisar sem conta; para reservar precisas de uma conta de jogador. Tens um clube? <link>Cria uma conta de dono</link>."
+    },
+    "account": {
+      "title": "A minha conta"
+    },
+    "bookings": {
+      "title": "As minhas reservas"
+    },
+    "club": {
+      "notFoundTitle": "Clube não encontrado",
+      "back": "← Pesquisar clubes",
+      "notFoundHeading": "Clube"
+    },
+    "admin": {
+      "title": "Administração"
+    },
+    "owner": {
+      "metaTitle": "Dono · Administração",
+      "title": "Dono"
+    },
+    "forgotPassword": {
+      "title": "Esqueci-me da palavra-passe",
+      "intro": "Indica o email da tua conta e enviamos-te uma ligação para escolheres uma nova palavra-passe."
+    },
+    "login": {
+      "title": "Entrar",
+      "intro": "Entra na tua conta para reservar campos ou gerir o teu clube.",
+      "home": "Voltar ao início"
+    },
+    "manage": {
+      "title": "Os teus clubes"
+    },
+    "newClub": {
+      "title": "Novo clube"
+    },
+    "editClub": {
+      "title": "Editar clube"
+    },
+    "calendar": {
+      "title": "Calendário"
+    },
+    "clubStatistics": {
+      "title": "Estatísticas do clube",
+      "notFoundTitle": "Estatísticas"
+    },
+    "statistics": {
+      "title": "Estatísticas"
+    },
+    "register": {
+      "title": "Criar conta",
+      "intro": "Cria a tua conta de jogador para reservar campos e gerir as tuas reservas.",
+      "ownerPrompt": "Tens um clube? <link>Cria uma conta de dono</link>",
+      "home": "Voltar ao início"
+    },
+    "registerOwner": {
+      "title": "Criar conta de dono",
+      "intro": "Cria a tua conta de dono para registar o teu clube e gerir os campos e as reservas.",
+      "playerPrompt": "Queres só reservar campos? <link>Cria uma conta de jogador</link>",
+      "haveAccount": "Já tens conta? <link>Entrar</link>"
+    },
+    "resetPassword": {
+      "title": "Nova palavra-passe",
+      "intro": "Escolhe a nova palavra-passe da tua conta."
+    }
+  },
+  "validation": {
+    "nameRequired": "Indica o teu nome.",
+    "nameMax": "O nome pode ter no máximo {max} caracteres.",
+    "emailRequired": "Indica o teu email.",
+    "emailInvalid": "Indica um email válido, por exemplo nome@exemplo.pt.",
+    "passwordRequired": "Indica a palavra-passe.",
+    "passwordMin": "A palavra-passe tem de ter pelo menos {min} caracteres.",
+    "phoneInvalid": "Indica um número de telemóvel válido, com 9 a 15 algarismos.",
+    "confirmationRequired": "Repete a nova palavra-passe.",
+    "passwordsDiffer": "As palavras-passe não coincidem."
+  },
+  "fieldErrors": {
+    "invalid": "Este valor não foi aceite. Verifica-o e tenta novamente.",
+    "shared": {
+      "name": "Verifica o nome: é obrigatório e tem um limite de caracteres.",
+      "email": "Indica um email válido, por exemplo nome@exemplo.pt.",
+      "password": "Verifica a palavra-passe: tem de ter pelo menos 8 caracteres.",
+      "newPassword": "A palavra-passe tem de ter pelo menos 8 caracteres.",
+      "phone": "Indica um número de telemóvel válido, com 9 a 15 algarismos.",
+      "reason": "Verifica o motivo: é obrigatório e tem um limite de caracteres.",
+      "preferredLanguage": "Escolhe português ou inglês."
+    },
+    "account": {
+      "password": "Indica a palavra-passe."
+    },
+    "club": {
+      "name": "Verifica o nome do clube: é obrigatório e tem no máximo 100 caracteres.",
+      "address": "Verifica a morada: é obrigatória e tem no máximo 200 caracteres.",
+      "locality": "Verifica a localidade: é obrigatória e tem no máximo 100 caracteres.",
+      "phone": "Indica um número de telefone válido, com 9 a 15 algarismos.",
+      "contactEmail": "Indica um email válido, por exemplo nome@exemplo.pt.",
+      "cancellationWindowHours": "A janela de cancelamento tem de estar entre 1 e 168 horas."
+    },
+    "pitch": {
+      "name": "Verifica o nome: é obrigatório, tem no máximo 100 caracteres e não pode repetir o de outro campo deste clube.",
+      "sport": "Escolhe um desporto da lista: futsal, futebol 7, padel ou ténis.",
+      "pricePerSlot": "O preço por horário tem de ser maior que 0 € e no máximo 500 €, com até duas casas decimais."
+    },
+    "schedule": {
+      "slotDurationMinutes": "A duração do horário tem de ser 30, 60 ou 90 minutos.",
+      "opens": "Verifica a hora de abertura: HH:mm, de meia em meia hora.",
+      "closes": "Verifica a hora de fecho: depois da abertura, até às 00:00, de meia em meia hora.",
+      "closed": "Verifica o horário deste dia."
+    },
+    "block": {
+      "startDate": "Verifica o início: não pode estar no passado e vai de meia em meia hora.",
+      "endDate": "Verifica o fim: depois do início, no máximo 90 dias à frente e de meia em meia hora.",
+      "reason": "O motivo pode ter no máximo 200 caracteres."
+    },
+    "priceBand": {
+      "days": "Escolhe pelo menos um dia da semana.",
+      "start": "Verifica a hora de início: HH:mm, de meia em meia hora.",
+      "end": "Verifica a hora de fim: depois do início, até às 00:00, de meia em meia hora.",
+      "price": "O preço tem de ser maior que 0 € e no máximo 500 €, com até duas casas decimais."
+    },
+    "booking": {
+      "pitchId": "Indica o campo a reservar.",
+      "startsAt": "Escolhe um horário livre.",
+      "customerName": "Verifica o nome do cliente: é obrigatório e tem no máximo 100 caracteres.",
+      "customerPhone": "Indica um número de telemóvel válido, com 9 a 15 algarismos.",
+      "reason": "Verifica o motivo: é obrigatório e tem no máximo 200 caracteres."
+    },
+    "period": {
+      "statistics": "Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até», as datas vão de 2000 a 2100 e o período tem no máximo 366 dias.",
+      "admin": "Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até» e o período tem um limite (366 dias, 104 semanas ou 60 meses).",
+      "search": "A pesquisa não é aceite. Usa no máximo 100 caracteres."
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Palavra-passe",
+    "login": {
+      "form": "Entrar",
+      "submit": "Entrar",
+      "submitting": "A entrar…"
+    },
+    "loginScreen": {
+      "checkingSession": "A verificar a sessão…",
+      "forgotPassword": "Esqueci-me da palavra-passe",
+      "noAccount": "Ainda não tens conta? <link>Criar conta</link>"
+    },
+    "accountStatus": {
+      "label": "Conta",
+      "signIn": "Entrar",
+      "register": "Criar conta",
+      "myBookings": "As minhas reservas",
+      "myAccount": "A minha conta"
+    },
+    "logout": "Sair",
+    "registerScreen": {
+      "haveAccount": "Já tens conta? <link>Entrar</link>"
+    },
+    "register": {
+      "formPlayer": "Criar conta",
+      "formOwner": "Criar conta de dono",
+      "name": "Nome",
+      "passwordHint": "Pelo menos {min} caracteres.",
+      "phone": "Telemóvel (opcional)",
+      "acceptTerms": "Li e aceito os <terms>Termos e Condições</terms> e tomei conhecimento da <privacy>Política de Privacidade</privacy>",
+      "newTabHint": "As ligações abrem num novo separador.",
+      "submit": "Criar conta",
+      "submitting": "A criar conta…"
+    },
+    "forgot": {
+      "form": "Recuperar palavra-passe",
+      "sent": "Se existir uma conta com este email, vais receber uma ligação para redefinir a palavra-passe. A ligação é válida durante 1 hora.",
+      "notArrived": "Não chegou? Vê a pasta de spam e, passados uns minutos, <again>pede outra ligação</again>.",
+      "backToLogin": "Voltar a entrar",
+      "submit": "Enviar ligação",
+      "submitting": "A enviar…"
+    },
+    "reset": {
+      "form": "Definir a nova palavra-passe",
+      "askNewLink": "Pedir uma nova ligação",
+      "done": "A tua palavra-passe foi alterada. Já podes entrar com a nova palavra-passe.",
+      "signIn": "Entrar",
+      "newPassword": "Nova palavra-passe",
+      "newPasswordHint": "Pelo menos {min} caracteres.",
+      "confirmation": "Repetir a nova palavra-passe",
+      "submit": "Definir palavra-passe",
+      "submitting": "A guardar…"
+    }
+  },
+  "sports": {
+    "futsal": "Futsal",
+    "football7": "Futebol 7",
+    "padel": "Padel",
+    "tennis": "Ténis"
+  },
+  "weekdays": {
+    "monday": "Segunda-feira",
+    "tuesday": "Terça-feira",
+    "wednesday": "Quarta-feira",
+    "thursday": "Quinta-feira",
+    "friday": "Sexta-feira",
+    "saturday": "Sábado",
+    "sunday": "Domingo"
+  },
+  "dates": {
+    "chooseDate": "Escolhe uma data.",
+    "outOfWindow": "Escolhe uma data de hoje até {days} dias à frente."
+  },
+  "common": {
+    "retry": "Tentar novamente",
+    "previous": "Anterior",
+    "next": "Seguinte",
+    "pageOf": "Página {page} de {pages}",
+    "pages": "Páginas",
+    "email": "Email",
+    "cancel": "Cancelar",
+    "saving": "A guardar…",
+    "edit": "Editar",
+    "remove": "Remover",
+    "removing": "A remover…",
+    "confirmRemoval": "Confirmar remoção",
+    "date": "Data",
+    "time": "Hora"
+  },
+  "catalog": {
+    "publicClubNotFound": "Este clube já não está disponível.",
+    "search": {
+      "form": "Pesquisar clubes",
+      "sport": "Desporto",
+      "allSports": "Todos os desportos",
+      "locality": "Localidade",
+      "allLocalities": "Todas as localidades",
+      "date": "Data",
+      "searching": "A procurar clubes…",
+      "emptyTitle": "Não encontrámos clubes com estes filtros.",
+      "emptyDescription": "Experimenta outra localidade, outro desporto ou outra data.",
+      "emptyPage": "Esta página não tem resultados.",
+      "firstPage": "Voltar à primeira página",
+      "results": "Resultados",
+      "found": "Clubes encontrados",
+      "count": "{count, plural, one {1 clube} other {# clubes}} · {date}",
+      "clubs": "Clubes",
+      "hasFreeSlots": "Há horários livres",
+      "noFreeSlots": "Sem horários livres"
+    },
+    "details": {
+      "contacts": "Contactos",
+      "address": "Morada",
+      "phone": "Telefone",
+      "email": "Email",
+      "pitches": "Campos",
+      "noPitches": "Este clube não tem campos disponíveis de momento.",
+      "price": "{price} por horário",
+      "basePrice": "Preço base: {price} por horário",
+      "priceBandsNote": "Alguns horários têm outro preço; o preço de cada horário aparece na escolha do horário."
+    },
+    "notFound": {
+      "title": "Clube não encontrado",
+      "body": "Este clube não existe ou já não está disponível.",
+      "search": "Pesquisar clubes"
+    }
+  },
+  "booking": {
+    "slotGone": "Este horário já não está disponível. Escolhe outro.",
+    "title": "Horários",
+    "introViewer": "Escolhe o campo e o dia para ver os horários.",
+    "introPlayer": "Escolhe o campo e o dia, depois um horário livre, e confirma a reserva.",
+    "pitch": "Campo",
+    "date": "Data",
+    "loadingSlots": "A carregar os horários…",
+    "noSlots": "Sem horários neste dia.",
+    "onlyPlayers": "Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.",
+    "checkingRecurring": "A ver quais das datas estão livres…",
+    "booking": "A reservar…",
+    "confirmMany": "{count, plural, =0 {Confirmar reservas} one {Confirmar 1 reserva} other {Confirmar # reservas}}",
+    "confirm": "Confirmar reserva",
+    "chooseAnother": "Escolher outro horário",
+    "checkingSession": "A verificar a sessão…",
+    "signInToBook": "Entrar para reservar",
+    "returnAfterSignIn": "Depois de entrares, voltas a este horário.",
+    "seeOtherTimes": "Ver outros horários",
+    "slots": {
+      "list": "Horários",
+      "free": "Livre",
+      "unavailable": "Indisponível (riscado)"
+    },
+    "summary": {
+      "club": "Clube",
+      "pitch": "Campo",
+      "date": "Data",
+      "time": "Hora",
+      "price": "Preço",
+      "title": "Resumo da reserva",
+      "confirmed": "Reserva confirmada",
+      "confirmedNote": "Enviámos-te um email de confirmação. Podes cancelar a reserva em «As minhas reservas», até ao prazo do clube.",
+      "myBookings": "Ver as minhas reservas"
+    },
+    "recurring": {
+      "repeat": "Repetir semanalmente",
+      "weeks": "{count, plural, one {1 semana (sem repetição)} other {# semanas}}",
+      "allFree": "Todas as {count} datas estão livres.",
+      "noneFree": "Nenhuma das datas está livre.",
+      "someFree": "{free} de {count} datas estão livres; as outras ficam de fora.",
+      "dates": "Datas da reserva semanal",
+      "free": "Livre",
+      "unavailable": "Indisponível: {reason}",
+      "skippedList": "Datas que ficaram de fora",
+      "confirmed": "{count, plural, one {1 reserva confirmada} other {# reservas confirmadas}}",
+      "made": "Reservas feitas",
+      "leftOut": "Ficaram de fora:",
+      "note": "Cada reserva é independente: podes cancelar qualquer uma em «As minhas reservas». Enviámos-te um email com o resumo.",
+      "requested": "Datas pedidas:",
+      "reasons": {
+        "taken": "já está reservado",
+        "blocked": "está bloqueado pelo clube",
+        "closed": "o campo está fechado nesse dia",
+        "not_a_slot": "não é um horário do campo nesse dia",
+        "outside_window": "fica fora do período de reservas (até 30 dias)",
+        "started": "já começou",
+        "pitch_inactive": "o campo deixou de aceitar reservas",
+        "other": "não está disponível"
+      }
+    }
+  },
+  "bookingStatus": {
+    "confirmed": "Confirmada",
+    "cancelled_by_player": "Cancelada pelo jogador",
+    "cancelled_by_club": "Cancelada pelo clube",
+    "no_show": "Falta"
+  },
+  "myBookings": {
+    "upcoming": "Próximas",
+    "past": "Anteriores",
+    "emptyUpcoming": "Não tens reservas próximas. Pesquisa um clube para reservar um campo.",
+    "emptyPast": "Ainda não tens reservas anteriores.",
+    "cancelled": "Reserva cancelada. O horário voltou a ficar livre.",
+    "tabs": "Próximas ou anteriores",
+    "upcomingHeading": "Reservas próximas",
+    "pastHeading": "Reservas anteriores",
+    "loading": "A carregar as reservas…",
+    "emptyPage": "Esta página não tem reservas.",
+    "firstPage": "Voltar à primeira página",
+    "count": "{count, plural, one {1 reserva} other {# reservas}}",
+    "item": {
+      "status": "Estado: ",
+      "weekly": "Reserva semanal: <num>{position} de {count}</num>",
+      "confirmGroup": "Confirmar cancelamento",
+      "confirmQuestion": "Queres mesmo cancelar esta reserva? O horário volta a ficar livre para outros jogadores.",
+      "cancelling": "A cancelar…",
+      "confirmCancel": "Sim, cancelar reserva",
+      "keep": "Manter reserva",
+      "cancel": "Cancelar reserva",
+      "canCancelUntil": "Podes cancelar até {deadline}.",
+      "deadlinePassed": "Já não é possível cancelar: o prazo terminou a {deadline}.",
+      "timesNote": "Horas de Lisboa."
+    }
+  },
+  "account": {
+    "privacy": "Privacidade e dados",
+    "adminCannotDelete": "A conta de administração não pode ser apagada.",
+    "export": {
+      "intro": "Descarrega um ficheiro JSON com o teu perfil, as tuas reservas e a versão dos Termos que aceitaste.",
+      "preparing": "A preparar o ficheiro…",
+      "button": "Exportar os meus dados",
+      "done": "Os teus dados foram descarregados ({file})."
+    },
+    "delete": {
+      "intro": "Apagar a conta é definitivo e não pode ser desfeito.",
+      "form": "Confirmar com a palavra-passe",
+      "password": "Palavra-passe",
+      "deleting": "A apagar…",
+      "confirm": "Sim, apagar a minha conta",
+      "keep": "Manter conta",
+      "button": "Apagar a minha conta",
+      "confirmGroup": "Confirmar o apagamento da conta",
+      "question": "Queres mesmo apagar a tua conta?",
+      "effectBookings": "As tuas reservas futuras são canceladas e os horários ficam livres.",
+      "effectData": "O teu nome, email e telemóvel são apagados. As reservas passadas ficam no histórico dos clubes, sem te identificar.",
+      "effectSessions": "Todas as sessões terminam, em todos os dispositivos, e não voltas a poder entrar com esta conta.",
+      "effectNoEmail": "Não enviamos um email de confirmação.",
+      "deletedTitle": "Conta apagada",
+      "deletedBody": "A tua conta foi apagada e a sessão terminou. As reservas futuras foram canceladas.",
+      "home": "Ir para a página inicial"
+    },
+    "language": {
+      "heading": "Língua dos emails",
+      "intro": "Os emails que te enviamos (reservas, lembretes, palavra-passe) são escritos nesta língua. A língua do site muda-se no seletor PT | EN.",
+      "label": "Língua",
+      "pt": "Português",
+      "en": "Inglês",
+      "save": "Guardar",
+      "saving": "A guardar…",
+      "saved": "Língua dos emails guardada."
+    }
+  },
+  "clubs": {
+    "validation": {
+      "nameRequired": "Indica o nome do clube.",
+      "nameMax": "O nome pode ter no máximo {max} caracteres.",
+      "addressRequired": "Indica a morada do clube.",
+      "addressMax": "A morada pode ter no máximo {max} caracteres.",
+      "localityRequired": "Indica a localidade do clube.",
+      "localityMax": "A localidade pode ter no máximo {max} caracteres.",
+      "phoneRequired": "Indica o telefone do clube.",
+      "phoneInvalid": "Indica um número de telefone válido, com 9 a 15 algarismos.",
+      "emailRequired": "Indica o email de contacto do clube.",
+      "windowRequired": "Indica a janela de cancelamento, em horas.",
+      "windowInvalid": "A janela de cancelamento tem de estar entre {min} e {max} horas."
+    },
+    "form": {
+      "edit": "Editar clube",
+      "create": "Criar clube",
+      "saved": "Alterações guardadas.",
+      "created": "Clube criado.",
+      "name": "Nome",
+      "nameHint": "Até {max} caracteres.",
+      "address": "Morada",
+      "locality": "Localidade",
+      "phone": "Telefone",
+      "contactEmail": "Email de contacto",
+      "window": "Janela de cancelamento (horas)",
+      "windowHint": "Quantas horas antes do início um jogador ainda pode cancelar (de {min} a {max}).",
+      "notify": "Receber um email por cada nova reserva",
+      "notifyHint": "Só para as reservas que os jogadores fazem; as que fazes tu para clientes não enviam email.",
+      "publicAddress": "Endereço público: <code>/clubs/{slug}</code>. Não muda se mudares o nome.",
+      "saving": "A guardar…",
+      "saveChanges": "Guardar alterações",
+      "back": "Voltar aos clubes"
+    },
+    "list": {
+      "loading": "A carregar os teus clubes…",
+      "statistics": "Estatísticas",
+      "newClub": "Novo clube",
+      "calendar": "Calendário",
+      "calendarOf": "Calendário de {club}",
+      "statisticsOf": "Estatísticas de {club}",
+      "edit": "Editar",
+      "editClub": "Editar {club}"
+    },
+    "edit": {
+      "pageTitle": "Editar clube",
+      "loading": "A carregar o clube…",
+      "calendar": "Calendário de reservas",
+      "statistics": "Estatísticas",
+      "data": "Dados do clube"
+    },
+    "none": {
+      "title": "Ainda não tens nenhum clube",
+      "body": "Cria o teu primeiro clube para definir os campos, os horários e começar a receber reservas.",
+      "create": "Criar o primeiro clube"
+    },
+    "notFound": {
+      "title": "Clube não encontrado",
+      "body": "Este clube não existe ou não é teu.",
+      "back": "Voltar aos clubes"
+    }
+  },
+  "price": {
+    "errors": {
+      "required": "Indica o preço por horário.",
+      "invalid": "Indica um preço válido, por exemplo 12,50.",
+      "notPositive": "O preço por horário tem de ser maior que 0 €.",
+      "tooHigh": "O preço por horário não pode passar de {max} €.",
+      "decimals": "O preço por horário pode ter no máximo duas casas decimais."
+    }
+  },
+  "pitches": {
+    "validation": {
+      "nameRequired": "Indica o nome do campo.",
+      "nameMax": "O nome pode ter no máximo {max} caracteres.",
+      "sportRequired": "Indica o desporto do campo.",
+      "sportInvalid": "Escolhe um desporto da lista: futsal, futebol 7, padel ou ténis."
+    },
+    "scheduleValidation": {
+      "duration": "A duração do horário tem de ser 30, 60 ou 90 minutos.",
+      "opensRequired": "Indica a hora de abertura.",
+      "closesRequired": "Indica a hora de fecho.",
+      "invalidTime": "Indica a hora no formato HH:mm, por exemplo 09:00.",
+      "offStep": "As horas vão de meia em meia hora, por exemplo 09:00 ou 09:30.",
+      "notAfterOpening": "A hora de fecho tem de ser depois da abertura. O fecho mais tarde é 00:00 (meia-noite); horários que passam da meia-noite não são aceites."
+    },
+    "blockValidation": {
+      "startRequired": "Indica o início do bloqueio.",
+      "endRequired": "Indica o fim do bloqueio.",
+      "startTimeRequired": "Indica a hora de início.",
+      "endTimeRequired": "Indica a hora de fim.",
+      "invalidDate": "Indica uma data válida.",
+      "invalidTime": "Indica a hora no formato HH:mm, por exemplo 09:00.",
+      "offStep": "As horas vão de meia em meia hora, por exemplo 09:00 ou 09:30.",
+      "past": "O início não pode estar no passado.",
+      "endNotAfterStart": "O fim tem de ser depois do início.",
+      "reason": "O motivo pode ter no máximo {max} caracteres."
+    },
+    "bandValidation": {
+      "days": "Escolhe pelo menos um dia da semana.",
+      "startRequired": "Indica a hora de início da faixa.",
+      "endRequired": "Indica a hora de fim da faixa.",
+      "invalidTime": "Indica a hora no formato HH:mm, por exemplo 18:00.",
+      "offStep": "As horas vão de meia em meia hora, por exemplo 18:00 ou 18:30.",
+      "endNotAfterStart": "O fim tem de ser depois do início. O fim mais tarde é 00:00 (meia-noite); faixas que passam da meia-noite não são aceites."
+    },
+    "section": {
+      "reactivated": "«{name}» foi reativado.",
+      "deactivated": "«{name}» foi desativado.",
+      "title": "Campos",
+      "add": "Adicionar campo",
+      "loading": "A carregar os campos…",
+      "emptyTitle": "Este clube ainda não tem campos.",
+      "emptyDescription": "Adiciona o primeiro para o poderes configurar.",
+      "inactive": "Inativo",
+      "pricePerSlot": "{price} por horário",
+      "schedule": "Horário",
+      "scheduleOf": "Horário de {pitch}",
+      "blocks": "Bloqueios",
+      "blocksOf": "Bloqueios de {pitch}",
+      "prices": "Faixas de preço",
+      "pricesOf": "Faixas de preço de {pitch}",
+      "editOf": "Editar {pitch}",
+      "deactivate": "Desativar",
+      "reactivate": "Reativar",
+      "deactivateOf": "Desativar {pitch}",
+      "reactivateOf": "Reativar {pitch}",
+      "pages": "Páginas dos campos"
+    },
+    "form": {
+      "saved": "Alterações guardadas.",
+      "added": "Campo adicionado.",
+      "edit": "Editar campo",
+      "add": "Adicionar campo",
+      "name": "Nome do campo",
+      "sport": "Desporto",
+      "chooseSport": "Escolhe o desporto",
+      "price": "Preço por horário (€)",
+      "priceHint": "Por exemplo 12,50.",
+      "save": "Guardar campo"
+    },
+    "schedule": {
+      "saved": "Horário guardado.",
+      "form": "Horário do campo",
+      "duration": "Duração do horário",
+      "minutes": "{minutes} minutos",
+      "legend": "Horário de funcionamento (hora de Lisboa)",
+      "closed": "Fechado",
+      "opens": "Abre",
+      "closes": "Fecha",
+      "opensOf": "{day}: abertura",
+      "closesOf": "{day}: fecho",
+      "note": "Horas de Lisboa, de meia em meia hora. Fecho às 00:00 é meia-noite.",
+      "save": "Guardar horário",
+      "loading": "A carregar o horário…"
+    },
+    "preview": {
+      "loading": "A carregar os horários…",
+      "empty": "Sem horários neste dia: o campo está fechado ou as horas de abertura não chegam para uma reserva.",
+      "summary": "{date} · {count, plural, one {1 horário} other {# horários}} de {minutes} minutos",
+      "list": "Horários gerados",
+      "booked": "Reservado",
+      "blocked": "Bloqueado",
+      "title": "Pré-visualização dos horários",
+      "note": "Mostra os horários que as horas de abertura geram; os bloqueios e as reservas aparecem marcados."
+    },
+    "blocks": {
+      "removed": "Bloqueio removido.",
+      "loading": "A carregar os bloqueios…",
+      "empty": "Sem bloqueios em curso nem futuros.",
+      "list": "Bloqueios do campo",
+      "noReason": "Sem motivo",
+      "ongoing": " · Em curso",
+      "removeOf": "Remover bloqueio de {when}",
+      "confirmGroup": "Confirmar remoção",
+      "confirmQuestion": "Remover este bloqueio? Os horários ficam livres outra vez.",
+      "pages": "Páginas dos bloqueios",
+      "title": "Bloqueios",
+      "add": "Novo bloqueio"
+    },
+    "blockForm": {
+      "created": "Bloqueio criado.",
+      "dateOf": "{part}: data",
+      "timeOf": "{part}: hora",
+      "form": "Criar bloqueio",
+      "start": "Início",
+      "end": "Fim",
+      "note": "Horas de Lisboa, de meia em meia hora. O bloqueio pode abranger vários dias.",
+      "reason": "Motivo (opcional)",
+      "submit": "Criar bloqueio"
+    },
+    "bands": {
+      "removed": "Faixa removida.",
+      "loading": "A carregar as faixas…",
+      "empty": "Sem faixas de preço: todos os horários custam o preço base do campo.",
+      "list": "Faixas de preço do campo",
+      "editOf": "Editar faixa {hours}",
+      "removeOf": "Remover faixa {hours}",
+      "confirmGroup": "Confirmar remoção",
+      "confirmQuestion": "Remover esta faixa? Os horários passam a custar o preço base. As reservas já feitas mantêm o preço.",
+      "title": "Faixas de preço",
+      "add": "Nova faixa",
+      "full": "Um campo pode ter no máximo {max} faixas."
+    },
+    "bandForm": {
+      "saved": "Faixa guardada.",
+      "created": "Faixa criada.",
+      "edit": "Editar faixa de preço",
+      "create": "Criar faixa de preço",
+      "days": "Dias da semana",
+      "start": "Início",
+      "end": "Fim",
+      "price": "Preço por horário (€)",
+      "note": "Horas do clube, de meia em meia hora. Vale para os horários que começam dentro da faixa; o fim 00:00 é a meia-noite.",
+      "save": "Guardar faixa",
+      "submit": "Criar faixa"
+    }
+  },
+  "calendar": {
+    "validation": {
+      "reasonRequired": "Indica o motivo do cancelamento.",
+      "reasonTooLong": "O motivo pode ter no máximo {max} caracteres.",
+      "pitch": "Indica o campo a reservar.",
+      "slot": "Escolhe um horário livre.",
+      "nameRequired": "Indica o nome do cliente.",
+      "nameTooLong": "O nome pode ter no máximo {max} caracteres.",
+      "phoneRequired": "Indica o telemóvel do cliente.",
+      "phoneInvalid": "Indica um número de telemóvel válido, com 9 a 15 algarismos."
+    },
+    "page": {
+      "dayView": "Vista diária",
+      "weekView": "Vista semanal",
+      "created": "Reserva criada para {name}.",
+      "back": "← Voltar ao clube",
+      "pageName": "Calendário",
+      "viewType": "Tipo de vista",
+      "chooseWeek": "Escolher a semana",
+      "chooseDay": "Escolher o dia",
+      "previousWeek": "Semana anterior",
+      "previousDay": "Dia anterior",
+      "today": "Hoje",
+      "nextWeek": "Semana seguinte",
+      "nextDay": "Dia seguinte",
+      "date": "Data",
+      "pitch": "Campo",
+      "inactive": " · Inativo",
+      "newBooking": "Nova reserva",
+      "showCancelled": "Mostrar reservas canceladas",
+      "weekHeading": "{from} – {to} ({fromShort} – {toShort})",
+      "dayHeading": "{date} ({short})",
+      "loading": "A carregar o calendário…",
+      "noPitchesTitle": "Este clube ainda não tem campos ativos.",
+      "noPitchesDescription": "O calendário aparece quando houver um campo ativo.",
+      "goToPitches": "Ir para os campos do clube",
+      "weekEmpty": "Este campo não abre nesta semana e não tem reservas nem bloqueios.",
+      "dayEmpty": "Nenhum campo abre neste dia e não há reservas nem bloqueios.",
+      "timesNote": "Horas de Lisboa."
+    },
+    "grid": {
+      "createdByClub": "Criada pelo clube",
+      "dayCalendar": "Calendário do dia",
+      "weekCalendar": "Calendário da semana",
+      "hours": "Horas",
+      "inactive": " · Inativo",
+      "newBookingAt": "Nova reserva: {pitch}, {time}",
+      "newBookingAtDay": "Nova reserva: {day}, {date}, {time}",
+      "closedOf": "{name}: fechado",
+      "closed": "Fechado",
+      "block": "Bloqueio",
+      "blockLabel": "Bloqueio, {times}",
+      "blockLabelWithReason": "Bloqueio, {times}, {reason}",
+      "dayLabel": "{name}, {date}",
+      "hoursLong": " · {hours} h",
+      "clockChangeDay": "{date}, com {hours} horas",
+      "clockChange": "Nesta semana o relógio muda ({days}). Cada dia está desenhado pelo tempo realmente decorrido desde o seu início, por isso, nesse dia, depois da mudança as reservas ficam uma hora desfasadas da escala das horas; a hora escrita em cada reserva é a certa."
+    },
+    "details": {
+      "undoSlotTaken": "Não foi possível anular a falta: outra reserva confirmada já ocupa este horário.",
+      "noShows": "{count, plural, =0 {Sem faltas nos teus clubes} one {1 falta nos teus clubes} other {# faltas nos teus clubes}}",
+      "marked": "Falta marcada.",
+      "undone": "Falta anulada. A reserva voltou a estar confirmada.",
+      "label": "Detalhes da reserva",
+      "title": "Reserva",
+      "close": "Fechar",
+      "loading": "A carregar a reserva…",
+      "customer": "Cliente",
+      "player": "Jogador",
+      "noShowsLabel": "Faltas",
+      "phone": "Telemóvel",
+      "origin": "Origem",
+      "pitch": "Campo",
+      "date": "Data",
+      "time": "Hora",
+      "price": "Preço",
+      "status": "Estado",
+      "bookedAt": "Reservada em",
+      "cancelledAt": "Cancelada em",
+      "reason": "Motivo",
+      "cancelled": "Reserva cancelada. O horário voltou a ficar livre.",
+      "cancel": "Cancelar reserva",
+      "started": "Esta reserva já começou, por isso já não pode ser cancelada.",
+      "ended": "Esta reserva já terminou. Se o jogador não apareceu, marca a falta; podes anulá-la depois.",
+      "marking": "A marcar…",
+      "markNoShow": "Marcar falta",
+      "undoing": "A anular…",
+      "undoNoShow": "Anular falta"
+    },
+    "cancelForm": {
+      "form": "Cancelar reserva",
+      "reason": "Motivo do cancelamento",
+      "reasonHint": "Obrigatório, até {max} caracteres.",
+      "cancelling": "A cancelar…",
+      "confirm": "Confirmar cancelamento",
+      "keep": "Manter reserva"
+    },
+    "newBooking": {
+      "booked": "Reservado",
+      "blocked": "Bloqueado",
+      "started": "Já começou",
+      "form": "Nova reserva",
+      "title": "Nova reserva para um cliente",
+      "close": "Fechar",
+      "pitch": "Campo",
+      "date": "Data",
+      "slot": "Horário",
+      "loadingSlots": "A carregar os horários…",
+      "noSlots": "Sem horários neste dia: o campo está fechado.",
+      "name": "Nome do cliente",
+      "nameHint": "Até {max} caracteres.",
+      "phone": "Telemóvel do cliente",
+      "phoneHint": "Por exemplo 912 345 678 ou +351 912 345 678.",
+      "noEmail": "O cliente não tem conta, por isso não recebe nenhum email.",
+      "booking": "A reservar…",
+      "submit": "Criar reserva"
+    }
+  },
+  "statistics": {
+    "emptyTitle": "Ainda não tens clubes.",
+    "emptyDescription": "Cria o primeiro para veres as estatísticas.",
+    "createFirst": "Criar o primeiro clube",
+    "range": "De {from} a {to}.",
+    "byClub": "Ocupação e receita por clube",
+    "club": "Clube",
+    "bookedHours": "Horas reservadas",
+    "openHours": "Horas abertas",
+    "occupation": "Ocupação",
+    "revenue": "Receita",
+    "confirmed": "Confirmadas",
+    "noShows": "Faltas",
+    "total": "Total",
+    "loading": "A carregar as estatísticas…",
+    "pageName": "Estatísticas",
+    "back": "← Voltar ao clube",
+    "pitch": "Campo",
+    "allPitches": "Todos os campos",
+    "pitchGone": "Este campo já não existe neste clube.",
+    "seeAllPitches": "Ver todos os campos",
+    "clubRange": "{club}, de {from} a {to}.",
+    "clubEmpty": "Este clube não tem campos com horas abertas nem reservas neste período.",
+    "byPitch": "Ocupação e receita por campo",
+    "inactive": " · inativo"
+  },
+  "admin": {
+    "loadingTotals": "A carregar os totais…",
+    "totalsList": "Totais da plataforma",
+    "owners": "Donos",
+    "deactivatedOwners": "{count, plural, one {<num>#</num> dono desativado} other {<num>#</num> donos desativados}}",
+    "visibleClubs": "Clubes visíveis",
+    "clubsOfDeactivated": "{count, plural, one {<num>#</num> clube de dono desativado} other {<num>#</num> clubes de donos desativados}}",
+    "clubsWithoutPitches": "{count, plural, one {<num>#</num> clube sem campos ativos} other {<num>#</num> clubes sem campos ativos}}",
+    "activePitches": "Campos ativos",
+    "onlyActiveOwners": "Só de donos ativos.",
+    "players": "Jogadores",
+    "deactivatedPlayers": "{count, plural, one {<num>#</num> jogador desativado} other {<num>#</num> jogadores desativados}}",
+    "confirmedBookings": "Reservas confirmadas",
+    "pastAndFuture": "Passadas e futuras.",
+    "dashboard": {
+      "totals": "Totais",
+      "period": "Período",
+      "periodNote": "Vale para as reservas, os registos e os clubes com maior ocupação.",
+      "bookingsOverTime": "Reservas ao longo do tempo",
+      "registrations": "Novos registos",
+      "topClubs": "Clubes com maior ocupação",
+      "owners": "Donos"
+    },
+    "chart": {
+      "day": "Dia",
+      "week": "Semana",
+      "month": "Mês",
+      "groupBy": "Agrupar por",
+      "includeCancelled": "Incluir canceladas",
+      "loading": "A carregar o gráfico…",
+      "summary": "{count, plural, one {1 reserva feita} other {# reservas feitas}} entre {from} e {to}.",
+      "summaryWithCancelled": "{count, plural, one {1 reserva feita} other {# reservas feitas}} entre {from} e {to}, com as canceladas.",
+      "empty": "Ainda não houve reservas neste intervalo.",
+      "image": "Gráfico de barras com as reservas feitas em cada período",
+      "bookings": "Reservas",
+      "tableCaption": "Reservas feitas em cada período",
+      "periodColumn": "Período",
+      "weekRange": "{from} a {to}"
+    },
+    "registrations": {
+      "groupBy": "Agrupar registos por",
+      "loading": "A carregar os registos…",
+      "summary": "{owners, plural, one {1 dono} other {# donos}} e {players, plural, one {1 jogador} other {# jogadores}} registados entre {from} e {to}.",
+      "empty": "Ainda não houve registos neste intervalo.",
+      "image": "Gráfico de barras com os donos e os jogadores registados em cada período",
+      "owners": "Donos",
+      "players": "Jogadores",
+      "tableCaption": "Registos em cada período"
+    },
+    "chartTable": {
+      "show": "Ver os números numa tabela"
+    },
+    "top": {
+      "loading": "A carregar os clubes…",
+      "empty": "Nenhum clube teve horas abertas entre {from} e {to}.",
+      "range": "De {from} a {to}.",
+      "region": "Tabela dos clubes com maior ocupação",
+      "caption": "Clubes com maior ocupação",
+      "club": "Clube",
+      "owner": "Dono",
+      "locality": "Localidade",
+      "occupation": "Ocupação",
+      "bookedHours": "Horas reservadas",
+      "openHours": "Horas abertas"
+    },
+    "ownersTable": {
+      "name": "Nome",
+      "email": "Email",
+      "registered": "Registo",
+      "status": "Estado",
+      "clubs": "Clubes",
+      "pitches": "Campos",
+      "bookings": "Reservas",
+      "players": "Jogadores",
+      "search": "Pesquisar dono",
+      "searchPlaceholder": "Nome ou email",
+      "searchButton": "Pesquisar",
+      "clear": "Limpar",
+      "loading": "A carregar os donos…",
+      "noMatch": "Nenhum dono corresponde à pesquisa.",
+      "none": "Ainda não há donos registados.",
+      "emptyPage": "Esta página não tem donos.",
+      "firstPage": "Voltar à primeira página",
+      "count": "{count, plural, one {1 dono} other {# donos}}",
+      "sortBy": "Ordenar por",
+      "ascending": "Ordem crescente",
+      "descending": "Ordem decrescente",
+      "region": "Donos e os seus números",
+      "deactivated": "Desativado",
+      "active": "Ativo",
+      "pages": "Páginas de donos"
+    },
+    "owner": {
+      "pageName": "Dono",
+      "back": "← Donos",
+      "loading": "A carregar o dono…",
+      "deactivated": "Desativado",
+      "active": "Ativo",
+      "email": "Email",
+      "registered": "Registo",
+      "clubs": "Clubes",
+      "activePitches": "Campos ativos",
+      "bookings": "Reservas",
+      "players": "Jogadores",
+      "futureBookings": "Reservas futuras confirmadas",
+      "statusTitle": "Estado da conta",
+      "deactivatedNotice": "Dono desativado.",
+      "reactivatedNotice": "Dono reativado.",
+      "reactivate": "Reativar dono",
+      "deactivate": "Desativar dono",
+      "history": "Histórico",
+      "loadingHistory": "A carregar o histórico…",
+      "neverDeactivated": "Este dono nunca foi desativado.",
+      "historyList": "Histórico de estados",
+      "historyDeactivated": "Desativado",
+      "historyReactivated": "Reativado",
+      "by": "Por {name}",
+      "backToOwners": "Voltar aos donos"
+    },
+    "statusForm": {
+      "deactivateNote": "O dono deixa de poder entrar, e os clubes dele deixam de aparecer na pesquisa e de aceitar reservas. A sessão que já tiver aberta pode durar até 15 minutos.",
+      "futureBookings": "{count, plural, =0 {Não há reservas futuras nos clubes deste dono.} one {1 reserva futura continua confirmada: não é cancelada.} other {# reservas futuras continuam confirmadas: não são canceladas.}}",
+      "reactivateNote": "O dono volta a poder entrar (com uma sessão nova) e os clubes dele voltam à pesquisa e às reservas.",
+      "deactivationReason": "Motivo da desativação",
+      "reactivationReason": "Motivo da reativação",
+      "reasonHint": "Obrigatório, até {max} caracteres. Fica registado com o teu nome e não pode ser editado.",
+      "saving": "A guardar…",
+      "confirmDeactivation": "Confirmar desativação",
+      "confirmReactivation": "Confirmar reativação",
+      "back": "Voltar"
+    },
+    "validation": {
+      "reasonRequired": "Indica o motivo.",
+      "reasonTooLong": "O motivo pode ter no máximo {max} caracteres."
+    }
+  },
+  "toaster": {
+    "label": "Notificações"
+  },
+  "legal": {
+    "lastUpdated": "Última atualização: {date} · Versão {version}",
+    "languageNote": "Este texto existe em português e em inglês. A versão inglesa é uma tradução de cortesia: em caso de divergência, prevalece o texto em português.",
+    "terms": {
+      "metaTitle": "Termos e Condições",
+      "description": "As regras de utilização desta demonstração de reserva de campos.",
+      "intro": "Ao criares uma conta, aceitas estes Termos. Se não concordares com eles, não cries conta.",
+      "service": {
+        "title": "O que é este serviço",
+        "p1": "Esta aplicação é uma demonstração pessoal, sem fins comerciais, feita para mostrar um projeto de programação. Permite pesquisar clubes e reservar campos de futsal, futebol 7, padel e ténis.",
+        "fictional": "Os clubes, campos e reservas que aqui aparecem podem ser fictícios.",
+        "free": "É gratuita e não tem qualquer garantia. Pode ser alterada ou desligada a qualquer momento, sem aviso.",
+        "noBackups": "Não são feitas cópias de segurança: os dados podem perder-se.",
+        "sleeps": "A API adormece ao fim de 15 minutos sem utilização e demora cerca de um minuto a acordar, por isso o primeiro pedido pode ser lento. Enquanto dorme, os emails ficam à espera, e um lembrete cuja reserva já tenha começado não é enviado."
+      },
+      "accounts": {
+        "title": "Contas",
+        "profiles": "Há contas de jogador e de dono de clube. Um email corresponde a uma só conta e a um só perfil.",
+        "everywhere": "Uma conta de jogador serve em todos os clubes da plataforma.",
+        "secret": "Mantém a tua palavra-passe em segredo. Se achares que outra pessoa a usou, altera-a e avisa-nos.",
+        "demo": "As contas de demonstração têm palavras-passe públicas e são partilhadas: qualquer pessoa pode entrar nelas e ver ou mudar o que lá estiver. Não coloques dados reais nessas contas.",
+        "deactivation": "A conta de um dono pode ser desativada pela administração da plataforma, por exemplo se não cumprir estes Termos. Uma conta desativada não consegue entrar e os seus clubes deixam de aparecer ao público; as reservas já feitas mantêm-se confirmadas."
+      },
+      "bookings": {
+        "title": "Reservas",
+        "window": "Podes reservar de hoje até 30 dias à frente, nos horários de cada campo (30, 60 ou 90 minutos). As horas são as de Lisboa.",
+        "payments": "A aplicação não processa pagamentos: o pagamento é feito no local, diretamente ao clube. Cada reserva guarda o preço do momento em que foi feita.",
+        "cancel": "Podes cancelar uma reserva até ao fim da janela de cancelamento do clube (24 horas antes do início, por omissão; cada clube define a sua, entre 1 e 168 horas). Conta a janela em vigor no momento em que cancelas. Depois disso, a aplicação não permite cancelar.",
+        "clubCancel": "O clube pode cancelar uma reserva que ainda não tenha começado, indicando o motivo; recebes um email.",
+        "noShow": "Depois de uma reserva terminar, o dono do clube pode marcá-la como falta e anular essa marcação. O dono vê quantas faltas tens nos clubes dele.",
+        "weekly": "Podes reservar o mesmo horário por 2 a 4 semanas seguidas. As datas livres ficam reservadas e as outras ficam de fora, e são indicadas antes de confirmares. Cada data é uma reserva independente, com o seu preço, que se cancela sozinha.",
+        "neverDeleted": "As reservas nunca são apagadas: mudam de estado (confirmada, cancelada pelo jogador, cancelada pelo clube ou falta)."
+      },
+      "owners": {
+        "title": "Responsabilidades dos donos de clubes",
+        "data": "Tens de manter corretos e atualizados os dados dos teus clubes: nome, morada, contactos, campos, horários e preços. Estes dados são públicos.",
+        "customers": "Se reservares em nome de um cliente sem conta, só deves introduzir o nome e o telemóvel dele se tiveres motivo para o fazer, depois de o informares. Respondes perante esse cliente por esses dados, como explica a <link>Política de Privacidade</link>."
+      },
+      "use": {
+        "title": "Utilização aceitável",
+        "intro": "Não podes:",
+        "access": "tentar aceder a contas ou dados de outras pessoas, ou contornar as proteções da aplicação;",
+        "overload": "sobrecarregar o serviço ou extrair os seus dados de forma automatizada;",
+        "impersonate": "fazer-te passar por outra pessoa ou criar reservas falsas;",
+        "content": "escrever nos campos de texto conteúdo ilegal ou ofensivo, ou dados pessoais de outras pessoas sem motivo."
+      },
+      "availability": {
+        "title": "Disponibilidade e responsabilidade",
+        "p1": "O serviço é fornecido gratuitamente, tal como está, sem garantia de que esteja disponível, de que não tenha erros ou de que as informações dos clubes estejam corretas. Como é uma demonstração, confirma diretamente com o clube qualquer reserva de que dependas.",
+        "p2": "Na medida em que a lei o permita, o responsável por esta demonstração não responde por prejuízos causados pela indisponibilidade do serviço, pela perda de dados ou por informações incorretas. Nada nestes Termos exclui ou limita direitos ou responsabilidades que a lei não permita excluir ou limitar."
+      },
+      "changes": {
+        "title": "Alterações",
+        "p1": "Estes Termos podem mudar. Quando isso acontecer, a data e a versão no topo desta página são atualizadas. Cada conta nova fica com o registo da versão que aceitou."
+      },
+      "law": {
+        "title": "Lei aplicável",
+        "p1": "Estes Termos regem-se pela lei portuguesa."
+      },
+      "contact": {
+        "title": "Contacto",
+        "p1": "Para qualquer questão sobre estes Termos, escreve para <email></email>."
+      }
+    },
+    "privacy": {
+      "metaTitle": "Política de Privacidade",
+      "description": "Que dados pessoais esta demonstração trata, para quê e que direitos tens.",
+      "intro": "Esta aplicação é uma demonstração pessoal, sem fins comerciais. Esta página explica que dados pessoais trata, para quê e que direitos tens ao abrigo do Regulamento Geral sobre a Proteção de Dados (RGPD, Regulamento (UE) 2016/679).",
+      "controller": {
+        "title": "Responsável pelo tratamento",
+        "p1": "{name}. Para assuntos de proteção de dados, escreve para <email></email>."
+      },
+      "data": {
+        "title": "Que dados tratamos, para quê e com que base legal",
+        "account": {
+          "title": "Conta",
+          "what": "Nome, email, telemóvel (opcional), perfil, data de registo, a língua dos emails, a versão dos Termos aceite e a data dessa aceitação, tentativas de entrada falhadas e bloqueios temporários. A palavra-passe é guardada apenas sob a forma de hash, nunca em texto. O telemóvel fica guardado, mas hoje não é mostrado a ninguém na aplicação nem usado para te contactar.",
+          "why": "Para criar e gerir a conta e iniciar sessão. Base legal: execução do contrato (os Termos que aceitas ao criar conta)."
+        },
+        "sessions": {
+          "title": "Sessões",
+          "what": "Para cada sessão: um hash do token de renovação, a data de criação, de expiração e de revogação. O valor do token só existe no cookie do teu browser.",
+          "why": "Para te manter com sessão iniciada. Base legal: execução do contrato."
+        },
+        "bookings": {
+          "title": "Reservas",
+          "what": "Quem reservou, o campo, a data e a hora, o preço, o estado, a data e o motivo de um cancelamento, e as faltas. O dono do clube vê o teu nome e o número de faltas que tens nos clubes dele; não vê o teu email nem o teu telemóvel.",
+          "why": "Para fazer e gerir as reservas. Base legal: execução do contrato."
+        },
+        "clubs": {
+          "title": "Clubes e donos",
+          "what": "Nome do clube, morada, localidade, telefone e email de contacto, que são públicos na página do clube. A administração vê o nome e o email dos donos. Quando um dono é desativado ou reativado, ficam registados a data, o motivo e quem o fez.",
+          "why": "Para mostrar os clubes e administrar a plataforma. Base legal: execução do contrato e, no histórico de desativações, interesse legítimo em manter esse registo.",
+          "admin": "A administração da plataforma vê apenas contagens sobre os jogadores, nunca o nome, o email ou o telemóvel deles."
+        },
+        "emails": {
+          "title": "Emails",
+          "what": "Confirmações e cancelamentos de reservas, um lembrete 3 horas antes do início, o resumo de uma reserva semanal, o aviso ao dono de uma nova reserva (cada clube pode desligá-lo), e os emails de recuperação e de alteração da palavra-passe. Cada email usa o teu endereço, o teu nome e a língua que escolheste para os emails, lidos da conta no momento do envio, e os dados do que trata (clube, morada, campo, data, hora, preço e motivo de cancelamento, ou a ligação para definir uma nova palavra-passe). Os emails ficam numa fila na base de dados, com o identificador da conta e os detalhes da reserva, mas sem o endereço.",
+          "why": "Para te informar sobre as tuas reservas e a tua conta. Base legal: execução do contrato."
+        },
+        "language": {
+          "title": "Língua",
+          "what": "O site mostra-se em português ou em inglês. Se não escolheste uma língua, segue a língua que o teu browser indica em cada pedido (o cabeçalho Accept-Language), sem a guardar. Se escolheres uma no seletor PT | EN, essa escolha fica num cookie no teu browser (ver «Cookies e armazenamento no browser»). Ao criar conta, a língua do site passa a ser a língua dos teus emails, que podes mudar em «A minha conta».",
+          "why": "Para te mostrar o site e escrever os emails na língua que preferes. Base legal: execução do contrato e, quanto ao cookie, o teu pedido expresso ao escolher a língua."
+        },
+        "ip": {
+          "title": "Endereço IP",
+          "what": "A API limita o número de pedidos por endereço IP (em IPv6, por rede /64). Os contadores ficam em memória, em janelas de um minuto. Quando alguém ultrapassa um limite, o endereço (ou a rede) e o caminho pedido ficam no registo (log) da aplicação. A aplicação não regista o IP em cada pedido; o IP também chega aos fornecedores de alojamento indicados abaixo.",
+          "why": "Para proteger o serviço contra abusos. Base legal: interesse legítimo em manter o serviço seguro."
+        },
+        "logs": {
+          "title": "Registos (logs)",
+          "what": "A API escreve registos do seu funcionamento: o arranque, o texto dos comandos enviados à base de dados (sem os valores), os emails enviados ou falhados (só o identificador e o tipo da mensagem), o campo e o horário quando dois pedidos disputam o mesmo horário, o identificador da conta quando um token de sessão é reutilizado, os erros inesperados (o método, o caminho pedido e o erro) e, quando alguém ultrapassa um limite de pedidos, o endereço IP (ou a rede) e o caminho. A aplicação não escreve palavras-passe, tokens nem endereços de email nos registos. Estes registos ficam no Render; a Vercel guarda os registos de execução das funções do site. A aplicação não envia registos para mais nenhum serviço nem os guarda na base de dados.",
+          "why": "Servem apenas para manter o serviço a funcionar e seguro. Base legal: interesse legítimo em operar o serviço e em o proteger."
+        }
+      },
+      "customers": {
+        "title": "Clientes sem conta",
+        "p1": "Um dono pode reservar em nome de alguém que não tem conta, escrevendo o nome e o telemóvel dessa pessoa. Estes dados ficam com a reserva e só o dono desse clube os vê; a pessoa não recebe emails.",
+        "p2": "É o dono do clube que decide introduzir estes dados e é ele quem responde por eles perante o cliente: tem de ter motivo para os recolher, informar o cliente e mantê-los corretos. A plataforma guarda-os para que o dono possa gerir a reserva, e tem nisso um interesse legítimo. Se fores um destes clientes, podes contactar o clube ou escrever para <email></email>."
+      },
+      "recipients": {
+        "title": "Quem recebe os dados",
+        "intro": "Estes fornecedores tratam dados em nome do responsável, para que o serviço funcione:",
+        "vercel": "<b>Vercel</b> aloja o site, que é servido pela rede global da Vercel. Recebe todos os pedidos do browser: o endereço IP, os cookies e o que preencheres nos formulários. As funções do site correm em Washington DC (EUA).",
+        "render": "<b>Render</b> aloja a API. Recebe os pedidos reencaminhados pelo site, com os mesmos dados, e guarda os registos (logs) da aplicação. Em Frankfurt (Alemanha).",
+        "supabase": "<b>Supabase</b> aloja a base de dados, onde ficam guardados os dados descritos nesta página. Na Irlanda.",
+        "brevo": "<b>Brevo</b> envia os emails. Recebe o endereço e o nome do destinatário e o conteúdo de cada email. Em França.",
+        "github": "<b>GitHub</b> guarda o código e corre a publicação de novas versões. Não recebe dados dos utilizadores."
+      },
+      "transfers": {
+        "title": "Onde ficam os dados e transferências para fora da União Europeia",
+        "p1": "Os dados ficam guardados na base de dados, na Irlanda. A API corre em Frankfurt e os emails são enviados através da Brevo, em França.",
+        "p2": "O browser só fala com o site, e os pedidos à API passam pela infraestrutura da Vercel, uma empresa dos Estados Unidos, cujas funções para este site correm em Washington DC. Por isso, os pedidos com dados pessoais (entrar, reservar) passam pela rede de uma empresa dos Estados Unidos e há transferência de dados para esse país.",
+        "p3": "Cada fornecedor indica, nos seus próprios documentos, a salvaguarda que aplica às transferências para fora do Espaço Económico Europeu:",
+        "vercel": "<b>Vercel</b> (Vercel Inc., Estados Unidos): as Cláusulas Contratuais-Tipo aprovadas pela Comissão Europeia (Decisão 2021/914), no seu Data Processing Addendum, e a declaração de adesão ao EU-U.S. Data Privacy Framework, na sua Privacy Notice.",
+        "render": "<b>Render</b> (Render Services, Inc., Estados Unidos): o EU-U.S. Data Privacy Framework e, se este não se aplicar, as mesmas Cláusulas Contratuais-Tipo, no seu Data Processing Addendum. Esse documento indica que as operações principais da Render são nos Estados Unidos, embora a API corra em Frankfurt.",
+        "supabase": "<b>Supabase</b> (Supabase Pte. Ltd., Singapura): as Cláusulas Contratuais-Tipo, no seu Data Processing Addendum. A sua política de privacidade refere transferências para os Estados Unidos e para Singapura.",
+        "brevo": "<b>Brevo</b> (sociedade francesa, com sede em Paris): os seus termos indicam alojamento em França e na Bélgica e admitem tratamento fora do Espaço Económico Europeu por subcontratantes, com Cláusulas Contratuais-Tipo e medidas suplementares e, para os Estados Unidos, o EU-U.S. Data Privacy Framework enquanto se mantiver válido."
+      },
+      "retention": {
+        "title": "Durante quanto tempo",
+        "noLimit": "Não há um prazo definido nem eliminação automática: contas, reservas, dados de clientes sem conta, tokens de sessão expirados e mensagens da fila de emails ficam guardados enquanto a demonstração existir, salvo se apagares a conta ou pedires a eliminação.",
+        "deactivated": "Uma conta desativada continua guardada. Uma conta apagada fica sem dados pessoais. As reservas nunca são apagadas pela aplicação, só mudam de estado.",
+        "counters": "Os contadores de pedidos por IP duram um minuto e perdem-se quando a API reinicia.",
+        "logs": "Os registos (logs) ficam disponíveis durante 7 dias no Render (plano Hobby) e os registos de execução da Vercel ficam guardados durante 1 hora (plano Hobby), segundo a documentação de cada fornecedor.",
+        "languageCookie": "O cookie da língua dura um ano a partir da última escolha; podes apagá-lo nas definições do browser.",
+        "noBackups": "Não são feitas cópias de segurança da base de dados."
+      },
+      "cookies": {
+        "title": "Cookies e armazenamento no browser",
+        "intro": "Usamos apenas os cookies abaixo e, por isso, não é preciso um aviso de cookies: os dois cookies de sessão são estritamente necessários para manter a sessão, e o cookie da língua só é criado quando escolhes uma língua no seletor PT | EN, para guardar essa escolha. Não há cookies de análise nem de publicidade, e o site não carrega conteúdos de outros domínios.",
+        "session": "Os cookies de sessão só existem depois de entrares ou criares conta, e nenhum deles pode ser lido pelo JavaScript da página (httpOnly).",
+        "access": "<code>access_token</code>: identifica a tua sessão em cada pedido. Dura 15 minutos. Caminho <code>/</code>, httpOnly, Secure, SameSite=Lax.",
+        "refresh": "<code>refresh_token</code>: renova a sessão sem pedir de novo a palavra-passe. Dura 7 dias, no máximo, desde que entraste. Caminho <code>/api/auth</code>, httpOnly, Secure, SameSite=Strict.",
+        "locale": "<code>NEXT_LOCALE</code>: guarda a língua que escolheste no seletor (<code>pt-PT</code> ou <code>en</code>), com ou sem sessão. Dura um ano. Caminho <code>/</code>, SameSite=Lax, Secure no site publicado; não é httpOnly, porque é a página que o escreve quando escolhes a língua. Não identifica ninguém.",
+        "noStorage": "A aplicação não guarda dados em localStorage nem em sessionStorage."
+      },
+      "rights": {
+        "title": "Os teus direitos",
+        "intro": "Tens direito de acesso, de retificação, de apagamento, de limitação do tratamento, de portabilidade e de oposição. Na aplicação, em «A minha conta», podes exercer dois deles sem escrever a ninguém:",
+        "access": "<b>Acesso e portabilidade.</b> «Exportar os meus dados» descarrega um ficheiro JSON com o teu perfil (nome, email, telemóvel, perfil, data de registo e língua dos emails), as tuas reservas (clube, campo, datas, preço e estado) e a versão dos Termos que aceitaste e quando. Não inclui a palavra-passe, tokens, identificadores internos nem dados de outras pessoas.",
+        "erasure": "<b>Apagamento.</b> «Apagar a minha conta» pede a tua palavra-passe e, de uma só vez, cancela as tuas reservas futuras e liberta esses horários, substitui o teu nome por «Conta apagada» e o teu email por um endereço que não recebe correio, apaga o telemóvel, a palavra-passe, a língua dos emails, o registo da aceitação dos Termos e os emails ainda por enviar, e termina todas as sessões. O teu email fica livre para uma nova conta. As reservas passadas ficam para o histórico dos clubes, sem te identificar. Um motivo escrito por um clube ao cancelar uma reserva, ou por quem administra a plataforma ao desativar um dono, não é alterado. Não enviamos um email de confirmação: a confirmação aparece no ecrã.",
+        "owners": "Uma conta de dono com clubes não pode ser apagada na aplicação, porque um clube tem sempre dono: escreve para <email></email>. A conta de administração não pode ser apagada.",
+        "other": "Podes ver as tuas reservas em «As minhas reservas», definir uma nova palavra-passe e mudar a língua dos emails em «A minha conta». A aplicação não tem uma função para editar o resto do perfil. Para este ou para qualquer outro direito, escreve para <email></email> a partir do email da tua conta; o pedido é tratado à mão. As contas de demonstração são partilhadas e não têm um titular real."
+      },
+      "complaints": {
+        "title": "Queixas",
+        "p1": "Tens o direito de apresentar queixa à Comissão Nacional de Proteção de Dados (CNPD)."
+      },
+      "changes": {
+        "title": "Alterações",
+        "p1": "Esta política pode mudar. Quando isso acontecer, a data e a versão no topo desta página são atualizadas. As contas criadas antes de existir esta página não têm registo de aceitação."
+      }
+    }
+  }
+}

@@ -133,7 +133,7 @@ describe("ClubForm (new club)", () => {
     expect(queryClient.getQueryState(["clubs", "list", 1])?.isInvalidated).toBe(true);
   });
 
-  it("puts the API's validation messages on their fields", async () => {
+  it("marks the fields the API refused, with the catalog's words", async () => {
     server.use(
       http.post("/api/manage/clubs", () =>
         problem(400, "validation_failed", {
@@ -147,7 +147,7 @@ describe("ClubForm (new club)", () => {
     const user = await fillIn(complete);
     await user.click(screen.getByRole("button", { name: "Criar clube" }));
 
-    await waitFor(() => expectFieldError(/^localidade$/i, "Indica a localidade do clube."));
+    await waitFor(() => expectFieldError(/^localidade$/i, "Verifica a localidade: é obrigatória e tem no máximo 100 caracteres."));
     expectFieldError(/janela de cancelamento/i, "A janela de cancelamento tem de estar entre 1 e 168 horas.");
     expect(field(/^nome$/i)).not.toHaveAttribute("aria-invalid");
     expect(field(/^localidade$/i)).toHaveFocus();
@@ -294,7 +294,7 @@ describe("ClubForm (existing club)", () => {
     });
   });
 
-  it("puts the API's validation messages on their fields when editing", async () => {
+  it("marks the fields the API refused, with the catalog's words when editing", async () => {
     server.use(
       http.put(`/api/manage/clubs/${saved.id}`, () =>
         problem(400, "validation_failed", { contactEmail: ["Indica um email válido, por exemplo nome@exemplo.pt."] }),

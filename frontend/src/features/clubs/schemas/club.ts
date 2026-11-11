@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { EMAIL_MAX_LENGTH, PHONE_PATTERN } from "@/features/auth/schemas/register";
+import type { Translator } from "@/i18n/translator";
 
 /**
  * US06 club rules, for immediate feedback only: the API validates again and has the last word.
- * Limits and messages match the API's ClubRequestValidator (the limits are provisional, see US06).
+ * Limits match the API's ClubRequestValidator (the limits are provisional, see US06); the messages are the catalogs'.
  */
 export const CLUB_NAME_MAX_LENGTH = 100;
 export const CLUB_ADDRESS_MAX_LENGTH = 200;
@@ -12,52 +13,44 @@ export const DEFAULT_CANCELLATION_WINDOW_HOURS = 24;
 export const MIN_CANCELLATION_WINDOW_HOURS = 1;
 export const MAX_CANCELLATION_WINDOW_HOURS = 168;
 
-const INVALID_EMAIL = "Indica um email válido, por exemplo nome@exemplo.pt.";
-const INVALID_WINDOW = `A janela de cancelamento tem de estar entre ${MIN_CANCELLATION_WINDOW_HOURS} e ${MAX_CANCELLATION_WINDOW_HOURS} horas.`;
+/** `t` reads `clubs.validation`; `email` is the shared `validation` namespace (the email rule is the same everywhere). */
+export function createClubSchema(t: Translator<"clubs.validation">, email: Translator<"validation">) {
+  const invalidEmail = email("emailInvalid");
+  const invalidWindow = t("windowInvalid", { min: MIN_CANCELLATION_WINDOW_HOURS, max: MAX_CANCELLATION_WINDOW_HOURS });
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, t("nameRequired"))
+      .max(CLUB_NAME_MAX_LENGTH, t("nameMax", { max: CLUB_NAME_MAX_LENGTH })),
+    address: z
+      .string()
+      .trim()
+      .min(1, t("addressRequired"))
+      .max(CLUB_ADDRESS_MAX_LENGTH, t("addressMax", { max: CLUB_ADDRESS_MAX_LENGTH })),
+    locality: z
+      .string()
+      .trim()
+      .min(1, t("localityRequired"))
+      .max(CLUB_LOCALITY_MAX_LENGTH, t("localityMax", { max: CLUB_LOCALITY_MAX_LENGTH })),
+    // Spaces are allowed while typing ("912 345 678") and removed, like the API does.
+    phone: z
+      .string()
+      .transform((phone) => phone.replaceAll(" ", "").trim())
+      .pipe(z.string().min(1, t("phoneRequired")).regex(PHONE_PATTERN, t("phoneInvalid"))),
+    contactEmail: z.string().trim().min(1, t("emailRequired")).max(EMAIL_MAX_LENGTH, invalidEmail).pipe(z.email(invalidEmail)),
+    // A text field in the form (what was typed); a whole number of hours once valid.
+    cancellationWindowHours: z
+      .string()
+      .trim()
+      .min(1, t("windowRequired"))
+      .regex(/^\d+$/, invalidWindow)
+      .transform(Number)
+      .pipe(z.number().int().min(MIN_CANCELLATION_WINDOW_HOURS, invalidWindow).max(MAX_CANCELLATION_WINDOW_HOURS, invalidWindow)),
+    // US23: the email to the owner on each new booking made by a player; on unless the owner turns it off.
+    notifyOnNewBooking: z.boolean(),
+  });
+}
 
-export const clubSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Indica o nome do clube.")
-    .max(CLUB_NAME_MAX_LENGTH, `O nome pode ter no máximo ${CLUB_NAME_MAX_LENGTH} caracteres.`),
-  address: z
-    .string()
-    .trim()
-    .min(1, "Indica a morada do clube.")
-    .max(CLUB_ADDRESS_MAX_LENGTH, `A morada pode ter no máximo ${CLUB_ADDRESS_MAX_LENGTH} caracteres.`),
-  locality: z
-    .string()
-    .trim()
-    .min(1, "Indica a localidade do clube.")
-    .max(CLUB_LOCALITY_MAX_LENGTH, `A localidade pode ter no máximo ${CLUB_LOCALITY_MAX_LENGTH} caracteres.`),
-  // Spaces are allowed while typing ("912 345 678") and removed, like the API does.
-  phone: z
-    .string()
-    .transform((phone) => phone.replaceAll(" ", "").trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "Indica o telefone do clube.")
-        .regex(PHONE_PATTERN, "Indica um número de telefone válido, com 9 a 15 algarismos."),
-    ),
-  contactEmail: z
-    .string()
-    .trim()
-    .min(1, "Indica o email de contacto do clube.")
-    .max(EMAIL_MAX_LENGTH, INVALID_EMAIL)
-    .pipe(z.email(INVALID_EMAIL)),
-  // A text field in the form (what was typed); a whole number of hours once valid.
-  cancellationWindowHours: z
-    .string()
-    .trim()
-    .min(1, "Indica a janela de cancelamento, em horas.")
-    .regex(/^\d+$/, INVALID_WINDOW)
-    .transform(Number)
-    .pipe(z.number().int().min(MIN_CANCELLATION_WINDOW_HOURS, INVALID_WINDOW).max(MAX_CANCELLATION_WINDOW_HOURS, INVALID_WINDOW)),
-  // US23: the email to the owner on each new booking made by a player; on unless the owner turns it off.
-  notifyOnNewBooking: z.boolean(),
-});
-
-export type ClubFormValues = z.input<typeof clubSchema>;
-export type ClubFormData = z.output<typeof clubSchema>;
+export type ClubFormValues = z.input<ReturnType<typeof createClubSchema>>;
+export type ClubFormData = z.output<ReturnType<typeof createClubSchema>>;

@@ -1,3 +1,4 @@
+import type { AppLocale } from "@/i18n/locales";
 import { apiRequest } from "@/lib/api/client";
 
 export const EXPORT_FILE_NAME = "os-meus-dados.json";
@@ -21,4 +22,9 @@ export async function downloadMyData(): Promise<void> {
  */
 export async function deleteMyAccount(password: string): Promise<void> {
   await apiRequest("/api/me/delete-account", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/** T09: the language of the signed-in person's emails (204). 400 `validation_failed` on `preferredLanguage` for anything but the two codes. */
+export async function changePreferredLanguage(preferredLanguage: AppLocale): Promise<void> {
+  await apiRequest("/api/me/preferred-language", { method: "PUT", body: JSON.stringify({ preferredLanguage }) });
 }

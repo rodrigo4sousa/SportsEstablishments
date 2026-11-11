@@ -9,6 +9,7 @@ export const PLAYER_EMAILS = {
   firstOfTwo: "jogador02@example.test",
   secondOfTwo: "jogador03@example.test",
   seenByOwner: "jogador04@example.test",
+  english: "jogador05@example.test",
 } as const;
 
 export const CLUB = { slug: "padel-foz-clube", name: "Padel Foz Clube", pitchName: "Padel 1" } as const;

@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, type MouseEvent } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
@@ -12,29 +13,27 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { catalogQueryKey } from "@/features/catalog/api";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
 import { loginUrl } from "@/lib/auth/redirects";
-import { formatLisbonDayHeading, lisbonDateKey } from "@/lib/datetime";
+import { useFormats, type Formats } from "@/i18n/formats";
+import { lisbonDateKey } from "@/lib/datetime";
 import { cancelBooking, fetchMyBookings, myBookingsListQueryKey, myBookingsQueryKey } from "../api";
 import type { BookingScope, MyBooking } from "../types";
 import { MyBookingItem } from "./my-booking-item";
 
-const TABS: { scope: BookingScope; label: string }[] = [
-  { scope: "upcoming", label: "Próximas" },
-  { scope: "past", label: "Anteriores" },
-];
+const TABS = [
+  { scope: "upcoming", label: "upcoming" },
+  { scope: "past", label: "past" },
+] as const satisfies ReadonlyArray<{ scope: BookingScope; label: string }>;
 
-const EMPTY_TEXT: Record<BookingScope, string> = {
-  upcoming: "Não tens reservas próximas. Pesquisa um clube para reservar um campo.",
-  past: "Ainda não tens reservas anteriores.",
-};
+const EMPTY_TEXT = { upcoming: "emptyUpcoming", past: "emptyPast" } as const satisfies Record<BookingScope, string>;
 
 /** What the last cancellation said. A refusal belongs to the booking it is about, and is shown in its row while that row is there. */
 type Notice = { kind: "success" | "error"; text: string; bookingId: string | null };
 
 /** The bookings of the page in groups of consecutive ones on the same Lisbon day, in the order the API sent them. */
-function groupByDay(items: MyBooking[]): { key: string; heading: (now: Date) => string; items: MyBooking[] }[] {
+function groupByDay(items: MyBooking[], formats: Formats): { key: string; heading: (now: Date) => string; items: MyBooking[] }[] {
   const groups: { key: string; heading: (now: Date) => string; items: MyBooking[] }[] = [];
   for (const booking of items) {
     const key = lisbonDateKey(booking.startsAt);
@@ -42,7 +41,7 @@ function groupByDay(items: MyBooking[]): { key: string; heading: (now: Date) => 
     if (last?.key === key) {
       last.items.push(booking);
     } else {
-      groups.push({ key, heading: (now) => formatLisbonDayHeading(booking.startsAt, now), items: [booking] });
+      groups.push({ key, heading: (now) => formats.dayHeading(booking.startsAt, now), items: [booking] });
     }
   }
   return groups;
@@ -74,6 +73,9 @@ function hrefFor(pathname: string, scope: BookingScope, page: number): string {
  * slots of the public pages) are loaded again.
  */
 export function MyBookings() {
+  const t = useTranslations("myBookings");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -102,20 +104,20 @@ export function MyBookings() {
   const cancel = useMutation({
     mutationFn: (booking: MyBooking) => cancelBooking(booking.id),
     onSuccess: () => {
-      setNotice({ kind: "success", text: "Reserva cancelada. O horário voltou a ficar livre.", bookingId: null });
+      setNotice({ kind: "success", text: t("cancelled"), bookingId: null });
       // The slot is free again on the club's page, and so the search's "free slots" may have changed.
       void queryClient.invalidateQueries({ queryKey: catalogQueryKey });
     },
     onError: (error, booking) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.status === 401) {
         router.replace(loginUrl(hrefFor(pathname, scope, page)));
         return;
       }
-      setNotice({ kind: "error", text: errorMessage(error.code), bookingId: booking.id });
+      setNotice({ kind: "error", text: apiErrors.message(error.code), bookingId: booking.id });
     },
     onSettled: () => {
       setConfirmingId(null);
@@ -138,7 +140,7 @@ export function MyBookings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Próximas ou anteriores" className="flex gap-1 border-b">
+      <nav aria-label={t("tabs")} className="flex gap-1 border-b">
         {TABS.map((tab) => (
           <Link
             key={tab.scope}
@@ -156,36 +158,36 @@ export function MyBookings() {
               scope === tab.scope ? "border-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab.label}
+            {t(tab.label)}
           </Link>
         ))}
       </nav>
 
       <section aria-labelledby="bookings-heading" className="flex flex-col gap-4">
         <h2 id="bookings-heading" className="sr-only">
-          {scope === "upcoming" ? "Reservas próximas" : "Reservas anteriores"}
+          {scope === "upcoming" ? t("upcomingHeading") : t("pastHeading")}
         </h2>
         {listNotice ? <ResultNotice kind={listNotice.kind}>{listNotice.text}</ResultNotice> : null}
         {bookings.isPending || sessionEnded ? (
-          <LoadingRegion label="A carregar as reservas…" className="flex flex-col gap-3">
+          <LoadingRegion label={t("loading")} className="flex flex-col gap-3">
             {[0, 1, 2].map((key) => (
               <Skeleton key={key} className="h-24 w-full rounded-lg" />
             ))}
           </LoadingRegion>
         ) : bookings.isError ? (
           <div role="alert" className="flex flex-col items-start gap-3">
-            <p>{errorMessage(bookings.error instanceof ApiError ? bookings.error.code : "unknown_error")}</p>
+            <p>{apiErrors.message(bookings.error instanceof ApiError ? bookings.error.code : UNKNOWN_ERROR)}</p>
             <Button type="button" size="cta" variant="outline" onClick={() => void bookings.refetch()}>
-              Tentar novamente
+              {common("retry")}
             </Button>
           </div>
         ) : bookings.data.totalCount === 0 ? (
-          <EmptyState title={EMPTY_TEXT[scope]} />
+          <EmptyState title={t(EMPTY_TEXT[scope])} />
         ) : bookings.data.items.length === 0 ? (
           <div role="status" className="flex flex-col items-start gap-3">
-            <p className="text-muted-foreground">Esta página não tem reservas.</p>
+            <p className="text-muted-foreground">{t("emptyPage")}</p>
             <Button type="button" size="cta" variant="outline" onClick={() => go(scope, 1)}>
-              Voltar à primeira página
+              {t("firstPage")}
             </Button>
           </div>
         ) : (
@@ -224,17 +226,23 @@ type ListProps = {
 };
 
 function List({ data, now, cancellable, confirmingId, cancellingId, refusal, onAskToCancel, onKeep, onConfirmCancel, onPage }: ListProps) {
+  const t = useTranslations("myBookings");
+  const time = useTranslations("time");
+  const common = useTranslations("common");
+  const formats = useFormats();
   const { items, page, pageSize, totalCount } = data;
   const pages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
     <>
       <p role="status" className="text-sm text-muted-foreground">
-        {totalCount === 1 ? "1 reserva" : `${totalCount} reservas`}
+        {t("count", { count: totalCount })}
       </p>
+      {/* T09: venue times are Lisbon's, whatever the language or the browser's time zone. */}
+      <p className="text-sm text-muted-foreground">{time("lisbonTimeNote")}</p>
       {/* UX-022: one short list per day, headed by the day, instead of one tall card per booking repeating it. */}
       <div className="flex flex-col gap-5">
-        {groupByDay(items).map((group) => {
+        {groupByDay(items, formats).map((group) => {
           const headingId = `bookings-day-${group.key}`;
           return (
             <div key={group.key} className="flex flex-col gap-2">
@@ -261,15 +269,13 @@ function List({ data, now, cancellable, confirmingId, cancellingId, refusal, onA
         })}
       </div>
       {pages > 1 ? (
-        <nav aria-label="Páginas" className="flex items-center justify-between gap-3">
+        <nav aria-label={common("pages")} className="flex items-center justify-between gap-3">
           <Button type="button" size="cta" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            Anterior
+            {common("previous")}
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Página {page} de {pages}
-          </p>
+          <p className="text-sm text-muted-foreground">{common("pageOf", { page, pages })}</p>
           <Button type="button" size="cta" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
-            Seguinte
+            {common("next")}
           </Button>
         </nav>
       ) : null}

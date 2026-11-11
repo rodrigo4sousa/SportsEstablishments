@@ -2,19 +2,20 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { createBlock, blocksQueryKey, pitchesQueryKey, slotsQueryKey, type BlockRequest } from "../api";
 import { TIME_STEP_MINUTES } from "../schedule";
 import { useRestoreFocus } from "@/lib/focus";
-import { BLOCK_REASON_MAX_LENGTH, blockSchema, type BlockFormData, type BlockFormValues } from "../schemas/block";
+import { BLOCK_REASON_MAX_LENGTH, createBlockSchema, type BlockFormData, type BlockFormValues } from "../schemas/block";
 
 const FIELDS = ["startDate", "startTime", "endDate", "endTime", "reason"] as const satisfies ReadonlyArray<keyof BlockFormValues>;
 
@@ -43,7 +44,13 @@ type BlockFormProps = {
 export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
-  const form = useForm<BlockFormValues, unknown, BlockFormData>({ resolver: zodResolver(blockSchema), defaultValues: EMPTY });
+  const t = useTranslations("pitches.blockForm");
+  const common = useTranslations("common");
+  const validation = useTranslations("pitches.blockValidation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("block");
+  const schema = useMemo(() => createBlockSchema(validation), [validation]);
+  const form = useForm<BlockFormValues, unknown, BlockFormData>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   const { errors } = form.formState;
 
   const save = useMutation({
@@ -54,22 +61,22 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
         queryClient.invalidateQueries({ queryKey: blocksQueryKey(clubId, pitchId), refetchType: "all" }),
         queryClient.invalidateQueries({ queryKey: slotsQueryKey(clubId, pitchId), refetchType: "all" }),
       ]);
-      toast.success("Bloqueio criado.");
+      toast.success(t("created"));
       onDone();
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, formErrors(error.fieldErrors), FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, formErrors(error.fieldErrors), FIELDS, fieldMessage)) {
         return;
       }
       if (error.code === "block_overlap") {
-        setFormError(errorMessage(error.code));
+        setFormError(apiErrors.message(error.code));
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
       if (error.code === "pitch_not_found") {
         await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
         onDone();
@@ -94,13 +101,13 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor={id(dateField)} className="text-sm font-normal">
-              Data
+              {common("date")}
             </Label>
             <Input
               id={id(dateField)}
               type="date"
               className="w-44"
-              aria-label={`${label}: data`}
+              aria-label={t("dateOf", { part: label })}
               aria-invalid={errors[dateField] ? true : undefined}
               aria-describedby={describedBy(dateField, text)}
               {...form.register(dateField, { onChange: () => setFormError(null) })}
@@ -108,14 +115,14 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor={id(timeField)} className="text-sm font-normal">
-              Hora
+              {common("time")}
             </Label>
             <Input
               id={id(timeField)}
               type="time"
               step={TIME_STEP_MINUTES * 60}
               className="w-32"
-              aria-label={`${label}: hora`}
+              aria-label={t("timeOf", { part: label })}
               aria-invalid={errors[timeField] ? true : undefined}
               aria-describedby={describedBy(timeField, text)}
               {...form.register(timeField, { onChange: () => setFormError(null) })}
@@ -134,7 +141,7 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
   return (
     <form
       noValidate
-      aria-label="Criar bloqueio"
+      aria-label={t("form")}
       className="flex flex-col gap-4 rounded-md border p-4"
       onSubmit={form.handleSubmit((values) => {
         setFormError(null);
@@ -145,12 +152,12 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
         });
       })}
     >
-      {period("start", "Início")}
-      {period("end", "Fim")}
-      <p className="text-sm text-muted-foreground">Horas de Lisboa, de meia em meia hora. O bloqueio pode abranger vários dias.</p>
+      {period("start", t("start"))}
+      {period("end", t("end"))}
+      <p className="text-sm text-muted-foreground">{t("note")}</p>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={id("reason")}>Motivo (opcional)</Label>
+        <Label htmlFor={id("reason")}>{t("reason")}</Label>
         <Input
           id={id("reason")}
           autoComplete="off"
@@ -174,10 +181,10 @@ export function BlockForm({ clubId, pitchId, onDone }: BlockFormProps) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
-          {save.isPending ? "A guardar…" : "Criar bloqueio"}
+          {save.isPending ? common("saving") : t("submit")}
         </Button>
         <Button type="button" variant="ghost" onClick={onDone}>
-          Cancelar
+          {common("cancel")}
         </Button>
       </div>
     </form>

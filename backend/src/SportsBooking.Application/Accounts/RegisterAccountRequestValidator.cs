@@ -28,5 +28,10 @@ public sealed class RegisterAccountRequestValidator : AbstractValidator<Register
             .When(request => request.Phone is not null)
             .WithMessage(
                 $"Indica um número de telemóvel válido, com {PhoneNumberPolicy.MinimumDigits} a {PhoneNumberPolicy.MaximumDigits} algarismos.");
+
+        RuleFor(request => request.PreferredLanguage)
+            .Must(PreferredLanguage.IsSupported)
+            .When(request => request.PreferredLanguage is not null)
+            .WithMessage(PreferredLanguageMessages.NotSupported);
     }
 }

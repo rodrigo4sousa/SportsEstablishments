@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { PublicSlot } from "@/features/catalog/types";
@@ -14,7 +15,7 @@ const text = (element: HTMLElement) => (element.textContent ?? "").replace(/\s/g
 
 describe("SlotList", () => {
   it("shows each slot in Lisbon time (summer: UTC+1) with its price in pt-PT format", () => {
-    render(<SlotList slots={slots} selected={null} interactive onSelect={() => undefined} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive onSelect={() => undefined} />);
 
     const items = within(screen.getByRole("list", { name: "Horários" })).getAllByRole("listitem");
     expect(items.map(text)).toEqual(["09:00 – 10:00 18,50 €", "10:00 – 11:00 18,50 €", "11:00 – 12:00 18,50 €"]);
@@ -27,21 +28,21 @@ describe("SlotList", () => {
       { startsAt: "2026-05-04T10:00:00Z", endsAt: "2026-05-04T11:00:00Z", price: 35.5, available: true },
       { startsAt: "2026-05-04T11:00:00Z", endsAt: "2026-05-04T12:00:00Z", price: 20, available: true },
     ];
-    render(<SlotList slots={banded} selected={null} interactive onSelect={() => undefined} />);
+    renderWithIntl(<SlotList slots={banded} selected={null} interactive onSelect={() => undefined} />);
 
     const items = within(screen.getByRole("list", { name: "Horários" })).getAllByRole("listitem");
     expect(items.map(text)).toEqual(["09:00 – 10:00 20,00 €", "10:00 – 11:00 35,50 €", "11:00 – 12:00 35,50 €", "12:00 – 13:00 20,00 €"]);
   });
 
   it("has a legend for the two looks, which says that a slot is unavailable and never why (UX-025)", () => {
-    render(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
 
     expect(screen.getByText("Livre")).toBeInTheDocument();
     expect(screen.getByText("Indisponível (riscado)")).toBeInTheDocument();
   });
 
   it("strikes the time of an unavailable slot, and keeps its text as dark as muted text allows instead of fading it (UX-025)", () => {
-    render(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive onSelect={() => {}} />);
 
     const [free, unavailable] = screen.getAllByRole("button");
     expect(unavailable.querySelector(".line-through")).not.toBeNull();
@@ -50,7 +51,7 @@ describe("SlotList", () => {
   });
 
   it("shows the same legend and looks to someone who can only look (an owner or an admin)", () => {
-    render(<SlotList slots={slots} selected={null} interactive={false} onSelect={() => {}} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive={false} onSelect={() => {}} />);
 
     expect(screen.getByText("Indisponível (riscado)")).toBeInTheDocument();
     expect(document.querySelector('[data-available="false"]')?.className).not.toMatch(/opacity/);
@@ -58,7 +59,7 @@ describe("SlotList", () => {
 
   it("makes free slots buttons and shows the others disabled, with no reason", async () => {
     const onSelect = vi.fn();
-    render(<SlotList slots={slots} selected={null} interactive onSelect={onSelect} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive onSelect={onSelect} />);
 
     const [free, unavailable, other] = screen.getAllByRole("button");
     expect(free).toBeEnabled();
@@ -75,7 +76,7 @@ describe("SlotList", () => {
   });
 
   it("marks the chosen slot, comparing moments and not text", () => {
-    render(<SlotList slots={slots} selected="2026-05-04T11:00:00+01:00" interactive onSelect={() => undefined} />);
+    renderWithIntl(<SlotList slots={slots} selected="2026-05-04T11:00:00+01:00" interactive onSelect={() => undefined} />);
 
     const [first, , third] = screen.getAllByRole("button");
     expect(first).toHaveAttribute("aria-pressed", "false");
@@ -89,7 +90,7 @@ describe("SlotList", () => {
       { startsAt: "2026-10-25T01:00:00Z", endsAt: "2026-10-25T02:00:00Z", price: 10, available: true },
     ];
 
-    render(<SlotList slots={repeated} selected={null} interactive onSelect={() => undefined} />);
+    renderWithIntl(<SlotList slots={repeated} selected={null} interactive onSelect={() => undefined} />);
 
     const [first, second] = screen.getAllByRole("button").map(text);
     expect(first).toBe("01:00 (verão) – 01:00 (inverno) 10,00 €");
@@ -97,7 +98,7 @@ describe("SlotList", () => {
   });
 
   it("shows free slots as plain items, not buttons, for someone who cannot book", () => {
-    render(<SlotList slots={slots} selected={null} interactive={false} onSelect={() => undefined} />);
+    renderWithIntl(<SlotList slots={slots} selected={null} interactive={false} onSelect={() => undefined} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     const items = screen.getAllByRole("listitem");

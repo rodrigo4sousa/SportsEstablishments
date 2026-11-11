@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { LoadingRegion } from "@/components/loading-region";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
 import { useRestoreFocus } from "@/lib/focus";
 import { PITCHES_PAGE_SIZE, deactivatePitch, fetchPitches, pitchListQueryKey, pitchesQueryKey, reactivatePitch, type Pitch } from "../api";
-import { formatPrice } from "../price";
-import { sportLabel } from "../sports";
+import { useFormats } from "@/i18n/formats";
+import { useSportLabel } from "../sports";
 import { BlocksSection } from "./blocks-section";
 import { PitchForm } from "./pitch-form";
 import { PriceBandsSection } from "./price-bands-section";
@@ -29,6 +30,11 @@ type Editing = { kind: "new" } | { kind: "edit"; pitch: Pitch } | null;
  * the list, marked, because they are never deleted.
  */
 export function PitchSection({ clubId }: { clubId: string }) {
+  const t = useTranslations("pitches.section");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(null);
@@ -47,10 +53,10 @@ export function PitchSection({ clubId }: { clubId: string }) {
       activate ? reactivatePitch(clubId, pitch.id) : deactivatePitch(clubId, pitch.id),
     onSuccess: async (saved, { activate }) => {
       await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
-      toast.success(activate ? `«${saved.name}» foi reativado.` : `«${saved.name}» foi desativado.`);
+      toast.success(activate ? t("reactivated", { name: saved.name }) : t("deactivated", { name: saved.name }));
     },
     onError: async (error) => {
-      toast.error(errorMessage(error instanceof ApiError ? error.code : "unknown_error"));
+      toast.error(apiErrors.message(error instanceof ApiError ? error.code : UNKNOWN_ERROR));
       if (error instanceof ApiError && error.code === "pitch_not_found") {
         // It is gone: close its form, if open, and show the list as it is now.
         setEditing(null);
@@ -82,11 +88,11 @@ export function PitchSection({ clubId }: { clubId: string }) {
   const heading = (
     <div className="flex items-center justify-between gap-4">
       <h2 id="pitches-heading" className="text-xl font-semibold tracking-tight">
-        Campos
+        {t("title")}
       </h2>
       {editing === null ? (
         <Button ref={addButton} type="button" size="cta" onClick={() => setEditing({ kind: "new" })}>
-          Adicionar campo
+          {t("add")}
         </Button>
       ) : null}
     </div>
@@ -95,7 +101,7 @@ export function PitchSection({ clubId }: { clubId: string }) {
   let list;
   if (pitches.isPending) {
     list = (
-      <LoadingRegion label="A carregar os campos…" className="flex flex-col divide-y rounded-md border">
+      <LoadingRegion label={t("loading")} className="flex flex-col divide-y rounded-md border">
         {[0, 1].map((row) => (
           <div key={row} className="flex flex-col gap-3 px-4 py-3">
             <Skeleton className="h-5 w-40" />
@@ -106,17 +112,17 @@ export function PitchSection({ clubId }: { clubId: string }) {
       </LoadingRegion>
     );
   } else if (pitches.isError) {
-    const code = pitches.error instanceof ApiError ? pitches.error.code : "unknown_error";
+    const code = pitches.error instanceof ApiError ? pitches.error.code : UNKNOWN_ERROR;
     list = (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(code)}</p>
+        <p>{apiErrors.message(code)}</p>
         <Button type="button" variant="outline" onClick={() => void pitches.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
   } else if (pitches.data.totalCount === 0) {
-    list = <EmptyState title="Este clube ainda não tem campos." description="Adiciona o primeiro para o poderes configurar." />;
+    list = <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
   } else {
     const { items, totalCount } = pitches.data;
     const pageCount = Math.max(1, Math.ceil(totalCount / PITCHES_PAGE_SIZE));
@@ -130,11 +136,11 @@ export function PitchSection({ clubId }: { clubId: string }) {
                 <span className="flex items-center gap-2 font-medium">
                   {pitch.name}
                   {pitch.status === "inactive" ? (
-                    <span className="rounded-full border px-2 py-0.5 text-xs font-normal">Inativo</span>
+                    <span className="rounded-full border px-2 py-0.5 text-xs font-normal">{t("inactive")}</span>
                   ) : null}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {sportLabel(pitch.sport)} · {formatPrice(pitch.pricePerSlot)} por horário
+                  {sportLabel(pitch.sport)} · {t("pricePerSlot", { price: formats.price(pitch.pricePerSlot) })}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -143,40 +149,40 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   variant="outline"
                   size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "schedule"}
-                  aria-label={`Horário de ${pitch.name}`}
+                  aria-label={t("scheduleOf", { pitch: pitch.name })}
                   onClick={() => togglePanel(pitch.id, "schedule")}
                 >
-                  Horário
+                  {t("schedule")}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "blocks"}
-                  aria-label={`Bloqueios de ${pitch.name}`}
+                  aria-label={t("blocksOf", { pitch: pitch.name })}
                   onClick={() => togglePanel(pitch.id, "blocks")}
                 >
-                  Bloqueios
+                  {t("blocks")}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="cta"
                   aria-expanded={panel?.pitchId === pitch.id && panel.kind === "prices"}
-                  aria-label={`Faixas de preço de ${pitch.name}`}
+                  aria-label={t("pricesOf", { pitch: pitch.name })}
                   onClick={() => togglePanel(pitch.id, "prices")}
                 >
-                  Faixas de preço
+                  {t("prices")}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="cta"
-                  aria-label={`Editar ${pitch.name}`}
+                  aria-label={t("editOf", { pitch: pitch.name })}
                   data-edit-pitch={pitch.id}
                   onClick={() => setEditing({ kind: "edit", pitch })}
                 >
-                  Editar
+                  {common("edit")}
                 </Button>
                 <Button
                   type="button"
@@ -184,29 +190,29 @@ export function PitchSection({ clubId }: { clubId: string }) {
                   size="cta"
                   disabled={toggle.isPending}
                   className={pitch.status === "active" ? "border-destructive/40 text-destructive hover:text-destructive" : undefined}
-                  aria-label={`${pitch.status === "active" ? "Desativar" : "Reativar"} ${pitch.name}`}
+                  aria-label={pitch.status === "active" ? t("deactivateOf", { pitch: pitch.name }) : t("reactivateOf", { pitch: pitch.name })}
                   onClick={() => toggle.mutate({ pitch, activate: pitch.status === "inactive" })}
                 >
-                  {pitch.status === "active" ? "Desativar" : "Reativar"}
+                  {pitch.status === "active" ? t("deactivate") : t("reactivate")}
                 </Button>
               </div>
               </div>
               {panel?.pitchId === pitch.id && panel.kind === "schedule" ? (
                 <div className="flex flex-col gap-6 border-t pt-4">
-                  <h3 className="font-medium">Horário de {pitch.name}</h3>
+                  <h3 className="font-medium">{t("scheduleOf", { pitch: pitch.name })}</h3>
                   <ScheduleEditor clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                   <SlotPreview clubId={clubId} pitchId={pitch.id} />
                 </div>
               ) : null}
               {panel?.pitchId === pitch.id && panel.kind === "blocks" ? (
                 <div className="flex flex-col gap-6 border-t pt-4">
-                  <h3 className="font-medium">Bloqueios de {pitch.name}</h3>
+                  <h3 className="font-medium">{t("blocksOf", { pitch: pitch.name })}</h3>
                   <BlocksSection clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                 </div>
               ) : null}
               {panel?.pitchId === pitch.id && panel.kind === "prices" ? (
                 <div className="flex flex-col gap-6 border-t pt-4">
-                  <h3 className="font-medium">Faixas de preço de {pitch.name}</h3>
+                  <h3 className="font-medium">{t("pricesOf", { pitch: pitch.name })}</h3>
                   <PriceBandsSection clubId={clubId} pitchId={pitch.id} onGone={closePanel} />
                 </div>
               ) : null}
@@ -215,15 +221,13 @@ export function PitchSection({ clubId }: { clubId: string }) {
         </ul>
 
         {pageCount > 1 ? (
-          <nav aria-label="Páginas dos campos" className="flex items-center justify-between gap-4">
+          <nav aria-label={t("pages")} className="flex items-center justify-between gap-4">
             <Button type="button" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              Anterior
+              {common("previous")}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Página {page} de {pageCount}
-            </p>
+            <p className="text-sm text-muted-foreground">{common("pageOf", { page, pages: pageCount })}</p>
             <Button type="button" variant="outline" disabled={page >= pageCount} onClick={() => setPage(page + 1)}>
-              Seguinte
+              {common("next")}
             </Button>
           </nav>
         ) : null}

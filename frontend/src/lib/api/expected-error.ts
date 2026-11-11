@@ -1,5 +1,4 @@
 import { ApiError, NETWORK_ERROR } from "./client";
-import { errorMessage } from "./error-messages";
 
 type ExpectedErrorOptions = {
   /**
@@ -25,10 +24,4 @@ export function isExpectedApiError(error: unknown, { handlesNetworkError = false
   return error.status >= 400 && error.status < 500;
 }
 
-/**
- * The toast text for an unexpected failure: a request that got no answer says so (the user can check the connection), anything
- * else is the general message. The details stay in the console and the API log, never on screen.
- */
-export function unexpectedErrorMessage(error: unknown): string {
-  return error instanceof ApiError && error.code === NETWORK_ERROR ? errorMessage(NETWORK_ERROR) : errorMessage("unknown_error");
-}
+// The toast text of an unexpected failure is `useApiErrors().unexpected(error)` (`error-messages.ts`), in the page's language.

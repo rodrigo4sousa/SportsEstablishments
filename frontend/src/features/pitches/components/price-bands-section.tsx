@@ -3,20 +3,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
 import { deletePriceBand, fetchPriceBands, pitchesQueryKey, priceBandsQueryKey, slotsQueryKey, type PriceBand } from "../api";
-import { formatPrice } from "../price";
-import { WEEKDAYS } from "../schedule";
+import { useFormats } from "@/i18n/formats";
+import { WEEKDAYS, type WeekdayKey } from "../schedule";
 import { PriceBandForm } from "./price-band-form";
 
 const MAX_BANDS = 20;
 
-/** "Segunda-feira, Sexta-feira" as the API's names, Monday first. */
-export function weekdaysLabel(days: readonly string[]): string {
+/** "Segunda-feira, Sexta-feira" for the API's names, Monday first; `label` gives a day's name in the page's language. */
+export function weekdaysLabel(days: readonly string[], label: (key: WeekdayKey) => string): string {
   return WEEKDAYS.filter((day) => days.includes(day.key))
-    .map((day) => day.label)
+    .map((day) => label(day.key))
     .join(", ");
 }
 
@@ -33,6 +34,11 @@ type Editing = { kind: "new" } | { kind: "edit"; bandId: string } | null;
  * outside every band costs the pitch's base price; the preview shows each slot's price.
  */
 export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string; pitchId: string; onGone: () => void }) {
+  const t = useTranslations("pitches.bands");
+  const common = useTranslations("common");
+  const weekdays = useTranslations("weekdays");
+  const apiErrors = useApiErrors();
+  const formats = useFormats();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Editing>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -49,11 +55,11 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
     onSuccess: async () => {
       setConfirming(null);
       await refresh();
-      toast.success("Faixa removida.");
+      toast.success(t("removed"));
     },
     onError: async (error) => {
-      const code = error instanceof ApiError ? error.code : "unknown_error";
-      toast.error(errorMessage(code));
+      const code = error instanceof ApiError ? error.code : UNKNOWN_ERROR;
+      toast.error(apiErrors.message(code));
       setConfirming(null);
       if (code === "price_band_not_found") {
         await refresh();
@@ -68,32 +74,32 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
   if (bands.isPending) {
     list = (
       <p role="status" className="text-muted-foreground">
-        A carregar as faixas…
+        {t("loading")}
       </p>
     );
   } else if (bands.isError) {
-    const code = bands.error instanceof ApiError ? bands.error.code : "unknown_error";
+    const code = bands.error instanceof ApiError ? bands.error.code : UNKNOWN_ERROR;
     list = (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(code)}</p>
+        <p>{apiErrors.message(code)}</p>
         <Button type="button" variant="outline" onClick={() => void bands.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
   } else if (bands.data.length === 0) {
-    list = <p className="text-muted-foreground">Sem faixas de preço: todos os horários custam o preço base do campo.</p>;
+    list = <p className="text-muted-foreground">{t("empty")}</p>;
   } else {
     list = (
-      <ul aria-label="Faixas de preço do campo" className="flex flex-col divide-y rounded-md border">
+      <ul aria-label={t("list")} className="flex flex-col divide-y rounded-md border">
         {bands.data.map((band) => (
           <li key={band.id} className="flex flex-col gap-2 px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <span className="font-medium tabular-nums">
-                  {hoursLabel(band)} · {formatPrice(band.price)}
+                  {hoursLabel(band)} · {formats.price(band.price)}
                 </span>
-                <span className="text-sm text-muted-foreground">{weekdaysLabel(band.days)}</span>
+                <span className="text-sm text-muted-foreground">{weekdaysLabel(band.days, (key) => weekdays(key))}</span>
               </div>
               {confirming === band.id ? null : (
                 <div className="flex gap-2">
@@ -101,19 +107,19 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
                     type="button"
                     variant="outline"
                     size="sm"
-                    aria-label={`Editar faixa ${hoursLabel(band)}`}
+                    aria-label={t("editOf", { hours: hoursLabel(band) })}
                     onClick={() => setEditing({ kind: "edit", bandId: band.id })}
                   >
-                    Editar
+                    {common("edit")}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    aria-label={`Remover faixa ${hoursLabel(band)}`}
+                    aria-label={t("removeOf", { hours: hoursLabel(band) })}
                     onClick={() => setConfirming(band.id)}
                   >
-                    Remover
+                    {common("remove")}
                   </Button>
                 </div>
               )}
@@ -122,13 +128,13 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
               <PriceBandForm clubId={clubId} pitchId={pitchId} band={band} onDone={() => setEditing(null)} />
             ) : null}
             {confirming === band.id ? (
-              <div role="group" aria-label="Confirmar remoção" className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2">
-                <p className="text-sm">Remover esta faixa? Os horários passam a custar o preço base. As reservas já feitas mantêm o preço.</p>
+              <div role="group" aria-label={t("confirmGroup")} className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2">
+                <p className="text-sm">{t("confirmQuestion")}</p>
                 <Button type="button" size="sm" variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate(band)}>
-                  {remove.isPending ? "A remover…" : "Confirmar remoção"}
+                  {remove.isPending ? common("removing") : common("confirmRemoval")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" disabled={remove.isPending} onClick={() => setConfirming(null)}>
-                  Cancelar
+                  {common("cancel")}
                 </Button>
               </div>
             ) : null}
@@ -141,16 +147,16 @@ export function PriceBandsSection({ clubId, pitchId, onGone }: { clubId: string;
   const full = bands.data !== undefined && bands.data.length >= MAX_BANDS;
 
   return (
-    <section aria-label="Faixas de preço" className="flex flex-col gap-4">
+    <section aria-label={t("title")} className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <h4 className="font-medium">Faixas de preço</h4>
+        <h4 className="font-medium">{t("title")}</h4>
         {editing?.kind === "new" ? null : (
           <Button type="button" size="sm" disabled={full} onClick={() => setEditing({ kind: "new" })}>
-            Nova faixa
+            {t("add")}
           </Button>
         )}
       </div>
-      {full ? <p className="text-sm text-muted-foreground">Um campo pode ter no máximo {MAX_BANDS} faixas.</p> : null}
+      {full ? <p className="text-sm text-muted-foreground">{t("full", { max: MAX_BANDS })}</p> : null}
       {editing?.kind === "new" ? <PriceBandForm clubId={clubId} pitchId={pitchId} onDone={() => setEditing(null)} /> : null}
       {list}
     </section>

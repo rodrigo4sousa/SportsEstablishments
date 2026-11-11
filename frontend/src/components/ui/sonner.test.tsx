@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { act, screen } from "@testing-library/react";
 import { toast } from "sonner";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Toaster } from "./sonner";
@@ -13,7 +14,7 @@ describe("the toaster", () => {
   });
 
   it("names its region in pt-PT for assistive technology, not in Sonner's English (UX-024)", async () => {
-    render(<Toaster />);
+    renderWithIntl(<Toaster />);
 
     act(() => {
       toast.error("Algo correu mal.");

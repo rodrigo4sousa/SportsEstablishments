@@ -30,6 +30,7 @@ internal sealed class AccountStore(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var user = new AppUser(account.Email, account.Name, now) { PhoneNumber = account.Phone };
         user.RecordTermsAcceptance(account.AcceptedTermsVersion, now);
+        user.ChangePreferredLanguage(account.PreferredLanguage);
 
         // Account and profile are saved together, so a failure never leaves an account without its profile.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -62,7 +63,7 @@ internal sealed class AccountStore(
             return null;
         }
 
-        return new AccountResponse(user.Id, user.Name, user.Email!, profile);
+        return new AccountResponse(user.Id, user.Name, user.Email!, profile, user.PreferredLanguage);
     }
 
     public async Task<AccountResponse?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken)
@@ -96,7 +97,8 @@ internal sealed class AccountStore(
                 dbContext.UserRoles
                     .Where(userRole => userRole.UserId == user.Id)
                     .Join(dbContext.Roles, userRole => userRole.RoleId, role => role.Id, (_, role) => role.Name!)
-                    .First()))
+                    .First(),
+                user.PreferredLanguage))
             .SingleOrDefaultAsync(cancellationToken);
 
     public Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken) =>
@@ -104,6 +106,19 @@ internal sealed class AccountStore(
 
     public Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken) =>
         dbContext.Users.AsNoTracking().AnyAsync(user => user.Id == userId && user.DeletedAt != null, cancellationToken);
+
+    public async Task<bool> ChangePreferredLanguageAsync(Guid userId, string code, CancellationToken cancellationToken)
+    {
+        if (!PreferredLanguage.IsSupported(code))
+        {
+            throw new ArgumentOutOfRangeException(nameof(code), "Not a supported language code.");
+        }
+
+        // A deleted account keeps no preference (US30): the conditional update leaves it as the deletion left it.
+        return await dbContext.Users
+            .Where(user => user.Id == userId && user.DeletedAt == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(user => user.PreferredLanguage, code), cancellationToken) == 1;
+    }
 
     // Validation already passed, so any other Identity error is a bug, not an expected failure.
     private static InvalidOperationException UnexpectedFailure(IdentityResult result) =>

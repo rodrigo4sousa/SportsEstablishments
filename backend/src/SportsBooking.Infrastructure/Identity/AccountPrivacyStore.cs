@@ -25,7 +25,8 @@ internal sealed class AccountPrivacyStore(
                     .First(),
                 user.RegisteredAt,
                 user.AcceptedTermsVersion,
-                user.TermsAcceptedAt))
+                user.TermsAcceptedAt,
+                user.PreferredLanguage))
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<bool> VerifyPasswordAsync(Guid accountId, string password, CancellationToken cancellationToken)
@@ -84,6 +85,8 @@ internal sealed class AccountPrivacyStore(
                     .SetProperty(user => user.AccessFailedCount, 0)
                     .SetProperty(user => user.AcceptedTermsVersion, (string?)null)
                     .SetProperty(user => user.TermsAcceptedAt, (DateTime?)null)
+                    // T09: a preference of the person, cleared like the rest; nothing is ever sent to a deleted account.
+                    .SetProperty(user => user.PreferredLanguage, (string?)null)
                     // Every existing check of a deactivated account applies too: login, refresh, password reset, the public pages.
                     .SetProperty(user => user.DeactivatedAt, user => user.DeactivatedAt ?? now)
                     .SetProperty(user => user.DeletedAt, (DateTime?)now),

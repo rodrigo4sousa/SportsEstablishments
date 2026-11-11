@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { RateLimitMessage } from "@/components/rate-limit-message";
@@ -11,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { useApiFieldMessage } from "@/lib/api/form-errors";
 import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { confirmPasswordReset } from "../api";
-import { resetPasswordSchema, type ResetPasswordData, type ResetPasswordValues } from "../schemas/reset-password";
+import { PASSWORD_MIN_LENGTH } from "../schemas/register";
+import { createResetPasswordSchema, type ResetPasswordData, type ResetPasswordValues } from "../schemas/reset-password";
 
 const EMPTY_FORM: ResetPasswordValues = { newPassword: "", confirmation: "" };
 
@@ -24,14 +28,16 @@ const FORM_LEVEL_CODES = new Set(["too_many_requests", NETWORK_ERROR]);
 
 /** The bad link: said once, with the way to ask for a new one. The same for every reason a link can be bad. */
 function InvalidLink() {
+  const t = useTranslations("auth.reset");
+  const apiErrors = useApiErrors();
   return (
     <div className="flex flex-col gap-4">
       <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-        {errorMessage("invalid_or_expired_reset_link")}
+        {apiErrors.message("invalid_or_expired_reset_link")}
       </p>
       <p className="text-sm">
         <Link href="/forgot-password" className="underline underline-offset-4">
-          Pedir uma nova ligação
+          {t("askNewLink")}
         </Link>
       </p>
     </div>
@@ -48,8 +54,13 @@ export function ResetPasswordForm() {
   const params = useSearchParams();
   const email = params.get("email") ?? "";
   const token = params.get("token") ?? "";
+  const t = useTranslations("auth.reset");
+  const validation = useTranslations("validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage();
+  const schema = useMemo(() => createResetPasswordSchema(validation), [validation]);
   const form = useForm<ResetPasswordValues, unknown, ResetPasswordData>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(schema),
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
@@ -63,7 +74,7 @@ export function ResetPasswordForm() {
     },
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
@@ -73,18 +84,18 @@ export function ResetPasswordForm() {
         return;
       }
       if (error.code === "validation_failed" && error.fieldErrors.newPassword?.length) {
-        form.setError("newPassword", { message: error.fieldErrors.newPassword.join(" ") });
+        form.setError("newPassword", { message: fieldMessage("newPassword") });
         return;
       }
       if (FORM_LEVEL_CODES.has(error.code)) {
-        form.setError("root", { message: errorMessage(error.code) });
+        form.setError("root", { message: apiErrors.message(error.code) });
         return;
       }
       if (error.code === "invalid_or_expired_reset_link") {
         form.reset(EMPTY_FORM);
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
@@ -97,11 +108,11 @@ export function ResetPasswordForm() {
     return (
       <div className="flex flex-col gap-4">
         <p role="status" className="rounded-md border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30">
-          A tua palavra-passe foi alterada. Já podes entrar com a nova palavra-passe.
+          {t("done")}
         </p>
         <p className="text-sm">
           <Link href="/login" className="underline underline-offset-4">
-            Entrar
+            {t("signIn")}
           </Link>
         </p>
       </div>
@@ -109,7 +120,7 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form noValidate aria-label="Definir a nova palavra-passe" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
+    <form noValidate aria-label={t("form")} className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
         retry.clear();
         reset.mutate(values);
       })}>
@@ -120,7 +131,7 @@ export function ResetPasswordForm() {
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="reset-new-password">Nova palavra-passe</Label>
+        <Label htmlFor="reset-new-password">{t("newPassword")}</Label>
         <Input
           id="reset-new-password"
           type="password"
@@ -130,7 +141,7 @@ export function ResetPasswordForm() {
           {...form.register("newPassword")}
         />
         <p id="reset-new-password-hint" className="text-sm text-muted-foreground">
-          Pelo menos 8 caracteres.
+          {t("newPasswordHint", { min: PASSWORD_MIN_LENGTH })}
         </p>
         {errors.newPassword?.message ? (
           <p id="reset-new-password-error" className="text-sm text-destructive">
@@ -140,7 +151,7 @@ export function ResetPasswordForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="reset-confirmation">Repetir a nova palavra-passe</Label>
+        <Label htmlFor="reset-confirmation">{t("confirmation")}</Label>
         <Input
           id="reset-confirmation"
           type="password"
@@ -159,7 +170,7 @@ export function ResetPasswordForm() {
       <RateLimitMessage retry={retry} />
 
       <Button type="submit" disabled={reset.isPending || retry.waiting}>
-        {reset.isPending ? "A guardar…" : "Definir palavra-passe"}
+        {reset.isPending ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

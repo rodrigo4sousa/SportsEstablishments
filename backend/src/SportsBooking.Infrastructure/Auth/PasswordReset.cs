@@ -147,11 +147,15 @@ public sealed class AccountEmailBuilder(UserManager<AppUser> userManager, IOptio
             }
 
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            content = AccountEmailComposer.PasswordReset(user.Name, PasswordResetRules.Link(site.Value.BaseUrl, address, token), PasswordResetRules.LinkLifetime);
+            content = AccountEmailComposer.PasswordReset(
+                user.Name,
+                PasswordResetRules.Link(site.Value.BaseUrl, address, token),
+                PasswordResetRules.LinkLifetime,
+                PreferredLanguage.ForEmails(user.PreferredLanguage));
         }
         else
         {
-            content = AccountEmailComposer.PasswordChanged(user.Name, createdAt);
+            content = AccountEmailComposer.PasswordChanged(user.Name, createdAt, PreferredLanguage.ForEmails(user.PreferredLanguage));
         }
 
         return new EmailMessage(address, user.Name, content.Subject, content.TextBody, content.HtmlBody);

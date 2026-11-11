@@ -1,7 +1,8 @@
+import { useTranslations } from "next-intl";
 import { ScrollRegion } from "@/components/scroll-region";
-import { statusLabel } from "@/features/my-bookings/status";
-import { sportLabel } from "@/features/pitches/sports";
-import { formatLisbonSlotTime } from "@/lib/datetime";
+import { useStatusLabel } from "@/features/my-bookings/status";
+import { useSportLabel } from "@/features/pitches/sports";
+import { useFormats, type Formats } from "@/i18n/formats";
 import { HOUR_HEIGHT_PX, heightOf, type DayLayout, type PlacedItem } from "../layout";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -11,8 +12,7 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled_by_club: "border-dashed border-muted-foreground/50 bg-muted text-muted-foreground line-through",
 };
 
-/** The mark on a booking the club's owner made for a customer without an account (US13). */
-export const CREATED_BY_CLUB = "Criada pelo clube";
+// The mark on a booking the club's owner made for a customer without an account (US13) is `calendar.grid.createdByClub`.
 
 /** What the grids need to offer a new booking where the owner clicks an empty time (US13). */
 export type NewBookingAction = {
@@ -52,16 +52,19 @@ function positionOf(item: PlacedItem, gridStartMinute: number) {
  * «01:00 (inverno)».
  */
 export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selectedPitchId }: DayGridProps) {
+  const t = useTranslations("calendar.grid");
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
   const phonePitchId = layout.columns.some((column) => column.pitch.id === selectedPitchId) ? selectedPitchId : layout.columns[0]?.pitch.id;
 
   return (
-    <ScrollRegion label="Calendário do dia">
+    <ScrollRegion label={t("dayCalendar")}>
       <div className="flex sm:min-w-max">
         {/* The hours stay in view when the pitches scroll sideways (UX-005). */}
         <div className="sticky left-0 z-20 w-16 shrink-0 border-r bg-background sm:w-24">
           <div className="h-14 border-b" aria-hidden="true" />
-          <ol aria-label="Horas" className="relative" style={{ height: totalHeight }}>
+          <ol aria-label={t("hours")} className="relative" style={{ height: totalHeight }}>
             {layout.rows.map((row) => (
               <li
                 key={row.minute}
@@ -69,7 +72,7 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
                 className="border-b px-2 pt-1 text-xs tabular-nums text-muted-foreground"
                 style={{ height: HOUR_HEIGHT_PX }}
               >
-                {formatLisbonSlotTime(row.startsAt)}
+                {formats.slotTime(row.startsAt)}
               </li>
             ))}
           </ol>
@@ -81,7 +84,7 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
               <p className="truncate text-sm font-medium">{column.pitch.name}</p>
               <p className="truncate text-xs text-muted-foreground">
                 {sportLabel(column.pitch.sport)}
-                {column.pitch.status === "inactive" ? " · Inativo" : ""}
+                {column.pitch.status === "inactive" ? t("inactive") : ""}
               </p>
             </div>
             <div className="relative bg-muted/60" style={{ height: totalHeight }}>
@@ -100,13 +103,13 @@ export function DayGrid({ layout, selectedId, onOpenBooking, newBooking, selecte
                 <HourCell
                   key={row.minute}
                   top={heightOf(row.minute - layout.gridStartMinute)}
-                  label={newBooking && column.pitch.status === "active" && column.open && row.minute < column.open.toMinute && row.minute + 60 > column.open.fromMinute && newBooking.canBookAt(row.startsAt) ? `Nova reserva: ${column.pitch.name}, ${formatLisbonSlotTime(row.startsAt)}` : null}
+                  label={newBooking && column.pitch.status === "active" && column.open && row.minute < column.open.toMinute && row.minute + 60 > column.open.fromMinute && newBooking.canBookAt(row.startsAt) ? t("newBookingAt", { pitch: column.pitch.name, time: formats.slotTime(row.startsAt) }) : null}
                   onClick={() => newBooking?.onEmptyTimeClick(column.pitch.id, row.startsAt)}
                 />
               ))}
               {!column.open ? (
-                <p className="absolute inset-x-0 top-2 text-center text-xs text-muted-foreground" aria-label={`${column.pitch.name}: fechado`}>
-                  Fechado
+                <p className="absolute inset-x-0 top-2 text-center text-xs text-muted-foreground" aria-label={t("closedOf", { name: column.pitch.name })}>
+                  {t("closed")}
                 </p>
               ) : null}
               {column.items.map((item) =>
@@ -145,8 +148,8 @@ export function HourCell({ top, label, onClick }: { top: number; label: string |
   );
 }
 
-export function times(startsAt: string, endsAt: string): string {
-  return `${formatLisbonSlotTime(startsAt)} – ${formatLisbonSlotTime(endsAt)}`;
+export function times(formats: Formats, startsAt: string, endsAt: string): string {
+  return `${formats.slotTime(startsAt)} – ${formats.slotTime(endsAt)}`;
 }
 
 /**
@@ -164,10 +167,13 @@ export function BookingBox({
   selected: boolean;
   onOpen: () => void;
 }) {
+  const t = useTranslations("calendar.grid");
+  const formats = useFormats();
+  const statusLabel = useStatusLabel();
   const { booking } = item;
   const label = statusLabel(booking.status);
   // US13: a booking the club made for a customer says so, in the box and for screen readers.
-  const origin = booking.createdByClub ? CREATED_BY_CLUB : null;
+  const origin = booking.createdByClub ? t("createdByClub") : null;
   return (
     <button
       type="button"
@@ -182,7 +188,7 @@ export function BookingBox({
       style={positionOf(item, gridStartMinute)}
     >
       <span className="truncate font-medium">{booking.bookerName}</span>{" "}
-      <span className="truncate tabular-nums">{times(booking.startsAt, booking.endsAt)}</span>{" "}
+      <span className="truncate tabular-nums">{times(formats, booking.startsAt, booking.endsAt)}</span>{" "}
       <span className="truncate">
         {label}
         {origin ? ` · ${origin}` : ""}
@@ -193,19 +199,22 @@ export function BookingBox({
 
 /** A block in a column: hatched, with its reason, and nothing to open. Shared by the daily and the weekly view. */
 export function BlockBox({ item, gridStartMinute }: { item: Extract<PlacedItem, { kind: "block" }>; gridStartMinute: number }) {
+  const t = useTranslations("calendar.grid");
+  const formats = useFormats();
   const { block } = item;
+  const span = times(formats, block.startsAt, block.endsAt);
   return (
     <div
       role="group"
       data-kind="block"
       data-minute-start={item.startMinute}
       data-minute-end={item.endMinute}
-      aria-label={`Bloqueio, ${times(block.startsAt, block.endsAt)}${block.reason ? `, ${block.reason}` : ""}`}
+      aria-label={block.reason ? t("blockLabelWithReason", { times: span, reason: block.reason }) : t("blockLabel", { times: span })}
       className={`absolute flex flex-col overflow-hidden rounded-md border border-dashed px-1.5 py-1 text-xs leading-tight ${BLOCK_STYLE}`}
       style={positionOf(item, gridStartMinute)}
     >
-      <span className="truncate font-medium">Bloqueio</span>
-      <span className="truncate tabular-nums">{times(block.startsAt, block.endsAt)}</span>
+      <span className="truncate font-medium">{t("block")}</span>
+      <span className="truncate tabular-nums">{span}</span>
       {block.reason ? <span className="truncate">{block.reason}</span> : null}
     </div>
   );

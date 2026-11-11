@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RouteError } from "./route-error";
@@ -8,7 +9,7 @@ describe("RouteError", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const retry = vi.fn();
 
-    render(<RouteError error={new Error("boom")} retry={retry} />);
+    renderWithIntl(<RouteError error={new Error("boom")} retry={retry} />);
 
     // The page it replaces had focus, so the error takes it (UX-002); it is a heading, not also a live region.
     const heading = screen.getByRole("heading", { name: "Ocorreu um erro inesperado." });
@@ -21,7 +22,7 @@ describe("RouteError", () => {
   it("has a way out: a link back to the start", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    render(<RouteError error={new Error("boom")} retry={() => {}} />);
+    renderWithIntl(<RouteError error={new Error("boom")} retry={() => {}} />);
 
     expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveAttribute("href", "/");
   });

@@ -12,7 +12,7 @@ namespace SportsBooking.Api.Controllers;
 /// <summary>US30: the signed-in person's rights over their own account, for any profile (no session: 401).</summary>
 [ApiController]
 [Route("api/me")]
-public sealed class MeAccountController(AccountExportService export, AccountDeletionService deletion) : ControllerBase
+public sealed class MeAccountController(AccountExportService export, AccountDeletionService deletion, AccountPreferencesService preferences) : ControllerBase
 {
     private const string ExportFileName = "os-meus-dados.json";
 
@@ -34,6 +34,21 @@ public sealed class MeAccountController(AccountExportService export, AccountDele
 
         Response.Headers[HeaderNames.CacheControl] = "no-store";
         return File(JsonSerializer.SerializeToUtf8Bytes(result.Value, ExportJson), "application/json", ExportFileName);
+    }
+
+    /// <summary>
+    /// T09: the language of the caller's emails, <c>pt-PT</c> or <c>en</c>. The site's own language is a cookie and does not change.
+    /// 400 <c>validation_failed</c> on <c>preferredLanguage</c> for anything else.
+    /// </summary>
+    [HttpPut("preferred-language")]
+    [Consumes("application/json")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
+    public async Task<IActionResult> ChangePreferredLanguage(ChangePreferredLanguageRequest request, CancellationToken cancellationToken)
+    {
+        var result = await preferences.ChangePreferredLanguageAsync(request, cancellationToken);
+        return result.IsSuccess ? NoContent() : this.Problem(result.Error!);
     }
 
     /// <summary>

@@ -1,16 +1,21 @@
 import { useId, type ReactNode } from "react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { formatDateKey } from "@/lib/datetime";
-import { DATA_PROTECTION_EMAIL, LEGAL_LAST_UPDATED, LEGAL_VERSION } from "../legal-info";
+import { DATA_PROTECTION_EMAIL, LEGAL_LAST_UPDATED, LEGAL_VERSION, PRIVACY_PATH } from "../legal-info";
 
-/** The frame of a legal page: its one `h1`, then when it was last changed and which version it is. */
+/**
+ * The frame of a legal page: its one `h1`, then when it was last changed and which version it is, and (T09) that the English text is a
+ * courtesy translation and the Portuguese one prevails.
+ */
 export function LegalDocument({ title, children }: { title: string; children: ReactNode }) {
+  const t = useTranslations("legal");
   return (
     <article className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground">
-          Última atualização: {formatDateKey(LEGAL_LAST_UPDATED)} · Versão {LEGAL_VERSION}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("lastUpdated", { date: formatDateKey(LEGAL_LAST_UPDATED), version: LEGAL_VERSION })}</p>
+        <p className="text-sm text-muted-foreground">{t("languageNote")}</p>
       </header>
       {children}
     </article>
@@ -51,3 +56,15 @@ export function ContactEmailLink() {
     </a>
   );
 }
+
+/** The tags the legal texts in the catalogs use: `<email></email>`, `<b>`, `<code>` and `<link>` (to the Privacy Policy). */
+export const LEGAL_TAGS = {
+  email: () => <ContactEmailLink />,
+  b: (chunks: ReactNode) => <strong className="font-medium">{chunks}</strong>,
+  code: (chunks: ReactNode) => <code>{chunks}</code>,
+  link: (chunks: ReactNode) => (
+    <Link href={PRIVACY_PATH} className="underline underline-offset-4">
+      {chunks}
+    </Link>
+  ),
+};

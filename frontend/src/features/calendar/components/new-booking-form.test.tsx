@@ -343,7 +343,7 @@ describe("NewBookingForm", () => {
       expect(bodies[0]).toEqual({ pitchId: PADEL, startsAt: "2026-05-05T09:00:00Z", customerName: "Maria Cliente", customerPhone: "+351912345678" });
     });
 
-    it("puts the API's validation messages on their fields", async () => {
+    it("marks the fields the API refused, with the catalog's words", async () => {
       serveSlots(tomorrowSlots);
       server.use(
         http.post(`/api/manage/clubs/${CLUB}/bookings`, () =>
@@ -357,7 +357,7 @@ describe("NewBookingForm", () => {
 
       await submit();
 
-      expect(await screen.findByText("Indica o nome do cliente.")).toBeInTheDocument();
+      expect(await screen.findByText("Verifica o nome do cliente: é obrigatório e tem no máximo 100 caracteres.")).toBeInTheDocument();
       expect(screen.getByText("Indica um número de telemóvel válido, com 9 a 15 algarismos.")).toBeInTheDocument();
     });
   });

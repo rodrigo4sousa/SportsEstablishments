@@ -827,7 +827,7 @@ describe("ClubCalendar", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
 
-      expect(await screen.findByText("Indica o motivo do cancelamento.")).toBeInTheDocument();
+      expect(await screen.findByText("Verifica o motivo: é obrigatório e tem no máximo 200 caracteres.")).toBeInTheDocument();
       expect(reasonField()).toHaveAttribute("aria-invalid", "true");
       expect(screen.getByRole("form", { name: "Cancelar reserva" })).toBeInTheDocument();
     });

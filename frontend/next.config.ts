@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 import { rewriteDestination } from "./src/lib/rewrite-destination";
 import { securityHeaders } from "./src/lib/security-headers";
 
@@ -52,4 +53,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// next-intl without i18n routing (ADR 0012): the plugin only points `next-intl` at `src/i18n/request.ts`.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

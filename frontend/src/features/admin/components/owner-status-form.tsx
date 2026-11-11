@@ -2,16 +2,17 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { adminOwnerHistoryQueryKey, adminOwnerQueryKey, adminQueryKey, changeOwnerStatus } from "../api";
-import { OWNER_STATUS_REASON_MAX_LENGTH, ownerStatusSchema, type OwnerStatusData, type OwnerStatusValues } from "../schemas/owner-status";
+import { OWNER_STATUS_REASON_MAX_LENGTH, createOwnerStatusSchema, type OwnerStatusData, type OwnerStatusValues } from "../schemas/owner-status";
 import type { AdminOwnerDetail } from "../types";
 
 /** The codes that mean the owner is not in the state the admin thought: say so, and load the owner again. */
@@ -34,7 +35,13 @@ type OwnerStatusFormProps = {
 export function OwnerStatusForm({ owner, onChanged, onCancel, onRefused }: OwnerStatusFormProps) {
   const queryClient = useQueryClient();
   const deactivating = !owner.deactivated;
-  const form = useForm<OwnerStatusValues, unknown, OwnerStatusData>({ resolver: zodResolver(ownerStatusSchema), defaultValues: { reason: "" } });
+  const t = useTranslations("admin.statusForm");
+  const ownerT = useTranslations("admin.owner");
+  const validation = useTranslations("admin.validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage();
+  const schema = useMemo(() => createOwnerStatusSchema(validation), [validation]);
+  const form = useForm<OwnerStatusValues, unknown, OwnerStatusData>({ resolver: zodResolver(schema), defaultValues: { reason: "" } });
   const { errors } = form.formState;
 
   // UX-002: the form replaces the button that opened it, so focus goes to its field.
@@ -53,24 +60,24 @@ export function OwnerStatusForm({ owner, onChanged, onCancel, onRefused }: Owner
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, ["reason"])) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, ["reason"], fieldMessage)) {
         return;
       }
       if (STALE_CODES.has(error.code)) {
-        onRefused(errorMessage(error.code));
+        onRefused(apiErrors.message(error.code));
         await queryClient.invalidateQueries({ queryKey: adminOwnerQueryKey(owner.id), refetchType: "all" });
         await queryClient.invalidateQueries({ queryKey: adminOwnerHistoryQueryKey(owner.id), refetchType: "all" });
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
   const reasonId = `owner-status-reason-${owner.id}`;
-  const label = deactivating ? "Desativar dono" : "Reativar dono";
+  const label = deactivating ? ownerT("deactivate") : ownerT("reactivate");
 
   return (
     <form
@@ -87,28 +94,19 @@ export function OwnerStatusForm({ owner, onChanged, onCancel, onRefused }: Owner
     >
       {deactivating ? (
         <div role="note" className="flex flex-col gap-1 text-sm">
-          <p>
-            O dono deixa de poder entrar, e os clubes dele deixam de aparecer na pesquisa e de aceitar reservas. A sessão que já tiver aberta
-            pode durar até 15 minutos.
-          </p>
-          <p className="font-medium">
-            {owner.futureBookings === 0
-              ? "Não há reservas futuras nos clubes deste dono."
-              : owner.futureBookings === 1
-                ? "1 reserva futura continua confirmada: não é cancelada."
-                : `${owner.futureBookings} reservas futuras continuam confirmadas: não são canceladas.`}
-          </p>
+          <p>{t("deactivateNote")}</p>
+          <p className="font-medium">{t("futureBookings", { count: owner.futureBookings })}</p>
         </div>
       ) : (
         <p role="note" className="text-sm">
-          O dono volta a poder entrar (com uma sessão nova) e os clubes dele voltam à pesquisa e às reservas.
+          {t("reactivateNote")}
         </p>
       )}
 
       <FormField
         id={reasonId}
-        label={deactivating ? "Motivo da desativação" : "Motivo da reativação"}
-        hint={`Obrigatório, até ${OWNER_STATUS_REASON_MAX_LENGTH} caracteres. Fica registado com o teu nome e não pode ser editado.`}
+        label={deactivating ? t("deactivationReason") : t("reactivationReason")}
+        hint={t("reasonHint", { max: OWNER_STATUS_REASON_MAX_LENGTH })}
         error={errors.reason?.message}
       >
         <textarea
@@ -123,10 +121,10 @@ export function OwnerStatusForm({ owner, onChanged, onCancel, onRefused }: Owner
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" variant={deactivating ? "destructive" : "default"} disabled={change.isPending}>
-          {change.isPending ? "A guardar…" : deactivating ? "Confirmar desativação" : "Confirmar reativação"}
+          {change.isPending ? t("saving") : deactivating ? t("confirmDeactivation") : t("confirmReactivation")}
         </Button>
         <Button type="button" variant="outline" disabled={change.isPending} onClick={onCancel}>
-          Voltar
+          {t("back")}
         </Button>
       </div>
     </form>

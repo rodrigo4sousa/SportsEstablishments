@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { RateLimitMessage } from "@/components/rate-limit-message";
@@ -15,18 +16,24 @@ import { Label } from "@/components/ui/label";
 import { currentUserQueryKey } from "@/features/auth/api";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ContactEmailLink } from "@/features/legal/components/legal-document";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { useApiFieldMessage } from "@/lib/api/form-errors";
 import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { loginUrl } from "@/lib/auth/redirects";
 import { useFocusOn, useRestoreFocus } from "@/lib/focus";
 import { deleteMyAccount, downloadMyData, EXPORT_FILE_NAME } from "../api";
-import { deleteAccountSchema, type DeleteAccountData, type DeleteAccountValues } from "../schemas/delete-account";
+import { EmailLanguage } from "./email-language";
+import { createDeleteAccountSchema, type DeleteAccountData, type DeleteAccountValues } from "../schemas/delete-account";
 
 const ACCOUNT_PATH = "/account";
 
-/** US30: «Privacidade e dados» on the account page: a copy of the person's data, and deleting the account. */
+/**
+ * US30: «Privacidade e dados» on the account page: a copy of the person's data, and deleting the account. T09: above it, the language of
+ * the person's emails (not for the admin, who gets none).
+ */
 export function PrivacySection() {
+  const t = useTranslations("account");
   const [deleted, setDeleted] = useState(false);
   const { data: account } = useCurrentUser();
 
@@ -35,21 +42,26 @@ export function PrivacySection() {
   }
 
   return (
+    <>
+    {account && account.profile !== "Admin" ? <EmailLanguage key={account.id} account={account} /> : null}
     <section aria-labelledby="privacy-heading" className="flex flex-col gap-6">
       <h2 id="privacy-heading" className="text-lg font-semibold">
-        Privacidade e dados
+        {t("privacy")}
       </h2>
       <ExportData />
       {account?.profile === "Admin" ? (
-        <p className="text-sm text-muted-foreground">A conta de administração não pode ser apagada.</p>
+        <p className="text-sm text-muted-foreground">{t("adminCannotDelete")}</p>
       ) : (
         <DeleteAccount onDeleted={() => setDeleted(true)} />
       )}
     </section>
+    </>
   );
 }
 
 function ExportData() {
+  const t = useTranslations("account.export");
+  const apiErrors = useApiErrors();
   const router = useRouter();
   const retry = useRetryAfter();
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -58,7 +70,7 @@ function ExportData() {
     onMutate: () => setRefusal(null),
     onError: (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.status === 401) {
@@ -69,24 +81,29 @@ function ExportData() {
         retry.start(error.retryAfterSeconds);
         return;
       }
-      setRefusal(errorMessage(error.code));
+      setRefusal(apiErrors.message(error.code));
     },
   });
 
   return (
     <div className="flex flex-col items-start gap-3">
-      <p className="text-sm text-muted-foreground">Descarrega um ficheiro JSON com o teu perfil, as tuas reservas e a versão dos Termos que aceitaste.</p>
+      <p className="text-sm text-muted-foreground">{t("intro")}</p>
       <Button type="button" variant="outline" size="cta" disabled={download.isPending || retry.waiting} onClick={() => download.mutate()}>
-        {download.isPending ? "A preparar o ficheiro…" : "Exportar os meus dados"}
+        {download.isPending ? t("preparing") : t("button")}
       </Button>
       <RateLimitMessage retry={retry} />
       {refusal ? <ResultNotice kind="error">{refusal}</ResultNotice> : null}
-      {download.isSuccess ? <ResultNotice kind="success">Os teus dados foram descarregados ({EXPORT_FILE_NAME}).</ResultNotice> : null}
+      {download.isSuccess ? <ResultNotice kind="success">{t("done", { file: EXPORT_FILE_NAME })}</ResultNotice> : null}
     </div>
   );
 }
 
 function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
+  const t = useTranslations("account.delete");
+  const validation = useTranslations("validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("account");
+  const schema = useMemo(() => createDeleteAccountSchema(validation), [validation]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const retry = useRetryAfter();
@@ -94,7 +111,7 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
   const [refusal, setRefusal] = useState<{ code: string } | null>(null);
   const askButton = useRestoreFocus<HTMLButtonElement>(confirming);
   const form = useForm<DeleteAccountValues, unknown, DeleteAccountData>({
-    resolver: zodResolver(deleteAccountSchema),
+    resolver: zodResolver(schema),
     defaultValues: { password: "" },
   });
   const { errors } = form.formState;
@@ -117,7 +134,7 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
     onError: (error) => {
       form.resetField("password", { defaultValue: "" });
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.status === 401) {
@@ -129,7 +146,9 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
         return;
       }
       if (error.fieldErrors.password?.length) {
-        form.setError("password", { message: error.fieldErrors.password.join(" ") }, { shouldFocus: true });
+        // A wrong password has its own code; any other refusal of the field is a missing one.
+        const message = error.code === "invalid_password" ? apiErrors.message(error.code) : fieldMessage("password");
+        form.setError("password", { message }, { shouldFocus: true });
         return;
       }
       close();
@@ -139,10 +158,10 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
 
   return (
     <div className="flex flex-col items-start gap-3 border-t pt-6">
-      <p className="text-sm text-muted-foreground">Apagar a conta é definitivo e não pode ser desfeito.</p>
+      <p className="text-sm text-muted-foreground">{t("intro")}</p>
       {refusal ? (
         <ResultNotice kind="error">
-          {errorMessage(refusal.code)}
+          {apiErrors.message(refusal.code)}
           {refusal.code === "owner_has_clubs" ? (
             <>
               {" "}
@@ -155,12 +174,12 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
         <ConfirmDeletion>
           <form
             noValidate
-            aria-label="Confirmar com a palavra-passe"
+            aria-label={t("form")}
             className="flex flex-col gap-4"
             onSubmit={form.handleSubmit((values) => remove.mutate(values))}
           >
             <div className="flex flex-col gap-2">
-              <Label htmlFor="delete-account-password">Palavra-passe</Label>
+              <Label htmlFor="delete-account-password">{t("password")}</Label>
               <Input
                 id="delete-account-password"
                 type="password"
@@ -178,10 +197,10 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
             <RateLimitMessage retry={retry} />
             <div className="flex flex-wrap items-center gap-3">
               <Button type="submit" variant="destructive" size="cta" disabled={remove.isPending || retry.waiting}>
-                {remove.isPending ? "A apagar…" : "Sim, apagar a minha conta"}
+                {remove.isPending ? t("deleting") : t("confirm")}
               </Button>
               <Button type="button" variant="outline" size="cta" disabled={remove.isPending} onClick={close}>
-                Manter conta
+                {t("keep")}
               </Button>
             </div>
           </form>
@@ -197,7 +216,7 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
             setConfirming(true);
           }}
         >
-          Apagar a minha conta
+          {t("button")}
         </Button>
       )}
     </div>
@@ -207,14 +226,15 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
 /** What deleting does, said before the password is asked for. Asking replaces the button, so focus goes to it (UX-002). */
 function ConfirmDeletion({ children }: { children: React.ReactNode }) {
   const focus = useFocusOn<HTMLDivElement>();
+  const t = useTranslations("account.delete");
   return (
-    <div role="group" aria-label="Confirmar o apagamento da conta" {...focus} className="flex w-full flex-col gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4">
-      <p className="text-sm font-medium">Queres mesmo apagar a tua conta?</p>
+    <div role="group" aria-label={t("confirmGroup")} {...focus} className="flex w-full flex-col gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4">
+      <p className="text-sm font-medium">{t("question")}</p>
       <ul className="list-disc space-y-1 pl-5 text-sm">
-        <li>As tuas reservas futuras são canceladas e os horários ficam livres.</li>
-        <li>O teu nome, email e telemóvel são apagados. As reservas passadas ficam no histórico dos clubes, sem te identificar.</li>
-        <li>Todas as sessões terminam, em todos os dispositivos, e não voltas a poder entrar com esta conta.</li>
-        <li>Não enviamos um email de confirmação.</li>
+        <li>{t("effectBookings")}</li>
+        <li>{t("effectData")}</li>
+        <li>{t("effectSessions")}</li>
+        <li>{t("effectNoEmail")}</li>
       </ul>
       {children}
     </div>
@@ -224,14 +244,15 @@ function ConfirmDeletion({ children }: { children: React.ReactNode }) {
 /** Replaces the section: the form that had focus is gone, so the heading takes it (UX-002). */
 function AccountDeleted() {
   const focus = useFocusOn<HTMLHeadingElement>();
+  const t = useTranslations("account.delete");
   return (
     <section aria-labelledby="account-deleted" className="flex flex-col items-start gap-3">
       <h2 id="account-deleted" {...focus} className="text-lg font-semibold">
-        Conta apagada
+        {t("deletedTitle")}
       </h2>
-      <p className="text-sm">A tua conta foi apagada e a sessão terminou. As reservas futuras foram canceladas.</p>
+      <p className="text-sm">{t("deletedBody")}</p>
       <Link href="/" className="text-sm underline underline-offset-4">
-        Ir para a página inicial
+        {t("home")}
       </Link>
     </section>
   );

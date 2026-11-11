@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ApiError, NETWORK_ERROR } from "./client";
-import { isExpectedApiError, unexpectedErrorMessage } from "./expected-error";
+import { testTranslator } from "@/test/intl";
+import { apiErrorMessage, unexpectedErrorCode } from "./error-messages";
+import { isExpectedApiError } from "./expected-error";
+
+const unexpectedErrorMessage = (error: unknown) => apiErrorMessage(testTranslator("apiErrors"), unexpectedErrorCode(error));
 
 describe("isExpectedApiError", () => {
   it.each([400, 401, 403, 404, 409, 422, 429])("treats a %i from the API as expected: the screen has words for its code", (status) => {
@@ -35,5 +39,17 @@ describe("unexpectedErrorMessage", () => {
 
   it.each([new ApiError(500, "internal_error"), new Error("boom"), null])("gives the general message otherwise, never the error's own text", (error) => {
     expect(unexpectedErrorMessage(error)).toBe("Ocorreu um erro inesperado. Tenta novamente mais tarde.");
+  });
+});
+
+describe("API error messages (T09)", () => {
+  it("are chosen by code in the page's language, never from the server's text", () => {
+    expect(apiErrorMessage(testTranslator("apiErrors", "en"), "slot_taken")).toBe("This time has just been booked. Choose another one.");
+    expect(apiErrorMessage(testTranslator("apiErrors"), "slot_taken")).toBe("Este horário acabou de ser reservado. Escolhe outro.");
+  });
+
+  it("fall back to the general message for a code the catalogs do not have", () => {
+    expect(apiErrorMessage(testTranslator("apiErrors", "en"), "something_new")).toBe("Something unexpected went wrong. Try again later.");
+    expect(apiErrorMessage(testTranslator("apiErrors"), "bad_request")).toBe("Ocorreu um erro inesperado. Tenta novamente mais tarde.");
   });
 });

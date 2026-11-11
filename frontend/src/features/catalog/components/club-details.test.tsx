@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { PublicClub } from "../types";
 import { ClubDetails } from "./club-details";
@@ -18,7 +19,7 @@ const club: PublicClub = {
 
 describe("ClubDetails", () => {
   it("shows the contacts, with links to call and to write", () => {
-    render(<ClubDetails club={club} />);
+    renderWithIntl(<ClubDetails club={club} />);
 
     expect(screen.getByText("Rua do Mar 1, Porto")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "+351912345678" })).toHaveAttribute("href", "tel:+351912345678");
@@ -26,7 +27,7 @@ describe("ClubDetails", () => {
   });
 
   it("lists the pitches with their sport and price per slot in pt-PT format", () => {
-    render(<ClubDetails club={club} />);
+    renderWithIntl(<ClubDetails club={club} />);
 
     const [padel, tennis] = within(screen.getByRole("list", { name: "Campos" })).getAllByRole("listitem");
     // Intl writes a no-break space before the euro sign.
@@ -35,7 +36,7 @@ describe("ClubDetails", () => {
   });
 
   it("calls the price of a pitch with price bands its base price and says some hours cost something else (US10)", () => {
-    render(<ClubDetails club={{ ...club, pitches: [{ ...club.pitches[0], hasPriceBands: true }, club.pitches[1]] }} />);
+    renderWithIntl(<ClubDetails club={{ ...club, pitches: [{ ...club.pitches[0], hasPriceBands: true }, club.pitches[1]] }} />);
 
     const [padel, tennis] = within(screen.getByRole("list", { name: "Campos" })).getAllByRole("listitem");
     expect(padel.textContent?.replace(/\s/g, " ")).toContain("Preço base: 18,50 € por horário");
@@ -46,7 +47,7 @@ describe("ClubDetails", () => {
   });
 
   it("says so when the club has no pitch to show", () => {
-    render(<ClubDetails club={{ ...club, pitches: [] }} />);
+    renderWithIntl(<ClubDetails club={{ ...club, pitches: [] }} />);
 
     expect(screen.getByText("Este clube não tem campos disponíveis de momento.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Campos" })).not.toBeInTheDocument();

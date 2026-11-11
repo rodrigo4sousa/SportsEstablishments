@@ -23,6 +23,7 @@ Each choice has a reason; what has no reason to be here was left out.
 | Forms | React Hook Form and Zod | Validation in the browser with per-field messages |
 | API types | Generated from OpenAPI (openapi-typescript) | The C# DTOs are the single source of truth; the front end does not rewrite types by hand |
 | Charts | Recharts | Admin charts |
+| Languages | next-intl, without i18n routing (T09) | Portuguese and English with the same URLs, ICU plurals, typed message keys; see [ADR 0012](architecture/adr/0012-languages-without-locale-in-the-url.md) |
 | Back end | ASP.NET Core 10 (LTS), Web API with controllers | Controllers are what most .NET job listings use |
 | Users | ASP.NET Core Identity (core only, no UI) | Password hashing, lockout after failed attempts and recovery tokens without reinventing them |
 | Session | Short-lived JWT and refresh token, both in httpOnly cookies | See Authentication |
@@ -82,6 +83,8 @@ The browser's JavaScript never touches the tokens: they stay in httpOnly cookies
 | --- | --- | --- | --- |
 | `access_token` | JWT with `sub` and `role`, no personal data | 15 minutes | HttpOnly, Secure, SameSite=Lax, Path=/ |
 | `refresh_token` | Opaque random value, stored in the DB only as a hash | 7 days | HttpOnly, Secure, SameSite=Strict, Path=/api/auth |
+
+The site sets one more cookie, not part of the session: `NEXT_LOCALE` (`pt-PT` or `en`, one year, Path=/, SameSite=Lax, Secure on HTTPS, not HttpOnly), written by the language switcher only when the person picks a language (T09).
  
 **Flow**
  

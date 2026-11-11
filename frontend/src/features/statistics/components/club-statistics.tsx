@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { PeriodFilter } from "@/components/period-filter";
 import { Button } from "@/components/ui/button";
@@ -12,12 +13,12 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { ApiError } from "@/lib/api/client";
 import { loginUrl } from "@/lib/auth/redirects";
 import { useDocumentTitle } from "@/lib/document-title";
-import { formatDateKey } from "@/lib/datetime";
+import { useFormats } from "@/i18n/formats";
 import { ClubNotFound } from "@/features/clubs/components/club-not-found";
-import { sportLabel } from "@/features/pitches/sports";
+import { useSportLabel } from "@/features/pitches/sports";
 import { clubStatisticsQueryKey, fetchClubStatistics, type StatisticsRange } from "../api";
 import { pitchFromParams, rangeFromParams, statisticsHref } from "../statistics-url";
-import { StatisticsSkeleton, StatisticsTable, defaultRange, statisticsFailureMessage } from "./owner-statistics";
+import { StatisticsSkeleton, StatisticsTable, defaultRange, useStatisticsFailureMessage } from "./owner-statistics";
 
 /**
  * US14: one club over a period, per pitch and in total, with a filter for one pitch. The period and the pitch are in the URL
@@ -25,6 +26,11 @@ import { StatisticsSkeleton, StatisticsTable, defaultRange, statisticsFailureMes
  * disappear from the list. A club that is missing or another owner's is the same «not found» page as everywhere in the owner area.
  */
 export function ClubStatistics({ clubId }: { clubId: string }) {
+  const t = useTranslations("statistics");
+  const common = useTranslations("common");
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
+  const statisticsFailureMessage = useStatisticsFailureMessage();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -47,7 +53,7 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
   });
   const shown = pitchId === null ? all : one;
   const data = shown.data;
-  useDocumentTitle("Estatísticas", data?.clubName);
+  useDocumentTitle(t("pageName"), data?.clubName);
 
   const sessionEnded = [all.error, one.error].some((error) => error instanceof ApiError && error.status === 401);
   useEffect(() => {
@@ -69,7 +75,7 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
     <div className="flex flex-col gap-6">
       <p>
         <Link href={`/manage/clubs/${clubId}`} className="text-sm underline-offset-4 hover:underline">
-          ← Voltar ao clube
+          {t("back")}
         </Link>
       </p>
       <div className="flex flex-wrap items-end gap-4">
@@ -82,9 +88,9 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
           onChange={(next) => go(next, pitchId)}
         />
         <div className="flex flex-col gap-1">
-          <Label htmlFor="club-stats-pitch">Campo</Label>
+          <Label htmlFor="club-stats-pitch">{t("pitch")}</Label>
           <NativeSelect id="club-stats-pitch" value={pitchId ?? ""} onChange={(event) => go(range, event.target.value || null)}>
-            <option value="">Todos os campos</option>
+            <option value="">{t("allPitches")}</option>
             {(all.data?.pitches ?? []).map((pitch) => (
               <option key={pitch.pitchId} value={pitch.pitchId}>
                 {pitch.name}
@@ -96,16 +102,16 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
 
       {unknownPitch ? (
         <div role="alert" className="flex flex-col items-start gap-3">
-          <p>Este campo já não existe neste clube.</p>
+          <p>{t("pitchGone")}</p>
           <Button type="button" variant="outline" onClick={() => go(range, null)}>
-            Ver todos os campos
+            {t("seeAllPitches")}
           </Button>
         </div>
       ) : error && !sessionEnded ? (
         <div role="alert" className="flex flex-col items-start gap-3">
           <p>{statisticsFailureMessage(error)}</p>
           <Button type="button" variant="outline" onClick={() => void shown.refetch()}>
-            Tentar novamente
+            {common("retry")}
           </Button>
         </div>
       ) : shown.isPending || sessionEnded || !data ? (
@@ -113,14 +119,14 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
       ) : (
         <>
           <p role="status" className="text-sm text-muted-foreground">
-            {data.clubName}, de {formatDateKey(data.from)} a {formatDateKey(data.to)}.
+            {t("clubRange", { club: data.clubName, from: formats.dateKey(data.from), to: formats.dateKey(data.to) })}
           </p>
           {data.pitches.length === 0 ? (
-            <EmptyState title="Este clube não tem campos com horas abertas nem reservas neste período." />
+            <EmptyState title={t("clubEmpty")} />
           ) : (
             <StatisticsTable
-              caption="Ocupação e receita por campo"
-              firstColumn="Campo"
+              caption={t("byPitch")}
+              firstColumn={t("pitch")}
               rows={data.pitches.map((pitch) => ({
                 key: pitch.pitchId,
                 head: (
@@ -128,7 +134,7 @@ export function ClubStatistics({ clubId }: { clubId: string }) {
                     {pitch.name}
                     <span className="block text-xs font-normal text-muted-foreground">
                       {sportLabel(pitch.sport)}
-                      {pitch.status === "inactive" ? " · inativo" : ""}
+                      {pitch.status === "inactive" ? t("inactive") : ""}
                     </span>
                   </>
                 ),

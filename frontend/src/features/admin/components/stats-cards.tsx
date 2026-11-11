@@ -2,15 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { LoadingRegion } from "@/components/loading-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { useFormats } from "@/i18n/formats";
 import { adminStatsQueryKey, fetchAdminStats } from "../api";
 import type { AdminStats } from "../types";
-
-const number = new Intl.NumberFormat("pt-PT");
 
 type StatsCardsProps = {
   /** The totals the server already read for the first load; the browser shows them at once and refreshes them later. */
@@ -22,6 +22,9 @@ type StatsCardsProps = {
  * big number: they sit under it, apart.
  */
 export function StatsCards({ initialStats }: StatsCardsProps) {
+  const t = useTranslations("admin");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
   const stats = useQuery({
     queryKey: adminStatsQueryKey,
     queryFn: fetchAdminStats,
@@ -31,7 +34,7 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
 
   if (stats.isPending) {
     return (
-      <LoadingRegion label="A carregar os totais…" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+      <LoadingRegion label={t("loadingTotals")} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {[0, 1, 2, 3, 4].map((key) => (
           <Skeleton key={key} className="h-24 w-full rounded-lg" />
         ))}
@@ -41,9 +44,9 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
   if (stats.isError) {
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(stats.error instanceof ApiError ? stats.error.code : "unknown_error")}</p>
+        <p>{apiErrors.message(stats.error instanceof ApiError ? stats.error.code : UNKNOWN_ERROR)}</p>
         <Button type="button" variant="outline" onClick={() => void stats.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
@@ -51,41 +54,45 @@ export function StatsCards({ initialStats }: StatsCardsProps) {
 
   const { owners, clubs, activePitches, players, confirmedBookings } = stats.data;
   return (
-    <ul aria-label="Totais da plataforma" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-      <Card label="Donos" value={owners.active}>
-        <Detail value={owners.deactivated} singular="dono desativado" plural="donos desativados" />
+    <ul aria-label={t("totalsList")} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+      <Card label={t("owners")} value={owners.active}>
+        <Detail message="deactivatedOwners" value={owners.deactivated} />
       </Card>
-      <Card label="Clubes visíveis" value={clubs.visible}>
-        <Detail value={clubs.ofDeactivatedOwners} singular="clube de dono desativado" plural="clubes de donos desativados" />
-        <Detail value={clubs.withoutActivePitches} singular="clube sem campos ativos" plural="clubes sem campos ativos" />
+      <Card label={t("visibleClubs")} value={clubs.visible}>
+        <Detail message="clubsOfDeactivated" value={clubs.ofDeactivatedOwners} />
+        <Detail message="clubsWithoutPitches" value={clubs.withoutActivePitches} />
       </Card>
-      <Card label="Campos ativos" value={activePitches}>
-        <p className="text-sm text-muted-foreground">Só de donos ativos.</p>
+      <Card label={t("activePitches")} value={activePitches}>
+        <p className="text-sm text-muted-foreground">{t("onlyActiveOwners")}</p>
       </Card>
-      <Card label="Jogadores" value={players.active}>
-        <Detail value={players.deactivated} singular="jogador desativado" plural="jogadores desativados" />
+      <Card label={t("players")} value={players.active}>
+        <Detail message="deactivatedPlayers" value={players.deactivated} />
       </Card>
-      <Card label="Reservas confirmadas" value={confirmedBookings}>
-        <p className="text-sm text-muted-foreground">Passadas e futuras.</p>
+      <Card label={t("confirmedBookings")} value={confirmedBookings}>
+        <p className="text-sm text-muted-foreground">{t("pastAndFuture")}</p>
       </Card>
     </ul>
   );
 }
 
 function Card({ label, value, children }: { label: string; value: number; children?: ReactNode }) {
+  const formats = useFormats();
   return (
     <li className="flex flex-col gap-1 rounded-lg border p-4">
       <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
-      <p className="text-3xl font-semibold tabular-nums">{number.format(value)}</p>
+      <p className="text-3xl font-semibold tabular-nums">{formats.count(value)}</p>
       {children}
     </li>
   );
 }
 
-function Detail({ value, singular, plural }: { value: number; singular: string; plural: string }) {
+type DetailMessage = "deactivatedOwners" | "clubsOfDeactivated" | "clubsWithoutPitches" | "deactivatedPlayers";
+
+function Detail({ message, value }: { message: DetailMessage; value: number }) {
+  const t = useTranslations("admin");
   return (
     <p className="text-sm text-muted-foreground">
-      <span className="tabular-nums">{number.format(value)}</span> {value === 1 ? singular : plural}
+      {t.rich(message, { count: value, num: (chunks) => <span className="tabular-nums">{chunks}</span> })}
     </p>
   );
 }

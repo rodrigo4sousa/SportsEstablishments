@@ -5,7 +5,7 @@
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
 
-A web application for booking sports pitches and courts (futsal, 7-a-side football, padel, tennis) at clubs in Portugal. Players search clubs and book free slots; owners run their clubs, pitches, schedules and bookings; the platform admin sees only aggregate numbers. It is one Next.js app with three areas on top of an ASP.NET Core API and a PostgreSQL database. The user interface is in European Portuguese (pt-PT), and so are the product name and the UI strings quoted in the docs; the code, the commits and this README are in English.
+A web application for booking sports pitches and courts (futsal, 7-a-side football, padel, tennis) at clubs in Portugal. Players search clubs and book free slots; owners run their clubs, pitches, schedules and bookings; the platform admin sees only aggregate numbers. It is one Next.js app with three areas on top of an ASP.NET Core API and a PostgreSQL database. The user interface is in European Portuguese (pt-PT) and in English, with a `PT | EN` switch (see [Languages](#languages)); the product name and the UI strings quoted in the docs are Portuguese, and the code, the commits and this README are in English.
 
 > **Online demo:** <https://sports-establishments.vercel.app/>. It is a demo that may be taken offline at any time. The API runs on a free plan that sleeps when idle, so the first request can take about a minute. The demo accounts share a public password (see [Run locally](#run-locally)): never use it for a real account.
 
@@ -50,6 +50,14 @@ The stories and their acceptance criteria are in the [backlog](docs/backlog.md).
 - Totals, bookings and registrations over time, the clubs with the highest occupation and the list of owners (US24 to US28). The admin never sees a player's name, email or phone.
 - Deactivate and reactivate owners, with a reason and an append-only history (US29).
 
+**Everyone**
+
+- The whole site in Portuguese or English (T09): a `PT | EN` switch in the header and the footer, dates and prices the Portuguese or British way, the clubs' times always in Lisbon time. Emails come in the language each person chose; the account page changes it.
+
+## Languages
+
+The site speaks European Portuguese (`pt-PT`, the default) and English (`en`); the address of a page is the same in both. A request gets the language the person picked with the switcher (the `NEXT_LOCALE` cookie, one year, written only by that choice), otherwise the first of Portuguese or English in the browser's `Accept-Language`, otherwise Portuguese. Dates, numbers and prices use `pt-PT` or `en-GB`, and the times of the clubs are always Lisbon's. Every string is in [`frontend/messages/pt-PT.json`](frontend/messages/pt-PT.json) and [`frontend/messages/en.json`](frontend/messages/en.json), with the same keys (a test checks it). Emails use the language stored on the account (`users.preferred_language`: set at sign-up from the site's language, changed in `A minha conta` (My account); none means Portuguese). The English Terms and Privacy Policy are a courtesy translation: the Portuguese text prevails. What people type (club names, reasons) is shown as typed. Decision: [ADR 0012](docs/architecture/adr/0012-languages-without-locale-in-the-url.md).
+
 ## Tech stack
 
 Next.js 16.4 (App Router), React 19.3, TypeScript 5.9, Tailwind CSS 4.3 and shadcn/ui, TanStack Query, React Hook Form and Zod; ASP.NET Core 10 with controllers, EF Core 10 and Npgsql, ASP.NET Core Identity, FluentValidation and MailKit; PostgreSQL 18. The API types used by the front end are generated from the OpenAPI document. Tests use xUnit v3, Shouldly, Testcontainers, Vitest and MSW. Docker Compose, GitHub Actions and PlantUML. Exact versions are in [`frontend/package.json`](frontend/package.json), [`backend/Directory.Packages.props`](backend/Directory.Packages.props), [`global.json`](global.json) and [`docker-compose.yml`](docker-compose.yml); the reasons for the choices are in the [Stack document](docs/stack.md).
@@ -80,11 +88,11 @@ Everything runs on free plans, and that has costs: the API sleeps when idle, and
 
 ## Testing
 
-Counted on 2026-11-09:
+Counted on 2026-11-11:
 
-- **Back end:** 1410 tests, all passing (`dotnet test backend/SportsBooking.slnx`): 553 unit and 857 integration. The integration tests run against a real PostgreSQL 18 with Testcontainers; they need Docker, and without it they all fail. None uses the in-memory EF Core provider.
-- **Front end:** 1171 tests passing (`npm test`, in `frontend/`): Vitest, Testing Library and MSW.
-- **End-to-end:** 4 Playwright tests (Chromium) in `e2e/`, run against the docker compose stack with the demo data in their own workflow ([`e2e.yml`](.github/workflows/e2e.yml)); see [Running the E2E tests](#running-the-e2e-tests). Other UI changes are checked by hand in the browser.
+- **Back end:** 1497 tests, all passing (`dotnet test backend/SportsBooking.slnx`), unit and integration. The integration tests run against a real PostgreSQL 18 with Testcontainers; they need Docker, and without it they all fail. None uses the in-memory EF Core provider.
+- **Front end:** 1292 tests passing (`npm test`, in `frontend/`): Vitest, Testing Library and MSW.
+- **End-to-end:** 5 Playwright tests (Chromium) in `e2e/`, run against the docker compose stack with the demo data in their own workflow ([`e2e.yml`](.github/workflows/e2e.yml)); see [Running the E2E tests](#running-the-e2e-tests). Other UI changes are checked by hand in the browser.
 
 ```bash
 dotnet build backend/SportsBooking.slnx     # warnings are errors; regenerates the OpenAPI document
@@ -97,7 +105,7 @@ npm run gen:api                              # in frontend/, after a back end bu
 
 ### Running the E2E tests
 
-Four Playwright tests (Chromium only) check the main flows through the real stack: a player books and cancels, two players want the same slot (the second gets the conflict), an owner sees the booking in the calendar while an unknown club answers 404, and a new user exports their data, deletes the account and can no longer sign in. They need Docker, Node.js 22, and ports 3000 and 5080 free (stop `docker compose up` first; the E2E stack is its own compose project, `sportsbooking-e2e`, with its own database volume, and never touches a development stack).
+Five Playwright tests (Chromium only) check the main flows through the real stack: a player books and cancels, two players want the same slot (the second gets the conflict), an owner sees the booking in the calendar while an unknown club answers 404, a new user exports their data, deletes the account and can no longer sign in, and a player switches the site to English, keeps it after a reload and books in English. The browser asks for Portuguese, so the first four read the site in Portuguese whatever the machine's language. They need Docker, Node.js 22, and ports 3000 and 5080 free (stop `docker compose up` first; the E2E stack is its own compose project, `sportsbooking-e2e`, with its own database volume, and never touches a development stack).
 
 ```bash
 cd e2e
@@ -149,7 +157,7 @@ The production settings (JWT key, allowed origins, SMTP, database roles) are in 
 
 ## Documentation
 
-The detailed documentation under `docs/` is written in English. The application itself (UI text and API error messages) is still in Portuguese (pt-PT), so documents quote on-screen text in Portuguese followed by its English meaning.
+The detailed documentation under `docs/` is written in English. The application is in Portuguese (pt-PT) and English, and its API error messages are in Portuguese; documents quote on-screen text in Portuguese followed by its English meaning.
 
 - [Backlog](docs/backlog.md): stories, acceptance criteria, estimates and business rules.
 - [Stack and practices](docs/stack.md): the stack, the back end architecture, authentication, the front end, data, validation and errors, tests and security.
@@ -158,7 +166,7 @@ The detailed documentation under `docs/` is written in English. The application 
 - Deployment: [runbook](docs/deployment/runbook.md), [environment variables](docs/deployment/environment-variables.md) and [database roles](docs/deployment/supabase-roles.sql).
 - [Screenshots](docs/images/README.md).
 - [Demo GIF](docs/demo/README.md): how to record it again.
-- Legal pages (in Portuguese): [`/terms`][terms-page] and [`/privacy`][privacy-page].
+- Legal pages (Portuguese, with an English courtesy translation): [`/terms`][terms-page] and [`/privacy`][privacy-page].
 
 [terms-page]: frontend/src/app/(legal)/terms/page.tsx
 [privacy-page]: frontend/src/app/(legal)/privacy/page.tsx

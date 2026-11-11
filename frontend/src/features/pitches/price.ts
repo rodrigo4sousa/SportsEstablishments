@@ -1,60 +1,63 @@
+import { intlLocale, type AppLocale } from "@/i18n/locales";
+
 /**
  * US07 price rules, for immediate feedback only: the API validates again and has the last word (the maximum is
- * provisional, see US07). Prices are typed and shown the pt-PT way (comma decimals) but sent as numbers.
+ * provisional, see US07). Prices are typed with a comma or a dot ("12,50", "12.50") but sent as numbers.
  */
 export const PRICE_MAX = 500;
 export const PRICE_DECIMALS = 2;
 
-export const PRICE_MESSAGES = {
-  required: "Indica o preço por horário.",
-  invalid: "Indica um preço válido, por exemplo 12,50.",
-  notPositive: "O preço por horário tem de ser maior que 0 €.",
-  tooHigh: `O preço por horário não pode passar de ${PRICE_MAX} €.`,
-  decimals: "O preço por horário pode ter no máximo duas casas decimais.",
-} as const;
+/** Why a typed price was refused; the words are in the catalogs (`price.errors.*`), with `{max}` for `tooHigh`. */
+export type PriceError = "required" | "invalid" | "notPositive" | "tooHigh" | "decimals";
 
-export type PriceResult = { ok: true; value: number } | { ok: false; message: string };
+export type PriceResult = { ok: true; value: number } | { ok: false; error: PriceError };
 
 // Digits with an optional comma or dot decimal part; a "€" and spaces around are fine. No thousands separators:
 // a price never reaches 1 000 €, and "1.234" would be ambiguous.
 const PRICE_PATTERN = /^(\d+)(?:[.,](\d+))?$/;
 
-/** Reads what the owner typed ("12,50", "12.50", "12 €") as a price in euros. */
+/** Reads what the owner typed ("12,50", "12.50", "12 €", "€12.50") as a price in euros. */
 export function parsePrice(text: string): PriceResult {
-  const typed = text.replaceAll(/[\s ]/g, "").replace(/€$/, "");
+  const typed = text.replaceAll(/[\s ]/g, "").replace(/€$/, "").replace(/^€/, "");
   if (typed === "") {
-    return { ok: false, message: PRICE_MESSAGES.required };
+    return { ok: false, error: "required" };
   }
 
   const match = PRICE_PATTERN.exec(typed);
   if (!match) {
-    return { ok: false, message: PRICE_MESSAGES.invalid };
+    return { ok: false, error: "invalid" };
   }
 
   // Trailing zeros are not decimals that matter: "12,500" is 12.5, like the API reads 12.500.
   const decimals = (match[2] ?? "").replace(/0+$/, "");
   if (decimals.length > PRICE_DECIMALS) {
-    return { ok: false, message: PRICE_MESSAGES.decimals };
+    return { ok: false, error: "decimals" };
   }
 
   const value = Number(`${match[1]}.${decimals || "0"}`);
   if (value <= 0) {
-    return { ok: false, message: PRICE_MESSAGES.notPositive };
+    return { ok: false, error: "notPositive" };
   }
   if (value > PRICE_MAX) {
-    return { ok: false, message: PRICE_MESSAGES.tooHigh };
+    return { ok: false, error: "tooHigh" };
   }
   return { ok: true, value };
 }
 
-const euros = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+const euros = new Map<AppLocale, Intl.NumberFormat>();
 
-/** "12,50 €": how a price is shown. */
-export function formatPrice(value: number): string {
-  return euros.format(value);
+/** "12,50 €" in pt-PT, "€12.50" in English: how a price is shown. */
+export function formatPrice(value: number, locale: AppLocale): string {
+  let formatter = euros.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency: "EUR" });
+    euros.set(locale, formatter);
+  }
+  return formatter.format(value);
 }
 
-/** How a price is put in the edit field: comma decimals, no symbol ("12,50"). */
-export function priceInputValue(value: number): string {
-  return value.toFixed(PRICE_DECIMALS).replace(".", ",");
+/** How a price is put in the edit field: no symbol, the language's decimal mark ("12,50" or "12.50"). Both are read back. */
+export function priceInputValue(value: number, locale: AppLocale): string {
+  const text = value.toFixed(PRICE_DECIMALS);
+  return locale === "en" ? text : text.replace(".", ",");
 }

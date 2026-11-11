@@ -31,7 +31,7 @@ loop until the API stops (Outbox:Enabled)
       else no longer applies
         API_NOTIF_PROC -> API_NOTIF_PROC : Skip(reason): skipped_at (next diagram)
       else ready
-        API_NOTIF_PROC -> API_NOTIF_COMPOSE : Text and HTML in pt-PT, Lisbon time
+        API_NOTIF_PROC -> API_NOTIF_COMPOSE : Text and HTML in the recipient's language, Lisbon time
         API_NOTIF_PROC -> API_NOTIF_SENDER : SendAsync(email)
         API_NOTIF_SENDER -> X_SMTP : One connection per message [SMTP]
         alt sent

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PAGE_WIDTH } from "@/components/page-width";
@@ -16,6 +17,7 @@ type RouteErrorProps = {
  * takes focus (UX-002) instead of being a live region that would be read twice.
  */
 export function RouteError({ error, retry }: RouteErrorProps) {
+  const t = useTranslations("routeError");
   const focus = useFocusOn<HTMLHeadingElement>();
 
   useEffect(() => {
@@ -25,13 +27,13 @@ export function RouteError({ error, retry }: RouteErrorProps) {
   return (
     <div className={`mx-auto flex w-full ${PAGE_WIDTH.narrow} flex-col items-start gap-4 px-4 py-12`}>
       <h1 {...focus} className="text-xl font-semibold">
-        Ocorreu um erro inesperado.
+        {t("title")}
       </h1>
-      <p className="text-muted-foreground">Não foi possível mostrar esta página. Tenta novamente; se continuar, volta ao início.</p>
+      <p className="text-muted-foreground">{t("body")}</p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => retry()}>Tentar novamente</Button>
+        <Button onClick={() => retry()}>{t("retry")}</Button>
         <Button asChild variant="outline">
-          <Link href="/">Voltar ao início</Link>
+          <Link href="/">{t("home")}</Link>
         </Button>
       </div>
     </div>

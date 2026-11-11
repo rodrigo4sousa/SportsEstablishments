@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
 import { EditClub } from "@/features/clubs/components/edit-club";
 import { isGuid } from "@/lib/guid";
 
-export const metadata: Metadata = {
-  title: "Editar clube",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pages.editClub");
+  return {
+    title: t("title"),
+  };
+}
 
 export default async function Page({ params }: PageProps<"/manage/clubs/[id]">) {
   const { id } = await params;
@@ -14,9 +18,10 @@ export default async function Page({ params }: PageProps<"/manage/clubs/[id]">) 
   if (!isGuid(id)) {
     notFound();
   }
+  const t = await getTranslations("pages.editClub");
 
   return (
-    <PageShell title="Editar clube">
+    <PageShell title={t("title")}>
       <EditClub clubId={id} />
     </PageShell>
   );

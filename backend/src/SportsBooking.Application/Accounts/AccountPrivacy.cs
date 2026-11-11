@@ -15,7 +15,8 @@ public sealed record AccountDataExport(
     ExportedLegalAcceptance LegalAcceptance,
     IReadOnlyList<ExportedBooking> Bookings);
 
-public sealed record ExportedAccount(string Name, string Email, string? Phone, string Profile, DateTime RegisteredAt);
+/// <summary><see cref="PreferredLanguage"/> is the language of the emails (T09): <c>pt-PT</c>, <c>en</c>, or null when none was chosen.</summary>
+public sealed record ExportedAccount(string Name, string Email, string? Phone, string Profile, DateTime RegisteredAt, string? PreferredLanguage);
 
 /// <summary>Both empty for an account made before the acceptance was recorded (T07).</summary>
 public sealed record ExportedLegalAcceptance(string? Version, DateTime? AcceptedAt);
@@ -33,7 +34,15 @@ public sealed record ExportedBooking(
     string? CancellationReason);
 
 /// <summary>What only the accounts table knows about a person, for the export.</summary>
-public sealed record AccountPersonalData(string Name, string Email, string? Phone, string Profile, DateTime RegisteredAt, string? AcceptedTermsVersion, DateTime? TermsAcceptedAt);
+public sealed record AccountPersonalData(
+    string Name,
+    string Email,
+    string? Phone,
+    string Profile,
+    DateTime RegisteredAt,
+    string? AcceptedTermsVersion,
+    DateTime? TermsAcceptedAt,
+    string? PreferredLanguage);
 
 public sealed record DeleteAccountRequest(string Password)
 {
@@ -96,7 +105,7 @@ public sealed class AccountExportService(ICurrentUser currentUser, IAccountPriva
 
         return new AccountDataExport(
             timeProvider.GetUtcNow().UtcDateTime,
-            new ExportedAccount(data.Name, data.Email, data.Phone, data.Profile, Utc(data.RegisteredAt)),
+            new ExportedAccount(data.Name, data.Email, data.Phone, data.Profile, Utc(data.RegisteredAt), data.PreferredLanguage),
             new ExportedLegalAcceptance(data.AcceptedTermsVersion, data.TermsAcceptedAt is { } acceptedAt ? Utc(acceptedAt) : null),
             rows.Select(row => new ExportedBooking(
                     row.ClubName,

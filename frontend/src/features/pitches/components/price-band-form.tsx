@@ -2,15 +2,16 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import {
   createPriceBand,
   pitchesQueryKey,
@@ -23,7 +24,7 @@ import {
 import { priceInputValue } from "../price";
 import { TIME_STEP_MINUTES, WEEKDAYS } from "../schedule";
 import { useRestoreFocus } from "@/lib/focus";
-import { priceBandSchema, type PriceBandFormData, type PriceBandFormValues } from "../schemas/price-band";
+import { createPriceBandSchema, type PriceBandFormData, type PriceBandFormValues } from "../schemas/price-band";
 
 const FIELDS = ["days", "start", "end", "price"] as const satisfies ReadonlyArray<keyof PriceBandFormValues>;
 
@@ -43,10 +44,19 @@ type PriceBandFormProps = {
 export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormProps) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
+  const t = useTranslations("pitches.bandForm");
+  const common = useTranslations("common");
+  const weekdays = useTranslations("weekdays");
+  const validation = useTranslations("pitches.bandValidation");
+  const priceErrors = useTranslations("price.errors");
+  const locale = useLocale();
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("priceBand");
+  const schema = useMemo(() => createPriceBandSchema(validation, priceErrors), [validation, priceErrors]);
   const form = useForm<PriceBandFormValues, unknown, PriceBandFormData>({
-    resolver: zodResolver(priceBandSchema),
+    resolver: zodResolver(schema),
     defaultValues: band
-      ? { days: band.days, start: band.start, end: band.end, price: priceInputValue(band.price) }
+      ? { days: band.days, start: band.start, end: band.end, price: priceInputValue(band.price, locale) }
       : { days: [], start: "", end: "", price: "" },
   });
   const { errors } = form.formState;
@@ -59,22 +69,22 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
         queryClient.invalidateQueries({ queryKey: priceBandsQueryKey(clubId, pitchId), refetchType: "all" }),
         queryClient.invalidateQueries({ queryKey: slotsQueryKey(clubId, pitchId), refetchType: "all" }),
       ]);
-      toast.success(band ? "Faixa guardada." : "Faixa criada.");
+      toast.success(band ? t("saved") : t("created"));
       onDone();
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS, fieldMessage)) {
         return;
       }
       if (error.code === "price_band_overlap" || error.code === "price_band_limit_reached") {
-        setFormError(errorMessage(error.code));
+        setFormError(apiErrors.message(error.code));
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
       if (error.code === "pitch_not_found") {
         await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
         onDone();
@@ -101,7 +111,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
   return (
     <form
       noValidate
-      aria-label={band ? "Editar faixa de preço" : "Criar faixa de preço"}
+      aria-label={band ? t("edit") : t("create")}
       className="flex flex-col gap-4 rounded-md border p-4"
       onSubmit={form.handleSubmit((values) => {
         setFormError(null);
@@ -109,12 +119,12 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
       })}
     >
       <fieldset className="flex flex-col gap-2" aria-describedby={describedBy("days")} aria-invalid={errors.days ? true : undefined}>
-        <legend className="text-sm font-medium">Dias da semana</legend>
+        <legend className="text-sm font-medium">{t("days")}</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {WEEKDAYS.map((day) => (
             <label key={day.key} className="flex items-center gap-2 text-sm">
               <input type="checkbox" value={day.key} {...form.register("days", { onChange: clearFormError })} />
-              {day.label}
+              {weekdays(day.key)}
             </label>
           ))}
         </div>
@@ -124,7 +134,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
       <div className="flex flex-wrap gap-4">
         {(["start", "end"] as const).map((field) => (
           <div key={field} className="flex flex-col gap-2">
-            <Label htmlFor={id(field)}>{field === "start" ? "Início" : "Fim"}</Label>
+            <Label htmlFor={id(field)}>{field === "start" ? t("start") : t("end")}</Label>
             <Input
               id={id(field)}
               type="time"
@@ -138,7 +148,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
           </div>
         ))}
         <div className="flex flex-col gap-2">
-          <Label htmlFor={id("price")}>Preço por horário (€)</Label>
+          <Label htmlFor={id("price")}>{t("price")}</Label>
           <Input
             id={id("price")}
             inputMode="decimal"
@@ -151,9 +161,7 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
           {fieldError("price")}
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Horas do clube, de meia em meia hora. Vale para os horários que começam dentro da faixa; o fim 00:00 é a meia-noite.
-      </p>
+      <p className="text-sm text-muted-foreground">{t("note")}</p>
 
       {formError ? (
         <p role="alert" className="text-sm text-destructive">
@@ -163,10 +171,10 @@ export function PriceBandForm({ clubId, pitchId, band, onDone }: PriceBandFormPr
 
       <div className="flex flex-wrap items-center gap-3">
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
-          {save.isPending ? "A guardar…" : band ? "Guardar faixa" : "Criar faixa"}
+          {save.isPending ? common("saving") : band ? t("save") : t("submit")}
         </Button>
         <Button type="button" variant="ghost" onClick={onDone}>
-          Cancelar
+          {common("cancel")}
         </Button>
       </div>
     </form>

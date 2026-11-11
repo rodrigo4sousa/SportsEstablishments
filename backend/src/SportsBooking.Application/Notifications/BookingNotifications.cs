@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
+using SportsBooking.Domain.Accounts;
 using SportsBooking.Domain.Scheduling;
 
 namespace SportsBooking.Application.Notifications;
@@ -49,72 +49,55 @@ public sealed record BookingNotificationDetails(
     DateTime EndsAt,
     string PlayerName);
 
-/// <summary>The emails of US23 (to the owner, with the player's name) and US21 (to the player), in Portuguese (pt-PT).</summary>
+/// <summary>The emails of US23 (to the owner, with the player's name) and US21 (to the player), in the recipient's language (T09).</summary>
 public static class BookingNotificationComposer
 {
     /// <summary>The owner's email: club, pitch, date, time (Lisbon) and the player's name (and nothing else about the player).</summary>
-    public static EmailContent OwnerNewBooking(BookingNotificationDetails booking, string ownerName)
+    public static EmailContent OwnerNewBooking(BookingNotificationDetails booking, string ownerName, Language language = Language.Portuguese)
     {
         ArgumentNullException.ThrowIfNull(booking);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(booking.TimeZoneId);
+        var text = new EmailText(language);
         var shortDate = ClubTime.ToLocal(booking.StartsAt, zone).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+        var start = BookingEmailComposer.ClockTime(booking.StartsAt, zone, language);
         var lines = new List<(string Label, string Value)>
         {
-            ("Clube", booking.ClubName),
-            ("Campo", booking.PitchName),
-            ("Data", BookingEmailComposer.LongDate(booking.StartsAt, zone)),
-            ("Hora", $"{BookingEmailComposer.ClockTime(booking.StartsAt, zone)} – {BookingEmailComposer.ClockTime(booking.EndsAt, zone)}"),
-            ("Jogador", booking.PlayerName),
+            (text.Pick("Clube", "Club"), booking.ClubName),
+            (text.Pick("Campo", "Pitch"), booking.PitchName),
+            (text.Pick("Data", "Date"), BookingEmailComposer.LongDate(booking.StartsAt, zone, language)),
+            (text.Pick("Hora", "Time"), $"{start} – {BookingEmailComposer.ClockTime(booking.EndsAt, zone, language)}"),
+            (text.Pick("Jogador", "Player"), booking.PlayerName),
         };
-        return Build(
-            $"Nova reserva: {booking.ClubName}, {shortDate} às {BookingEmailComposer.ClockTime(booking.StartsAt, zone)}",
-            $"Olá {ownerName},",
-            "Entrou uma reserva nova num dos teus clubes.",
+        return EmailLayout.Table(
+            text,
+            text.Pick($"Nova reserva: {booking.ClubName}, {shortDate} às {start}", $"New booking: {booking.ClubName}, {shortDate} at {start}"),
+            text.Greeting(ownerName),
+            text.Pick("Entrou uma reserva nova num dos teus clubes.", "A new booking came in at one of your clubs."),
             lines,
-            "Podes desligar estes emails nas definições do clube.");
+            text.Pick("Podes desligar estes emails nas definições do clube.", "You can turn these emails off in the club's settings."));
     }
 
     /// <summary>The player's reminder: club, address, pitch, date and time.</summary>
-    public static EmailContent Reminder(BookingNotificationDetails booking, string playerName)
+    public static EmailContent Reminder(BookingNotificationDetails booking, string playerName, Language language = Language.Portuguese)
     {
         ArgumentNullException.ThrowIfNull(booking);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(booking.TimeZoneId);
-        var start = BookingEmailComposer.ClockTime(booking.StartsAt, zone);
+        var text = new EmailText(language);
+        var start = BookingEmailComposer.ClockTime(booking.StartsAt, zone, language);
         var lines = new List<(string Label, string Value)>
         {
-            ("Clube", booking.ClubName),
-            ("Morada", $"{booking.ClubAddress}, {booking.ClubLocality}"),
-            ("Campo", booking.PitchName),
-            ("Data", BookingEmailComposer.LongDate(booking.StartsAt, zone)),
-            ("Hora", $"{start} – {BookingEmailComposer.ClockTime(booking.EndsAt, zone)}"),
+            (text.Pick("Clube", "Club"), booking.ClubName),
+            (text.Pick("Morada", "Address"), $"{booking.ClubAddress}, {booking.ClubLocality}"),
+            (text.Pick("Campo", "Pitch"), booking.PitchName),
+            (text.Pick("Data", "Date"), BookingEmailComposer.LongDate(booking.StartsAt, zone, language)),
+            (text.Pick("Hora", "Time"), $"{start} – {BookingEmailComposer.ClockTime(booking.EndsAt, zone, language)}"),
         };
-        return Build(
-            $"Lembrete: a tua reserva começa às {start}, {booking.ClubName}",
-            $"Olá {playerName},",
-            "A tua reserva começa dentro de 3 horas.",
+        return EmailLayout.Table(
+            text,
+            text.Pick($"Lembrete: a tua reserva começa às {start}, {booking.ClubName}", $"Reminder: your booking starts at {start}, {booking.ClubName}"),
+            text.Greeting(playerName),
+            text.Pick("A tua reserva começa dentro de 3 horas.", "Your booking starts in 3 hours."),
             lines,
-            "Se já não puderes ir, avisa o clube.");
-    }
-
-    private static EmailContent Build(string subject, string greeting, string intro, List<(string Label, string Value)> lines, string closing)
-    {
-        var text = new StringBuilder().AppendLine(greeting).AppendLine().AppendLine(intro).AppendLine();
-        foreach (var (label, value) in lines)
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"{label}: {value}");
-        }
-
-        text.AppendLine().AppendLine(closing).AppendLine().Append("Reservas de Campos");
-
-        var html = new StringBuilder()
-            .Append("<!DOCTYPE html><html lang=\"pt-PT\"><body style=\"font-family:sans-serif;line-height:1.5\">")
-            .Append(CultureInfo.InvariantCulture, $"<p>{Html.Encode(greeting)}</p><p>{Html.Encode(intro)}</p><table cellpadding=\"4\">");
-        foreach (var (label, value) in lines)
-        {
-            html.Append(CultureInfo.InvariantCulture, $"<tr><th align=\"left\">{Html.Encode(label)}</th><td>{Html.Encode(value)}</td></tr>");
-        }
-
-        html.Append(CultureInfo.InvariantCulture, $"</table><p>{Html.Encode(closing)}</p><p>Reservas de Campos</p></body></html>");
-        return new EmailContent(subject, text.ToString(), html.ToString());
+            text.Pick("Se já não puderes ir, avisa o clube.", "If you can no longer go, let the club know."));
     }
 }

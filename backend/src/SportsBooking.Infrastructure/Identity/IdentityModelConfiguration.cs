@@ -8,6 +8,8 @@ internal static class IdentityModelConfiguration
 {
     public const string NormalizedEmailIndex = "ix_users_normalized_email";
 
+    public const string PreferredLanguageCheck = "ck_users_preferred_language";
+
     // Fixed ids and stamps keep the seeded roles stable across migrations.
     private static readonly IdentityRole<Guid>[] ProfileRoles =
     [
@@ -20,12 +22,17 @@ internal static class IdentityModelConfiguration
     {
         modelBuilder.Entity<AppUser>(user =>
         {
-            user.ToTable("users");
+            // T09: no other language codes than the site's.
+            user.ToTable("users", table => table.HasCheckConstraint(
+                PreferredLanguageCheck,
+                $"preferred_language IS NULL OR preferred_language IN ('{PreferredLanguage.PortugueseCode}', '{PreferredLanguage.EnglishCode}')"));
             user.Property(u => u.Email).IsRequired();
             user.Property(u => u.NormalizedEmail).IsRequired();
             user.Property(u => u.Name).HasMaxLength(AccountNamePolicy.MaximumLength).IsRequired();
             user.Property(u => u.RegisteredAt).IsRequired();
             user.Property(u => u.AcceptedTermsVersion).HasMaxLength(TermsAcceptancePolicy.MaximumVersionLength);
+            // T09: optional, so every account made before it reads as "no preference" (pt-PT).
+            user.Property(u => u.PreferredLanguage).HasMaxLength(PreferredLanguage.MaximumLength);
             user.Ignore(u => u.IsActive);
             // One email = one account, enforced by the database and not only by UserManager.
             user.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName(NormalizedEmailIndex);

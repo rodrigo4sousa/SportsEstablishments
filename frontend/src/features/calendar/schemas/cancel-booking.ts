@@ -1,19 +1,21 @@
 import { z } from "zod";
+import type { Translator } from "@/i18n/translator";
 
 /**
  * US12 rules for the reason an owner gives when cancelling a booking, for immediate feedback only: the API validates
- * again and has the last word. The messages match the API's `CancelClubBookingRequestValidator`.
+ * again and has the last word. The rules match the API's `CancelClubBookingRequestValidator`; the messages are the catalogs'.
  */
 export const CANCEL_REASON_MAX_LENGTH = 200;
 
-export const CANCEL_MESSAGES = {
-  required: "Indica o motivo do cancelamento.",
-  tooLong: `O motivo pode ter no máximo ${CANCEL_REASON_MAX_LENGTH} caracteres.`,
-} as const;
+export function createCancelBookingSchema(t: Translator<"calendar.validation">) {
+  return z.object({
+    reason: z
+      .string()
+      .trim()
+      .min(1, t("reasonRequired"))
+      .max(CANCEL_REASON_MAX_LENGTH, t("reasonTooLong", { max: CANCEL_REASON_MAX_LENGTH })),
+  });
+}
 
-export const cancelBookingSchema = z.object({
-  reason: z.string().trim().min(1, CANCEL_MESSAGES.required).max(CANCEL_REASON_MAX_LENGTH, CANCEL_MESSAGES.tooLong),
-});
-
-export type CancelBookingValues = z.input<typeof cancelBookingSchema>;
-export type CancelBookingData = z.output<typeof cancelBookingSchema>;
+export type CancelBookingValues = z.input<ReturnType<typeof createCancelBookingSchema>>;
+export type CancelBookingData = z.output<ReturnType<typeof createCancelBookingSchema>>;

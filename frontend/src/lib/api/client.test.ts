@@ -2,7 +2,10 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { server } from "@/test/msw";
 import { ApiError, NETWORK_ERROR, apiJson } from "./client";
-import { errorMessage } from "./error-messages";
+import { testTranslator } from "@/test/intl";
+import { apiErrorMessage } from "./error-messages";
+
+const errorMessage = (code: string) => apiErrorMessage(testTranslator("apiErrors"), code);
 
 function problem(status: number, code: string, extra: Record<string, unknown> = {}) {
   return HttpResponse.json(

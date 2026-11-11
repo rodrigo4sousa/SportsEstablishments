@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { AccountMenuLink } from "@/components/account-menu";
 import { AreaHeader } from "@/components/area-header";
 import { Main } from "@/components/main";
@@ -9,12 +10,12 @@ import { areaDecision, profileHome, type Profile } from "@/lib/auth/redirects";
 import { REQUEST_PATH_HEADER } from "@/lib/auth/request-path";
 import { getSessionAccount } from "@/lib/server/session";
 
-const AREA_LINKS: Record<Profile, AccountMenuLink[]> = {
+const AREA_LINKS: Record<Profile, ReadonlyArray<{ href: string; label: "myClubs" | "statistics" | "myAccount" }>> = {
   Player: [],
   Owner: [
-    { href: "/manage", label: "Os meus clubes" },
-    { href: "/manage/statistics", label: "Estatísticas" },
-    { href: "/account", label: "A minha conta" },
+    { href: "/manage", label: "myClubs" },
+    { href: "/manage/statistics", label: "statistics" },
+    { href: "/account", label: "myAccount" },
   ],
   Admin: [],
 };
@@ -41,9 +42,11 @@ export async function AreaGuard({ profile, title, width, children }: AreaGuardPr
     redirect(decision.redirectTo);
   }
 
+  const t = await getTranslations("areaLinks");
+  const links: AccountMenuLink[] = AREA_LINKS[profile].map((link) => ({ href: link.href, label: t(link.label) }));
   return (
     <>
-      <AreaHeader title={title} homeHref={profileHome(profile)} accountName={decision.account.name} width={width} links={AREA_LINKS[profile]} />
+      <AreaHeader title={title} homeHref={profileHome(profile)} accountName={decision.account.name} width={width} links={links} />
       <Main>{children}</Main>
     </>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { PageShell } from "@/components/page-shell";
 import { RouteLoading } from "@/components/route-loading";
@@ -12,12 +13,14 @@ import { getPublicClub, loadPublicClub } from "@/lib/server/public-club";
 export async function generateMetadata({ params }: PageProps<"/clubs/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const club = isClubSlug(slug) ? await getPublicClub(slug) : null;
-  return { title: club ? club.name : "Clube não encontrado" };
+  const t = await getTranslations("pages.club");
+  return { title: club ? club.name : t("notFoundTitle") };
 }
 
 export default async function Page({ params }: PageProps<"/clubs/[slug]">) {
   const { slug } = await params;
   const club = await loadPublicClub(slug);
+  const t = await getTranslations("pages.club");
 
   // UX-010: the reason to be here, the slots, comes first; then what the pitches are, then how to reach the club.
   return (
@@ -26,7 +29,7 @@ export default async function Page({ params }: PageProps<"/clubs/[slug]">) {
       before={
         <p>
           <Link href="/" className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4 sm:min-h-0">
-            ← Pesquisar clubes
+            {t("back")}
           </Link>
         </p>
       }

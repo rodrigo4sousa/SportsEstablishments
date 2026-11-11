@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { registerSchema, type RegisterFormValues } from "./register";
+import { testTranslator } from "@/test/intl";
+import { createRegisterSchema, type RegisterFormValues } from "./register";
+
+const registerSchema = createRegisterSchema(testTranslator("validation"), testTranslator("apiErrors")("terms_not_accepted"));
 
 const valid: RegisterFormValues = { name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "", acceptTerms: true };
 
@@ -61,5 +64,16 @@ describe("registerSchema", () => {
 
   it.each(["12345678", "1234567890123456", "91234567a", "912-345-678"])("rejects the phone %j", (phone) => {
     expect(errorsFor({ phone }).phone).toEqual(["Indica um número de telemóvel válido, com 9 a 15 algarismos."]);
+  });
+});
+
+describe("registerSchema in English (T09)", () => {
+  const english = createRegisterSchema(testTranslator("validation", "en"), testTranslator("apiErrors", "en")("terms_not_accepted"));
+
+  it("says what is wrong in English", () => {
+    const result = english.safeParse({ ...valid, name: "", password: "short" });
+    const errors = result.success ? {} : z.flattenError(result.error).fieldErrors;
+    expect(errors.name).toEqual(["Enter your name."]);
+    expect(errors.password).toEqual(["The password must have at least 8 characters."]);
   });
 });

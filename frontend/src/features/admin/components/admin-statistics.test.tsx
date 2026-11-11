@@ -169,12 +169,12 @@ describe("the admin's registrations and top of the clubs", () => {
       expect(await screen.findByText(/1 dono e 1 jogador registados/)).toBeInTheDocument();
     });
 
-    it("shows the API's message for a refused range, and the rest of the page keeps working", async () => {
+    it("shows its own message, never the API's text, for a refused range, and the rest of the page keeps working", async () => {
       serve({ registrations: () => problem(400, "validation_failed", { to: ["O intervalo tem demasiados períodos: no máximo 104 semanas."] }) });
 
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
-      expect(await screen.findByText("O intervalo tem demasiados períodos: no máximo 104 semanas.")).toBeInTheDocument();
+      expect(await screen.findByText("Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até» e o período tem um limite (366 dias, 104 semanas ou 60 meses).")).toBeInTheDocument();
       expect(await screen.findByRole("table", { name: "Clubes com maior ocupação" })).toBeInTheDocument();
     });
 
@@ -229,12 +229,12 @@ describe("the admin's registrations and top of the clubs", () => {
       expect(screen.queryByRole("table", { name: "Clubes com maior ocupação" })).not.toBeInTheDocument();
     });
 
-    it("shows the API's message for a refused period", async () => {
+    it("shows its own message, never the API's text, for a refused period", async () => {
       serve({ top: () => problem(400, "validation_failed", { to: ["A data final não pode ser anterior à inicial."] }) });
 
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
-      expect(await screen.findByText("A data final não pode ser anterior à inicial.")).toBeInTheDocument();
+      expect(await screen.findByText("Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até» e o período tem um limite (366 dias, 104 semanas ou 60 meses).")).toBeInTheDocument();
     });
 
     it("shows a message, and tries again on request, for any other failure", async () => {

@@ -1,6 +1,6 @@
+import { useTranslations } from "next-intl";
 import type { PublicSlot } from "@/features/catalog/types";
-import { formatPrice } from "@/features/pitches/price";
-import { formatLisbonSlotTime } from "@/lib/datetime";
+import { useFormats } from "@/i18n/formats";
 import { sameInstant } from "../selection";
 
 type SlotListProps = {
@@ -17,18 +17,20 @@ type SlotListProps = {
  * with no reason: the API does not say why (booked, blocked, closed or started), and neither does the page.
  */
 export function SlotList({ slots, selected, interactive, onSelect }: SlotListProps) {
+  const t = useTranslations("booking.slots");
+  const formats = useFormats();
   return (
     <>
       <SlotLegend />
-      <ul aria-label="Horários" className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+      <ul aria-label={t("list")} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {slots.map((slot) => {
           const isSelected = selected !== null && sameInstant(slot.startsAt, selected);
           const content = (
             <>
               <span className={`block font-medium tabular-nums ${slot.available ? "" : "line-through"}`}>
-                {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)}
+                {formats.slotTime(slot.startsAt)} – {formats.slotTime(slot.endsAt)}
               </span>{" "}
-              <span className="block text-sm tabular-nums">{formatPrice(slot.price)}</span>
+              <span className="block text-sm tabular-nums">{formats.price(slot.price)}</span>
             </>
           );
 
@@ -67,16 +69,20 @@ export function SlotList({ slots, selected, interactive, onSelect }: SlotListPro
  * not say, and neither does the page), only that it is.
  */
 function SlotLegend() {
+  const t = useTranslations("booking.slots");
+  const time = useTranslations("time");
   return (
     <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
       <span className="inline-flex items-center gap-2">
         <span aria-hidden="true" className="size-3 rounded-sm border" />
-        Livre
+        {t("free")}
       </span>
       <span className="inline-flex items-center gap-2">
         <span aria-hidden="true" className="size-3 rounded-sm border border-dashed bg-muted" />
-        Indisponível (riscado)
+        {t("unavailable")}
       </span>
+      {/* T09: venue times are Lisbon's, whatever the language or the browser's time zone. */}
+      <span>{time("lisbonTimeNote")}</span>
     </p>
   );
 }

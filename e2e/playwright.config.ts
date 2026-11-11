@@ -20,6 +20,8 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     baseURL,
+    // T09: the browser asks for Portuguese (Accept-Language: pt-PT), so the four Portuguese flows read the site as before whatever the
+    // machine's language; flow 5 switches to English itself.
     locale: "pt-PT",
     timezoneId: "Europe/Lisbon",
     actionTimeout: 15_000,

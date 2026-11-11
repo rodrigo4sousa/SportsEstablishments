@@ -65,15 +65,5 @@ export function skippedOf(error: { extensions: Readonly<Record<string, unknown>>
   return Array.isArray(skipped) ? (skipped as SkippedDate[]) : [];
 }
 
-/** Why a date of a series is left out, in words (pt-PT). */
-export const OCCURRENCE_REASONS: Readonly<Record<string, string>> = {
-  taken: "já está reservado",
-  blocked: "está bloqueado pelo clube",
-  closed: "o campo está fechado nesse dia",
-  not_a_slot: "não é um horário do campo nesse dia",
-  outside_window: "fica fora do período de reservas (até 30 dias)",
-  started: "já começou",
-  pitch_inactive: "o campo deixou de aceitar reservas",
-};
-
-export const occurrenceReason = (code: string | null): string => (code === null ? "" : (OCCURRENCE_REASONS[code] ?? "não está disponível"));
+/** The reason codes of a date left out of a series (US20); their words are in the catalogs (`booking.recurring.reasons.*`). */
+export const OCCURRENCE_REASON_CODES = ["taken", "blocked", "closed", "not_a_slot", "outside_window", "started", "pitch_inactive"] as const;

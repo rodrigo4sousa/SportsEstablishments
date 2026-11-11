@@ -22,6 +22,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
+  # Every dependency of frontend/package.json, next-intl (T09, ADR 0012) included: no per-package list, so it is covered by this entry
+  # and its cooldown like the rest; its core, use-intl, is a transitive dependency and moves with it.
   - package-ecosystem: npm
     directory: /frontend
     schedule:

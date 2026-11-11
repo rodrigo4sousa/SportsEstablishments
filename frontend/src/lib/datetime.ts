@@ -1,43 +1,52 @@
+import { intlLocale, type AppLocale } from "@/i18n/locales";
+
 /**
- * Dates and times are always shown in Lisbon time, whatever the browser's time zone (T04).
+ * Dates and times are always shown in Lisbon time, whatever the browser's time zone (T04) and whatever the site's language (T09).
  * The API sends instants as ISO 8601 strings in UTC.
+ *
+ * Formats that are only digits ("14:30", "01/08/2026") read the same in pt-PT and en-GB, so they take no language. Formats with words
+ * (weekdays, months) take the site's language and use `Intl` in pt-PT or en-GB; the few words of our own ("Hoje", "(verão)") come from
+ * the message catalogs, through `useFormats` (`i18n/formats.ts`).
  */
 export const LISBON_TIME_ZONE = "Europe/Lisbon";
 
-const LOCALE = "pt-PT";
-
-const timeFormatter = new Intl.DateTimeFormat(LOCALE, {
+// Digits only: pt-PT and en-GB agree, so one formatter serves both languages.
+const timeFormatter = new Intl.DateTimeFormat("pt-PT", {
   timeZone: LISBON_TIME_ZONE,
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
 });
 
-const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
+const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   timeZone: LISBON_TIME_ZONE,
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
 });
 
-const longDateFormatter = new Intl.DateTimeFormat(LOCALE, {
-  timeZone: LISBON_TIME_ZONE,
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
-
-const dayMonthFormatter = new Intl.DateTimeFormat(LOCALE, {
+const dayMonthFormatter = new Intl.DateTimeFormat("pt-PT", {
   timeZone: LISBON_TIME_ZONE,
   day: "2-digit",
   month: "2-digit",
 });
 
-const monthYearFormatter = new Intl.DateTimeFormat(LOCALE, {
-  timeZone: LISBON_TIME_ZONE,
-  month: "long",
-  year: "numeric",
-});
+/** One formatter per language and kind, made when first used. */
+function cachedFormatter(options: Intl.DateTimeFormatOptions) {
+  const byLocale = new Map<AppLocale, Intl.DateTimeFormat>();
+  return (locale: AppLocale) => {
+    let formatter = byLocale.get(locale);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: LISBON_TIME_ZONE, ...options });
+      byLocale.set(locale, formatter);
+    }
+    return formatter;
+  };
+}
+
+const longDateFormatter = cachedFormatter({ weekday: "long", day: "numeric", month: "long" });
+const longDateWithYearFormatter = cachedFormatter({ weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const monthYearFormatter = cachedFormatter({ month: "long", year: "numeric" });
 
 const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: LISBON_TIME_ZONE,
@@ -67,14 +76,14 @@ export function formatLisbonTime(instant: Instant): string {
 }
 
 /**
- * "sábado, 1 de agosto" for a calendar date written "YYYY-MM-DD" (a date key, with no time of day). Noon UTC is the
- * same calendar day in Lisbon all year round, so the formatter cannot land on the day before or after.
+ * "sábado, 1 de agosto" / "Saturday 1 August" for a calendar date written "YYYY-MM-DD" (a date key, with no time of day). Noon UTC is
+ * the same calendar day in Lisbon all year round, so the formatter cannot land on the day before or after.
  */
-export function formatDateKeyLong(dateKey: string): string {
+export function formatDateKeyLong(dateKey: string, locale: AppLocale): string {
   if (!isDateKey(dateKey)) {
     throw new Error(`Expected a date as YYYY-MM-DD, got "${dateKey}".`);
   }
-  return formatLisbonLongDate(`${dateKey}T12:00:00Z`);
+  return formatLisbonLongDate(`${dateKey}T12:00:00Z`, locale);
 }
 
 /** "01/08/2026" for a calendar date written "YYYY-MM-DD" (a date key). */
@@ -87,9 +96,9 @@ export function formatDateKeyShort(dateKey: string): string {
   return dayMonthFormatter.format(toDate(noonOf(dateKey)));
 }
 
-/** "agosto de 2026" for the month a date key is in. */
-export function formatDateKeyMonth(dateKey: string): string {
-  return monthYearFormatter.format(toDate(noonOf(dateKey)));
+/** "agosto de 2026" / "August 2026" for the month a date key is in. */
+export function formatDateKeyMonth(dateKey: string, locale: AppLocale): string {
+  return monthYearFormatter(locale).format(toDate(noonOf(dateKey)));
 }
 
 function noonOf(dateKey: string): string {
@@ -104,9 +113,14 @@ export function formatLisbonDate(instant: Instant): string {
   return dateFormatter.format(toDate(instant));
 }
 
-/** "sábado, 1 de agosto" */
-export function formatLisbonLongDate(instant: Instant): string {
-  return longDateFormatter.format(toDate(instant));
+/** "sábado, 1 de agosto" / "Saturday 1 August" */
+export function formatLisbonLongDate(instant: Instant, locale: AppLocale): string {
+  return longDateFormatter(locale).format(toDate(instant));
+}
+
+/** "sábado, 1 de agosto de 2026" / "Saturday 1 August 2026" */
+export function formatLisbonLongDateWithYear(instant: Instant, locale: AppLocale): string {
+  return longDateWithYearFormatter(locale).format(toDate(instant));
 }
 
 /** "01/08/2026 14:30" */
@@ -118,26 +132,29 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 
 /**
  * When clocks go back (last Sunday of October) the Lisbon wall-clock hour 01:00–02:00 happens twice.
- * Returns "(verão)" for the first occurrence (WEST), "(inverno)" for the second (WET), and null otherwise.
+ * Returns "summer" for the first occurrence (WEST), "winter" for the second (WET), and null otherwise.
  */
-export function lisbonRepeatedHourLabel(instant: Instant): "(verão)" | "(inverno)" | null {
+export function lisbonRepeatedHour(instant: Instant): "summer" | "winter" | null {
   const date = toDate(instant);
   const wallClock = formatLisbonDateTime(date);
 
   if (formatLisbonDateTime(new Date(date.getTime() + ONE_HOUR_MS)) === wallClock) {
-    return "(verão)";
+    return "summer";
   }
   if (formatLisbonDateTime(new Date(date.getTime() - ONE_HOUR_MS)) === wallClock) {
-    return "(inverno)";
+    return "winter";
   }
   return null;
 }
 
-/** "14:30", or "01:30 (verão)" / "01:30 (inverno)" inside the repeated hour. Use it for slot times. */
-export function formatLisbonSlotTime(instant: Instant): string {
-  const label = lisbonRepeatedHourLabel(instant);
+/** The words for the two occurrences of the repeated hour, from the catalog: "(verão)"/"(inverno)", "(summer time)"/"(winter time)". */
+export type RepeatedHourLabels = { summer: string; winter: string };
+
+/** "14:30", or "01:30 (verão)" / "01:30 (inverno)" inside the repeated hour. Use it for slot times (through `useFormats().slotTime`). */
+export function formatLisbonSlotTime(instant: Instant, labels: RepeatedHourLabels): string {
+  const hour = lisbonRepeatedHour(instant);
   const time = formatLisbonTime(instant);
-  return label ? `${time} ${label}` : time;
+  return hour ? `${time} ${labels[hour]}` : time;
 }
 
 /** Lisbon calendar date as "YYYY-MM-DD", for API query parameters and date pickers. */
@@ -176,16 +193,18 @@ export function addDaysToDateKey(dateKey: string, days: number): string {
  * The heading of a day in a list of bookings: "Hoje · sexta-feira, 30 de outubro", "Amanhã · …", "Ontem · …", or just the long date, with the year
  * only when it is not this year. The Lisbon day of `instant` against the Lisbon day of `now`, so near midnight the browser's own day cannot mislead.
  */
-export function formatLisbonDayHeading(instant: Instant, now: Date = new Date()): string {
+export function formatLisbonDayHeading(instant: Instant, locale: AppLocale, labels: RelativeDayLabels, now: Date = new Date()): string {
   const key = lisbonDateKey(instant);
   const today = lisbonToday(now);
-  const year = key.slice(0, 4);
-  const long = year === today.slice(0, 4) ? formatLisbonLongDate(instant) : `${formatLisbonLongDate(instant)} de ${year}`;
-  if (key === today) return `Hoje · ${long}`;
-  if (key === addDaysToDateKey(today, 1)) return `Amanhã · ${long}`;
-  if (key === addDaysToDateKey(today, -1)) return `Ontem · ${long}`;
+  const long = key.slice(0, 4) === today.slice(0, 4) ? formatLisbonLongDate(instant, locale) : formatLisbonLongDateWithYear(instant, locale);
+  if (key === today) return `${labels.today} · ${long}`;
+  if (key === addDaysToDateKey(today, 1)) return `${labels.tomorrow} · ${long}`;
+  if (key === addDaysToDateKey(today, -1)) return `${labels.yesterday} · ${long}`;
   return long;
 }
+
+/** The words before a near day, from the catalog: "Hoje", "Amanhã", "Ontem" / "Today", "Tomorrow", "Yesterday". */
+export type RelativeDayLabels = { today: string; tomorrow: string; yesterday: string };
 
 /** Now in Lisbon as "YYYY-MM-DDTHH:mm" (the format of the owner's date-time fields), to compare with what was typed. */
 export function lisbonNowLocal(now: Date = new Date()): string {

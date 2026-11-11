@@ -2,7 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
@@ -10,16 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { fetchSlots, slotsQueryKey, type PreviewSlot } from "@/features/pitches/api";
-import { formatPrice } from "@/features/pitches/price";
-import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
-import { sportLabel } from "@/features/pitches/sports";
+import { BOOKING_DAYS_AHEAD, previewDateRange } from "@/features/pitches/schedule";
+import { useSportLabel } from "@/features/pitches/sports";
+import { useFormats } from "@/i18n/formats";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
-import { formatLisbonSlotTime, isDateKey } from "@/lib/datetime";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
+import { isDateKey } from "@/lib/datetime";
 import { calendarQueryKey, createClubBooking } from "../api";
-import { CUSTOMER_NAME_MAX_LENGTH, newBookingSchema, type NewBookingData, type NewBookingValues } from "../schemas/new-booking";
+import { CUSTOMER_NAME_MAX_LENGTH, createNewBookingSchema, type NewBookingData, type NewBookingValues } from "../schemas/new-booking";
 import type { CalendarPitch, ClubBooking } from "../types";
 
 /** The codes that say the slot or the pitch is not what the owner saw: say so, and load the slots again. */
@@ -45,11 +46,11 @@ type NewBookingFormProps = {
   onCreated: (booking: ClubBooking) => void;
 };
 
-/** Why a slot of the preview cannot be chosen, in words; null when it is free. A slot that has started is not offered either. */
-function unavailableReason(slot: PreviewSlot, nowMs: number): string | null {
-  if (slot.booked) return "Reservado";
-  if (slot.blocked) return "Bloqueado";
-  if (new Date(slot.startsAt).getTime() <= nowMs) return "Já começou";
+/** Why a slot of the preview cannot be chosen (`calendar.newBooking.<reason>`); null when it is free. A slot that has started is not offered either. */
+function unavailableReason(slot: PreviewSlot, nowMs: number): "booked" | "blocked" | "started" | null {
+  if (slot.booked) return "booked";
+  if (slot.blocked) return "blocked";
+  if (new Date(slot.startsAt).getTime() <= nowMs) return "started";
   return null;
 }
 
@@ -61,6 +62,15 @@ function unavailableReason(slot: PreviewSlot, nowMs: number): string | null {
  */
 export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }: NewBookingFormProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("calendar.newBooking");
+  const common = useTranslations("common");
+  const dates = useTranslations("dates");
+  const validation = useTranslations("calendar.validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("booking");
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
+  const schema = useMemo(() => createNewBookingSchema(validation, dates), [validation, dates]);
   const [range] = useState(() => previewDateRange());
   const [formError, setFormError] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -69,7 +79,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
   const initialPitch = pitches.find((pitch) => pitch.id === prefill.pitchId)?.id ?? pitches[0]?.id ?? "";
   const initialDate = prefill.date && isDateKey(prefill.date) && prefill.date >= range.min && prefill.date <= range.max ? prefill.date : range.min;
   const form = useForm<NewBookingValues, unknown, NewBookingData>({
-    resolver: zodResolver(newBookingSchema),
+    resolver: zodResolver(schema),
     defaultValues: { pitchId: initialPitch, date: initialDate, startsAt: "", customerName: "", customerPhone: "" },
   });
   const { errors } = form.formState;
@@ -109,14 +119,14 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS, fieldMessage)) {
         return;
       }
       if (REFRESH_CODES.has(error.code) || error.status === 409) {
-        setFormError(errorMessage(error.code));
+        setFormError(apiErrors.message(error.code));
         form.setValue("startsAt", "");
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: slotsQueryKey(clubId, pitchId), refetchType: "all" }),
@@ -124,7 +134,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
         ]);
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
@@ -139,7 +149,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
   return (
     <form
       noValidate
-      aria-label="Nova reserva"
+      aria-label={t("form")}
       className="flex flex-col gap-4 rounded-lg border p-4"
       onSubmit={form.handleSubmit((values) => {
         setFormError(null);
@@ -147,14 +157,14 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
       })}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold">Nova reserva para um cliente</h3>
+        <h3 className="font-semibold">{t("title")}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          Fechar
+          {t("close")}
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="new-booking-pitch" label="Campo" error={errors.pitchId?.message}>
+        <FormField id="new-booking-pitch" label={t("pitch")} error={errors.pitchId?.message}>
           <NativeSelect id="new-booking-pitch" value={pitchId} onChange={(event) => choose("pitchId", event.target.value)}>
             {pitches.map((pitch) => (
               <option key={pitch.id} value={pitch.id}>
@@ -164,7 +174,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
           </NativeSelect>
         </FormField>
 
-        <FormField id="new-booking-date" label="Data" error={errors.date?.message ?? (dateInWindow ? undefined : DATE_OUT_OF_WINDOW)}>
+        <FormField id="new-booking-date" label={t("date")} error={errors.date?.message ?? (dateInWindow ? undefined : dates("outOfWindow", { days: BOOKING_DAYS_AHEAD }))}>
           <Input
             id="new-booking-date"
             type="date"
@@ -179,26 +189,26 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
 
       <div className="flex flex-col gap-2">
         <span id={`${slotsId}-label`} className="text-sm font-medium">
-          Horário
+          {t("slot")}
         </span>
         {!dateInWindow ? null : slots.isPending ? (
           <p role="status" className="text-sm text-muted-foreground">
-            A carregar os horários…
+            {t("loadingSlots")}
           </p>
         ) : slots.isError ? (
           <div role="alert" className="flex flex-col items-start gap-2">
-            <p className="text-sm">{errorMessage(slots.error instanceof ApiError ? slots.error.code : "unknown_error")}</p>
+            <p className="text-sm">{apiErrors.message(slots.error instanceof ApiError ? slots.error.code : UNKNOWN_ERROR)}</p>
             <Button type="button" variant="outline" size="sm" onClick={() => void slots.refetch()}>
-              Tentar novamente
+              {common("retry")}
             </Button>
           </div>
         ) : slots.data.slots.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sem horários neste dia: o campo está fechado.</p>
+          <p className="text-sm text-muted-foreground">{t("noSlots")}</p>
         ) : (
           <ul aria-labelledby={`${slotsId}-label`} className="flex flex-wrap gap-2">
             {slots.data.slots.map((slot) => {
               const reason = unavailableReason(slot, now);
-              const label = `${formatLisbonSlotTime(slot.startsAt)} – ${formatLisbonSlotTime(slot.endsAt)}`;
+              const label = `${formats.slotTime(slot.startsAt)} – ${formats.slotTime(slot.endsAt)}`;
               return (
                 <li key={slot.startsAt}>
                   <button
@@ -213,11 +223,11 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
                       startsAt === slot.startsAt ? "border-foreground bg-foreground text-background" : "hover:bg-accent"
                     }`}
                   >
-                    {label} · {formatPrice(slot.price)}
+                    {label} · {formats.price(slot.price)}
                     {reason ? (
                       <>
                         {" "}
-                        <span className="ml-1 text-xs">{reason}</span>
+                        <span className="ml-1 text-xs">{t(reason)}</span>
                       </>
                     ) : null}
                   </button>
@@ -234,7 +244,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="new-booking-name" label="Nome do cliente" hint={`Até ${CUSTOMER_NAME_MAX_LENGTH} caracteres.`} error={errors.customerName?.message}>
+        <FormField id="new-booking-name" label={t("name")} hint={t("nameHint", { max: CUSTOMER_NAME_MAX_LENGTH })} error={errors.customerName?.message}>
           <Input
             id="new-booking-name"
             autoComplete="off"
@@ -243,7 +253,7 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
             {...form.register("customerName", { onChange: () => setFormError(null) })}
           />
         </FormField>
-        <FormField id="new-booking-phone" label="Telemóvel do cliente" hint="Por exemplo 912 345 678 ou +351 912 345 678." error={errors.customerPhone?.message}>
+        <FormField id="new-booking-phone" label={t("phone")} hint={t("phoneHint")} error={errors.customerPhone?.message}>
           <Input
             id="new-booking-phone"
             type="tel"
@@ -261,14 +271,14 @@ export function NewBookingForm({ clubId, pitches, prefill, onClose, onCreated }:
         </p>
       ) : null}
 
-      <p className="text-sm text-muted-foreground">O cliente não tem conta, por isso não recebe nenhum email.</p>
+      <p className="text-sm text-muted-foreground">{t("noEmail")}</p>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={create.isPending}>
-          {create.isPending ? "A reservar…" : "Criar reserva"}
+          {create.isPending ? t("booking") : t("submit")}
         </Button>
         <Button type="button" variant="outline" disabled={create.isPending} onClick={onClose}>
-          Cancelar
+          {common("cancel")}
         </Button>
       </div>
     </form>

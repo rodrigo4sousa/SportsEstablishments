@@ -1,6 +1,8 @@
+import { useTranslations } from "next-intl";
 import { ScrollRegion } from "@/components/scroll-region";
-import { WEEKDAYS } from "@/features/pitches/schedule";
-import { formatLisbonDate, formatLisbonSlotTime, lisbonInstantAtMinute, weekdayIndex } from "@/lib/datetime";
+import { WEEKDAYS, type WeekdayKey } from "@/features/pitches/schedule";
+import { useFormats } from "@/i18n/formats";
+import { formatLisbonDate, lisbonInstantAtMinute, weekdayIndex } from "@/lib/datetime";
 import { HOUR_HEIGHT_PX, heightOf, type WeekLayout } from "../layout";
 import { BlockBox, BookingBox, HourCell, type NewBookingAction } from "./day-grid";
 
@@ -13,9 +15,9 @@ type WeekGridProps = {
   newBooking?: NewBookingAction;
 };
 
-/** "Segunda-feira" for a "YYYY-MM-DD" date, Monday first. */
-export function weekdayName(date: string): string {
-  return WEEKDAYS[weekdayIndex(date)].label;
+/** The weekday key of a "YYYY-MM-DD" date ("monday"), Monday first; its name is `weekdays.<key>` in the catalogs. */
+export function weekdayKey(date: string): WeekdayKey {
+  return WEEKDAYS[weekdayIndex(date)].key;
 }
 
 /**
@@ -25,15 +27,18 @@ export function weekdayName(date: string): string {
  * after the change sit an hour off that scale; each box says its own time, and the page says so (see `ClockChangeNote`).
  */
 export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: WeekGridProps) {
+  const t = useTranslations("calendar.grid");
+  const weekdays = useTranslations("weekdays");
+  const formats = useFormats();
   const totalHeight = heightOf(layout.gridEndMinute - layout.gridStartMinute);
 
   return (
-    <ScrollRegion label="Calendário da semana">
+    <ScrollRegion label={t("weekCalendar")}>
       <div className="flex min-w-max">
         {/* The hours stay in view when the days scroll sideways (UX-005). */}
         <div className="sticky left-0 z-20 w-20 shrink-0 border-r bg-background">
           <div className="h-14 border-b" aria-hidden="true" />
-          <ol aria-label="Horas" style={{ height: totalHeight }}>
+          <ol aria-label={t("hours")} style={{ height: totalHeight }}>
             {layout.rows.map((row) => (
               <li
                 key={row.minute}
@@ -41,22 +46,22 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
                 className="border-b px-2 pt-1 text-xs tabular-nums text-muted-foreground"
                 style={{ height: HOUR_HEIGHT_PX }}
               >
-                {formatLisbonSlotTime(row.startsAt)}
+                {formats.slotTime(row.startsAt)}
               </li>
             ))}
           </ol>
         </div>
 
         {layout.days.map((day) => {
-          const name = weekdayName(day.date);
+          const name = weekdays(weekdayKey(day.date));
           const dateText = formatLisbonDate(`${day.date}T12:00:00Z`);
           return (
-            <div key={day.date} role="group" aria-label={`${name}, ${dateText}`} data-date={day.date} className="min-w-36 flex-1 border-r last:border-r-0">
+            <div key={day.date} role="group" aria-label={t("dayLabel", { name, date: dateText })} data-date={day.date} className="min-w-36 flex-1 border-r last:border-r-0">
               <div className="flex h-14 flex-col justify-center border-b px-2">
                 <p className="truncate text-sm font-medium">{name}</p>
                 <p className="truncate text-xs tabular-nums text-muted-foreground">
                   {dateText}
-                  {day.dayMinutes !== 1440 ? ` · ${day.dayMinutes / 60} h` : ""}
+                  {day.dayMinutes !== 1440 ? t("hoursLong", { hours: day.dayMinutes / 60 }) : ""}
                 </p>
               </div>
               <div className="relative bg-muted/60" style={{ height: totalHeight }}>
@@ -86,14 +91,14 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
                     <HourCell
                       key={row.minute}
                       top={heightOf(row.minute - layout.gridStartMinute)}
-                      label={bookable && startsAt ? `Nova reserva: ${name}, ${dateText}, ${formatLisbonSlotTime(startsAt)}` : null}
+                      label={bookable && startsAt ? t("newBookingAtDay", { day: name, date: dateText, time: formats.slotTime(startsAt) }) : null}
                       onClick={() => startsAt && newBooking?.onEmptyTimeClick(layout.pitch.id, startsAt)}
                     />
                   );
                 })}
                 {!day.open ? (
-                  <p className="absolute inset-x-0 top-2 text-center text-xs text-muted-foreground" aria-label={`${name}: fechado`}>
-                    Fechado
+                  <p className="absolute inset-x-0 top-2 text-center text-xs text-muted-foreground" aria-label={t("closedOf", { name })}>
+                    {t("closed")}
                   </p>
                 ) : null}
                 {day.items.map((item) =>
@@ -120,16 +125,16 @@ export function WeekGrid({ layout, selectedId, onOpenBooking, newBooking }: Week
 
 /** Said above the weekly grid when the clocks change in the week, so that the shifted scale is not a surprise. */
 export function ClockChangeNote({ layout }: { layout: WeekLayout }) {
+  const t = useTranslations("calendar.grid");
   if (layout.clockChangeDays.length === 0) {
     return null;
   }
   const days = layout.days.filter((day) => layout.clockChangeDays.includes(day.date));
   return (
     <p role="note" className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
-      Nesta semana o relógio muda (
-      {days.map((day) => `${formatLisbonDate(`${day.date}T12:00:00Z`)}, com ${day.dayMinutes / 60} horas`).join("; ")}). Cada dia está desenhado
-      pelo tempo realmente decorrido desde o seu início, por isso, nesse dia, depois da mudança as reservas ficam uma hora desfasadas da escala
-      das horas; a hora escrita em cada reserva é a certa.
+      {t("clockChange", {
+        days: days.map((day) => t("clockChangeDay", { date: formatLisbonDate(`${day.date}T12:00:00Z`), hours: day.dayMinutes / 60 })).join("; "),
+      })}
     </p>
   );
 }

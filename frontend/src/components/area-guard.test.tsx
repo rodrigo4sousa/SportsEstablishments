@@ -1,5 +1,6 @@
+import { renderWithIntl } from "@/test/intl";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account } from "@/features/auth/api";
 import { AreaGuard } from "./area-guard";
@@ -28,7 +29,7 @@ function accountOf(profile: string): Account {
 
 async function renderGuard(profile: "Owner" | "Admin") {
   const tree = await AreaGuard({ profile, title: "Área", children: <p>Conteúdo da área</p> });
-  render(<QueryClientProvider client={new QueryClient()}>{tree}</QueryClientProvider>);
+  renderWithIntl(<QueryClientProvider client={new QueryClient()}>{tree}</QueryClientProvider>);
 }
 
 describe("AreaGuard", () => {

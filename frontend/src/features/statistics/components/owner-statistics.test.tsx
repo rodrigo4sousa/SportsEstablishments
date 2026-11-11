@@ -132,12 +132,12 @@ describe("OwnerStatistics", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("shows the API's message for a refused period", async () => {
+  it("shows its own message, never the API's text, for a refused period", async () => {
     serve(() => problem(400, "validation_failed", { to: ["A data final não pode ser anterior à inicial."] }));
 
     renderWithProviders(<OwnerStatistics />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("A data final não pode ser anterior à inicial.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até», as datas vão de 2000 a 2100 e o período tem no máximo 366 dias.");
   });
 
   it("shows a message and tries again on request when the numbers cannot be loaded", async () => {

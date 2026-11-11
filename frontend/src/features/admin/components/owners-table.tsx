@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { LoadingRegion } from "@/components/loading-region";
 import { ScrollRegion } from "@/components/scroll-region";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -11,24 +12,21 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { formatLisbonDate } from "@/lib/datetime";
+import { useFormats } from "@/i18n/formats";
+import { useAdminFailureMessage } from "../period-labels";
 import { adminOwnersQueryKey, fetchAdminOwners, type OwnersQuery } from "../api";
 import type { OwnerSort } from "../types";
 
-const number = new Intl.NumberFormat("pt-PT");
-
-const COLUMNS: { sort: OwnerSort; label: string; numeric: boolean }[] = [
-  { sort: "name", label: "Nome", numeric: false },
-  { sort: "email", label: "Email", numeric: false },
-  { sort: "registeredAt", label: "Registo", numeric: false },
-  { sort: "status", label: "Estado", numeric: false },
-  { sort: "clubs", label: "Clubes", numeric: true },
-  { sort: "pitches", label: "Campos", numeric: true },
-  { sort: "bookings", label: "Reservas", numeric: true },
-  { sort: "players", label: "Jogadores", numeric: true },
-];
+const COLUMNS = [
+  { sort: "name", label: "name", numeric: false },
+  { sort: "email", label: "email", numeric: false },
+  { sort: "registeredAt", label: "registered", numeric: false },
+  { sort: "status", label: "status", numeric: false },
+  { sort: "clubs", label: "clubs", numeric: true },
+  { sort: "pitches", label: "pitches", numeric: true },
+  { sort: "bookings", label: "bookings", numeric: true },
+  { sort: "players", label: "players", numeric: true },
+] as const satisfies ReadonlyArray<{ sort: OwnerSort; label: string; numeric: boolean }>;
 
 type OwnersTableProps = {
   query: OwnersQuery;
@@ -41,6 +39,10 @@ type OwnersTableProps = {
  * The only people shown are owners: players appear here only as a count.
  */
 export function OwnersTable({ query, onChange }: OwnersTableProps) {
+  const t = useTranslations("admin.ownersTable");
+  const common = useTranslations("common");
+  const formats = useFormats();
+  const failureMessage = useAdminFailureMessage();
   const owners = useQuery({
     queryKey: adminOwnersQueryKey(query),
     queryFn: () => fetchAdminOwners(query),
@@ -73,18 +75,18 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
         }}
       >
         <div className="flex flex-col gap-1">
-          <Label htmlFor="owners-search">Pesquisar dono</Label>
+          <Label htmlFor="owners-search">{t("search")}</Label>
           <Input
             id="owners-search"
             type="search"
             maxLength={100}
-            placeholder="Nome ou email"
+            placeholder={t("searchPlaceholder")}
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
             className="w-72"
           />
         </div>
-        <Button type="submit">Pesquisar</Button>
+        <Button type="submit">{t("searchButton")}</Button>
         {query.search ? (
           <Button
             type="button"
@@ -94,57 +96,57 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
               onChange({ search: "", page: 1 });
             }}
           >
-            Limpar
+            {t("clear")}
           </Button>
         ) : null}
       </form>
 
       {owners.isError ? (
         <div role="alert" className="flex flex-col items-start gap-3">
-          <p>{owners.error instanceof ApiError ? (Object.values(owners.error.fieldErrors).flat()[0] ?? errorMessage(owners.error.code)) : errorMessage("unknown_error")}</p>
+          <p>{failureMessage(owners.error)}</p>
           <Button type="button" variant="outline" onClick={() => void owners.refetch()}>
-            Tentar novamente
+            {common("retry")}
           </Button>
         </div>
       ) : owners.isPending ? (
-        <LoadingRegion label="A carregar os donos…" className="flex flex-col gap-2">
+        <LoadingRegion label={t("loading")} className="flex flex-col gap-2">
           {[0, 1, 2, 3, 4].map((key) => (
             <Skeleton key={key} className="h-8 w-full" />
           ))}
         </LoadingRegion>
       ) : data!.totalCount === 0 ? (
-        <EmptyState title={query.search ? "Nenhum dono corresponde à pesquisa." : "Ainda não há donos registados."} />
+        <EmptyState title={query.search ? t("noMatch") : t("none")} />
       ) : data!.items.length === 0 ? (
         <div role="status" className="flex flex-col items-start gap-3">
-          <p className="text-muted-foreground">Esta página não tem donos.</p>
+          <p className="text-muted-foreground">{t("emptyPage")}</p>
           <Button type="button" variant="outline" onClick={() => onChange({ page: 1 })}>
-            Voltar à primeira página
+            {t("firstPage")}
           </Button>
         </div>
       ) : (
         <>
           <p role="status" className="text-sm text-muted-foreground">
-            {data!.totalCount === 1 ? "1 dono" : `${number.format(data!.totalCount)} donos`}
+            {t("count", { count: data!.totalCount })}
           </p>
           {/* A phone has no column headers to press, so the order is chosen here (UX-029). */}
           <div className="flex flex-wrap items-end gap-3 sm:hidden">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="owners-sort">Ordenar por</Label>
+              <Label htmlFor="owners-sort">{t("sortBy")}</Label>
               <NativeSelect id="owners-sort" value={query.sort} onChange={(event) => onChange({ sort: event.target.value as OwnerSort, direction: "asc", page: 1 })}>
                 {COLUMNS.map((column) => (
                   <option key={column.sort} value={column.sort}>
-                    {column.label}
+                    {t(column.label)}
                   </option>
                 ))}
               </NativeSelect>
             </div>
             <Button type="button" variant="outline" size="cta" onClick={() => onChange({ direction: query.direction === "asc" ? "desc" : "asc", page: 1 })}>
-              {query.direction === "asc" ? "Ordem crescente" : "Ordem decrescente"}
+              {query.direction === "asc" ? t("ascending") : t("descending")}
             </Button>
           </div>
-          <ScrollRegion label="Donos e os seus números">
+          <ScrollRegion label={t("region")}>
             <table role="table" className="w-full text-sm max-sm:block">
-              <caption className="sr-only">Donos e os seus números</caption>
+              <caption className="sr-only">{t("region")}</caption>
               <thead role="rowgroup" className="border-b bg-muted/50 text-left max-sm:hidden">
                 <tr role="row">
                   {COLUMNS.map((column) => (
@@ -156,7 +158,7 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
                       className={column.numeric ? "px-3 py-2 text-right" : "px-3 py-2"}
                     >
                       <button type="button" onClick={() => sortBy(column.sort)} className="-my-2 py-2 font-medium hover:underline">
-                        {column.label}
+                        {t(column.label)}
                         <span aria-hidden="true">{query.sort === column.sort ? (query.direction === "asc" ? " ↑" : " ↓") : ""}</span>
                       </button>
                     </th>
@@ -171,34 +173,32 @@ export function OwnersTable({ query, onChange }: OwnersTableProps) {
                         {owner.name}
                       </Link>
                     </th>
-                    <td role="cell" data-label="Email" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{owner.email}</td>
-                    <td role="cell" data-label="Registo" className="px-3 py-2 whitespace-nowrap max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formatLisbonDate(owner.registeredAt)}</td>
-                    <td role="cell" data-label="Estado" className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">
+                    <td role="cell" data-label={t("email")} className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{owner.email}</td>
+                    <td role="cell" data-label={t("registered")} className="px-3 py-2 whitespace-nowrap max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formats.date(owner.registeredAt)}</td>
+                    <td role="cell" data-label={t("status")} className="px-3 py-2 max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">
                       {owner.deactivated ? (
-                        <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Desativado</span>
+                        <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">{t("deactivated")}</span>
                       ) : (
-                        <span className="text-muted-foreground">Ativo</span>
+                        <span className="text-muted-foreground">{t("active")}</span>
                       )}
                     </td>
-                    <td role="cell" data-label="Clubes" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.clubs)}</td>
-                    <td role="cell" data-label="Campos" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.pitches)}</td>
-                    <td role="cell" data-label="Reservas" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.bookings)}</td>
-                    <td role="cell" data-label="Jogadores" className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{number.format(owner.players)}</td>
+                    <td role="cell" data-label={t("clubs")} className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formats.count(owner.clubs)}</td>
+                    <td role="cell" data-label={t("pitches")} className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formats.count(owner.pitches)}</td>
+                    <td role="cell" data-label={t("bookings")} className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formats.count(owner.bookings)}</td>
+                    <td role="cell" data-label={t("players")} className="px-3 py-2 text-right tabular-nums max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:px-0 max-sm:py-0.5 max-sm:text-left max-sm:before:text-muted-foreground max-sm:before:content-[attr(data-label)]">{formats.count(owner.players)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </ScrollRegion>
           {pages > 1 ? (
-            <nav aria-label="Páginas de donos" className="flex items-center justify-between gap-3">
+            <nav aria-label={t("pages")} className="flex items-center justify-between gap-3">
               <Button type="button" variant="outline" disabled={data!.page <= 1} onClick={() => onChange({ page: data!.page - 1 })}>
-                Anterior
+                {common("previous")}
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Página {data!.page} de {pages}
-              </p>
+              <p className="text-sm text-muted-foreground">{common("pageOf", { page: data!.page, pages })}</p>
               <Button type="button" variant="outline" disabled={data!.page >= pages} onClick={() => onChange({ page: data!.page + 1 })}>
-                Seguinte
+                {common("next")}
               </Button>
             </nav>
           ) : null}

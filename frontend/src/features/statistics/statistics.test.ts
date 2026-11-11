@@ -14,7 +14,7 @@ describe("pt-PT formatting of the statistics", () => {
     [1234.5, "1234,5 h"], // pt-PT does not group four digits
     [12345.5, "12 345,5 h"],
   ])("writes %s hours as «%s»", (value, expected) => {
-    expect(text(formatHours(value))).toBe(expected);
+    expect(text(formatHours(value, "pt-PT"))).toBe(expected);
   });
 
   it.each([
@@ -24,12 +24,20 @@ describe("pt-PT formatting of the statistics", () => {
     [0.8125, "81,3 %"],
     [1, "100 %"],
   ])("writes the occupation %s as «%s»", (value, expected) => {
-    expect(text(formatOccupation(value))).toBe(expected);
+    expect(text(formatOccupation(value, "pt-PT"))).toBe(expected);
   });
 
   it("groups thousands of bookings like pt-PT", () => {
-    expect(text(formatCount(12345))).toBe("12 345");
-    expect(formatCount(7)).toBe("7");
+    expect(text(formatCount(12345, "pt-PT"))).toBe("12 345");
+    expect(formatCount(7, "pt-PT")).toBe("7");
+  });
+});
+
+describe("English formatting of the statistics (T09)", () => {
+  it("writes hours, occupation and counts the en-GB way", () => {
+    expect(formatHours(4.5, "en")).toBe("4.5 h");
+    expect(formatOccupation(0.8125, "en")).toBe("81.3%");
+    expect(formatCount(12345, "en")).toBe("12,345");
   });
 });
 

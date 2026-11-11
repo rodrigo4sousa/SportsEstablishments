@@ -13,7 +13,7 @@ import {
   formatLisbonDayHeading,
   formatLisbonSlotTime,
   formatLisbonTime,
-  lisbonRepeatedHourLabel,
+  lisbonRepeatedHour,
   lisbonDateKey,
   lisbonToday,
   lisbonInstant,
@@ -25,6 +25,10 @@ import {
   weekdayIndex,
   startOfWeekDateKey,
 } from "./datetime";
+
+// The catalog's words (pt-PT), as `useFormats` passes them.
+const LABELS = { summer: "(verão)", winter: "(inverno)" };
+const DAYS = { today: "Hoje", tomorrow: "Amanhã", yesterday: "Ontem" };
 
 const originalTimeZone = process.env.TZ;
 
@@ -78,10 +82,10 @@ describe.each(browserTimeZones)("in a browser set to $zone", ({ zone, januaryOff
   it("labels the repeated hour on 25 October 2026 as verão then inverno", () => {
     useBrowserTimeZone(zone, januaryOffsetMinutes);
 
-    expect(formatLisbonSlotTime("2026-10-25T00:00:00Z")).toBe("01:00 (verão)");
-    expect(formatLisbonSlotTime("2026-10-25T00:30:00Z")).toBe("01:30 (verão)");
-    expect(formatLisbonSlotTime("2026-10-25T01:00:00Z")).toBe("01:00 (inverno)");
-    expect(formatLisbonSlotTime("2026-10-25T01:30:00Z")).toBe("01:30 (inverno)");
+    expect(formatLisbonSlotTime("2026-10-25T00:00:00Z", LABELS)).toBe("01:00 (verão)");
+    expect(formatLisbonSlotTime("2026-10-25T00:30:00Z", LABELS)).toBe("01:30 (verão)");
+    expect(formatLisbonSlotTime("2026-10-25T01:00:00Z", LABELS)).toBe("01:00 (inverno)");
+    expect(formatLisbonSlotTime("2026-10-25T01:30:00Z", LABELS)).toBe("01:30 (inverno)");
   });
 
   it("uses the Lisbon date around midnight", () => {
@@ -99,20 +103,20 @@ describe.each(browserTimeZones)("in a browser set to $zone", ({ zone, januaryOff
 
 describe("repeated hour label", () => {
   it("is absent outside the repeated hour, including right before and after it", () => {
-    expect(lisbonRepeatedHourLabel("2026-10-24T23:59:00Z")).toBeNull(); // 00:59 WEST
-    expect(lisbonRepeatedHourLabel("2026-10-25T02:00:00Z")).toBeNull(); // 02:00 WET
-    expect(lisbonRepeatedHourLabel("2026-07-15T00:30:00Z")).toBeNull();
-    expect(formatLisbonSlotTime("2026-07-15T09:00:00Z")).toBe("10:00");
+    expect(lisbonRepeatedHour("2026-10-24T23:59:00Z")).toBeNull(); // 00:59 WEST
+    expect(lisbonRepeatedHour("2026-10-25T02:00:00Z")).toBeNull(); // 02:00 WET
+    expect(lisbonRepeatedHour("2026-07-15T00:30:00Z")).toBeNull();
+    expect(formatLisbonSlotTime("2026-07-15T09:00:00Z", LABELS)).toBe("10:00");
   });
 
   it("is absent on the spring-forward day, where no hour repeats", () => {
-    expect(lisbonRepeatedHourLabel("2026-03-29T00:30:00Z")).toBeNull(); // 00:30 WET
-    expect(lisbonRepeatedHourLabel("2026-03-29T01:00:00Z")).toBeNull(); // 02:00 WEST
+    expect(lisbonRepeatedHour("2026-03-29T00:30:00Z")).toBeNull(); // 00:30 WET
+    expect(lisbonRepeatedHour("2026-03-29T01:00:00Z")).toBeNull(); // 02:00 WEST
   });
 
   it("tells apart the two slots that share a wall-clock time", () => {
     // The 60-minute slot 00:00–01:00 UTC runs from 01:00 WEST to 01:00 WET.
-    expect(`${formatLisbonSlotTime("2026-10-25T00:00:00Z")} – ${formatLisbonSlotTime("2026-10-25T01:00:00Z")}`).toBe(
+    expect(`${formatLisbonSlotTime("2026-10-25T00:00:00Z", LABELS)} – ${formatLisbonSlotTime("2026-10-25T01:00:00Z", LABELS)}`).toBe(
       "01:00 (verão) – 01:00 (inverno)",
     );
   });
@@ -120,7 +124,7 @@ describe("repeated hour label", () => {
 
 describe("Lisbon formatting", () => {
   it("formats a long date in Portuguese", () => {
-    expect(formatLisbonLongDate("2026-08-01T10:00:00Z")).toBe("sábado, 1 de agosto");
+    expect(formatLisbonLongDate("2026-08-01T10:00:00Z", "pt-PT")).toBe("sábado, 1 de agosto");
   });
 
   it("accepts instants with an explicit offset and Date objects", () => {
@@ -143,13 +147,13 @@ describe("formatDateKeyLong", () => {
   ])("writes %s as %s, whatever the browser's time zone", (dateKey, expected) => {
     for (const zone of ["UTC", "America/New_York", "Pacific/Kiritimati"]) {
       process.env.TZ = zone;
-      expect(formatDateKeyLong(dateKey)).toBe(expected);
+      expect(formatDateKeyLong(dateKey, "pt-PT")).toBe(expected);
     }
   });
 
   it("rejects what is not a real date", () => {
-    expect(() => formatDateKeyLong("2026-02-30")).toThrow(/YYYY-MM-DD/);
-    expect(() => formatDateKeyLong("amanha")).toThrow(/YYYY-MM-DD/);
+    expect(() => formatDateKeyLong("2026-02-30", "pt-PT")).toThrow(/YYYY-MM-DD/);
+    expect(() => formatDateKeyLong("amanha", "pt-PT")).toThrow(/YYYY-MM-DD/);
   });
 });
 
@@ -295,13 +299,13 @@ describe("date key formatting for the admin charts", () => {
   it("writes a date key in pt-PT whatever the time zone", () => {
     expect(formatDateKey("2026-10-25")).toBe("25/10/2026");
     expect(formatDateKeyShort("2026-10-25")).toBe("25/10");
-    expect(formatDateKeyMonth("2026-10-01")).toBe("outubro de 2026");
+    expect(formatDateKeyMonth("2026-10-01", "pt-PT")).toBe("outubro de 2026");
   });
 
   it("refuses a value that is not a date", () => {
     expect(() => formatDateKey("2026-02-30")).toThrow();
     expect(() => formatDateKeyShort("hoje")).toThrow();
-    expect(() => formatDateKeyMonth("2026-13-01")).toThrow();
+    expect(() => formatDateKeyMonth("2026-13-01", "pt-PT")).toThrow();
   });
 });
 
@@ -315,18 +319,39 @@ describe("the heading of a day in a list of bookings", () => {
     ["2026-10-29T09:00:00Z", "Ontem · quinta-feira, 29 de outubro"],
     ["2026-11-04T10:00:00Z", "quarta-feira, 4 de novembro"],
   ])("writes %s as «%s»", (instant, heading) => {
-    expect(formatLisbonDayHeading(instant, now)).toBe(heading);
+    expect(formatLisbonDayHeading(instant, "pt-PT", DAYS, now)).toBe(heading);
   });
 
   it("adds the year when it is not this year", () => {
-    expect(formatLisbonDayHeading("2025-03-04T10:00:00Z", now)).toBe("terça-feira, 4 de março de 2025");
+    expect(formatLisbonDayHeading("2025-03-04T10:00:00Z", "pt-PT", DAYS, now)).toBe("terça-feira, 4 de março de 2025");
   });
 
   it("uses the Lisbon day, not the browser's, for both the booking and now (in summer, when Lisbon is UTC+1)", () => {
     const summer = new Date("2026-07-15T12:00:00Z");
     // 23:30 UTC on the 15th is already 00:30 on the 16th in Lisbon.
-    expect(formatLisbonDayHeading("2026-07-15T23:30:00Z", summer)).toBe("Amanhã · quinta-feira, 16 de julho");
+    expect(formatLisbonDayHeading("2026-07-15T23:30:00Z", "pt-PT", DAYS, summer)).toBe("Amanhã · quinta-feira, 16 de julho");
     // And someone looking at 23:30 UTC is already on the 16th.
-    expect(formatLisbonDayHeading("2026-07-16T10:00:00Z", new Date("2026-07-15T23:30:00Z"))).toBe("Hoje · quinta-feira, 16 de julho");
+    expect(formatLisbonDayHeading("2026-07-16T10:00:00Z", "pt-PT", DAYS, new Date("2026-07-15T23:30:00Z"))).toBe("Hoje · quinta-feira, 16 de julho");
+  });
+});
+
+describe("in English (T09): en-GB words, the same Lisbon times", () => {
+  const english = { summer: "(summer time)", winter: "(winter time)" };
+
+  it("writes weekdays and months in English", () => {
+    expect(formatLisbonLongDate("2026-08-01T10:00:00Z", "en")).toBe("Saturday 1 August");
+    expect(formatDateKeyLong("2026-08-01", "en")).toBe("Saturday 1 August");
+    expect(formatDateKeyMonth("2026-10-01", "en")).toBe("October 2026");
+  });
+
+  it("labels the repeated October hour with the words it is given", () => {
+    expect(formatLisbonSlotTime("2026-10-25T00:30:00Z", english)).toBe("01:30 (summer time)");
+    expect(formatLisbonSlotTime("2026-10-25T01:30:00Z", english)).toBe("01:30 (winter time)");
+  });
+
+  it("heads a day of another year with the year", () => {
+    const words = { today: "Today", tomorrow: "Tomorrow", yesterday: "Yesterday" };
+    expect(formatLisbonDayHeading("2025-03-04T10:00:00Z", "en", words, new Date("2026-10-30T12:00:00Z"))).toBe("Tuesday, 4 March 2025");
+    expect(formatLisbonDayHeading("2026-10-31T09:00:00Z", "en", words, new Date("2026-10-30T12:00:00Z"))).toBe("Tomorrow · Saturday 31 October");
   });
 });

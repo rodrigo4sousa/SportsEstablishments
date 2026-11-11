@@ -2,16 +2,17 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { calendarBookingQueryKey, calendarQueryKey, cancelClubBooking } from "../api";
-import { CANCEL_REASON_MAX_LENGTH, cancelBookingSchema, type CancelBookingData, type CancelBookingValues } from "../schemas/cancel-booking";
+import { CANCEL_REASON_MAX_LENGTH, createCancelBookingSchema, type CancelBookingData, type CancelBookingValues } from "../schemas/cancel-booking";
 import type { ClubBooking } from "../types";
 
 /** The codes that mean the booking is not what the owner thought: say so, and load it again. */
@@ -35,7 +36,12 @@ type CancelBookingFormProps = {
  */
 export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefused }: CancelBookingFormProps) {
   const queryClient = useQueryClient();
-  const form = useForm<CancelBookingValues, unknown, CancelBookingData>({ resolver: zodResolver(cancelBookingSchema), defaultValues: { reason: "" } });
+  const t = useTranslations("calendar.cancelForm");
+  const validation = useTranslations("calendar.validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("booking");
+  const schema = useMemo(() => createCancelBookingSchema(validation), [validation]);
+  const form = useForm<CancelBookingValues, unknown, CancelBookingData>({ resolver: zodResolver(schema), defaultValues: { reason: "" } });
   const { errors } = form.formState;
 
   // UX-002: the form replaces the button that opened it, so focus goes to its first field.
@@ -53,18 +59,18 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, ["reason"])) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, ["reason"], fieldMessage)) {
         return;
       }
       if (STALE_CODES.has(error.code)) {
-        onRefused(errorMessage(error.code));
+        onRefused(apiErrors.message(error.code));
         await queryClient.invalidateQueries({ queryKey: calendarQueryKey(clubId), refetchType: "all" });
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
@@ -73,7 +79,7 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
   return (
     <form
       noValidate
-      aria-label="Cancelar reserva"
+      aria-label={t("form")}
       className="flex flex-col gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4"
       onSubmit={form.handleSubmit((values) => {
         cancel.mutate(values.reason);
@@ -81,8 +87,8 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
     >
       <FormField
         id={reasonId}
-        label="Motivo do cancelamento"
-        hint={`Obrigatório, até ${CANCEL_REASON_MAX_LENGTH} caracteres.`}
+        label={t("reason")}
+        hint={t("reasonHint", { max: CANCEL_REASON_MAX_LENGTH })}
         error={errors.reason?.message}
       >
         <textarea
@@ -97,10 +103,10 @@ export function CancelBookingForm({ clubId, booking, onCancelled, onKeep, onRefu
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" variant="destructive" disabled={cancel.isPending}>
-          {cancel.isPending ? "A cancelar…" : "Confirmar cancelamento"}
+          {cancel.isPending ? t("cancelling") : t("confirm")}
         </Button>
         <Button type="button" variant="outline" disabled={cancel.isPending} onClick={onKeep}>
-          Manter reserva
+          {t("keep")}
         </Button>
       </div>
     </form>

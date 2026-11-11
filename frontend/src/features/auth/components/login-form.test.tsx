@@ -155,13 +155,13 @@ describe("LoginForm", () => {
     expect(screen.queryByText("Texto qualquer")).not.toBeInTheDocument();
   });
 
-  it("puts the API's validation messages on their fields", async () => {
+  it("marks the fields the API refused, with the catalog's words", async () => {
     server.use(http.post("/api/auth/login", () => problem(400, "validation_failed", { email: ["Indica o teu email."] })));
     renderWithProviders(<LoginForm next={null} />);
 
     await signIn();
 
-    expect(await screen.findByLabelText(/^email$/i)).toHaveAccessibleDescription("Indica o teu email.");
+    expect(await screen.findByLabelText(/^email$/i)).toHaveAccessibleDescription("Indica um email válido, por exemplo nome@exemplo.pt.");
   });
 
   it("shows a toast for an unexpected server error", async () => {
