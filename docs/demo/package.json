@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "record": "node record-demo.mjs",
-    "encode": "node encode-gif.mjs"
+    "encode": "node encode-gif.mjs",
+    "screenshots": "node capture-screenshots.mjs"
   },
   "devDependencies": {
     "playwright": "1.56.1"

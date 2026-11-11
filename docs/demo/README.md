@@ -52,6 +52,17 @@ unset ADMIN_NEW_PASSWORD ADMIN_SEED_PASSWORD
 - **Visible window.** Chromium runs with a window (not headless), because the date field in headless mode shows dates as month/day. A window follows the browser language, and in Chromium every English language (checked: en-GB, en-AU, en-IE, en-NZ) also gives month/day; only `--lang=pt-PT` gives dd/mm/yyyy. So the browser is launched with `--lang=pt-PT` (its own shell, which never appears in the video) while the site is English through the cookie and the `en-GB` context locale. Do not touch the mouse during the recording.
 - **After recording.** Look at frames of the GIF at several moments (`ffmpeg -i ../images/demo.gif -vf fps=1/3 out/f%02d.png`): readable text, no half-loaded states, no spinner at the end and only demo data.
 
+## Screenshots
+
+`capture-screenshots.mjs` takes the eight `docs/images/screenshot-*.png` the same way (English, 1440 px window, same stack, same new-database rule). It first creates the extra data some pictures need (a price band, a block and a customer booking through the API as the demo owners; the weekly series through the interface as `jogador01`), then takes the pictures and reduces each PNG to 128 colours with `ffmpeg`. Use it **right after step 1 and 2 of the recording** (a new database with the demo data) and instead of, or after, the GIF:
+
+```bash
+cd docs/demo
+ADMIN_PASSWORD="$ADMIN_NEW_PASSWORD" npm run screenshots   # writes ../images/screenshot-*.png
+```
+
+It refuses to run against an address that is not `localhost`. Look at every image afterwards (English texts, dd/mm/yyyy dates, nothing cut off); what each shows is in [docs/images](../images/README.md).
+
 ## Data
 
 The dates are relative to the day of the recording (the seed covers the previous 60 days and the next 14). The day shown in the GIF is tomorrow on that day.
