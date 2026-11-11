@@ -150,28 +150,29 @@ public sealed partial class OutboxProcessor(
             var series = BookingSeriesEmailPayload.Deserialize(message.Payload);
             var player = await dbContext.Users.AsNoTracking()
                 .Where(user => user.Id == series.PlayerId)
-                .Select(user => new { user.Email, user.Name })
+                .Select(user => new { user.Email, user.Name, user.PreferredLanguage })
                 .SingleOrDefaultAsync(cancellationToken);
             if (player?.Email is not { Length: > 0 } playerAddress)
             {
                 return new Built(null);
             }
 
-            var summary = BookingSeriesEmailComposer.Compose(series, player.Name);
+            var summary = BookingSeriesEmailComposer.Compose(series, player.Name, PreferredLanguage.ForEmails(player.PreferredLanguage));
             return new Built(new EmailMessage(playerAddress, player.Name, summary.Subject, summary.TextBody, summary.HtmlBody));
         }
 
         var payload = BookingEmailPayload.Deserialize(message.Payload);
         var recipient = await dbContext.Users.AsNoTracking()
             .Where(user => user.Id == payload.PlayerId)
-            .Select(user => new { user.Email, user.Name })
+            .Select(user => new { user.Email, user.Name, user.PreferredLanguage })
             .SingleOrDefaultAsync(cancellationToken);
         if (recipient?.Email is not { Length: > 0 } address)
         {
             return new Built(null);
         }
 
-        var content = BookingEmailComposer.Compose(message.Type, payload, recipient.Name);
+        // T09: in the recipient's language, read now (a change on the account page applies to the emails not sent yet).
+        var content = BookingEmailComposer.Compose(message.Type, payload, recipient.Name, PreferredLanguage.ForEmails(recipient.PreferredLanguage));
         return new Built(new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody));
     }
 
@@ -218,10 +219,16 @@ public sealed partial class OutboxProcessor(
             return new Built(null, SkippedStarted);
         }
 
-        var player = await dbContext.Users.AsNoTracking().Where(user => user.Id == playerId).Select(user => new { user.Name, user.Email }).SingleOrDefaultAsync(cancellationToken);
+        var player = await dbContext.Users.AsNoTracking()
+            .Where(user => user.Id == playerId)
+            .Select(user => new { user.Name, user.Email, user.PreferredLanguage })
+            .SingleOrDefaultAsync(cancellationToken);
         var recipient = isReminder
             ? player
-            : await dbContext.Users.AsNoTracking().Where(user => user.Id == booking.OwnerId).Select(user => new { user.Name, user.Email }).SingleOrDefaultAsync(cancellationToken);
+            : await dbContext.Users.AsNoTracking()
+                .Where(user => user.Id == booking.OwnerId)
+                .Select(user => new { user.Name, user.Email, user.PreferredLanguage })
+                .SingleOrDefaultAsync(cancellationToken);
         if (player is null || recipient?.Email is not { Length: > 0 } address)
         {
             return new Built(null);
@@ -235,7 +242,11 @@ public sealed partial class OutboxProcessor(
 
         var details = new BookingNotificationDetails(
             booking.ClubName, booking.Address, booking.Locality, booking.TimeZoneId, booking.PitchName, booking.StartsAt, booking.EndsAt, player.Name);
-        var content = isReminder ? BookingNotificationComposer.Reminder(details, recipient.Name) : BookingNotificationComposer.OwnerNewBooking(details, recipient.Name);
+        // T09: the recipient's language (the owner's for US23, the player's for US21).
+        var language = PreferredLanguage.ForEmails(recipient.PreferredLanguage);
+        var content = isReminder
+            ? BookingNotificationComposer.Reminder(details, recipient.Name, language)
+            : BookingNotificationComposer.OwnerNewBooking(details, recipient.Name, language);
         return new Built(new EmailMessage(address, recipient.Name, content.Subject, content.TextBody, content.HtmlBody));
     }
 

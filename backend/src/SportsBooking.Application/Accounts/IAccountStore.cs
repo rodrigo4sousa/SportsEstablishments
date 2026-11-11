@@ -25,10 +25,16 @@ public interface IAccountStore
 
     /// <summary>US30: true when the person deleted this account. Asked on every authenticated request, so an access token stops working at once.</summary>
     Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>T09: sets the language of the account's emails (a supported code). False when the account does not exist or was deleted.</summary>
+    Task<bool> ChangePreferredLanguageAsync(Guid userId, string code, CancellationToken cancellationToken);
 }
 
 /// <summary>A validated, normalized registration.</summary>
-public sealed record NewAccount(string Name, string Email, string Password, string? Phone, string AcceptedTermsVersion);
+public sealed record NewAccount(string Name, string Email, string Password, string? Phone, string AcceptedTermsVersion, string? PreferredLanguage = null);
 
-/// <summary>The signed-in account, as returned by <c>GET /api/auth/me</c>. <see cref="Profile"/> is Player, Owner or Admin.</summary>
-public sealed record AccountResponse(Guid Id, string Name, string Email, string Profile);
+/// <summary>
+/// The signed-in account, as returned by <c>GET /api/auth/me</c>. <see cref="Profile"/> is Player, Owner or Admin. <see cref="PreferredLanguage"/>
+/// is the language of the account's emails (T09): <c>pt-PT</c>, <c>en</c>, or null when none was chosen (the emails are then in pt-PT).
+/// </summary>
+public sealed record AccountResponse(Guid Id, string Name, string Email, string Profile, string? PreferredLanguage = null);

@@ -82,6 +82,8 @@ public sealed class LoginServiceTests
 
         public Task<bool> IsDeletedAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(false);
 
+        public Task<bool> ChangePreferredLanguageAsync(Guid userId, string code, CancellationToken cancellationToken) => Task.FromResult(true);
+
         public AccountResponse? Account { get; set; }
 
         public List<(string Email, string Password)> Checked { get; } = [];

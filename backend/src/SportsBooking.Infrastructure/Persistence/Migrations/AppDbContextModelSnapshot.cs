@@ -794,6 +794,11 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("phone_number_confirmed");
 
+                    b.Property<string>("PreferredLanguage")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("preferred_language");
+
                     b.Property<DateTime>("RegisteredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("registered_at");
@@ -829,7 +834,10 @@ namespace SportsBooking.Infrastructure.Persistence.Migrations
                     b.HasIndex("RegisteredAt")
                         .HasDatabaseName("ix_users_registered_at");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_users_preferred_language", "preferred_language IS NULL OR preferred_language IN ('pt-PT', 'en')");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

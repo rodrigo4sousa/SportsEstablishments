@@ -36,7 +36,21 @@ public sealed class AppUser : IdentityUser<Guid>
     /// <summary>When the person deleted the account (US30), in UTC; null otherwise. The row stays, anonymized, for what points to it.</summary>
     public DateTime? DeletedAt { get; private set; }
 
+    /// <summary>
+    /// T09: the language of the account's emails, <c>pt-PT</c> or <c>en</c> (<see cref="Domain.Accounts.PreferredLanguage"/>); null means
+    /// none was chosen, and the emails are in pt-PT. Set at registration from the site's language and changed on the account page.
+    /// </summary>
+    public string? PreferredLanguage { get; private set; }
+
     public bool IsActive => DeactivatedAt is null;
+
+    /// <summary>T09: a supported code, or null for no preference.</summary>
+    public void ChangePreferredLanguage(string? code)
+    {
+        PreferredLanguage = code is null || Domain.Accounts.PreferredLanguage.IsSupported(code)
+            ? code
+            : throw new ArgumentOutOfRangeException(nameof(code), "Not a supported language code.");
+    }
 
     /// <summary>T07: records what the person accepted when signing up.</summary>
     public void RecordTermsAcceptance(string version, DateTime acceptedAt)

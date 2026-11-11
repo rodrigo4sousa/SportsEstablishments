@@ -2927,6 +2927,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/preferred-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePreferredLanguageRequest"];
+                    "application/*+json": components["schemas"]["ChangePreferredLanguageRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/delete-account": {
         parameters: {
             query?: never;
@@ -3071,6 +3127,7 @@ export interface components {
             name: string;
             email: string;
             profile: string;
+            preferredLanguage?: null | string;
         };
         AdminOwnerDetailResponse: {
             /** Format: uuid */
@@ -3208,6 +3265,9 @@ export interface components {
         CancelClubBookingRequest: {
             reason: string;
         };
+        ChangePreferredLanguageRequest: {
+            preferredLanguage: string;
+        };
         ClubBookingResponse: {
             /** Format: uuid */
             id: string;
@@ -3303,6 +3363,7 @@ export interface components {
             profile: string;
             /** Format: date-time */
             registeredAt: string;
+            preferredLanguage: null | string;
         };
         ExportedBooking: {
             clubName: string;
@@ -3656,6 +3717,7 @@ export interface components {
             password: string;
             acceptedTermsVersion: string;
             phone?: null | string;
+            preferredLanguage?: null | string;
         };
         RegistrationsBucket: {
             start: string;

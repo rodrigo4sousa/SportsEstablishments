@@ -3158,6 +3158,53 @@
         }
       }
     },
+    "/api/me/preferred-language": {
+      "put": {
+        "tags": [
+          "MeAccount"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePreferredLanguageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePreferredLanguageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/delete-account": {
       "post": {
         "tags": [
@@ -3346,6 +3393,12 @@
           },
           "profile": {
             "type": "string"
+          },
+          "preferredLanguage": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3858,6 +3911,17 @@
           }
         }
       },
+      "ChangePreferredLanguageRequest": {
+        "required": [
+          "preferredLanguage"
+        ],
+        "type": "object",
+        "properties": {
+          "preferredLanguage": {
+            "type": "string"
+          }
+        }
+      },
       "ClubBookingResponse": {
         "required": [
           "id",
@@ -4209,7 +4273,8 @@
           "email",
           "phone",
           "profile",
-          "registeredAt"
+          "registeredAt",
+          "preferredLanguage"
         ],
         "type": "object",
         "properties": {
@@ -4231,6 +4296,12 @@
           "registeredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "preferredLanguage": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5641,6 +5712,12 @@
             "type": "string"
           },
           "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "preferredLanguage": {
             "type": [
               "null",
               "string"
