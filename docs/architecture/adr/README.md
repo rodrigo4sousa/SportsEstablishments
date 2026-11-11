@@ -1,23 +1,23 @@
-# Registos de decisões de arquitetura (ADR)
+# Architecture decision records (ADR)
 
-Cada ADR regista uma decisão importante: o contexto, a decisão, as alternativas consideradas e as consequências. Uma ADR aceite não se reescreve; se a decisão mudar, escreve-se uma nova que a substitui e a antiga passa a «Substituída por …». Os elementos referidos usam os ids do [inventário](../inventory.md).
+Each ADR records an important decision: the context, the decision, the alternatives considered and the consequences. An accepted ADR is not rewritten; if the decision changes, a new one is written that replaces it and the old one becomes "Superseded by …". The elements mentioned use the ids from the [inventory](../inventory.md).
 
-Nome dos ficheiros: `NNNN-titulo-curto.md` (por exemplo `0001-uma-app-tres-areas.md`).
+File names: `NNNN-short-title.md` (for example `0001-one-app-three-areas.md`).
 
-**Estados:** «Por escrever» (ainda sem ficheiro; hoje nenhuma), «Proposta» (escrita, ainda não aceite: a decisão pode mudar), «Aceite», «Substituída por …».
+**Statuses:** "To be written" (no file yet; none today), "Proposed" (written, not yet accepted: the decision may change), "Accepted", "Superseded by …".
 
-## Índice
+## Index
 
-| N.º | Título | Estado | Numa linha |
+| No. | Title | Status | In one line |
 | --- | --- | --- | --- |
-| [0001](0001-uma-app-tres-areas.md) | Uma só aplicação com três áreas | Aceite | Um Next.js com `/`, `/manage` e `/admin` sobre uma só API, em vez de uma aplicação por perfil. |
-| [0002](0002-sessao-em-cookies-httponly.md) | Sessão em cookies httpOnly em vez de localStorage | Aceite | JWT curto e refresh token rotativo em cookies httpOnly, na mesma origem, para que nenhum script consiga ler a sessão. |
-| [0003](0003-exclusion-constraint-reservas.md) | Exclusion constraint contra reservas duplicadas | Aceite | A base de dados garante que duas reservas confirmadas do mesmo campo nunca se sobrepõem, mesmo com pedidos simultâneos. |
-| [0004](0004-outbox-para-emails.md) | Outbox para os emails | Aceite | Os emails entram numa tabela na mesma transação da alteração e um worker envia-os depois, sem atrasar nem falhar os pedidos. |
-| [0005](0005-marketplace-unico.md) | Um marketplace em vez de um site por dono | Aceite | Uma conta de jogador serve em todos os clubes de todos os donos; não há sites nem domínios por dono. |
-| [0006](0006-ids-guid-v7.md) | Ids públicos GUID v7 | Aceite | Ids `Guid.CreateVersion7()` nas entidades de negócio e de contas: não revelam quantas existem e ordenam-se pela criação. |
-| [0007](0007-slots-calculados.md) | Slots calculados, não guardados | Aceite | Os slots geram-se do horário quando são precisos; só se guardam reservas e bloqueios, e uma mudança de horário nunca toca nas reservas. |
-| [0008](0008-chaves-data-protection-na-base-de-dados.md) | Chaves do Data Protection na base de dados | Aceite | As chaves que protegem os tokens de recuperação vivem no PostgreSQL, para sobreviverem a reinícios e servirem várias instâncias. |
-| [0009](0009-alvo-de-implantacao.md) | Alvo de implantação | Aceite (T06) | Site na Vercel, API com o worker num serviço público do Render gratuito, Supabase, Brevo e GitHub Actions; o Next.js é o proxy da mesma origem, sem Caddy. Substitui a máquina virtual com Caddy da Stack. Aceite depois do primeiro deploy real. |
-| [0010](0010-testes-end-to-end-playwright.md) | Testes end-to-end com Playwright | Aceite | Três fluxos em Chromium contra o docker compose com os dados de demonstração, num workflow à parte (`e2e.yml`) para não atrasar o deploy. |
-| [0011](0011-apagar-conta-por-anonimizacao.md) | Apagar a conta por anonimização | Aceite (US30) | A linha da conta fica, sem dados pessoais, para o histórico dos clubes; numa só transação cancelam-se as reservas futuras, terminam as sessões e saem os emails por enviar. |
+| [0001](0001-one-app-three-areas.md) | A single application with three areas | Accepted | One Next.js app with `/`, `/manage` and `/admin` on top of one API, instead of one application per profile. |
+| [0002](0002-session-in-httponly-cookies.md) | Session in httpOnly cookies instead of localStorage | Accepted | A short-lived JWT and a rotating refresh token in httpOnly cookies, on the same origin, so that no script can read the session. |
+| [0003](0003-booking-exclusion-constraint.md) | Exclusion constraint against duplicate bookings | Accepted | The database guarantees that two confirmed bookings of the same pitch never overlap, even with simultaneous requests. |
+| [0004](0004-outbox-for-emails.md) | Outbox for emails | Accepted | Emails go into a table in the same transaction as the change and a worker sends them later, without slowing down or failing the requests. |
+| [0005](0005-single-marketplace.md) | One marketplace instead of one site per owner | Accepted | One player account works at every club of every owner; there are no per-owner sites or domains. |
+| [0006](0006-guid-v7-ids.md) | GUID v7 public ids | Accepted | `Guid.CreateVersion7()` ids on business and account entities: they do not reveal how many exist and they sort by creation time. |
+| [0007](0007-calculated-slots.md) | Slots are calculated, not stored | Accepted | Slots are generated from the schedule when they are needed; only bookings and blocks are stored, and a schedule change never touches bookings. |
+| [0008](0008-data-protection-keys-in-the-database.md) | Data Protection keys in the database | Accepted | The keys that protect the recovery tokens live in PostgreSQL, so they survive restarts and serve several instances. |
+| [0009](0009-deployment-target.md) | Deployment target | Accepted (T06) | Site on Vercel, API with the worker in a public free Render service, Supabase, Brevo and GitHub Actions; Next.js is the same-origin proxy, with no Caddy. Replaces the Stack's virtual machine with Caddy. Accepted after the first real deploy. |
+| [0010](0010-playwright-end-to-end-tests.md) | End-to-end tests with Playwright | Accepted | Three flows in Chromium against docker compose with the demo data, in a separate workflow (`e2e.yml`) so it does not slow down the deploy. |
+| [0011](0011-account-deletion-by-anonymization.md) | Deleting the account by anonymization | Accepted (US30) | The account row stays, without personal data, for the clubs' history; in a single transaction future bookings are cancelled, sessions end and unsent emails are removed. |

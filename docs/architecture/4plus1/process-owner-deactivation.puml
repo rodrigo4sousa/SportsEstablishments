@@ -1,41 +1,41 @@
-' 4+1 vista de processo - Desativar um dono (US29) · atualização condicional, registo de auditoria e revogação numa transação
+' 4+1 process view - Deactivate an owner (US29) · conditional update, audit record and revocation in one transaction
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: Atualização condicional, registo de auditoria e revogação das sessões numa só transação (US29).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: Conditional update, audit record and session revocation in a single transaction (US29).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-owner-deactivation
 !include ../style.puml
 
-title Vista de processo - desativar um dono (US29): atualização condicional, registo de auditoria e revogação numa transação
+title Process view - deactivate an owner (US29): conditional update, audit record and revocation in one transaction
 autonumber
 
-participant "Página do dono" as WEB_F_ADMIN
-box "API ASP.NET Core"
-  participant "Autorização" as CC_AUTHZ
-  participant "Administração" as API_ADMIN
+participant "Owner page" as WEB_F_ADMIN
+box "ASP.NET Core API"
+  participant "Authorization" as CC_AUTHZ
+  participant "Administration" as API_ADMIN
 end box
 database "users" as DB_USERS
 database "owner_status_changes" as DB_STATUSCHG
 database "refresh_tokens" as DB_REFRESH
 
 WEB_F_ADMIN -> CC_AUTHZ : POST /api/admin/owners/{id}/deactivate { reason } [apiJson]
-CC_AUTHZ -> API_ADMIN : Sessão Admin (senão 401 ou 403) → DeactivateAsync
-API_ADMIN -> DB_USERS : AdminOwnersService.GetAsync: um dono? (404 owner_not_found,\ntambém para jogador ou admin), antes do corpo [SELECT]
-API_ADMIN -> API_ADMIN : Valida reason: obrigatório, aparado, ≤ 500 (400)
-API_ADMIN -> CC_AUTHZ : adminId = ICurrentUser.UserId (da sessão, nunca do pedido)
-group Transação (TryChangeAsync)
+CC_AUTHZ -> API_ADMIN : Admin session (otherwise 401 or 403) → DeactivateAsync
+API_ADMIN -> DB_USERS : AdminOwnersService.GetAsync: an owner? (404 owner_not_found,\nalso for a player or an admin), before the body [SELECT]
+API_ADMIN -> API_ADMIN : Validates reason: required, trimmed, ≤ 500 (400)
+API_ADMIN -> CC_AUTHZ : adminId = ICurrentUser.UserId (from the session, never from the request)
+group Transaction (TryChangeAsync)
   API_ADMIN -> DB_USERS : UPDATE users SET deactivated_at = now WHERE id = … AND\ndeactivated_at IS NULL [ExecuteUpdate]
-  alt 0 linhas (já desativado, ou outro admin ganhou)
+  alt 0 rows (already deactivated, or another admin won)
     API_ADMIN -> DB_USERS : ROLLBACK [SQL]
     API_ADMIN --> WEB_F_ADMIN : 422 owner_already_deactivated
-  else 1 linha
+  else 1 row
     API_ADMIN -> DB_STATUSCHG : OwnerStatusChange.Record(ownerId, Deactivated, reason, adminId,\nnow) [INSERT]
-    API_ADMIN -> DB_REFRESH : Revoga todos os refresh tokens do dono [UPDATE … SET revoked_at\nWHERE user_id = … AND revoked_at IS NULL]
+    API_ADMIN -> DB_REFRESH : Revokes all the owner's refresh tokens [UPDATE … SET revoked_at\nWHERE user_id = … AND revoked_at IS NULL]
     API_ADMIN -> DB_USERS : COMMIT [SQL]
-    API_ADMIN -> DB_USERS : GetAsync outra vez (futureBookings: reservas que continuam\nconfirmadas) [SELECT]
+    API_ADMIN -> DB_USERS : GetAsync again (futureBookings: bookings that stay\nconfirmed) [SELECT]
     API_ADMIN --> WEB_F_ADMIN : 200 AdminOwnerDetailResponse
     WEB_F_ADMIN -> WEB_F_ADMIN : invalidateQueries(['admin'])
   end
 end
-note over WEB_F_ADMIN, DB_REFRESH: Nenhuma reserva é cancelada. O access token já emitido vale até 15 min (aceite).\nDepois: login, refresh, páginas públicas e novas reservas recusam pelas\nverificações de deactivated_at.
+note over WEB_F_ADMIN, DB_REFRESH: No booking is cancelled. The access token already issued is valid for up to 15 min (accepted).\nAfterwards: login, refresh, public pages and new bookings refuse through the\ndeactivated_at checks.
 @enduml

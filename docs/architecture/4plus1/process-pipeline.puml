@@ -1,70 +1,70 @@
-' 4+1 vista de processo - Pipeline de um pedido na API · a ordem de Program.cs
+' 4+1 process view - Pipeline of an API request · the order in Program.cs
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: A ordem dos middlewares de um pedido é a de Api/Program.cs.
-' Não desenhado: detalhe interno das classes.
+' For: whoever writes code and whoever debugs.
+' Documented decision: The order of a request's middlewares is that of Api/Program.cs.
+' Not drawn: internal detail of the classes.
 @startuml process-pipeline
 !include ../style.puml
 
-title Vista de processo - pipeline de um pedido na API: a ordem de Program.cs
+title Process view - pipeline of an API request: the order in Program.cs
 
 start
-:Pedido HTTP na API
-(dos rewrites do Next.js ou, em desenvolvimento, direto na porta 5080);
+:HTTP request to the API
+(from the Next.js rewrites or, in development, straight to port 5080);
 note right
-  O WebApplication junta UseRouting antes dos middlewares
-  de Program.cs: o endpoint já está escolhido, por isso os
-  middlewares seguintes leem os seus atributos
+  WebApplication adds UseRouting before the middlewares
+  in Program.cs: the endpoint is already chosen, so the
+  following middlewares read its attributes
   ([EnableRateLimiting], [AllowAnonymous], [Authorize]).
 end note
 :UseForwardedHeaders
-o IP do cliente vem de X-Forwarded-For só quando a ligação
-vem de ForwardedHeaders:KnownProxies / KnownNetworks;
+the client IP comes from X-Forwarded-For only when the connection
+comes from ForwardedHeaders:KnownProxies / KnownNetworks;
 :UseResponseSecurityHeaders
-X-Content-Type-Options: nosniff em todas as respostas,
-também nos erros e nas recusas que vêm a seguir;
-:UseExceptionHandler e UseStatusCodePages
-envolvem tudo o que vem a seguir;
+X-Content-Type-Options: nosniff on every response,
+also on the errors and refusals that come next;
+:UseExceptionHandler and UseStatusCodePages
+wrap everything that follows;
 if (UseOriginCheck
-POST, PUT, PATCH ou DELETE sem um Origin aceite?) then (sim)
+POST, PUT, PATCH or DELETE without an accepted Origin?) then (yes)
   :403 origin_not_allowed;
   stop
-else (não)
+else (no)
 endif
 if (UseRateLimiter
-o endpoint tem [EnableRateLimiting]
-e a janela do IP (/64 em IPv6) esgotou?) then (sim)
+does the endpoint have [EnableRateLimiting]
+and is the IP's window (/64 on IPv6) used up?) then (yes)
   :429 too_many_requests
-  com Retry-After;
+  with Retry-After;
   stop
-else (não)
+else (no)
 endif
-:Swagger UI e /openapi (só Development);
+:Swagger UI and /openapi (Development only);
 :UseAuthentication
-o JwtBearer lê o cookie access_token
-(sem ir à base de dados);
+JwtBearer reads the access_token cookie
+(without going to the database);
 if (UseAuthorization
-sem sessão num endpoint sem [AllowAnonymous]?) then (sim)
+no session on an endpoint without [AllowAnonymous]?) then (yes)
   :401 unauthorized;
   stop
-elseif (sessão de um perfil que a política
-do endpoint não aceita?) then (sim)
+elseif (session of a profile that the endpoint's
+policy does not accept?) then (yes)
   :403 forbidden;
   stop
-else (passa)
+else (passes)
 endif
-:Controller (componente da API) → serviço (Application)
-devolve Result<T>;
-if (ServiceError?) then (sim)
+:Controller (API component) → service (Application)
+returns Result<T>;
+if (ServiceError?) then (yes)
   :this.Problem(error)
-  ProblemDetails com code e traceId;
-else (não)
+  ProblemDetails with code and traceId;
+else (no)
   :2xx;
 endif
 note right
-  Uma exceção não tratada sobe até
+  An unhandled exception goes up to
   GlobalExceptionHandler:
-  log Error e 500 internal_error.
+  Error log and 500 internal_error.
 end note
 stop
 @enduml

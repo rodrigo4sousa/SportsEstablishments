@@ -1,63 +1,63 @@
-' C4 nível 3 - Componentes do front end · rotas, guardas e caminhos até à API
+' C4 level 3 - Front end components · routes, guards and paths to the API
 ' Version 1.1 - 2026-11-10
-' Não desenhado: classes individuais, salvo quando são o próprio componente.
+' Not drawn: individual classes, except when they are the component itself.
 @startuml 03-components-web
 !include <C4/C4_Component>
 !include ../style.puml
 
-title Componentes do front end - rotas, guardas e caminhos até à API
+title Front end components - routes, guards and paths to the API
 
 LAYOUT_TOP_DOWN()
 
 Container(C_BROWSER, "Browser", "Browser")
 
-Container_Boundary(C_WEB, "Aplicação Next.js") {
+Container_Boundary(C_WEB, "Next.js application") {
   Component(WEB_PROXY, "proxy.ts", "Next.js proxy")
-  Component(WEB_AREA_PLAYER, "Área do jogador", "app/(player)")
-  Component(WEB_AREA_MANAGE, "Área do dono", "app/manage")
-  Component(WEB_AREA_ADMIN, "Área do admin", "app/admin")
-  Component(WEB_AREA_ACCOUNT, "Páginas de conta", "app/login, register, forgot-password, reset-password")
-  Component(WEB_GUARDS, "Guardas", "AreaGuard, PlayerGuard, GuestOnly, lib/auth/redirects")
-  Component(WEB_SERVER, "Chamadas no servidor", "lib/server (server-only)")
-  Component(WEB_API_CLIENT, "Cliente da API", "lib/api/client.ts (corre no browser)")
+  Component(WEB_AREA_PLAYER, "Player area", "app/(player)")
+  Component(WEB_AREA_MANAGE, "Owner area", "app/manage")
+  Component(WEB_AREA_ADMIN, "Admin area", "app/admin")
+  Component(WEB_AREA_ACCOUNT, "Account pages", "app/login, register, forgot-password, reset-password")
+  Component(WEB_GUARDS, "Guards", "AreaGuard, PlayerGuard, GuestOnly, lib/auth/redirects")
+  Component(WEB_SERVER, "Server-side calls", "lib/server (server-only)")
+  Component(WEB_API_CLIENT, "API client", "lib/api/client.ts (runs in the browser)")
   Component(WEB_REWRITE, "Rewrites", "next.config.ts")
 }
 
-Container(C_API, "API ASP.NET Core", ".NET 10")
+Container(C_API, "ASP.NET Core API", ".NET 10")
 
-Rel(C_BROWSER, WEB_PROXY, $plain("Pede uma página de área com guarda"), "HTTP")
-Rel(C_BROWSER, WEB_AREA_PLAYER, $plain("Abre páginas públicas"), "HTTP")
-Rel(C_BROWSER, WEB_AREA_ACCOUNT, $plain("Abre login e registo"), "HTTP")
-Rel(WEB_PROXY, WEB_GUARDS, $plain("Passa o caminho para o regresso depois do login"), "x-pathname")
-Rel(WEB_AREA_MANAGE, WEB_GUARDS, $plain("Layout com AreaGuard (Owner)"), "")
-Rel(WEB_AREA_ADMIN, WEB_GUARDS, $plain("Layout com AreaGuard (Admin)"), "")
-Rel(WEB_AREA_PLAYER, WEB_GUARDS, $plain("/bookings com PlayerGuard"), "")
-Rel(WEB_AREA_ACCOUNT, WEB_GUARDS, $plain("GuestOnly (não em /reset-password)"), "")
-Rel(WEB_GUARDS, WEB_SERVER, $plain("Quem tem sessão?"), "getSessionAccount")
-Rel(WEB_AREA_PLAYER, WEB_SERVER, $plain("Página do clube"), "loadPublicClub")
-Rel(WEB_AREA_ADMIN, WEB_SERVER, $plain("Totais do primeiro desenho"), "loadAdminStats")
-Rel(WEB_AREA_PLAYER, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
-Rel(WEB_AREA_MANAGE, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
-Rel(WEB_AREA_ADMIN, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
-Rel(WEB_AREA_ACCOUNT, WEB_API_CLIENT, $plain("Client Components chamam a API"), "")
-Rel(WEB_API_CLIENT, WEB_REWRITE, $plain("fetch de /api/* na mesma origem"), "HTTP, cookies")
-Rel(WEB_REWRITE, C_API, $plain("Reencaminha /api/*"), "HTTP, API_INTERNAL_URL")
+Rel(C_BROWSER, WEB_PROXY, $plain("Requests a guarded area page"), "HTTP")
+Rel(C_BROWSER, WEB_AREA_PLAYER, $plain("Opens public pages"), "HTTP")
+Rel(C_BROWSER, WEB_AREA_ACCOUNT, $plain("Opens login and registration"), "HTTP")
+Rel(WEB_PROXY, WEB_GUARDS, $plain("Passes the path for the return after login"), "x-pathname")
+Rel(WEB_AREA_MANAGE, WEB_GUARDS, $plain("Layout with AreaGuard (Owner)"), "")
+Rel(WEB_AREA_ADMIN, WEB_GUARDS, $plain("Layout with AreaGuard (Admin)"), "")
+Rel(WEB_AREA_PLAYER, WEB_GUARDS, $plain("/bookings with PlayerGuard"), "")
+Rel(WEB_AREA_ACCOUNT, WEB_GUARDS, $plain("GuestOnly (not on /reset-password)"), "")
+Rel(WEB_GUARDS, WEB_SERVER, $plain("Who has a session?"), "getSessionAccount")
+Rel(WEB_AREA_PLAYER, WEB_SERVER, $plain("Club page"), "loadPublicClub")
+Rel(WEB_AREA_ADMIN, WEB_SERVER, $plain("Totals for the first render"), "loadAdminStats")
+Rel(WEB_AREA_PLAYER, WEB_API_CLIENT, $plain("Client Components call the API"), "")
+Rel(WEB_AREA_MANAGE, WEB_API_CLIENT, $plain("Client Components call the API"), "")
+Rel(WEB_AREA_ADMIN, WEB_API_CLIENT, $plain("Client Components call the API"), "")
+Rel(WEB_AREA_ACCOUNT, WEB_API_CLIENT, $plain("Client Components call the API"), "")
+Rel(WEB_API_CLIENT, WEB_REWRITE, $plain("Same-origin fetch of /api/*"), "HTTP, cookies")
+Rel(WEB_REWRITE, C_API, $plain("Forwards /api/*"), "HTTP, API_INTERNAL_URL")
 Rel(WEB_SERVER, C_API, $plain("GET /api/auth/me, /api/clubs/{slug}, /api/admin/stats"), "HTTP, API_INTERNAL_URL")
 
 note right of WEB_SERVER
-  **URL interno da API (API_INTERNAL_URL)**
-  Hoje, no compose: http://api:8080
-  (argumento de build para os rewrites
-  e variável de ambiente em execução).
-  **Em produção (T06):** o URL público do
-  serviço da API no Render.
+  **Internal API URL (API_INTERNAL_URL)**
+  Today, in compose: http://api:8080
+  (build argument for the rewrites
+  and environment variable at run time).
+  **In production (T06):** the public URL of
+  the API service on Render.
 end note
 
 note bottom of WEB_API_CLIENT
-  O estado que o utilizador escolhe (passo da
-  reserva, vista do calendário, filtros, páginas)
-  vive no endereço da página (useSearchParams,
-  router.replace), não num store. Os dados da API
-  ficam no TanStack Query.
+  What the user chooses (booking step,
+  calendar view, filters, pages)
+  lives in the page address (useSearchParams,
+  router.replace), not in a store. API data
+  stays in TanStack Query.
 end note
 @enduml

@@ -1,33 +1,33 @@
-' 4+1 vista lógica - Estados de uma mensagem do outbox (D-OUTBOX) · OutboxMessage
+' 4+1 logical view - States of an outbox message (D-OUTBOX) · OutboxMessage
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: O email é gravado no outbox na transação de quem o pede e enviado depois, com novas tentativas (ADR 0004).
-' Não desenhado: controllers, HTTP e ecrãs.
+' For: whoever writes the code.
+' Documented decision: The email is saved in the outbox in the requester's transaction and sent later, with retries (ADR 0004).
+' Not drawn: controllers, HTTP and screens.
 @startuml logical-state-outbox
 !include ../style.puml
-title Vista lógica - estados de uma mensagem do outbox: OutboxMessage
+title Logical view - states of an outbox message: OutboxMessage
 
 hide empty description
-state Pendente : IsPending\nSentAt, FailedAt e SkippedAt vazios\ndevida quando NextAttemptAt ≤ agora
-state Enviada : SentAt
-state Ignorada : SkippedAt\nnão é uma falha
-state Falhada : FailedAt\nnunca mais tentada
+state Pending : IsPending\nSentAt, FailedAt and SkippedAt empty\ndue when NextAttemptAt ≤ now
+state Sent : SentAt
+state Skipped : SkippedAt\nnot a failure
+state Failed : FailedAt\nnever tried again
 
-[*] --> Pendente : OutboxMessage.Create(type, payload, now, dueAt?)\nna transação da alteração (BookingEmailOutbox, PasswordResetStore)
-Pendente --> Enviada : MarkSent(now)\nIEmailSender.SendAsync teve sucesso
-Pendente --> Pendente : RecordFailure(error, now, retry) → false\n[Attempts < MaxAttempts]\nNextAttemptAt = now + DelayAfter(Attempts)
-Pendente --> Falhada : RecordFailure(…) → true\n[Attempts ≥ MaxAttempts]
-Pendente --> Falhada : GiveUp(error, now)\nsem destinatário (recipient_not_found)\nou erro ao ler/compor
-Pendente --> Ignorada : Skip(reason, now)\nlembrete: booking_not_confirmed, booking_started\naviso ao dono: owner_deactivated
-Enviada --> [*]
-Ignorada --> [*]
-Falhada --> [*]
+[*] --> Pending : OutboxMessage.Create(type, payload, now, dueAt?)\nin the transaction of the change (BookingEmailOutbox, PasswordResetStore)
+Pending --> Sent : MarkSent(now)\nIEmailSender.SendAsync succeeded
+Pending --> Pending : RecordFailure(error, now, retry) → false\n[Attempts < MaxAttempts]\nNextAttemptAt = now + DelayAfter(Attempts)
+Pending --> Failed : RecordFailure(…) → true\n[Attempts ≥ MaxAttempts]
+Pending --> Failed : GiveUp(error, now)\nno recipient (recipient_not_found)\nor error reading/composing
+Pending --> Skipped : Skip(reason, now)\nreminder: booking_not_confirmed, booking_started\nowner notice: owner_deactivated
+Sent --> [*]
+Skipped --> [*]
+Failed --> [*]
 
-note bottom of Pendente
-  Só OutboxProcessor.ProcessDueAsync muda o estado
-  (FOR UPDATE SKIP LOCKED, uma transação por lote).
-  ck_outbox_messages_one_outcome: no máximo um de
-  sent_at, failed_at, skipped_at. Entrega «pelo menos uma vez».
+note bottom of Pending
+  Only OutboxProcessor.ProcessDueAsync changes the state
+  (FOR UPDATE SKIP LOCKED, one transaction per batch).
+  ck_outbox_messages_one_outcome: at most one of
+  sent_at, failed_at, skipped_at. «At least once» delivery.
 end note
 
 @enduml

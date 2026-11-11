@@ -1,33 +1,33 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · estrutura do repositório
+' 4+1 development view - Development view · repository structure
 ' Version 1.4 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: Um só repositório com o back end, o front end, a documentação e o CI.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: A single repository with the back end, the front end, the documentation and CI.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-repo
 !include ../style.puml
-title Vista de desenvolvimento - estrutura do repositório
+title Development view - repository structure
 
 skinparam defaultTextAlignment left
 
-folder "/ · raiz do repositório" as ROOT {
-  rectangle "Configuração da raiz\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md,\nLICENSE, SECURITY.md" as DEV_ROOTCFG
-  rectangle "docker-compose.yml\npostgres, mailpit, api, frontend\n(e2e/: compose.e2e.yml e os testes Playwright)" as DEV_COMPOSE
+folder "/ · repository root" as ROOT {
+  rectangle "Root configuration\nglobal.json (SDK), .editorconfig, .gitattributes,\n.gitignore, .env.example, README.md, AGENTS.md,\nLICENSE, SECURITY.md" as DEV_ROOTCFG
+  rectangle "docker-compose.yml\npostgres, mailpit, api, frontend\n(e2e/: compose.e2e.yml and the Playwright tests)" as DEV_COMPOSE
 
   folder "backend/" as DEV_BACKEND {
     rectangle "src/\nDomain, Application, Infrastructure, Api" as B_SRC
-    rectangle "tests/\ntestes unitários, testes de integração" as B_TESTS
+    rectangle "tests/\nunit tests, integration tests" as B_TESTS
     rectangle "Directory.Build.props, Directory.Packages.props,\ndotnet-tools.json, SportsBooking.slnx, Dockerfile" as B_CFG
   }
 
   folder "frontend/" as DEV_FRONTEND {
-    rectangle "src/\napp, components, features, lib, test, proxy.ts\n(testes do front end: ficheiros *.test.ts(x) ao lado do código)" as F_SRC
+    rectangle "src/\napp, components, features, lib, test, proxy.ts\n(front end tests: *.test.ts(x) files next to the code)" as F_SRC
     rectangle "package.json, package-lock.json, next.config.ts,\nvitest.config.mts, eslint.config.mjs, tsconfig.json,\ncomponents.json, Dockerfile" as F_CFG
   }
 
   folder "docs/" as DEV_DOCS {
     rectangle "backlog.md, stack.md" as D_SRC
     folder "architecture/" as DEV_ARCHDOCS {
-      rectangle "README.md, inventory.md, style.puml, render.sh, render.ps1,\nc4/ e 4plus1/ (.md e .puml), out/ (.svg), fonts/, adr/" as A_SRC
+      rectangle "README.md, inventory.md, style.puml, render.sh, render.ps1,\nc4/ and 4plus1/ (.md and .puml), out/ (.svg), fonts/, adr/" as A_SRC
     }
   }
 
@@ -40,13 +40,13 @@ folder "/ · raiz do repositório" as ROOT {
   }
 }
 
-DEV_COMPOSE ..> DEV_BACKEND : "imagem da API"
-DEV_COMPOSE ..> DEV_FRONTEND : "imagem do front end"
-DEV_WORKFLOWS ..> DEV_BACKEND : "CI backend"
-DEV_WORKFLOWS ..> DEV_FRONTEND : "CI frontend"
-DEV_WORKFLOWS ..> DEV_ARCHDOCS : "CI diagramas: render.sh desenha os .puml em out/"
-DEV_WORKFLOWS ..> DEV_SCRIPTS : "CI docs: ligações e galeria"
-DEV_WORKFLOWS ..> DEV_COMPOSE : "e2e.yml: sobe a stack e corre o Playwright de e2e/"
-DEV_SCRIPTS ..> DEV_ARCHDOCS : "lê os .md e out/"
+DEV_COMPOSE ..> DEV_BACKEND : "API image"
+DEV_COMPOSE ..> DEV_FRONTEND : "front end image"
+DEV_WORKFLOWS ..> DEV_BACKEND : "backend CI"
+DEV_WORKFLOWS ..> DEV_FRONTEND : "frontend CI"
+DEV_WORKFLOWS ..> DEV_ARCHDOCS : "diagrams CI: render.sh draws the .puml files into out/"
+DEV_WORKFLOWS ..> DEV_SCRIPTS : "docs CI: links and gallery"
+DEV_WORKFLOWS ..> DEV_COMPOSE : "e2e.yml: brings up the stack and runs the Playwright tests in e2e/"
+DEV_SCRIPTS ..> DEV_ARCHDOCS : "reads the .md files and out/"
 
 @enduml

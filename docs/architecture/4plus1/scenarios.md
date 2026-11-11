@@ -1,251 +1,251 @@
-# Cenários
+# Scenarios
 
-<!-- Vista 4+1: cenários (+1) · diagramas de sequência por caso de uso. Ver README.md. -->
+<!-- 4+1 view: scenarios (+1) · sequence diagrams per use case. See README.md. -->
 
-Sete casos de uso que atravessam várias vistas e as validam: se um cenário não se conseguir contar com os elementos e os diagramas das outras vistas (contexto, contentores, lógica, processo, desenvolvimento e física), falta alguma coisa nessas vistas. Cada cenário diz quem participa, os passos pela ordem em que acontecem, as regras que decidem o resultado e onde ver a mesma coisa desenhada. Não repete o detalhe: aponta para ele. Os ids dos elementos estão no [inventário](../inventory.md) (secção 11 para os cenários, `SC-`); as regras completas estão no [backlog](../../backlog.md) (US e T) e no [AGENTS.md](../../../AGENTS.md).
+Seven use cases that cut across several views and validate them: if a scenario cannot be told with the elements and diagrams of the other views (context, containers, logical, process, development and physical), something is missing in those views. Each scenario says who takes part, the steps in the order they happen, the rules that decide the outcome and where to see the same thing drawn. It does not repeat the detail: it points to it. The element ids are in the [inventory](../inventory.md) (section 11 for the scenarios, `SC-`); the complete rules are in the [backlog](../../backlog.md) (US and T) and in [AGENTS.md](../../../AGENTS.md). The interface is in Portuguese (pt-PT), so on-screen texts are quoted in Portuguese, followed by their English meaning in parentheses.
 
-| Id | Cenário | Atores | Histórias |
+| Id | Scenario | Actors | Stories |
 | --- | --- | --- | --- |
-| [SC-01](#sc-01--visitante-pesquisa-e-reserva-um-slot) | Visitante pesquisa e reserva um slot | P-VIS → P-JOG | US16, US17, US18, US01, US03, US22 |
-| [SC-02](#sc-02--dono-configura-clube-campos-horários-e-preços) | Dono configura clube, campos, horários e preços | P-DONO | US02, US06, US07, US08, US09, US10 |
-| [SC-03](#sc-03--dono-cancela-uma-reserva-no-calendário) | Dono cancela uma reserva no calendário | P-DONO, P-JOG | US11, US12, US22 |
-| [SC-04](#sc-04--reserva-semanal-com-uma-data-saltada) | Reserva semanal com uma data saltada | P-JOG | US20, US18 |
-| [SC-05](#sc-05--recuperação-da-palavra-passe) | Recuperação da palavra-passe | P-VIS (com conta) | US05 |
-| [SC-06](#sc-06--admin-desativa-um-dono) | Admin desativa um dono | P-ADMIN, P-DONO | US29, US04 |
-| [SC-07](#sc-07--corrida-pelo-mesmo-slot) | Corrida pelo mesmo slot | P-JOG, P-JOG | T03, US18 |
+| [SC-01](#sc-01--visitor-searches-for-and-books-a-slot) | Visitor searches for and books a slot | P-VIS → P-JOG | US16, US17, US18, US01, US03, US22 |
+| [SC-02](#sc-02--owner-sets-up-club-pitches-schedules-and-prices) | Owner sets up club, pitches, schedules and prices | P-DONO | US02, US06, US07, US08, US09, US10 |
+| [SC-03](#sc-03--owner-cancels-a-booking-in-the-calendar) | Owner cancels a booking in the calendar | P-DONO, P-JOG | US11, US12, US22 |
+| [SC-04](#sc-04--weekly-booking-with-one-date-skipped) | Weekly booking with one date skipped | P-JOG | US20, US18 |
+| [SC-05](#sc-05--password-recovery) | Password recovery | P-VIS (with an account) | US05 |
+| [SC-06](#sc-06--admin-deactivates-an-owner) | Admin deactivates an owner | P-ADMIN, P-DONO | US29, US04 |
+| [SC-07](#sc-07--race-for-the-same-slot) | Race for the same slot | P-JOG, P-JOG | T03, US18 |
 
-## Cenários, histórias, diagramas e testes
+## Scenarios, stories, diagrams and tests
 
-![Casos de uso](../out/scenarios-use-cases.svg)
+![Use cases](../out/scenarios-use-cases.svg)
 
-Fonte: [scenarios-use-cases.puml](scenarios-use-cases.puml). A coluna dos testes só tem classes de teste que existem em `backend/tests/SportsBooking.IntegrationTests/` (`BE`), em `backend/tests/SportsBooking.UnitTests/` (`UT`) ou em `frontend/src/features/` (`FE`); nenhuma é um teste de ponta a ponta do cenário inteiro. Os quatro testes end-to-end de `e2e/` (reservar e cancelar, o conflito de dois jogadores, o calendário do dono, exportar e apagar a conta) não entram na coluna: não são classes de teste destas pastas.
+Source: [scenarios-use-cases.puml](scenarios-use-cases.puml). The tests column only has test classes that exist in `backend/tests/SportsBooking.IntegrationTests/` (`BE`), in `backend/tests/SportsBooking.UnitTests/` (`UT`) or in `frontend/src/features/` (`FE`); none is an end-to-end test of the whole scenario. The four end-to-end tests in `e2e/` (booking and cancelling, the conflict between two players, the owner's calendar, exporting and deleting the account) are not in the column: they are not test classes of these folders.
 
-| Cenário | Histórias | Diagramas de processo | Testes |
+| Scenario | Stories | Process diagrams | Tests |
 | --- | --- | --- | --- |
-| SC-01 | US16, US17, US18, US01, US03, US22 | [pipeline](../out/process-pipeline.svg), [login](../out/process-login.svg), [refresh no browser](../out/process-refresh-client.svg), [reservar](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `ClubSearchTests`, `PublicClubTests`, `PublicSlotsTests`, `BookingTests`, `LoginTests`, `EmailWorkerTests`; FE `club-search.test.tsx`, `club-booking-flow.test.tsx`, `return-after-login.test.tsx` |
-| SC-02 | US02, US06, US07, US08, US09, US10 | [pipeline](../out/process-pipeline.svg), [página com guarda](../out/process-guard.svg) | BE `OwnerRegistrationTests`, `ManageClubsTests`, `ManagePitchesTests`, `PitchScheduleTests`, `PriceBandTests`, `BlockTests`; UT `PitchScheduleTests`, `PriceBandTests`, `BlockTests` |
-| SC-03 | US11, US12, US22 | [dono cancela](../out/process-cancel-club.svg), [worker](../out/process-outbox.svg) | BE `ClubCalendarTests`, `ClubBookingTests`, `BookingNotificationTests`; UT `ClubCancellationTests`; FE `club-calendar.test.tsx` |
-| SC-04 | US20, US18 | [série semanal](../out/process-series.svg), [reservar](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `RecurringBookingTests`; FE `recurring.test.tsx` |
-| SC-05 | US05 | [pedir](../out/process-reset-request.svg), [definir](../out/process-reset-confirm.svg), [worker](../out/process-outbox.svg), [login](../out/process-login.svg) | BE `PasswordResetTests`; FE `forgot-password-form.test.tsx`, `reset-password-form.test.tsx` |
-| SC-06 | US29, US04 | [desativar um dono](../out/process-owner-deactivation.svg), [refresh na API](../out/process-refresh.svg), [login](../out/process-login.svg), [página com guarda](../out/process-guard.svg) | BE `OwnerDeactivationTests` |
-| SC-07 | T03, US18 | [reservar](../out/process-book.svg), [cancelar (jogador)](../out/process-cancel-player.svg), [cancelar (dono)](../out/process-cancel-club.svg), [série semanal](../out/process-series.svg) | BE `BookingTests` (`Twenty_concurrent_requests_for_the_same_slot_give_exactly_one_201_and_409_for_the_rest`), `BookingCancellationTests` |
+| SC-01 | US16, US17, US18, US01, US03, US22 | [pipeline](../out/process-pipeline.svg), [login](../out/process-login.svg), [refresh in the browser](../out/process-refresh-client.svg), [booking](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `ClubSearchTests`, `PublicClubTests`, `PublicSlotsTests`, `BookingTests`, `LoginTests`, `EmailWorkerTests`; FE `club-search.test.tsx`, `club-booking-flow.test.tsx`, `return-after-login.test.tsx` |
+| SC-02 | US02, US06, US07, US08, US09, US10 | [pipeline](../out/process-pipeline.svg), [guarded page](../out/process-guard.svg) | BE `OwnerRegistrationTests`, `ManageClubsTests`, `ManagePitchesTests`, `PitchScheduleTests`, `PriceBandTests`, `BlockTests`; UT `PitchScheduleTests`, `PriceBandTests`, `BlockTests` |
+| SC-03 | US11, US12, US22 | [owner cancels](../out/process-cancel-club.svg), [worker](../out/process-outbox.svg) | BE `ClubCalendarTests`, `ClubBookingTests`, `BookingNotificationTests`; UT `ClubCancellationTests`; FE `club-calendar.test.tsx` |
+| SC-04 | US20, US18 | [weekly series](../out/process-series.svg), [booking](../out/process-book.svg), [worker](../out/process-outbox.svg) | BE `RecurringBookingTests`; FE `recurring.test.tsx` |
+| SC-05 | US05 | [request](../out/process-reset-request.svg), [set](../out/process-reset-confirm.svg), [worker](../out/process-outbox.svg), [login](../out/process-login.svg) | BE `PasswordResetTests`; FE `forgot-password-form.test.tsx`, `reset-password-form.test.tsx` |
+| SC-06 | US29, US04 | [deactivating an owner](../out/process-owner-deactivation.svg), [refresh on the API](../out/process-refresh.svg), [login](../out/process-login.svg), [guarded page](../out/process-guard.svg) | BE `OwnerDeactivationTests` |
+| SC-07 | T03, US18 | [booking](../out/process-book.svg), [cancelling (player)](../out/process-cancel-player.svg), [cancelling (owner)](../out/process-cancel-club.svg), [weekly series](../out/process-series.svg) | BE `BookingTests` (`Twenty_concurrent_requests_for_the_same_slot_give_exactly_one_201_and_409_for_the_rest`), `BookingCancellationTests` |
 
-## SC-01 · Visitante pesquisa e reserva um slot
+## SC-01 · Visitor searches for and books a slot
 
-**Atores.** Um visitante sem sessão (P-VIS) que depois entra como jogador (P-JOG); C-WEB, C-API, C-DB; no fim, o worker (C-WORKER) e o servidor de email (X-SMTP).
+**Actors.** A visitor without a session (P-VIS) who then signs in as a player (P-JOG); C-WEB, C-API, C-DB; at the end, the worker (C-WORKER) and the email server (X-SMTP).
 
-**Passos**
+**Steps**
 
-1. O visitante abre `/` (`ClubSearch`, WEB-F-CATALOG) e filtra por desporto, localidade e data. O filtro vive no endereço (`?sport=&locality=&date=&page=`). O browser chama `GET /api/clubs` (API-CATALOG), 20 clubes por página.
-2. Abre um clube: `/clubs/{slug}` é um Server Component que lê a API pelo URL interno, sem cookies (WEB-SERVER, `loadPublicClub`). Um clube desconhecido ou escondido é o mesmo 404.
-3. Escolhe campo e data; o browser lê os slots (`GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`). Cada slot tem um só indicador `available` e o preço da API; nunca se diz porque está indisponível. Escolher um slot escreve `?pitch=&date=&slot=` no endereço.
-4. Sem sessão, o resumo mostra «Entrar para reservar»: vai para `/login?next=<este endereço>` (ou para o registo, que leva o mesmo `next`). `/login` tenta primeiro um refresh silencioso e depois mostra o formulário; o login responde com os dois cookies e o jogador volta à mesma escolha (`safeNext`).
-5. O jogador confirma: `POST /api/bookings` com só `{ pitchId, startsAt }`.
-6. A API valida, confirma que o dono está ativo, tranca o campo, volta a ler o campo, verifica o slot (`BookingSlotCheck`), calcula o preço (`Pitch.PriceForSlot`) e insere a reserva; na mesma transação entram no outbox a confirmação, o aviso ao dono (se o clube o quer) e o lembrete (3 h antes, se ainda for futuro). Resposta 201 com `Location`.
-7. O browser mostra a confirmação e invalida `["catalog"]` e `["my-bookings"]`, por isso o slot passa a indisponível e a reserva aparece em `/bookings`.
-8. Em segundo plano, o worker lê o outbox, compõe o email em pt-PT e envia-o (SMTP; em desenvolvimento, o Mailpit).
+1. The visitor opens `/` (`ClubSearch`, WEB-F-CATALOG) and filters by sport, locality and date. The filter lives in the address (`?sport=&locality=&date=&page=`). The browser calls `GET /api/clubs` (API-CATALOG), 20 clubs per page.
+2. They open a club: `/clubs/{slug}` is a Server Component that reads the API at the internal URL, without cookies (WEB-SERVER, `loadPublicClub`). An unknown or hidden club is the same 404.
+3. They choose a pitch and a date; the browser reads the slots (`GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`). Each slot has a single `available` flag and the API's price; it never says why it is unavailable. Choosing a slot writes `?pitch=&date=&slot=` to the address.
+4. Without a session, the summary shows `Entrar para reservar` (Sign in to book): it goes to `/login?next=<this address>` (or to registration, which carries the same `next`). `/login` first tries a silent refresh and then shows the form; login answers with the two cookies and the player returns to the same choice (`safeNext`).
+5. The player confirms: `POST /api/bookings` with only `{ pitchId, startsAt }`.
+6. The API validates, confirms the owner is active, locks the pitch, reads the pitch again, checks the slot (`BookingSlotCheck`), calculates the price (`Pitch.PriceForSlot`) and inserts the booking; in the same transaction the confirmation, the owner notice (if the club wants it) and the reminder (3 h before, if still in the future) go into the outbox. Response 201 with `Location`.
+7. The browser shows the confirmation and invalidates `["catalog"]` and `["my-bookings"]`, so the slot becomes unavailable and the booking appears in `/bookings`.
+8. In the background, the worker reads the outbox, composes the email in pt-PT and sends it (SMTP; in development, Mailpit).
 
-**Regras**
+**Rules**
 
-- Só se vê o que é público: um clube precisa de dono ativo e de um campo ativo; as respostas não levam dados de jogadores nem de donos; as leituras públicas têm limite por IP (120 por minuto, provisório).
-- Reservas de hoje até 30 dias à frente, na data de Lisboa; o slot tem de existir na grelha gerada e não pode ter começado nem estar bloqueado ([ADR 0007](../adr/0007-slots-calculados.md)).
-- Só um jogador reserva; dono e admin veem os slots só de leitura.
-- A reserva guarda o preço do momento; sem pagamentos.
-- A sobreposição com outra reserva fica para a base de dados ([ADR 0003](../adr/0003-exclusion-constraint-reservas.md); ver SC-07).
-- O email nunca bloqueia a reserva e só existe se a reserva foi confirmada ([ADR 0004](../adr/0004-outbox-para-emails.md)).
-- A sessão vive em cookies httpOnly ([ADR 0002](../adr/0002-sessao-em-cookies-httponly.md)).
+- Only what is public is seen: a club needs an active owner and an active pitch; responses carry no data about players or owners; public reads have a per-IP limit (120 per minute, provisional).
+- Bookings from today up to 30 days ahead, on Lisbon's date; the slot has to exist in the generated grid and must not have started or be blocked ([ADR 0007](../adr/0007-calculated-slots.md)).
+- Only a player books; owner and admin see the slots read-only.
+- The booking stores the price at the time; no payments.
+- Overlap with another booking is left to the database ([ADR 0003](../adr/0003-booking-exclusion-constraint.md); see SC-07).
+- The email never blocks the booking and only exists if the booking was confirmed ([ADR 0004](../adr/0004-outbox-for-emails.md)).
+- The session lives in httpOnly cookies ([ADR 0002](../adr/0002-session-in-httponly-cookies.md)).
 
-**Diagramas**
+**Diagrams**
 
-- [Contexto](../out/01-context.svg) e [contentores](../out/02-containers-dev.svg): quem fala com quem.
-- [Front end: rotas, guardas e caminhos](../out/03-components-web.svg) e [áreas e funcionalidades](../out/03-components-web-features.svg).
-- [Componentes das reservas](../out/03-components-api-bookings.svg), [código dos slots](../out/logical-code-slots.svg) e [estados de uma reserva](../out/logical-state-booking.svg).
-- [Pipeline de um pedido](../out/process-pipeline.svg), [login](../out/process-login.svg), [refresh no browser](../out/process-refresh-client.svg), [reservar](../out/process-book.svg) e [worker de emails](../out/process-outbox.svg) ([vista de processo, 2.1](process.md#21-jogador-reserva-um-slot)).
+- [Context](../out/01-context.svg) and [containers](../out/02-containers-dev.svg): who talks to whom.
+- [Front end: routes, guards and paths](../out/03-components-web.svg) and [areas and features](../out/03-components-web-features.svg).
+- [Booking components](../out/03-components-api-bookings.svg), [slots code](../out/logical-code-slots.svg) and [states of a booking](../out/logical-state-booking.svg).
+- [Pipeline of a request](../out/process-pipeline.svg), [login](../out/process-login.svg), [refresh in the browser](../out/process-refresh-client.svg), [booking](../out/process-book.svg) and [email worker](../out/process-outbox.svg) ([process view, 2.1](process.md#21-player-books-a-slot)).
 
-## SC-02 · Dono configura clube, campos, horários e preços
+## SC-02 · Owner sets up club, pitches, schedules and prices
 
-**Atores.** Um dono (P-DONO); C-WEB, C-API, C-DB.
+**Actors.** An owner (P-DONO); C-WEB, C-API, C-DB.
 
-**Passos**
+**Steps**
 
-1. A pessoa regista-se como dono (`/register/owner`, `POST /api/auth/register/owner`), aceitando os Termos e tomando conhecimento da Política de Privacidade (a versão e a data ficam na conta); a conta nasce com o perfil `Owner` e a sessão começa logo. Vai para `/manage`, que, sem clubes, mostra «Criar o primeiro clube».
-2. **Clube:** `/manage/clubs/new` envia `POST /api/manage/clubs` (nome, morada, localidade, contactos, janela de cancelamento, por omissão 24 h, e o aviso de novas reservas). A API gera o `slug` a partir do nome, que não muda se o nome mudar.
-3. **Campo:** em `/manage/clubs/{id}`, `PitchSection` cria o campo (`POST …/pitches`): desporto, nome único no clube, preço base (> 0 e ≤ 500 €). O campo nasce ativo, com slots de 60 minutos e **fechado todos os dias**.
-4. **Horário:** o botão «Horário» abre o `ScheduleEditor`; `PUT …/schedule` substitui a semana toda (sete dias, abertura e fecho de 30 em 30 minutos, ou fechado; fecho `00:00` = meia-noite) e a duração do slot (30, 60 ou 90). O `SlotPreview` mostra os slots de um dia, de hoje a hoje + 30, gerados a partir do horário.
-5. **Preços:** o botão «Faixas de preço» cria faixas (`POST …/price-bands`) com dias, horas e preço. Sem faixa, o slot custa o preço base. A pré-visualização passa a mostrar o preço de cada slot.
-6. **Bloqueios (opcional):** o botão «Bloqueios» cria períodos sem reservas (`POST …/blocks`), em hora de Lisboa e de 30 em 30 minutos.
-7. Com o campo ativo e o dono ativo, o clube passa a aparecer na pesquisa pública (SC-01).
+1. The person registers as an owner (`/register/owner`, `POST /api/auth/register/owner`), accepting the Terms and acknowledging the Privacy Policy (the version and date are stored on the account); the account is born with the `Owner` profile and the session starts right away. They go to `/manage`, which, with no clubs, shows `Criar o primeiro clube` (Create the first club).
+2. **Club:** `/manage/clubs/new` sends `POST /api/manage/clubs` (name, address, locality, contacts, cancellation window, 24 h by default, and the new-booking notice). The API generates the `slug` from the name, which does not change if the name changes.
+3. **Pitch:** in `/manage/clubs/{id}`, `PitchSection` creates the pitch (`POST …/pitches`): sport, name unique in the club, base price (> 0 and ≤ €500). The pitch is born active, with 60-minute slots and **closed every day**.
+4. **Schedule:** the `Horário` (Schedule) button opens the `ScheduleEditor`; `PUT …/schedule` replaces the whole week (seven days, opening and closing in 30-minute steps, or closed; closing `00:00` = midnight) and the slot duration (30, 60 or 90). The `SlotPreview` shows the slots of one day, from today to today + 30, generated from the schedule.
+5. **Prices:** the `Faixas de preço` (Price bands) button creates bands (`POST …/price-bands`) with days, times and price. Without a band, the slot costs the base price. The preview now shows each slot's price.
+6. **Blocks (optional):** the `Bloqueios` (Blocks) button creates periods with no bookings (`POST …/blocks`), in Lisbon time and in 30-minute steps.
+7. With the pitch active and the owner active, the club starts to appear in the public search (SC-01).
 
-**Regras**
+**Rules**
 
-- Cada pedido do dono parte de `OwnedClubs`/`OwnedPitches` (T02): o clube é resolvido antes de validar o corpo, e o clube de outro dono dá o mesmo 404 `club_not_found` que um inexistente.
-- O campo nunca se apaga: desativa-se (e só se não houver reservas confirmadas por terminar).
-- Mudar o horário, a duração ou as faixas não altera reservas já feitas ([ADR 0007](../adr/0007-slots-calculados.md)). Um horário que passa da meia-noite é recusado (limitação do MVP).
-- Faixas: no máximo 20 por campo e sem sobreposição no mesmo dia (tocar é permitido): 409 `price_band_overlap`. Faixas e bloqueios mudam sob o trinco do campo, como as reservas.
-- Um bloqueio recusa-se se sobrepõe outro bloqueio (409 `block_overlap`) ou reservas confirmadas (409 `block_overlaps_bookings`); só se remove antes de começar.
-- O preço de um slot só se decide em `Pitch.PriceForSlot`; o browser mostra o que a API devolve.
+- Every owner request starts from `OwnedClubs`/`OwnedPitches` (T02): the club is resolved before validating the body, and another owner's club gives the same 404 `club_not_found` as a non-existent one.
+- The pitch is never deleted: it is deactivated (and only if there are no confirmed bookings yet to end).
+- Changing the schedule, the duration or the bands does not alter bookings already made ([ADR 0007](../adr/0007-calculated-slots.md)). A schedule that goes past midnight is refused (MVP limitation).
+- Bands: at most 20 per pitch and no overlap on the same day (touching is allowed): 409 `price_band_overlap`. Bands and blocks change under the pitch lock, like bookings.
+- A block is refused if it overlaps another block (409 `block_overlap`) or confirmed bookings (409 `block_overlaps_bookings`); it can only be removed before it starts.
+- A slot's price is only decided in `Pitch.PriceForSlot`; the browser shows what the API returns.
 
-**Diagramas**
+**Diagrams**
 
-- [Componentes da API, visão geral](../out/03-components-api-overview.svg) (API-CLUBS, API-PITCHES, API-SCHED, API-BLOCKS, API-PRICE) e [contas](../out/03-components-api-accounts.svg) (o registo).
-- [Domínio das reservas](../out/logical-domain-booking.svg) (clube, campo, dia de abertura, faixa, bloqueio) e [código dos slots](../out/logical-code-slots.svg).
-- [Front end](../out/03-components-web.svg) e [funcionalidades](../out/03-components-web-features.svg) (WEB-F-CLUBS, WEB-F-PITCHES).
-- [Pipeline](../out/process-pipeline.svg) e [página com guarda](../out/process-guard.svg) (`/manage` exige o perfil `Owner`).
+- [API components, overview](../out/03-components-api-overview.svg) (API-CLUBS, API-PITCHES, API-SCHED, API-BLOCKS, API-PRICE) and [accounts](../out/03-components-api-accounts.svg) (registration).
+- [Bookings domain](../out/logical-domain-booking.svg) (club, pitch, opening day, band, block) and [slots code](../out/logical-code-slots.svg).
+- [Front end](../out/03-components-web.svg) and [features](../out/03-components-web-features.svg) (WEB-F-CLUBS, WEB-F-PITCHES).
+- [Pipeline](../out/process-pipeline.svg) and [guarded page](../out/process-guard.svg) (`/manage` requires the `Owner` profile).
 
-## SC-03 · Dono cancela uma reserva no calendário
+## SC-03 · Owner cancels a booking in the calendar
 
-**Atores.** O dono (P-DONO) e o jogador da reserva (P-JOG, só como destinatário); C-WEB, C-API, C-DB, C-WORKER.
+**Actors.** The owner (P-DONO) and the booking's player (P-JOG, only as a recipient); C-WEB, C-API, C-DB, C-WORKER.
 
-**Passos**
+**Steps**
 
-1. O dono abre `/manage/clubs/{id}/calendar` (a vista, a data e a reserva aberta estão no endereço). O browser lê `GET …/calendar?from=&to=` do dia, com os campos em colunas, e `layoutDay` posiciona tudo por tempo real decorrido (um dia de mudança de hora tem 23 ou 25 linhas).
-2. Clica numa reserva: abrem-se os detalhes (`GET …/bookings/{bookingId}`), com o nome do jogador (nunca o email nem o id), `canCancel` e `playerNoShows`.
-3. «Cancelar reserva» abre o formulário do motivo (obrigatório, até 200 caracteres); envia `POST …/bookings/{bookingId}/cancel`.
-4. A API resolve o clube do dono (404 `club_not_found`) e a reserva dentro dele (404 `booking_not_found`), valida o motivo (400), tranca o campo, volta a ler a reserva e chama `Booking.CancelByClub(reason, now)`. Se está confirmada e ainda não começou, passa a `CancelledByClub`, guarda o motivo e `cancelled_at`, e entra no outbox o email ao jogador, tudo na mesma transação.
-5. A resposta é 200; o browser invalida `["calendar", clubId]`, e a reserva sai do dia (ou aparece como cancelada, com «Mostrar reservas canceladas»).
-6. O slot fica livre de imediato: a exclusion constraint só cobre `Confirmed`.
-7. O worker envia ao jogador o email com quem cancelou e o motivo; na lista «As minhas reservas» a reserva aparece como «Cancelada pelo clube».
+1. The owner opens `/manage/clubs/{id}/calendar` (the view, the date and the open booking are in the address). The browser reads `GET …/calendar?from=&to=` for the day, with the pitches in columns, and `layoutDay` positions everything by real elapsed time (a clock-change day has 23 or 25 rows).
+2. They click a booking: the details open (`GET …/bookings/{bookingId}`), with the player's name (never the email or the id), `canCancel` and `playerNoShows`.
+3. `Cancelar reserva` (Cancel booking) opens the reason form (required, up to 200 characters); it sends `POST …/bookings/{bookingId}/cancel`.
+4. The API resolves the owner's club (404 `club_not_found`) and the booking inside it (404 `booking_not_found`), validates the reason (400), locks the pitch, reads the booking again and calls `Booking.CancelByClub(reason, now)`. If it is confirmed and has not started, it becomes `CancelledByClub`, stores the reason and `cancelled_at`, and the email to the player goes into the outbox, all in the same transaction.
+5. The response is 200; the browser invalidates `["calendar", clubId]`, and the booking leaves the day (or appears as cancelled, with `Mostrar reservas canceladas` (Show cancelled bookings)).
+6. The slot is free immediately: the exclusion constraint only covers `Confirmed`.
+7. The worker sends the player the email saying who cancelled and the reason; in the `As minhas reservas` (My bookings) list the booking appears as `Cancelada pelo clube` (Cancelled by the club).
 
-**Regras**
+**Rules**
 
-- Sem janela de cancelamento: o dono pode cancelar até ao início; começar agora conta como começado (422 `booking_already_started`). Uma reserva já não confirmada é 422 `booking_not_confirmed`, verificada primeiro.
-- O cancelamento do dono e o do jogador tomam o mesmo trinco: quem chega primeiro ganha e o outro recebe 422.
-- Uma reserva feita pelo dono para um cliente sem conta (US13) cancela-se da mesma maneira, mas não gera email.
-- O dono vê do jogador só o nome ([ADR 0005](../adr/0005-marketplace-unico.md)).
-- O ecrã nunca calcula se se pode cancelar: segue o `canCancel` da API.
-- O email só existe se o cancelamento foi confirmado ([ADR 0004](../adr/0004-outbox-para-emails.md)).
+- No cancellation window: the owner can cancel up to the start; starting now counts as started (422 `booking_already_started`). A booking that is no longer confirmed is 422 `booking_not_confirmed`, checked first.
+- The owner's cancellation and the player's take the same lock: whoever arrives first wins and the other gets 422.
+- A booking made by the owner for a customer without an account (US13) is cancelled the same way, but generates no email.
+- The owner sees only the player's name ([ADR 0005](../adr/0005-single-marketplace.md)).
+- The screen never works out whether it can be cancelled: it follows the API's `canCancel`.
+- The email only exists if the cancellation was confirmed ([ADR 0004](../adr/0004-outbox-for-emails.md)).
 
-**Diagramas**
+**Diagrams**
 
-- [Dono cancela](../out/process-cancel-club.svg) ([vista de processo, 2.3](process.md#23-cancelamentos)) e, para comparar, [jogador cancela](../out/process-cancel-player.svg).
-- [Estados de uma reserva](../out/logical-state-booking.svg), [componentes das reservas](../out/03-components-api-bookings.svg) e [código do agregado Booking](../out/logical-code-booking.svg).
-- [Worker de emails](../out/process-outbox.svg) e [estados da mensagem do outbox](../out/logical-state-outbox.svg).
-- [Front end](../out/03-components-web.svg) (WEB-F-CALENDAR) e [pipeline](../out/process-pipeline.svg).
+- [Owner cancels](../out/process-cancel-club.svg) ([process view, 2.3](process.md#23-cancellations)) and, for comparison, [player cancels](../out/process-cancel-player.svg).
+- [States of a booking](../out/logical-state-booking.svg), [booking components](../out/03-components-api-bookings.svg) and [code of the Booking aggregate](../out/logical-code-booking.svg).
+- [Email worker](../out/process-outbox.svg) and [states of the outbox message](../out/logical-state-outbox.svg).
+- [Front end](../out/03-components-web.svg) (WEB-F-CALENDAR) and [pipeline](../out/process-pipeline.svg).
 
-## SC-04 · Reserva semanal com uma data saltada
+## SC-04 · Weekly booking with one date skipped
 
-**Atores.** Um jogador com sessão (P-JOG); C-WEB, C-API, C-DB, C-WORKER.
+**Actors.** A player with a session (P-JOG); C-WEB, C-API, C-DB, C-WORKER.
 
-**Passos**
+**Steps**
 
-1. No resumo de uma reserva (SC-01, passo 4), o jogador escolhe «Repetir semanalmente» com 3 semanas. O endereço ganha `?weeks=3`.
-2. O browser chama `POST /api/bookings/recurring/preview`. A API calcula as três datas (a primeira como foi pedida; as outras na mesma data local + 7 dias, à mesma hora local de Lisboa), verifica cada uma com as regras de uma reserva simples e devolve, por data, o preço e `free` ou `unavailable` com o motivo. Suponha-se que a 2.ª data tem um bloqueio (`blocked`).
-3. A lista mostra as três datas e o motivo da que não se pode reservar, em palavras. O botão diz «Confirmar 2 reservas».
-4. O jogador confirma: `POST /api/bookings/recurring`.
-5. A API tenta cada data **em ordem, cada uma na sua transação** (tranca o campo, verifica, preço, insere; entram o aviso ao dono e o lembrete dessa reserva). A 1.ª e a 3.ª ficam criadas; a 2.ª é saltada com o motivo `blocked`. Todas as reservas criadas partilham o `SeriesId`.
-6. Depois das datas, um `SaveChanges` à parte grava um só email, `booking_series_confirmed`, com as reservas feitas.
-7. Resposta 201 com `created` e `skipped`. `RecurringConfirmation` lista as reservas e as datas que ficaram de fora; invalida `["catalog"]` e `["my-bookings"]`.
-8. Em «As minhas reservas», cada reserva mostra «Reserva semanal: 1 de 2» e «2 de 2» (só contam as criadas).
+1. In a booking's summary (SC-01, step 4), the player chooses `Repetir semanalmente` (Repeat weekly) with 3 weeks. The address gains `?weeks=3`.
+2. The browser calls `POST /api/bookings/recurring/preview`. The API calculates the three dates (the first as requested; the others on the same local date + 7 days, at the same Lisbon local time), checks each one with the rules of a single booking and returns, per date, the price and `free` or `unavailable` with the reason. Suppose the 2nd date has a block (`blocked`).
+3. The list shows the three dates and the reason for the one that cannot be booked, in words. The button says `Confirmar 2 reservas` (Confirm 2 bookings).
+4. The player confirms: `POST /api/bookings/recurring`.
+5. The API tries each date **in order, each in its own transaction** (locks the pitch, checks, price, inserts; that booking's owner notice and reminder go in). The 1st and the 3rd are created; the 2nd is skipped with the reason `blocked`. All the bookings created share the `SeriesId`.
+6. After the dates, a separate `SaveChanges` saves a single email, `booking_series_confirmed`, with the bookings made.
+7. Response 201 with `created` and `skipped`. `RecurringConfirmation` lists the bookings and the dates left out; it invalidates `["catalog"]` and `["my-bookings"]`.
+8. In `As minhas reservas` (My bookings), each booking shows `Reserva semanal: 1 de 2` (Weekly booking: 1 of 2) and `2 de 2` (2 of 2) (only the created ones count).
 
-**Regras**
+**Rules**
 
-- De 2 a 4 semanas (1 é uma reserva simples). A série **não é atómica**: cada data é independente, outra pessoa pode reservar uma data entre duas, e a pré-visualização é só indicativa.
-- Motivos de uma data recusada: campo inativo, fora da janela de 30 dias, dia fechado, hora que não é um slot, já começada, bloqueada, ou ocupada (`taken`, que vem da exclusion constraint, 23P01).
-- Se nenhuma data se reservar: 409 `series_unavailable` com as datas e os motivos.
-- Uma série que atravessa a mudança de hora mantém a hora de Lisboa.
-- O resumo é gravado fora da transação das datas: se a API cair entre os dois passos, as reservas ficam e o resumo perde-se (decisão provisória da US20).
-- O cancelamento é sempre de uma reserva de cada vez (`POST /api/bookings/{id}/cancel`); não há um endpoint para cancelar a série.
+- From 2 to 4 weeks (1 is a single booking). The series is **not atomic**: each date is independent, someone else can book a date in between, and the preview is only indicative.
+- Reasons for a refused date: inactive pitch, outside the 30-day window, closed day, a time that is not a slot, already started, blocked, or taken (`taken`, which comes from the exclusion constraint, 23P01).
+- If no date can be booked: 409 `series_unavailable` with the dates and the reasons.
+- A series that crosses the clock change keeps Lisbon time.
+- The summary is saved outside the dates' transaction: if the API crashes between the two steps, the bookings stay and the summary is lost (provisional decision of US20).
+- Cancelling is always one booking at a time (`POST /api/bookings/{id}/cancel`); there is no endpoint to cancel the series.
 
-**Diagramas**
+**Diagrams**
 
-- [Série semanal](../out/process-series.svg) ([vista de processo, 2.2](process.md#22-série-semanal)) e, por data, [reservar](../out/process-book.svg).
-- [Componentes das reservas](../out/03-components-api-bookings.svg) (API-BOOK-SERIES) e [código dos slots](../out/logical-code-slots.svg).
-- [Worker de emails](../out/process-outbox.svg) e [front end](../out/03-components-web-features.svg) (WEB-F-BOOKING, WEB-F-MYBOOK).
+- [Weekly series](../out/process-series.svg) ([process view, 2.2](process.md#22-weekly-series)) and, per date, [booking](../out/process-book.svg).
+- [Booking components](../out/03-components-api-bookings.svg) (API-BOOK-SERIES) and [slots code](../out/logical-code-slots.svg).
+- [Email worker](../out/process-outbox.svg) and [front end](../out/03-components-web-features.svg) (WEB-F-BOOKING, WEB-F-MYBOOK).
 
-## SC-05 · Recuperação da palavra-passe
+## SC-05 · Password recovery
 
-**Atores.** Uma pessoa com conta de jogador ou de dono que se esqueceu da palavra-passe; C-WEB, C-API, C-DB, C-WORKER, X-SMTP.
+**Actors.** A person with a player or owner account who forgot their password; C-WEB, C-API, C-DB, C-WORKER, X-SMTP.
 
-**Passos**
+**Steps**
 
-1. Em `/login`, «Esqueci-me da palavra-passe» leva a `/forgot-password`; a pessoa escreve o email.
-2. `POST /api/auth/password-reset/request` responde sempre o mesmo 202, exista a conta ou não (só um email mal escrito é 400). A página mostra sempre a mesma mensagem.
-3. Para uma conta ativa de jogador ou de dono, `PasswordResetStore` tranca a linha da conta e, se não houver já um pedido com menos de 5 minutos, põe no outbox uma mensagem `password_reset` com **só o id da conta**. Para uma conta inexistente, desativada ou de admin, não faz nada.
-4. O worker lê a mensagem, confirma que a conta continua elegível, gera o token com o Identity (chaves do Data Protection na base de dados) e compõe a ligação `/reset-password?email=&token=` com `PublicSite:BaseUrl`. O email é enviado.
-5. A pessoa abre a ligação. `/reset-password` lê o email e o token do endereço e mostra o formulário (nova palavra-passe e confirmação).
-6. `POST /api/auth/password-reset/confirm`: primeiro valida a nova palavra-passe (400 por campo); depois toda a ligação má (email desconhecido, token errado, expirado ou já usado) é o mesmo 400 `invalid_or_expired_reset_link`.
-7. Se a ligação vale, numa transação: muda o hash e o security stamp (a ligação e as anteriores deixam de valer), revoga todos os refresh tokens da conta, limpa o bloqueio por tentativas e põe no outbox o aviso `password_changed`. Resposta 204; ninguém fica com sessão.
-8. A página mostra o sucesso e a ligação para `/login`; o worker envia o aviso de que a palavra-passe mudou.
+1. On `/login`, `Esqueci-me da palavra-passe` (I forgot my password) leads to `/forgot-password`; the person types their email.
+2. `POST /api/auth/password-reset/request` always answers the same 202, whether the account exists or not (only a badly typed email is 400). The page always shows the same message.
+3. For an active player or owner account, `PasswordResetStore` locks the account's row and, if there is not already a request less than 5 minutes old, puts a `password_reset` message in the outbox with **only the account id**. For a non-existent, deactivated or admin account, it does nothing.
+4. The worker reads the message, confirms the account is still eligible, generates the token with Identity (Data Protection keys in the database) and composes the link `/reset-password?email=&token=` with `PublicSite:BaseUrl`. The email is sent.
+5. The person opens the link. `/reset-password` reads the email and the token from the address and shows the form (new password and confirmation).
+6. `POST /api/auth/password-reset/confirm`: first it validates the new password (400 per field); then every bad link (unknown email, wrong, expired or already used token) is the same 400 `invalid_or_expired_reset_link`.
+7. If the link is valid, in one transaction: it changes the hash and the security stamp (this link and earlier ones stop working), revokes all the account's refresh tokens, clears the attempt lockout and puts the `password_changed` notice in the outbox. Response 204; nobody ends up with a session.
+8. The page shows success and the link to `/login`; the worker sends the notice that the password changed.
 
-**Regras**
+**Rules**
 
-- Sem enumeração de contas e no máximo um email por conta de 5 em 5 minutos; limites de pedidos por IP nos dois passos.
-- A ligação vale 1 hora e uma só vez. O token nunca está no outbox, nos logs nem no armazenamento do browser; `/reset-password` é servida com `Referrer-Policy: no-referrer` e `Cache-Control: no-store`.
-- A palavra-passe tem pelo menos 8 caracteres, sem regras de composição.
-- As chaves que protegem o token estão na base de dados, para a ligação sobreviver a um reinício ([ADR 0008](../adr/0008-chaves-data-protection-na-base-de-dados.md)). O gerador de tokens do Identity lê o relógio do sistema: é a exceção ao `TimeProvider`.
+- No account enumeration and at most one email per account every 5 minutes; per-IP request limits on both steps.
+- The link is valid for 1 hour and only once. The token is never in the outbox, the logs or the browser's storage; `/reset-password` is served with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
+- The password has at least 8 characters, with no composition rules.
+- The keys that protect the token are in the database, so the link survives a restart ([ADR 0008](../adr/0008-data-protection-keys-in-the-database.md)). Identity's token generator reads the system clock: it is the exception to `TimeProvider`.
 
-**Diagramas**
+**Diagrams**
 
-- [Pedir nova palavra-passe](../out/process-reset-request.svg) e [definir a nova palavra-passe](../out/process-reset-confirm.svg) ([vista de processo, 2.5](process.md#25-recuperação-da-palavra-passe)).
-- [Worker de emails](../out/process-outbox.svg) e [componentes das contas](../out/03-components-api-accounts.svg) (API-AUTH-RESET, CC-DATAPROT).
-- [Estados de uma mensagem do outbox](../out/logical-state-outbox.svg) e [login](../out/process-login.svg).
+- [Requesting a new password](../out/process-reset-request.svg) and [setting the new password](../out/process-reset-confirm.svg) ([process view, 2.5](process.md#25-password-recovery)).
+- [Email worker](../out/process-outbox.svg) and [account components](../out/03-components-api-accounts.svg) (API-AUTH-RESET, CC-DATAPROT).
+- [States of an outbox message](../out/logical-state-outbox.svg) and [login](../out/process-login.svg).
 
-## SC-06 · Admin desativa um dono
+## SC-06 · Admin deactivates an owner
 
-**Atores.** O admin (P-ADMIN), o dono desativado (P-DONO) e, depois, jogadores e visitantes que deixam de o ver; C-WEB, C-API, C-DB.
+**Actors.** The admin (P-ADMIN), the deactivated owner (P-DONO) and, afterwards, players and visitors who stop seeing them; C-WEB, C-API, C-DB.
 
-**Passos**
+**Steps**
 
-1. O admin existe porque o seed o criou no arranque (`AdminSeed:*`); entra em `/login` e vai para `/admin` (o guarda e a política `Admin` mandam os outros perfis embora).
-2. `/admin` mostra os totais e os gráficos (só contagens) e a lista de donos, a única parte com nomes e emails (de donos, nunca de jogadores). O admin abre o dono em `/admin/owners/{id}`.
-3. A página mostra os números do dono, o estado e o histórico, e quantas reservas futuras confirmadas ficam (`futureBookings`). «Desativar dono» abre o formulário do motivo (obrigatório, até 500 caracteres).
-4. `POST /api/admin/owners/{id}/deactivate`: a API confirma que o id é de um dono (404 `owner_not_found`, antes de validar o corpo) e valida o motivo.
-5. Numa transação: o `UPDATE users SET deactivated_at = now WHERE id = … AND deactivated_at IS NULL` decide (0 linhas = 422 `owner_already_deactivated`); com 1 linha grava-se a linha de auditoria em `owner_status_changes` (admin vindo da sessão, nunca do pedido) e revogam-se todos os refresh tokens do dono. Resposta 200.
-6. O browser invalida tudo o que está sob `["admin"]`; o dono aparece desativado e o histórico ganha a linha.
-7. **Efeitos.** O dono não consegue entrar (o mesmo 401 `invalid_credentials`); o refresh da sessão que tinha dá 401; os seus clubes saem das páginas públicas (404); ninguém pode reservar nos seus campos (422 `club_unavailable`); os avisos por enviar ao dono são ignorados. As reservas já feitas ficam confirmadas.
-8. Reativar é a mesma sequência com a condição inversa, sem revogar nada.
+1. The admin exists because the seed created it at startup (`AdminSeed:*`); they sign in at `/login` and go to `/admin` (the guard and the `Admin` policy send the other profiles away).
+2. `/admin` shows the totals and the charts (counts only) and the owners list, the only part with names and emails (of owners, never of players). The admin opens the owner at `/admin/owners/{id}`.
+3. The page shows the owner's numbers, the status and the history, and how many future confirmed bookings stay (`futureBookings`). `Desativar dono` (Deactivate owner) opens the reason form (required, up to 500 characters).
+4. `POST /api/admin/owners/{id}/deactivate`: the API confirms the id is an owner's (404 `owner_not_found`, before validating the body) and validates the reason.
+5. In one transaction: `UPDATE users SET deactivated_at = now WHERE id = … AND deactivated_at IS NULL` decides (0 rows = 422 `owner_already_deactivated`); with 1 row the audit row is saved in `owner_status_changes` (admin from the session, never from the request) and all the owner's refresh tokens are revoked. Response 200.
+6. The browser invalidates everything under `["admin"]`; the owner appears as deactivated and the history gains the row.
+7. **Effects.** The owner cannot sign in (the same 401 `invalid_credentials`); the refresh of the session they had gives 401; their clubs leave the public pages (404); nobody can book on their pitches (422 `club_unavailable`); the unsent notices to the owner are skipped. Bookings already made stay confirmed.
+8. Reactivating is the same sequence with the inverse condition, revoking nothing.
 
-**Regras**
+**Rules**
 
-- O admin vê só contagens; nenhum nome, email, telemóvel ou id de jogadores.
-- Só o seed dá o perfil Admin; a palavra-passe do admin muda-se com o comando `set-admin-password`.
-- O histórico é só de acrescentar (trigger `owner_status_changes_append_only`, 23001) e as chaves estrangeiras são `RESTRICT`.
-- **Compromisso aceite:** o access token já emitido continua válido até 15 minutos, por isso o dono pode ainda usar a área de gestão nesse intervalo ([ADR 0002](../adr/0002-sessao-em-cookies-httponly.md)).
-- Nenhuma reserva é cancelada pela desativação.
+- The admin sees counts only; no name, email, phone or id of players.
+- Only the seed gives the Admin profile; the admin's password is changed with the `set-admin-password` command.
+- The history is append-only (trigger `owner_status_changes_append_only`, 23001) and the foreign keys are `RESTRICT`.
+- **Accepted trade-off:** the access token already issued stays valid for up to 15 minutes, so the owner can still use the management area in that interval ([ADR 0002](../adr/0002-session-in-httponly-cookies.md)).
+- No booking is cancelled by the deactivation.
 
-**Diagramas**
+**Diagrams**
 
-- [Desativar um dono](../out/process-owner-deactivation.svg) ([vista de processo, 2.8](process.md#28-desativar-um-dono)) e [estados de um dono](../out/logical-state-owner.svg).
-- [Refresh na API](../out/process-refresh.svg) (recusa a conta desativada), [login](../out/process-login.svg) e [componentes das contas](../out/03-components-api-accounts.svg).
-- [Domínio das contas](../out/logical-domain-accounts.svg) (`OwnerStatusChange`) e [página com guarda](../out/process-guard.svg).
+- [Deactivating an owner](../out/process-owner-deactivation.svg) ([process view, 2.8](process.md#28-deactivating-an-owner)) and [states of an owner](../out/logical-state-owner.svg).
+- [Refresh on the API](../out/process-refresh.svg) (refuses the deactivated account), [login](../out/process-login.svg) and [account components](../out/03-components-api-accounts.svg).
+- [Accounts domain](../out/logical-domain-accounts.svg) (`OwnerStatusChange`) and [guarded page](../out/process-guard.svg).
 
-## SC-07 · Corrida pelo mesmo slot
+## SC-07 · Race for the same slot
 
-**Atores.** Dois jogadores (P-JOG) com sessão, A e B, que confirmam o mesmo slot ao mesmo tempo; C-API, C-DB, C-WORKER.
+**Actors.** Two players (P-JOG) with a session, A and B, who confirm the same slot at the same time; C-API, C-DB, C-WORKER.
 
-**Passos**
+**Steps**
 
-1. A e B veem o slot livre e carregam em «Confirmar reserva» no mesmo instante. Chegam à API dois `POST /api/bookings` iguais, cada um no seu pedido, com o seu `AppDbContext` e a sua ligação.
-2. Os dois passam a validação, a verificação do campo e a do dono ativo, que não precisam de trinco.
-3. Os dois pedem o trinco do campo: `SELECT … FOR UPDATE` na linha do campo. A obtém-no; B espera.
-4. A, dentro do trinco, relê o campo, verifica o slot (livre de bloqueios e não começado), calcula o preço, junta as mensagens ao outbox e insere. O `COMMIT` grava a reserva e as mensagens e liberta o trinco. Resposta 201.
-5. B obtém o trinco, relê o campo e verifica o slot; **a verificação não procura outras reservas**. Tenta inserir.
-6. A exclusion constraint `bookings_no_overlap` recusa (SQLSTATE 23P01). O `BookingStore` desliga as entradas novas (a reserva e os emails de B), regista o caso em Information, sem o jogador, e a API responde 409 `slot_taken`. Nenhum email de B fica no outbox.
-7. O browser de B fecha o resumo, mostra a mensagem e recarrega os slots; o slot já aparece indisponível, sem dizer porquê.
+1. A and B see the slot free and press `Confirmar reserva` (Confirm booking) at the same instant. Two identical `POST /api/bookings` reach the API, each in its own request, with its own `AppDbContext` and its own connection.
+2. Both pass the validation, the pitch check and the active-owner check, which need no lock.
+3. Both ask for the pitch lock: `SELECT … FOR UPDATE` on the pitch's row. A gets it; B waits.
+4. A, inside the lock, reads the pitch again, checks the slot (free of blocks and not started), calculates the price, attaches the messages to the outbox and inserts. The `COMMIT` saves the booking and the messages and releases the lock. Response 201.
+5. B gets the lock, reads the pitch again and checks the slot; **the check does not look for other bookings**. It tries to insert.
+6. The exclusion constraint `bookings_no_overlap` refuses (SQLSTATE 23P01). `BookingStore` detaches the new entries (B's booking and emails), logs the case at Information, without the player, and the API answers 409 `slot_taken`. None of B's emails stays in the outbox.
+7. B's browser closes the summary, shows the message and reloads the slots; the slot now appears unavailable, without saying why.
 
-**Variantes com o mesmo trinco**
+**Variants with the same lock**
 
-- *Reserva contra bloqueio* (dono e jogador): ambos tomam o trinco; o que vem depois vê o outro, e responde 409 `block_overlaps_bookings` (o bloqueio) ou 409 `slot_blocked` (a reserva).
-- *Dois cancelamentos da mesma reserva* (jogador e dono, ou dois separadores): o segundo relê a reserva já cancelada e recebe 422 `booking_not_confirmed`; um só email.
-- *Anular uma falta* depois de outra pessoa ter reservado o slot: 409 `slot_taken`, pela mesma constraint.
-- *Duas datas de uma série* contra uma reserva de outro jogador: a data fica `taken` e é saltada (SC-04).
+- *Booking against a block* (owner and player): both take the lock; the one that comes later sees the other, and answers 409 `block_overlaps_bookings` (the block) or 409 `slot_blocked` (the booking).
+- *Two cancellations of the same booking* (player and owner, or two tabs): the second reads the already cancelled booking and gets 422 `booking_not_confirmed`; a single email.
+- *Undoing a no-show* after someone else has booked the slot: 409 `slot_taken`, through the same constraint.
+- *Two dates of a series* against another player's booking: the date is `taken` and is skipped (SC-04).
 
-**Regras**
+**Rules**
 
-- A garantia é da base de dados, não do código: nenhuma verificação na aplicação procura sobreposição entre reservas ([ADR 0003](../adr/0003-exclusion-constraint-reservas.md)). O trinco serializa o que a constraint não cobre (bloqueios, cancelamentos) e faz com que a releitura veja o que o pedido anterior confirmou.
-- A constraint cobre só `Confirmed`: um slot cancelado fica livre.
-- Perder a corrida é esperado: 409 e Information, nunca 500 nem Error.
-- O email e a reserva vivem e morrem juntos ([ADR 0004](../adr/0004-outbox-para-emails.md)).
-- O teste da T03 lança 20 pedidos simultâneos para o mesmo slot contra um PostgreSQL real e espera exatamente um 201 e os restantes 409.
+- The guarantee is the database's, not the code's: no check in the application looks for overlap between bookings ([ADR 0003](../adr/0003-booking-exclusion-constraint.md)). The lock serializes what the constraint does not cover (blocks, cancellations) and makes the re-read see what the previous request committed.
+- The constraint covers only `Confirmed`: a cancelled slot is free.
+- Losing the race is expected: 409 and Information, never 500 or Error.
+- The email and the booking live and die together ([ADR 0004](../adr/0004-outbox-for-emails.md)).
+- The T03 test launches 20 simultaneous requests for the same slot against a real PostgreSQL and expects exactly one 201 and the rest 409.
 
-**Diagramas**
+**Diagrams**
 
-- [Reservar](../out/process-book.svg) (com as falhas) ([vista de processo, 2.1](process.md#21-jogador-reserva-um-slot)) e a [tabela de concorrência](process.md#3-concorrência-o-que-está-protegido-e-o-que-não-está).
-- [Cancelar (jogador)](../out/process-cancel-player.svg), [cancelar (dono)](../out/process-cancel-club.svg) e [série semanal](../out/process-series.svg).
-- [Estados de uma reserva](../out/logical-state-booking.svg), [componentes das reservas](../out/03-components-api-bookings.svg) e [domínio das reservas](../out/logical-domain-booking.svg).
+- [Booking](../out/process-book.svg) (with the failures) ([process view, 2.1](process.md#21-player-books-a-slot)) and the [concurrency table](process.md#3-concurrency-what-is-protected-and-what-is-not).
+- [Cancelling (player)](../out/process-cancel-player.svg), [cancelling (owner)](../out/process-cancel-club.svg) and [weekly series](../out/process-series.svg).
+- [States of a booking](../out/logical-state-booking.svg), [booking components](../out/03-components-api-bookings.svg) and [bookings domain](../out/logical-domain-booking.svg).
 
-## Notas
+## Notes
 
-- **Substitui** os quatro títulos vazios que este ficheiro tinha: «Jogador reserva um slot» é agora SC-01, «Jogador reserva uma série semanal» é SC-04, «Dono cancela uma reserva com motivo» é SC-03 e «Admin desativa um dono» é SC-06. Os outros três (SC-02, SC-05, SC-07) são novos.
-- **Ids novos:** `SC-01` a `SC-07`, no [inventário](../inventory.md), secção 11. Um só diagrama próprio, o dos casos de uso; cada cenário reutiliza os das outras vistas.
-- **O que não está desenhado como sequência:** a configuração do clube (SC-02) e a vista do calendário (SC-03, passos 1 e 2) são pedidos simples de leitura e escrita sob o pipeline normal; as suas regras estão no texto e nos diagramas de componentes e de domínio.
+- **Replaces** the four empty titles this file had: "Player books a slot" is now SC-01, "Player books a weekly series" is SC-04, "Owner cancels a booking with a reason" is SC-03 and "Admin deactivates an owner" is SC-06. The other three (SC-02, SC-05, SC-07) are new.
+- **New ids:** `SC-01` to `SC-07`, in the [inventory](../inventory.md), section 11. Only one diagram of its own, the use-case one; each scenario reuses those of the other views.
+- **What is not drawn as a sequence:** the club setup (SC-02) and the calendar view (SC-03, steps 1 and 2) are simple read and write requests under the normal pipeline; their rules are in the text and in the component and domain diagrams.

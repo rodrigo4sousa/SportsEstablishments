@@ -1,53 +1,53 @@
-' 4+1 vista de processo - Jogador reserva um slot (US18, T03) · trinco do campo, exclusion constraint e outbox na mesma transação
+' 4+1 process view - Player books a slot (US18, T03) · pitch lock, exclusion constraint and outbox in the same transaction
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: Trinco do campo, exclusion constraint e outbox na mesma transação (ADR 0003, ADR 0004).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: Pitch lock, exclusion constraint and outbox in the same transaction (ADR 0003, ADR 0004).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-book
 !include ../style.puml
 
-title Vista de processo - jogador reserva um slot (US18, T03): trinco do campo, exclusion constraint e outbox na mesma transação
+title Process view - player books a slot (US18, T03): pitch lock, exclusion constraint and outbox in the same transaction
 autonumber
 
-participant "Reservar" as WEB_F_BOOKING
-box "API ASP.NET Core"
-  participant "Uma reserva" as API_BOOK_SINGLE
-  participant "Contas" as API_AUTH_ACCOUNTS
-  participant "Trinco do campo" as CC_LOCK
-  participant "Verificação do slot" as CC_SLOTCHECK
-  participant "Pôr no outbox" as API_NOTIF_OUTBOX
-  participant "Store das reservas" as API_BOOK_STORE
+participant "Booking" as WEB_F_BOOKING
+box "ASP.NET Core API"
+  participant "Single booking" as API_BOOK_SINGLE
+  participant "Accounts" as API_AUTH_ACCOUNTS
+  participant "Pitch lock" as CC_LOCK
+  participant "Slot check" as CC_SLOTCHECK
+  participant "Put in the outbox" as API_NOTIF_OUTBOX
+  participant "Booking store" as API_BOOK_STORE
 end box
 database "PostgreSQL" as C_DB
 
-WEB_F_BOOKING -> API_BOOK_SINGLE : POST /api/bookings { pitchId, startsAt } [apiJson, via os\nrewrites do Next.js; política Player]
-API_BOOK_SINGLE -> API_BOOK_SINGLE : Valida o pedido (400 validation_failed)
-API_BOOK_SINGLE -> C_DB : Lê o campo e o clube, fora de transação (404 pitch_not_found)\n[SELECT pitches JOIN clubs]
-API_BOOK_SINGLE -> API_AUTH_ACCOUNTS : O dono do clube está ativo? (422 club_unavailable)
+WEB_F_BOOKING -> API_BOOK_SINGLE : POST /api/bookings { pitchId, startsAt } [apiJson, through the\nNext.js rewrites; Player policy]
+API_BOOK_SINGLE -> API_BOOK_SINGLE : Validates the request (400 validation_failed)
+API_BOOK_SINGLE -> C_DB : Reads the pitch and the club, outside a transaction (404 pitch_not_found)\n[SELECT pitches JOIN clubs]
+API_BOOK_SINGLE -> API_AUTH_ACCOUNTS : Is the club's owner active? (422 club_unavailable)
 API_AUTH_ACCOUNTS -> C_DB : users.deactivated_at IS NULL [SELECT]
 
-group Transação do trinco (READ COMMITTED)
+group Lock transaction (READ COMMITTED)
   API_BOOK_SINGLE -> CC_LOCK : LockAsync(pitchId)
   CC_LOCK -> C_DB : BEGIN; SELECT 1 FROM pitches WHERE id = … FOR UPDATE [SQL]
-  note over CC_LOCK, C_DB: Outro pedido para o mesmo campo (reserva, bloqueio, cancelamento, falta, faixa\nde preço) espera aqui.
-  API_BOOK_SINGLE -> C_DB : Volta a ler o campo dentro do trinco [SELECT pitches (+ horário,\nfaixas)]
+  note over CC_LOCK, C_DB: Another request for the same pitch (booking, block, cancellation, no-show, price\nband) waits here.
+  API_BOOK_SINGLE -> C_DB : Reads the pitch again inside the lock [SELECT pitches (+ schedule,\nbands)]
   API_BOOK_SINGLE -> CC_SLOTCHECK : CheckAsync(pitch, timeZone, startsAt, now)
-  CC_SLOTCHECK -> C_DB : Há bloqueio sobreposto? [SELECT blocks]
-  CC_SLOTCHECK --> API_BOOK_SINGLE : O slot, ou a 1.ª recusa: 422 pitch_inactive,\noutside_booking_window, invalid_slot, slot_started; 409\nslot_blocked
+  CC_SLOTCHECK -> C_DB : Is there an overlapping block? [SELECT blocks]
+  CC_SLOTCHECK --> API_BOOK_SINGLE : The slot, or the 1st refusal: 422 pitch_inactive,\noutside_booking_window, invalid_slot, slot_started; 409\nslot_blocked
   API_BOOK_SINGLE -> API_BOOK_SINGLE : Booking.ForPlayer(…, pitch.PriceForSlot(startsAt, timeZone),\nnow)
   API_BOOK_SINGLE -> API_NOTIF_OUTBOX : EnqueueConfirmationAsync, EnqueueOwnerNotificationAsync,\nEnqueueReminder
-  note over API_NOTIF_OUTBOX: Só junta OutboxMessage ao mesmo AppDbContext, sem gravar:\nbooking_confirmed; owner_new_booking se o clube o quer;\nbooking_reminder devido a startsAt − 3 h, se ainda no futuro.
+  note over API_NOTIF_OUTBOX: Only attaches OutboxMessage to the same AppDbContext, without saving:\nbooking_confirmed; owner_new_booking if the club wants it;\nbooking_reminder due at startsAt − 3 h, if still in the future.
   API_BOOK_SINGLE -> API_BOOK_STORE : TryAddAsync(booking)
-  API_BOOK_STORE -> C_DB : Um SaveChanges: INSERT bookings e INSERT outbox_messages [SQL]
-  alt bookings_no_overlap recusa
+  API_BOOK_STORE -> C_DB : One SaveChanges: INSERT bookings and INSERT outbox_messages [SQL]
+  alt bookings_no_overlap refuses
     C_DB --> API_BOOK_STORE : SQLSTATE 23P01 (exclusion_violation)
-    API_BOOK_STORE -> API_BOOK_STORE : Desliga as entradas Added (reserva e mensagens); log Information\nsem o jogador
+    API_BOOK_STORE -> API_BOOK_STORE : Detaches the Added entries (booking and messages); Information log\nwithout the player
     API_BOOK_STORE --> API_BOOK_SINGLE : false
-    CC_LOCK -> C_DB : Sem commit: o scope é descartado → ROLLBACK [SQL]
+    CC_LOCK -> C_DB : No commit: the scope is disposed → ROLLBACK [SQL]
     API_BOOK_SINGLE --> WEB_F_BOOKING : 409 slot_taken
-  else inserida
+  else inserted
     API_BOOK_SINGLE -> CC_LOCK : scope.CommitAsync
-    CC_LOCK -> C_DB : COMMIT: reserva e emails juntos; o trinco é libertado [SQL]
+    CC_LOCK -> C_DB : COMMIT: booking and emails together; the lock is released [SQL]
     API_BOOK_SINGLE --> WEB_F_BOOKING : 201 Created, Location: /api/bookings/{id}
   end
 end

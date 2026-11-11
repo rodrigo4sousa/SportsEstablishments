@@ -1,55 +1,55 @@
-' C4 implantação - Implantação · produção (T06)
+' C4 deployment - Deployment · production (T06)
 ' Version 1.1 - 2026-11-10
-' Não desenhado: lógica de negócio.
+' Not drawn: business logic.
 @startuml 04-deployment-prod
 !include <C4/C4_Deployment>
 !include ../style.puml
 
-title Implantação - produção (T06)
+title Deployment - production (T06)
 
 LAYOUT_LEFT_RIGHT()
 
-Container_Ext(C_BROWSER, "Browser do utilizador", "Browser")
+Container_Ext(C_BROWSER, "User's browser", "Browser")
 
-Deployment_Node(PL_VERCEL, "Vercel (Hobby)", "Alojamento do front end") {
-  Container(PL_VERCEL_EDGE, "Borda da Vercel", "Gerida pela Vercel")
-  Container(C_WEB, "Aplicação Next.js", "Next.js 16, Vercel Functions")
+Deployment_Node(PL_VERCEL, "Vercel (Hobby)", "Front end hosting") {
+  Container(PL_VERCEL_EDGE, "Vercel edge", "Managed by Vercel")
+  Container(C_WEB, "Next.js application", "Next.js 16, Vercel Functions")
 }
 
-Deployment_Node(PL_RENDER, "Render (plano gratuito, Frankfurt)", "Alojamento da API") {
-  Container(PL_RENDER_EDGE, "Borda do Render", "Cloudflare e balanceadores")
-  Deployment_Node(PL_RENDER_API, "Serviço web público (Docker)", "Imagem de backend/Dockerfile; adormece sem tráfego") {
-    Container(C_API, "API ASP.NET Core", ".NET 10, PORT em 0.0.0.0")
-    Container(C_WORKER, "Worker de emails", "BackgroundService no processo da API")
+Deployment_Node(PL_RENDER, "Render (free plan, Frankfurt)", "API hosting") {
+  Container(PL_RENDER_EDGE, "Render edge", "Cloudflare and load balancers")
+  Deployment_Node(PL_RENDER_API, "Public web service (Docker)", "Image from backend/Dockerfile; sleeps without traffic") {
+    Container(C_API, "ASP.NET Core API", ".NET 10, PORT on 0.0.0.0")
+    Container(C_WORKER, "Email worker", "BackgroundService in the API process")
   }
 }
 
-Deployment_Node(PL_SUPABASE, "Supabase (Free)", "PostgreSQL gerido") {
-  Container(PL_SUPAPOOL, "Pooler de ligações", "Supavisor, modo sessão (porta 5432, IPv4)")
-  ContainerDb(C_DB, "Base de dados", "PostgreSQL gerido")
+Deployment_Node(PL_SUPABASE, "Supabase (Free)", "Managed PostgreSQL") {
+  Container(PL_SUPAPOOL, "Connection pooler", "Supavisor, session mode (port 5432, IPv4)")
+  ContainerDb(C_DB, "Database", "Managed PostgreSQL")
 }
 
 System_Ext(PL_BREVO, "Brevo")
 
 Deployment_Node(X_GHA, "GitHub Actions", "Pipelines") {
-  Container(PL_DEPLOY, "deploy.yml", "Depois do CI verde na main")
+  Container(PL_DEPLOY, "deploy.yml", "After green CI on main")
   Container(PL_PRODDATA, "prod-data.yml", "Manual")
   Container(PL_MIGBUNDLE, "Migration bundle", "dotnet ef migrations bundle")
 }
 
-Rel(C_BROWSER, PL_VERCEL_EDGE, $plain("Abre páginas e chama /api/*"), "HTTPS, cookies")
-Rel(PL_VERCEL_EDGE, C_WEB, $plain("Encaminha as páginas"), "Interno da Vercel")
-Rel(PL_VERCEL_EDGE, PL_RENDER_EDGE, $plain("Reescreve /api/*"), "HTTPS, Internet")
-Rel(C_WEB, PL_RENDER_EDGE, $plain("Server Components leem a API"), "HTTPS, API_INTERNAL_URL")
-Rel(PL_RENDER_EDGE, C_API, $plain("Encaminha o pedido"), "HTTP, PORT")
-Rel(C_API, PL_SUPAPOOL, $plain("Lê e escreve como sportsbooking_app"), "SQL, TLS")
-Rel(C_WORKER, PL_SUPAPOOL, $plain("Reclama o outbox e grava o resultado"), "SQL, TLS")
-Rel(PL_SUPAPOOL, C_DB, $plain("Liga"), "PostgreSQL")
-Rel(C_WORKER, PL_BREVO, $plain("Envia o email"), "SMTP, StartTls")
-Rel(PL_DEPLOY, PL_MIGBUNDLE, $plain("Constrói e corre"), "")
+Rel(C_BROWSER, PL_VERCEL_EDGE, $plain("Opens pages and calls /api/*"), "HTTPS, cookies")
+Rel(PL_VERCEL_EDGE, C_WEB, $plain("Routes the pages"), "Vercel internal")
+Rel(PL_VERCEL_EDGE, PL_RENDER_EDGE, $plain("Rewrites /api/*"), "HTTPS, Internet")
+Rel(C_WEB, PL_RENDER_EDGE, $plain("Server Components read the API"), "HTTPS, API_INTERNAL_URL")
+Rel(PL_RENDER_EDGE, C_API, $plain("Forwards the request"), "HTTP, PORT")
+Rel(C_API, PL_SUPAPOOL, $plain("Reads and writes as sportsbooking_app"), "SQL, TLS")
+Rel(C_WORKER, PL_SUPAPOOL, $plain("Claims the outbox and saves the result"), "SQL, TLS")
+Rel(PL_SUPAPOOL, C_DB, $plain("Connects"), "PostgreSQL")
+Rel(C_WORKER, PL_BREVO, $plain("Sends the email"), "SMTP, StartTls")
+Rel(PL_DEPLOY, PL_MIGBUNDLE, $plain("Builds and runs"), "")
 Rel(PL_PRODDATA, PL_MIGBUNDLE, $plain("migrate-only"), "")
-Rel(PL_MIGBUNDLE, PL_SUPAPOOL, $plain("Aplica as migrações como postgres"), "SQL, TLS")
-Rel(PL_PRODDATA, PL_SUPAPOOL, $plain("Corre os comandos como postgres"), "SQL, TLS")
-Rel(PL_DEPLOY, PL_RENDER_API, $plain("Dispara o deploy deste commit"), "Deploy hook")
-Rel(PL_DEPLOY, PL_VERCEL, $plain("Publica o build"), "Vercel CLI")
+Rel(PL_MIGBUNDLE, PL_SUPAPOOL, $plain("Applies the migrations as postgres"), "SQL, TLS")
+Rel(PL_PRODDATA, PL_SUPAPOOL, $plain("Runs the commands as postgres"), "SQL, TLS")
+Rel(PL_DEPLOY, PL_RENDER_API, $plain("Triggers the deploy of this commit"), "Deploy hook")
+Rel(PL_DEPLOY, PL_VERCEL, $plain("Publishes the build"), "Vercel CLI")
 @enduml

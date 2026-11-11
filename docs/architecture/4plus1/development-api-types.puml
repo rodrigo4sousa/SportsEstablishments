@@ -1,29 +1,29 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · do controller aos tipos do front end
+' 4+1 development view - Development view · from the controller to the front end types
 ' Version 1.1 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: Os tipos da API no front end são gerados a partir do OpenAPI, nunca escritos à mão, e o CI verifica a deriva.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: The API types in the front end are generated from OpenAPI, never written by hand, and CI checks for drift.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-api-types
 !include ../style.puml
-title Vista de desenvolvimento - do controller aos tipos do front end
+title Development view - from the controller to the front end types
 
 start
-:Mudar um controller ou um DTO\n(Api, Application);
-:dotnet build backend/SportsBooking.slnx\nMicrosoft.Extensions.ApiDescription.Server\ngera o documento OpenAPI;
+:Change a controller or a DTO\n(Api, Application);
+:dotnet build backend/SportsBooking.slnx\nMicrosoft.Extensions.ApiDescription.Server\ngenerates the OpenAPI document;
 note right
-  O gerador arranca a aplicação como GetDocument.Insider
-  e Program.cs dá-lhe definições de substituição.
+  The generator starts the application as GetDocument.Insider
+  and Program.cs gives it placeholder settings.
 end note
-:Documento OpenAPI\nbackend/src/SportsBooking.Api/openapi/sportsbooking-api.json;
+:OpenAPI document\nbackend/src/SportsBooking.Api/openapi/sportsbooking-api.json;
 :cd frontend && npm run gen:api\nopenapi-typescript 7.13.0;
-:Tipos da API gerados\nfrontend/src/lib/api/schema.d.ts;
-:Os módulos de features/ e lib/ usam\nimport type { components } from "@/lib/api/schema";
-:Commit dos dois ficheiros gerados;
-if (CI: o documento ou os tipos mudariam?) then (sim)
-  :CI falha: git diff ~-~-exit-code;
+:Generated API types\nfrontend/src/lib/api/schema.d.ts;
+:The modules in features/ and lib/ use\nimport type { components } from "@/lib/api/schema";
+:Commit both generated files;
+if (CI: would the document or the types change?) then (yes)
+  :CI fails: git diff ~-~-exit-code;
   stop
-else (não)
-  :CI verde;
+else (no)
+  :CI green;
   stop
 endif
 

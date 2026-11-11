@@ -1,27 +1,27 @@
-' 4+1 vista lógica - Estados de um dono (D-USER com perfil Owner) · users.deactivated_at
+' 4+1 logical view - States of an owner (D-USER with the Owner profile) · users.deactivated_at
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: Desativar um dono é um UPDATE condicional de users.deactivated_at, com um histórico só de acrescentar (US29).
-' Não desenhado: controllers, HTTP e ecrãs.
+' For: whoever writes the code.
+' Documented decision: Deactivating an owner is a conditional UPDATE of users.deactivated_at, with an append-only history (US29).
+' Not drawn: controllers, HTTP and screens.
 @startuml logical-state-owner
 !include ../style.puml
-title Vista lógica - estados de um dono (conta com perfil Owner): users.deactivated_at
+title Logical view - states of an owner (account with the Owner profile): users.deactivated_at
 
 hide empty description
-state Ativo : deactivated_at vazio
-state Desativado : deactivated_at preenchido\nsem login nem refresh\nclubes escondidos, sem novas reservas
+state Active : deactivated_at empty
+state Deactivated : deactivated_at set\nno login or refresh\nclubs hidden, no new bookings
 
-[*] --> Ativo : AccountRegistrationService.RegisterOwnerAsync\n(ou o seed-demo)
-Ativo --> Desativado : AdminOwnerStatusService.DeactivateAsync\n→ IOwnerStatusStore.TryChangeAsync(Deactivated)\nUPDATE … WHERE deactivated_at IS NULL\n+ linha em owner_status_changes\n+ revoga os refresh tokens do dono
-Desativado --> Ativo : AdminOwnerStatusService.ReactivateAsync\n→ TryChangeAsync(Reactivated)\nUPDATE … WHERE deactivated_at IS NOT NULL\n+ linha em owner_status_changes
-Ativo --> Ativo : reativar → 422 owner_not_deactivated
-Desativado --> Desativado : desativar → 422 owner_already_deactivated
+[*] --> Active : AccountRegistrationService.RegisterOwnerAsync\n(or seed-demo)
+Active --> Deactivated : AdminOwnerStatusService.DeactivateAsync\n→ IOwnerStatusStore.TryChangeAsync(Deactivated)\nUPDATE … WHERE deactivated_at IS NULL\n+ row in owner_status_changes\n+ revokes the owner's refresh tokens
+Deactivated --> Active : AdminOwnerStatusService.ReactivateAsync\n→ TryChangeAsync(Reactivated)\nUPDATE … WHERE deactivated_at IS NOT NULL\n+ row in owner_status_changes
+Active --> Active : reactivate → 422 owner_not_deactivated
+Deactivated --> Deactivated : deactivate → 422 owner_already_deactivated
 
-note right of Desativado
-  Tudo numa transação; o UPDATE condicional decide
-  (0 linhas = já estava assim, nada é escrito).
-  Nenhuma reserva é cancelada. O access token já
-  emitido dura até 15 min (aceite).
+note right of Deactivated
+  All in one transaction; the conditional UPDATE decides
+  (0 rows = already in that state, nothing is written).
+  No booking is cancelled. The access token already
+  issued lasts up to 15 min (accepted).
 end note
 
 @enduml

@@ -1,49 +1,49 @@
-' 4+1 vista de processo - Jogador cancela (US19) · a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+' 4+1 process view - Player cancels (US19) · the window read at that moment, and two cancellations at the same time
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: A janela de cancelamento lida no momento e o trinco que faz de dois cancelamentos ao mesmo tempo um só (US19).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: The cancellation window read at that moment, and the lock that turns two simultaneous cancellations into one (US19).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-cancel-player
 !include ../style.puml
 
-title Vista de processo - jogador cancela (US19): a janela lida nesse momento, e dois cancelamentos ao mesmo tempo
+title Process view - player cancels (US19): the window read at that moment, and two cancellations at the same time
 autonumber
 
-participant "As minhas reservas" as WEB_F_MYBOOK
-box "API ASP.NET Core"
-  participant "Cancelar" as API_BOOK_MINE
-  participant "Trinco do campo" as CC_LOCK
-  participant "Pôr no outbox" as API_NOTIF_OUTBOX
+participant "My bookings" as WEB_F_MYBOOK
+box "ASP.NET Core API"
+  participant "Cancel" as API_BOOK_MINE
+  participant "Pitch lock" as CC_LOCK
+  participant "Put in the outbox" as API_NOTIF_OUTBOX
 end box
 database "PostgreSQL" as C_DB
 
-WEB_F_MYBOOK -> API_BOOK_MINE : POST /api/bookings/{id}/cancel [apiJson; política Player]
-API_BOOK_MINE -> C_DB : pitch_id da reserva, só se for do jogador da sessão (404\nbooking_not_found) [SELECT bookings]
-group Transação do trinco
+WEB_F_MYBOOK -> API_BOOK_MINE : POST /api/bookings/{id}/cancel [apiJson; Player policy]
+API_BOOK_MINE -> C_DB : the booking's pitch_id, only if it belongs to the session's player (404\nbooking_not_found) [SELECT bookings]
+group Lock transaction
   API_BOOK_MINE -> CC_LOCK : LockAsync(pitchId)
   CC_LOCK -> C_DB : BEGIN; SELECT 1 FROM pitches … FOR UPDATE [SQL]
-  API_BOOK_MINE -> C_DB : Volta a ler a reserva (com tracking) [SELECT bookings]
-  API_BOOK_MINE -> C_DB : A janela do clube agora, nunca a da reserva [SELECT\nclubs.cancellation_window_hours]
+  API_BOOK_MINE -> C_DB : Reads the booking again (with tracking) [SELECT bookings]
+  API_BOOK_MINE -> C_DB : The club's window now, never the booking's [SELECT\nclubs.cancellation_window_hours]
   API_BOOK_MINE -> API_BOOK_MINE : booking.CancelByPlayer(window, now) → CancellationOutcome
   alt NotConfirmed
-    API_BOOK_MINE --> WEB_F_MYBOOK : 422 booking_not_confirmed (ROLLBACK ao descartar)
-  else OutsideWindow (now ≥ startsAt − janela)
-    API_BOOK_MINE --> WEB_F_MYBOOK : 422 outside_cancellation_window, extensão cancellationDeadline\n(UTC)
+    API_BOOK_MINE --> WEB_F_MYBOOK : 422 booking_not_confirmed (ROLLBACK on dispose)
+  else OutsideWindow (now ≥ startsAt − window)
+    API_BOOK_MINE --> WEB_F_MYBOOK : 422 outside_cancellation_window, extension cancellationDeadline\n(UTC)
   else Cancelled
     API_BOOK_MINE -> API_NOTIF_OUTBOX : EnqueuePlayerCancellationAsync(booking)
-    API_BOOK_MINE -> C_DB : SaveChanges: UPDATE bookings (CancelledByPlayer, cancelled_at) e\nINSERT outbox_messages [SQL]
-    CC_LOCK -> C_DB : COMMIT; o slot volta a estar livre (a constraint só vê\nConfirmed) [SQL]
+    API_BOOK_MINE -> C_DB : SaveChanges: UPDATE bookings (CancelledByPlayer, cancelled_at) and\nINSERT outbox_messages [SQL]
+    CC_LOCK -> C_DB : COMMIT; the slot is free again (the constraint only sees\nConfirmed) [SQL]
     API_BOOK_MINE --> WEB_F_MYBOOK : 200 MyBookingResponse
   end
 end
 
-== Dois cancelamentos da mesma reserva ao mesmo tempo (dois separadores, duplo clique) ==
+== Two cancellations of the same booking at the same time (two tabs, double click) ==
 
-WEB_F_MYBOOK -> API_BOOK_MINE : Pedido A: POST …/cancel
-WEB_F_MYBOOK -> API_BOOK_MINE : Pedido B: POST …/cancel
-CC_LOCK -> C_DB : A obtém FOR UPDATE; B fica à espera na mesma linha de pitches\n[SQL]
-API_BOOK_MINE -> C_DB : A: relê Confirmed, cancela, COMMIT [SQL]
-API_BOOK_MINE -> C_DB : B: obtém o trinco e relê a reserva já CancelledByPlayer [SQL]
+WEB_F_MYBOOK -> API_BOOK_MINE : Request A: POST …/cancel
+WEB_F_MYBOOK -> API_BOOK_MINE : Request B: POST …/cancel
+CC_LOCK -> C_DB : A gets FOR UPDATE; B waits on the same pitches row\n[SQL]
+API_BOOK_MINE -> C_DB : A: reads Confirmed again, cancels, COMMIT [SQL]
+API_BOOK_MINE -> C_DB : B: gets the lock and reads the booking, already CancelledByPlayer [SQL]
 API_BOOK_MINE --> WEB_F_MYBOOK : A: 200
-API_BOOK_MINE --> WEB_F_MYBOOK : B: 422 booking_not_confirmed (nunca 500, nunca dois emails)
+API_BOOK_MINE --> WEB_F_MYBOOK : B: 422 booking_not_confirmed (never 500, never two emails)
 @enduml

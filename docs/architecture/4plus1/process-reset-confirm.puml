@@ -1,38 +1,38 @@
-' 4+1 vista de processo - Definir a nova palavra-passe (US05) · uma só resposta para qualquer ligação má; tudo numa transação
+' 4+1 process view - Set the new password (US05) · a single response for any bad link; everything in one transaction
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: Uma só resposta 400 para qualquer ligação má; a nova palavra-passe, a revogação das sessões e o email numa transação (US05).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: A single 400 response for any bad link; the new password, the session revocation and the email in one transaction (US05).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-reset-confirm
 !include ../style.puml
 
-title Vista de processo - definir a nova palavra-passe (US05): uma só resposta para qualquer ligação má; tudo numa transação
+title Process view - set the new password (US05): a single response for any bad link; everything in one transaction
 autonumber
 
-participant "Contas" as WEB_F_AUTH
-box "API ASP.NET Core"
-  participant "Contas e sessões" as API_AUTH
-  participant "Recuperação" as API_AUTH_RESET
+participant "Accounts" as WEB_F_AUTH
+box "ASP.NET Core API"
+  participant "Accounts and sessions" as API_AUTH
+  participant "Recovery" as API_AUTH_RESET
   participant "Data Protection" as CC_DATAPROT
 end box
 database "PostgreSQL" as C_DB
 
-WEB_F_AUTH -> API_AUTH : POST /api/auth/password-reset/confirm { email, token,\nnewPassword } [email e token lidos do endereço;\n[AllowAnonymous], limite por IP]
+WEB_F_AUTH -> API_AUTH : POST /api/auth/password-reset/confirm { email, token,\nnewPassword } [email and token read from the address;\n[AllowAnonymous], per-IP limit]
 API_AUTH -> API_AUTH_RESET : ConfirmAsync
-API_AUTH_RESET -> API_AUTH_RESET : Valida newPassword (400 no campo); email ou token vazios → 400\ninvalid_or_expired_reset_link
-API_AUTH_RESET -> C_DB : FindByEmailAsync e elegibilidade (Player ou Owner ativo) [SELECT\nusers]
-group Transação
+API_AUTH_RESET -> API_AUTH_RESET : Validates newPassword (400 on the field); empty email or token → 400\ninvalid_or_expired_reset_link
+API_AUTH_RESET -> C_DB : FindByEmailAsync and eligibility (active Player or Owner) [SELECT\nusers]
+group Transaction
   API_AUTH_RESET -> CC_DATAPROT : UserManager.ResetPasswordAsync(user, token, newPassword)
-  CC_DATAPROT -> C_DB : Valida finalidade, validade (relógio do sistema) e security\nstamp [SELECT data_protection_keys]
-  alt token errado, expirado ou já usado
+  CC_DATAPROT -> C_DB : Validates purpose, lifetime (system clock) and security\nstamp [SELECT data_protection_keys]
+  alt wrong, expired or already used token
     API_AUTH_RESET -> C_DB : ROLLBACK [SQL]
-    API_AUTH --> WEB_F_AUTH : 400 invalid_or_expired_reset_link (o mesmo para conta\ndesconhecida)
-  else válido
-    API_AUTH_RESET -> C_DB : Novo hash e novo security stamp: este token e os anteriores\ndeixam de valer [UPDATE users]
-    API_AUTH_RESET -> C_DB : Revoga todas as sessões [UPDATE refresh_tokens SET revoked_at]
+    API_AUTH --> WEB_F_AUTH : 400 invalid_or_expired_reset_link (the same for an unknown\naccount)
+  else valid
+    API_AUTH_RESET -> C_DB : New hash and new security stamp: this token and earlier ones\nstop working [UPDATE users]
+    API_AUTH_RESET -> C_DB : Revokes all sessions [UPDATE refresh_tokens SET revoked_at]
     API_AUTH_RESET -> C_DB : ResetAccessFailedCountAsync, SetLockoutEndDateAsync(null)\n[UPDATE users]
     API_AUTH_RESET -> C_DB : INSERT outbox_messages (password_changed); COMMIT [SQL]
-    API_AUTH --> WEB_F_AUTH : 204; ninguém fica com sessão iniciada
+    API_AUTH --> WEB_F_AUTH : 204; nobody ends up signed in
   end
 end
 @enduml

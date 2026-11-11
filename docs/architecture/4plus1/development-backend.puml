@@ -1,17 +1,17 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · projetos do back end e referências
+' 4+1 development view - Development view · back end projects and references
 ' Version 1.1 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: Um projeto .NET por camada, com referências só para dentro.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: One .NET project per layer, with references pointing inward only.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-backend
 !include ../style.puml
-title Vista de desenvolvimento - projetos do back end e referências
+title Development view - back end projects and references
 
 package "backend/src" {
   component "SportsBooking.Api\n(Microsoft.NET.Sdk.Web)" as L_API
   component "SportsBooking.Infrastructure\n(FrameworkReference Microsoft.AspNetCore.App)" as L_INF
   component "SportsBooking.Application" as L_APP
-  component "SportsBooking.Domain\n(sem pacotes)" as L_DOM
+  component "SportsBooking.Domain\n(no packages)" as L_DOM
 }
 
 package "backend/tests" {
@@ -28,12 +28,12 @@ DEV_TEST_UNIT --> L_API : ProjectReference\n(+ InternalsVisibleTo)
 DEV_TEST_INT --> L_API : ProjectReference
 
 note right of L_API
-  Não referencia Application nem Domain diretamente:
-  chega-lhes por Infrastructure (referências transitivas).
+  Does not reference Application or Domain directly:
+  it reaches them through Infrastructure (transitive references).
 end note
 
 note bottom of DEV_TEST_UNIT
-  Chega a Application e Infrastructure pela referência a Api.
+  Reaches Application and Infrastructure through the reference to Api.
 end note
 
 @enduml

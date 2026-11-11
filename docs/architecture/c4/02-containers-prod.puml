@@ -1,36 +1,36 @@
-' C4 nível 2 - Contentores · produção (T06)
+' C4 level 2 - Containers · production (T06)
 ' Version 1.1 - 2026-11-10
-' Não desenhado: classes, pastas e componentes internos; o C-CLI (seed-demo, set-admin-password) é o mesmo executável da API e não tem caixa.
+' Not drawn: classes, folders and internal components; C-CLI (seed-demo, set-admin-password) is the same executable as the API and has no box.
 @startuml 02-containers-prod
 !include <C4/C4_Container>
 !include ../style.puml
 
-title Contentores - produção (T06)
+title Containers - production (T06)
 
 LAYOUT_LEFT_RIGHT()
 
-Container_Ext(C_BROWSER, "Browser do utilizador", "Browser")
+Container_Ext(C_BROWSER, "User's browser", "Browser")
 
 Boundary(PL_VERCEL, "Vercel") {
-  Container(C_WEB, "Aplicação Next.js", "Next.js 16")
+  Container(C_WEB, "Next.js application", "Next.js 16")
 }
 
 Boundary(PL_RENDER, "Render") {
-  Boundary(PL_RENDER_API, "Serviço web público") {
-    Container(C_API, "API ASP.NET Core", ".NET 10, controllers")
-    Container(C_WORKER, "Worker de emails", "BackgroundService")
+  Boundary(PL_RENDER_API, "Public web service") {
+    Container(C_API, "ASP.NET Core API", ".NET 10, controllers")
+    Container(C_WORKER, "Email worker", "BackgroundService")
   }
 }
 
 Boundary(PL_SUPABASE, "Supabase") {
-  ContainerDb(C_DB, "Base de dados", "PostgreSQL gerido")
+  ContainerDb(C_DB, "Database", "Managed PostgreSQL")
 }
 
 System_Ext(PL_BREVO, "Brevo")
 
-Rel(C_BROWSER, C_WEB, $plain("Abre páginas e chama /api/*"), "HTTPS, cookies")
-Rel(C_WEB, C_API, $plain("Reescreve /api/* e lê a API nos Server Components"), "HTTPS, Internet")
-Rel(C_API, C_DB, $plain("Lê e escreve"), "SQL, Npgsql, modo sessão")
-Rel(C_WORKER, C_DB, $plain("Lê o outbox e marca o resultado"), "SQL")
-Rel(C_WORKER, PL_BREVO, $plain("Envia o email"), "SMTP, StartTls")
+Rel(C_BROWSER, C_WEB, $plain("Opens pages and calls /api/*"), "HTTPS, cookies")
+Rel(C_WEB, C_API, $plain("Rewrites /api/* and reads the API in Server Components"), "HTTPS, Internet")
+Rel(C_API, C_DB, $plain("Reads and writes"), "SQL, Npgsql, session mode")
+Rel(C_WORKER, C_DB, $plain("Reads the outbox and records the result"), "SQL")
+Rel(C_WORKER, PL_BREVO, $plain("Sends the email"), "SMTP, StartTls")
 @enduml

@@ -1,36 +1,36 @@
-' C4 nível 1 - Contexto do sistema · App de Reservas de Campos
+' C4 level 1 - System context · Pitch Booking App
 ' Version 1.1 - 2026-11-10
-' Não desenhado: tecnologias, contentores e código; o CI (X-GHA) e o repositório (X-GH) não fazem parte do uso do sistema e estão na implantação.
+' Not drawn: technologies, containers and code; CI (X-GHA) and the repository (X-GH) are not part of using the system and appear in the deployment.
 @startuml 01-context
 !include <C4/C4_Context>
 !include ../style.puml
 
-title Contexto do sistema - App de Reservas de Campos
+title System context - Pitch Booking App
 
 LAYOUT_LEFT_RIGHT()
 
-Person(P_VIS, "Visitante")
-Person(P_JOG, "Jogador")
-Person(P_DONO, "Dono")
+Person(P_VIS, "Visitor")
+Person(P_JOG, "Player")
+Person(P_DONO, "Owner")
 Person(P_ADMIN, "Admin")
-Person_Ext(P_CLI, "Cliente sem conta")
-Person_Ext(P_OPS, "Operador")
+Person_Ext(P_CLI, "Customer without an account")
+Person_Ext(P_OPS, "Operator")
 
-System(SYS, "App de Reservas de Campos")
+System(SYS, "Pitch Booking App")
 
-System_Ext(X_SMTP, "Servidor SMTP")
+System_Ext(X_SMTP, "SMTP server")
 System_Ext(PL_BREVO, "Brevo")
 System_Ext(PL_VERCEL, "Vercel")
 System_Ext(PL_RENDER, "Render")
 
-Rel(P_VIS, SYS, $plain("Pesquisa clubes e horários"), "HTTPS")
-Rel(P_JOG, SYS, $plain("Reserva e cancela slots"), "HTTPS")
-Rel(P_DONO, SYS, $plain("Gere clubes e reservas"), "HTTPS")
-Rel(P_ADMIN, SYS, $plain("Consulta números e desativa donos"), "HTTPS")
-Rel(P_CLI, P_DONO, $plain("Pede uma reserva"), "Telefone ou presença")
-Rel(P_OPS, SYS, $plain("Configura e corre comandos"), "Variáveis de ambiente, linha de comandos")
-Rel(SYS, X_SMTP, $plain("Envia emails de reservas e contas"), "SMTP")
-Rel(PL_BREVO, X_SMTP, $plain("É o Servidor SMTP em produção"), "")
-Rel_Back(PL_VERCEL, SYS, $plain("Aloja o site"), "")
-Rel_Back(PL_RENDER, SYS, $plain("Aloja a API"), "")
+Rel(P_VIS, SYS, $plain("Searches clubs and times"), "HTTPS")
+Rel(P_JOG, SYS, $plain("Books and cancels slots"), "HTTPS")
+Rel(P_DONO, SYS, $plain("Manages clubs and bookings"), "HTTPS")
+Rel(P_ADMIN, SYS, $plain("Reads the numbers and deactivates owners"), "HTTPS")
+Rel(P_CLI, P_DONO, $plain("Asks for a booking"), "Phone or in person")
+Rel(P_OPS, SYS, $plain("Configures and runs commands"), "Environment variables, command line")
+Rel(SYS, X_SMTP, $plain("Sends booking and account emails"), "SMTP")
+Rel(PL_BREVO, X_SMTP, $plain("Is the SMTP server in production"), "")
+Rel_Back(PL_VERCEL, SYS, $plain("Hosts the website"), "")
+Rel_Back(PL_RENDER, SYS, $plain("Hosts the API"), "")
 @enduml

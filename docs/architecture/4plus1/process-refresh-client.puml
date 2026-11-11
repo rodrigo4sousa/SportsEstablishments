@@ -1,43 +1,43 @@
-' 4+1 vista de processo - Refresh no browser · Web Lock entre separadores e refresh silencioso em /login
+' 4+1 process view - Refresh in the browser · Web Lock between tabs and silent refresh on /login
 ' Version 1.1 - 2026-11-10
-' Para: quem programa e quem depura.
-' Decisão documentada: Um só separador renova a sessão de cada vez (Web Lock) e o servidor nunca a renova (ADR 0002).
-' Não desenhado: detalhe interno das classes; recusas que não mudam a sequência (estão no texto de process.md).
+' For: whoever writes code and whoever debugs.
+' Documented decision: Only one tab renews the session at a time (Web Lock) and the server never renews it (ADR 0002).
+' Not drawn: internal detail of the classes; refusals that do not change the sequence (they are in the text of process.md).
 @startuml process-refresh-client
 !include ../style.puml
 
-title Vista de processo - refresh no browser: Web Lock entre separadores e refresh silencioso em /login
+title Process view - refresh in the browser: Web Lock between tabs and silent refresh on /login
 autonumber
 
-participant "separador A" as WEB_API_CLIENT
-participant "separador B" as WEB_API_CLIENT_B
+participant "tab A" as WEB_API_CLIENT
+participant "tab B" as WEB_API_CLIENT_B
 participant "Browser" as C_BROWSER
 participant "API" as C_API
-participant "Página de login" as WEB_F_AUTH
+participant "Login page" as WEB_F_AUTH
 
-== Dois separadores recebem 401 ao mesmo tempo (access token expirado) ==
+== Two tabs get 401 at the same time (expired access token) ==
 WEB_API_CLIENT -> C_API : GET /api/… → 401
 WEB_API_CLIENT_B -> C_API : GET /api/… → 401
 WEB_API_CLIENT -> C_BROWSER : locks.request('sportsbooking-refresh')
-WEB_API_CLIENT_B -> C_BROWSER : locks.request('sportsbooking-refresh'): espera
-C_BROWSER --> WEB_API_CLIENT : Trinco concedido a A
-WEB_API_CLIENT -> C_API : Repete primeiro o pedido original → 401 outra vez
-WEB_API_CLIENT -> C_API : refreshSession(): POST /api/auth/refresh (um só por separador,\nrefreshInFlight)
-C_API --> WEB_API_CLIENT : 204 + Set-Cookie (cookies novos, partilhados pelos separadores)
-WEB_API_CLIENT -> C_API : Repete o pedido → 200
-WEB_API_CLIENT -> C_BROWSER : Liberta o trinco
-C_BROWSER --> WEB_API_CLIENT_B : Trinco concedido a B
-WEB_API_CLIENT_B -> C_API : Repete primeiro o pedido original → 200 com os cookies que A\nrenovou: não faz refresh
-note over WEB_API_CLIENT, C_API: Sem o trinco, A e B apresentavam o mesmo refresh token; o segundo seria\nreutilização\ne a API revogava todas as sessões. Sem navigator.locks: só a partilha dentro do\nseparador.\nSe o refresh falhar, o 401 chega a quem chamou (que manda para /login).
+WEB_API_CLIENT_B -> C_BROWSER : locks.request('sportsbooking-refresh'): waits
+C_BROWSER --> WEB_API_CLIENT : Lock granted to A
+WEB_API_CLIENT -> C_API : Repeats the original request first → 401 again
+WEB_API_CLIENT -> C_API : refreshSession(): POST /api/auth/refresh (only one per tab,\nrefreshInFlight)
+C_API --> WEB_API_CLIENT : 204 + Set-Cookie (new cookies, shared by the tabs)
+WEB_API_CLIENT -> C_API : Repeats the request → 200
+WEB_API_CLIENT -> C_BROWSER : Releases the lock
+C_BROWSER --> WEB_API_CLIENT_B : Lock granted to B
+WEB_API_CLIENT_B -> C_API : Repeats the original request first → 200 with the cookies A\nrenewed: does not refresh
+note over WEB_API_CLIENT, C_API: Without the lock, A and B would present the same refresh token; the second would be\nreuse\nand the API would revoke all sessions. Without navigator.locks: only sharing within the\ntab.\nIf the refresh fails, the 401 reaches the caller (who sends the user to /login).
 
-== Refresh silencioso em /login (o servidor nunca renova a sessão) ==
+== Silent refresh on /login (the server never renews the session) ==
 WEB_F_AUTH -> WEB_F_AUTH : useQuery(['auth','silent-session'])
 WEB_F_AUTH -> C_BROWSER : trySilentRefresh(): locks.request('sportsbooking-refresh',\nrefreshSession)
 WEB_F_AUTH -> C_API : POST /api/auth/refresh
 alt 204
-  WEB_F_AUTH -> C_API : fetchCurrentUser(): GET /api/auth/me → conta
+  WEB_F_AUTH -> C_API : fetchCurrentUser(): GET /api/auth/me → account
   WEB_F_AUTH -> WEB_F_AUTH : setQueryData(['auth','me']); router.replace(safeNext(next,\nprofile))
 else 401
-  WEB_F_AUTH -> WEB_F_AUTH : Mostra o LoginForm
+  WEB_F_AUTH -> WEB_F_AUTH : Shows the LoginForm
 end
 @enduml

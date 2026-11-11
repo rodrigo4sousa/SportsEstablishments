@@ -1,209 +1,209 @@
-# Vista de desenvolvimento
+# Development view
 
-<!-- Vista 4+1: de desenvolvimento (implementação). Sem equivalente direto no C4. Ver README.md. -->
+<!-- 4+1 view: development (implementation). No direct equivalent in C4. See README.md. -->
 
-Como o código está organizado para quem o escreve: as pastas do repositório, os projetos do back end e as suas referências, as pastas do front end, o que o CI verifica, como se testa e como se acrescenta uma funcionalidade. Tudo foi conferido com os ficheiros do repositório (`.csproj`, `Directory.Packages.props`, `package.json`, `ci.yml`) em 2026-10-29, no commit `f4057ca`; os ids estão no [inventário](../inventory.md) (secção 9 para os `DEV-`).
+How the code is organized for whoever writes it: the repository folders, the back end projects and their references, the front end folders, what CI checks, how it is tested and how a feature is added. Everything was checked against the repository files (`.csproj`, `Directory.Packages.props`, `package.json`, `ci.yml`) on 2026-10-29, at commit `f4057ca`; the ids are in the [inventory](../inventory.md) (section 9 for the `DEV-` ones).
 
-## 1. Estrutura do repositório
+## 1. Repository structure
 
-![Estrutura do repositório](../out/development-repo.svg)
+![Repository structure](../out/development-repo.svg)
 
-Fonte: [development-repo.puml](development-repo.puml).
+Source: [development-repo.puml](development-repo.puml).
 
-| Pasta ou ficheiro | Id | O que tem |
+| Folder or file | Id | What it has |
 | --- | --- | --- |
-| `backend/` | DEV-BACKEND | A solução .NET (`SportsBooking.slnx`), `Directory.Build.props`, `Directory.Packages.props`, `dotnet-tools.json` e o `Dockerfile` da API. |
-| `backend/src/` | L-DOM, L-APP, L-INF, L-API | Os quatro projetos da aplicação (secção 2). |
-| `backend/tests/` | DEV-TEST-UNIT, DEV-TEST-INT | Os dois projetos de teste. |
-| `frontend/` | DEV-FRONTEND | A aplicação Next.js, a configuração (`next.config.ts`, `vitest.config.mts`, `eslint.config.mjs`, `tsconfig.json`, `components.json`) e o `Dockerfile`. |
-| `frontend/src/` | WEB-* | `app/`, `components/`, `features/`, `lib/`, `test/` e `proxy.ts` (secção 3). |
-| `docs/` | DEV-DOCS | `backlog.md` e `stack.md` (fontes de verdade, em pt-PT) e a arquitetura. |
-| `docs/architecture/` | DEV-ARCHDOCS | Estes documentos, `adr/` (o índice e as ADRs escritas), `c4/` e `4plus1/` com os `.puml`, `out/` com os `.svg`, `style.puml` (o estilo comum) e `render.sh` e `render.ps1`. |
-| `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` e `check-architecture-docs.ps1`; `generate-icons.mjs`, que gera os ícones do site a partir de `icon.svg`. |
-| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `codeql.yml`, `e2e.yml`, `deploy.yml`, `prod-data.yml` e `keepalive.yml`. |
-| `e2e/` | DEV-E2E | Testes end-to-end (Playwright, Chromium) com `package.json` próprio, `playwright.config.ts`, `tests/` (quatro fluxos), `support/`, `scripts/stack.mjs` (sobe e semeia a stack) e `compose.e2e.yml`. |
-| `docker-compose.yml`, `.env.example` | DEV-COMPOSE | A stack local: `postgres` (imagem `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (construída de `backend/`) e `frontend` (construída de `frontend/`). |
-| `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md` | DEV-ROOTCFG | Na raiz. `global.json` fixa o SDK 10.0.400 (`rollForward: latestFeature`) e escolhe o executor `Microsoft.Testing.Platform`. `.editorconfig` impõe UTF-8, `lf`, 2 espaços (4 em `.cs`) e namespaces com âmbito de ficheiro. `.gitattributes` fixa `eol=lf`. |
+| `backend/` | DEV-BACKEND | The .NET solution (`SportsBooking.slnx`), `Directory.Build.props`, `Directory.Packages.props`, `dotnet-tools.json` and the API's `Dockerfile`. |
+| `backend/src/` | L-DOM, L-APP, L-INF, L-API | The four application projects (section 2). |
+| `backend/tests/` | DEV-TEST-UNIT, DEV-TEST-INT | The two test projects. |
+| `frontend/` | DEV-FRONTEND | The Next.js application, the configuration (`next.config.ts`, `vitest.config.mts`, `eslint.config.mjs`, `tsconfig.json`, `components.json`) and the `Dockerfile`. |
+| `frontend/src/` | WEB-* | `app/`, `components/`, `features/`, `lib/`, `test/` and `proxy.ts` (section 3). |
+| `docs/` | DEV-DOCS | `backlog.md` and `stack.md` (sources of truth) and the architecture. |
+| `docs/architecture/` | DEV-ARCHDOCS | These documents, `adr/` (the index and the written ADRs), `c4/` and `4plus1/` with the `.puml` files, `out/` with the `.svg` files, `style.puml` (the common style) and `render.sh` and `render.ps1`. |
+| `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` and `check-architecture-docs.ps1`; `generate-icons.mjs`, which generates the site's icons from `icon.svg`. |
+| `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `codeql.yml`, `e2e.yml`, `deploy.yml`, `prod-data.yml` and `keepalive.yml`. |
+| `e2e/` | DEV-E2E | End-to-end tests (Playwright, Chromium) with their own `package.json`, `playwright.config.ts`, `tests/` (four flows), `support/`, `scripts/stack.mjs` (brings up and seeds the stack) and `compose.e2e.yml`. |
+| `docker-compose.yml`, `.env.example` | DEV-COMPOSE | The local stack: `postgres` (image `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (built from `backend/`) and `frontend` (built from `frontend/`). |
+| `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md` | DEV-ROOTCFG | At the root. `global.json` pins SDK 10.0.400 (`rollForward: latestFeature`) and picks the `Microsoft.Testing.Platform` runner. `.editorconfig` enforces UTF-8, `lf`, 2 spaces (4 in `.cs`) and file-scoped namespaces. `.gitattributes` pins `eol=lf`. |
 
-Workflows de implantação da T06: `.github/workflows/deploy.yml` e `prod-data.yml`, que usam `.github/actions/install-dotnet`. Ver a [vista física](physical.md#48-onde-correm-as-migrações-e-os-comandos). Não há `Caddyfile` (ver as [Notas](#7-notas-e-diferenças-encontradas)).
+T06 deployment workflows: `.github/workflows/deploy.yml` and `prod-data.yml`, which use `.github/actions/install-dotnet`. See the [physical view](physical.md#48-where-migrations-and-commands-run). There is no `Caddyfile` (see the [Notes](#7-notes-and-differences-found)).
 
 ## 2. Back end
 
-### Projetos e referências
+### Projects and references
 
-![Projetos do back end](../out/development-backend.svg)
+![Back end projects](../out/development-backend.svg)
 
-Fonte: [development-backend.puml](development-backend.puml).
+Source: [development-backend.puml](development-backend.puml).
 
-As referências são as dos `.csproj`. Todos os projetos herdam de `Directory.Build.props`: `net10.0`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors`, `EnforceCodeStyleInBuild`, `AnalysisLevel` `latest-recommended` e `ManagePackageVersionsCentrally` (as versões ficam todas em `Directory.Packages.props`).
+The references are those of the `.csproj` files. All the projects inherit from `Directory.Build.props`: `net10.0`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors`, `EnforceCodeStyleInBuild`, `AnalysisLevel` `latest-recommended` and `ManagePackageVersionsCentrally` (all versions are in `Directory.Packages.props`).
 
-| Projeto | Id | Referencia | Pacotes principais (versão) |
+| Project | Id | References | Main packages (version) |
 | --- | --- | --- | --- |
-| `SportsBooking.Domain` | L-DOM | nada | nenhum |
+| `SportsBooking.Domain` | L-DOM | nothing | none |
 | `SportsBooking.Application` | L-APP | Domain | `FluentValidation` 12.2.0, `Microsoft.EntityFrameworkCore` 10.0.13, `Microsoft.Extensions.DependencyInjection.Abstractions` 10.0.13 |
-| `SportsBooking.Infrastructure` | L-INF | Application | `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3, `EFCore.NamingConventions` 10.0.1, `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 10.0.13, `Microsoft.IdentityModel.JsonWebTokens` 8.19.2, `MailKit` 4.18.2, `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` 10.0.13, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (privado); `FrameworkReference Microsoft.AspNetCore.App` |
-| `SportsBooking.Api` | L-API | Infrastructure | `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.13, `Microsoft.Extensions.ApiDescription.Server` 10.0.13 (gera o documento no build), `Swashbuckle.AspNetCore.SwaggerUI` 10.3.1, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (privado) |
+| `SportsBooking.Infrastructure` | L-INF | Application | `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3, `EFCore.NamingConventions` 10.0.1, `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 10.0.13, `Microsoft.IdentityModel.JsonWebTokens` 8.19.2, `MailKit` 4.18.2, `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` 10.0.13, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (private); `FrameworkReference Microsoft.AspNetCore.App` |
+| `SportsBooking.Api` | L-API | Infrastructure | `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.13, `Microsoft.Extensions.ApiDescription.Server` 10.0.13 (generates the document at build time), `Swashbuckle.AspNetCore.SwaggerUI` 10.3.1, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (private) |
 | `SportsBooking.UnitTests` | DEV-TEST-UNIT | Domain, Api | `xunit.v3` 4.0.2, `Shouldly` 4.3.0, `Microsoft.Extensions.TimeProvider.Testing` 10.11.0 |
 | `SportsBooking.IntegrationTests` | DEV-TEST-INT | Api | `xunit.v3` 4.0.2, `Shouldly` 4.3.0, `Microsoft.AspNetCore.Mvc.Testing` 10.0.13, `Testcontainers.PostgreSql` 4.16.0, `Microsoft.Extensions.Diagnostics.Testing` 10.11.0, `Microsoft.Extensions.TimeProvider.Testing` 10.11.0 |
 
-A ferramenta local `dotnet-ef` 10.0.13 está em `dotnet-tools.json` (`dotnet tool restore`). Dois pontos que o diagrama mostra e que importam:
+The local tool `dotnet-ef` 10.0.13 is in `dotnet-tools.json` (`dotnet tool restore`). Two points that the diagram shows and that matter:
 
-- **A regra de dependência é verificada pelo compilador.** `Api` só referencia `Infrastructure`, que referencia `Application`, que referencia `Domain`; o `Domain` não tem referências nem pacotes. Uma classe da Application não consegue usar o Npgsql porque o pacote não está no seu projeto (tem só o `Microsoft.EntityFrameworkCore`, para o `IAppDbContext`).
-- **A Api acede à Application e ao Domain só por referência transitiva** (via Infrastructure). Os testes unitários referenciam Domain e Api, e por esta chegam a Application e Infrastructure; a Api dá-lhes `InternalsVisibleTo`.
+- **The dependency rule is checked by the compiler.** `Api` only references `Infrastructure`, which references `Application`, which references `Domain`; `Domain` has no references or packages. An Application class cannot use Npgsql because the package is not in its project (it only has `Microsoft.EntityFrameworkCore`, for `IAppDbContext`).
+- **Api reaches Application and Domain only through a transitive reference** (via Infrastructure). The unit tests reference Domain and Api, and through the latter reach Application and Infrastructure; Api gives them `InternalsVisibleTo`.
 
-### Como a injeção de dependências é composta
+### How dependency injection is composed
 
-![Composição da injeção de dependências](../out/development-di.svg)
+![Dependency injection composition](../out/development-di.svg)
 
-Fonte: [development-di.puml](development-di.puml).
+Source: [development-di.puml](development-di.puml).
 
-`Program.cs` só compõe. Regista primeiro `AddApplication()` (validadores como Singleton e serviços como Scoped), depois `AddInfrastructure(configuration)`, que chama internamente `AddAccounts`, `AddSessions` e `AddEmail`, e por fim o que é da própria Api: `AddControllers`, `AddApiProblemDetails`, `AddOriginCheck`, `AddApiRateLimiting`, `AddCookieJwtAuthentication` e `AddOpenApi`. Cada camada regista-se a si mesma; o `DbContext` e quem o usa são Scoped, e o `OutboxDispatcher` (`BackgroundService`) cria um scope por passagem. Depois de `Build()`, `Program.cs` monta o pipeline (ver [04](process.md)) e, **se não for o gerador do OpenAPI**, valida as opções (`IStartupValidator`), aplica as migrações (em Development, ou com `Database:ApplyMigrationsOnStartup`), faz o seed do admin e trata os comandos `seed-demo` e `set-admin-password` (que saem sem arrancar o servidor, C-CLI).
+`Program.cs` only composes. It first registers `AddApplication()` (validators as Singleton and services as Scoped), then `AddInfrastructure(configuration)`, which internally calls `AddAccounts`, `AddSessions` and `AddEmail`, and finally what belongs to Api itself: `AddControllers`, `AddApiProblemDetails`, `AddOriginCheck`, `AddApiRateLimiting`, `AddCookieJwtAuthentication` and `AddOpenApi`. Each layer registers itself; the `DbContext` and its users are Scoped, and the `OutboxDispatcher` (`BackgroundService`) creates a scope per pass. After `Build()`, `Program.cs` assembles the pipeline (see [04](process.md)) and, **if it is not the OpenAPI generator**, validates the options (`IStartupValidator`), applies the migrations (in Development, or with `Database:ApplyMigrationsOnStartup`), does the admin seed and handles the `seed-demo` and `set-admin-password` commands (which exit without starting the server, C-CLI).
 
-O gerador do OpenAPI arranca a aplicação como `GetDocument.Insider`, sem base de dados nem configuração real: por isso `Program.cs` lhe dá definições de substituição em memória (`ConnectionStrings:Default`, `Security:AllowedOrigins:0`, `Jwt:SigningKey`, `Email:*`, `Outbox:Enabled`, `PublicSite:BaseUrl`) e salta as migrações e o seed. Uma definição obrigatória nova precisa de um valor de substituição aí.
+The OpenAPI generator starts the application as `GetDocument.Insider`, with no database or real configuration: that is why `Program.cs` gives it in-memory placeholder settings (`ConnectionStrings:Default`, `Security:AllowedOrigins:0`, `Jwt:SigningKey`, `Email:*`, `Outbox:Enabled`, `PublicSite:BaseUrl`) and skips the migrations and the seed. A new required setting needs a placeholder value there.
 
 ## 3. Front end
 
-![Pastas do front end](../out/development-frontend.svg)
+![Front end folders](../out/development-frontend.svg)
 
-Fonte: [development-frontend.puml](development-frontend.puml).
+Source: [development-frontend.puml](development-frontend.puml).
 
-| Pasta | Ids | O que tem |
+| Folder | Ids | What it has |
 | --- | --- | --- |
-| `src/app/` | WEB-AREA-PLAYER, WEB-AREA-MANAGE, WEB-AREA-ADMIN, WEB-AREA-ACCOUNT | As rotas: `(player)/` (`/`, `/clubs/[slug]`, `/bookings`), `manage/`, `admin/`, `login/`, `register/` (e `register/owner`), `forgot-password/`, `reset-password/`. São Server Components por omissão; cada área tem `layout.tsx`, `error.tsx` e `loading.tsx`. |
-| `src/features/<nome>/` | WEB-F-* | Uma pasta por funcionalidade (`admin`, `auth`, `booking`, `calendar`, `catalog`, `clubs`, `my-bookings`, `pitches`, `statistics`) com `api.ts`, `components/`, `schemas/` onde há formulários, e os testes ao lado. |
-| `src/components/` | WEB-GUARDS, WEB-UI | Peças partilhadas: guardas (`area-guard`, `player-guard`, `guest-only`), `providers`, `form-field`, cabeçalhos e erros de rota; `ui/` tem os cinco componentes shadcn em uso (`button`, `input`, `label`, `native-select`, `sonner`). |
-| `src/lib/` | WEB-API-CLIENT, WEB-SERVER, WEB-DATETIME, DEV-WEBTYPES | `api/` (cliente, mensagens de erro por `code`, `form-errors`, `schema.d.ts` gerado), `server/` (só no servidor), `auth/` (decisões de redirecionamento), `datetime.ts`, `guid.ts`, `utils.ts`. |
-| `src/proxy.ts` | WEB-PROXY | Em `/manage/*`, `/admin/*` e `/bookings`, escreve o caminho no cabeçalho `x-pathname`; responde 404 a um id impossível nessas áreas e a um clube público que a API não tem (`/clubs/{slug}`), antes de a página começar a enviar. |
-| `src/test/` | DEV-TEST-WEB | `msw.ts`, `render.tsx`, `navigation.tsx` e `server-only.ts` (apoio dos testes). |
+| `src/app/` | WEB-AREA-PLAYER, WEB-AREA-MANAGE, WEB-AREA-ADMIN, WEB-AREA-ACCOUNT | The routes: `(player)/` (`/`, `/clubs/[slug]`, `/bookings`), `manage/`, `admin/`, `login/`, `register/` (and `register/owner`), `forgot-password/`, `reset-password/`. They are Server Components by default; each area has `layout.tsx`, `error.tsx` and `loading.tsx`. |
+| `src/features/<name>/` | WEB-F-* | One folder per feature (`admin`, `auth`, `booking`, `calendar`, `catalog`, `clubs`, `my-bookings`, `pitches`, `statistics`) with `api.ts`, `components/`, `schemas/` where there are forms, and the tests alongside. |
+| `src/components/` | WEB-GUARDS, WEB-UI | Shared pieces: guards (`area-guard`, `player-guard`, `guest-only`), `providers`, `form-field`, headers and route errors; `ui/` has the five shadcn components in use (`button`, `input`, `label`, `native-select`, `sonner`). |
+| `src/lib/` | WEB-API-CLIENT, WEB-SERVER, WEB-DATETIME, DEV-WEBTYPES | `api/` (client, error messages by `code`, `form-errors`, generated `schema.d.ts`), `server/` (server only), `auth/` (redirect decisions), `datetime.ts`, `guid.ts`, `utils.ts`. |
+| `src/proxy.ts` | WEB-PROXY | On `/manage/*`, `/admin/*` and `/bookings`, writes the path to the `x-pathname` header; answers 404 to an impossible id in those areas and to a public club the API does not have (`/clubs/{slug}`), before the page starts sending. |
+| `src/test/` | DEV-TEST-WEB | `msw.ts`, `render.tsx`, `navigation.tsx` and `server-only.ts` (test support). |
 
-O alias `@/*` aponta para `src/*` (`tsconfig.json` e `vitest.config.mts`). Há 49 ficheiros com `"use client"` (sem contar testes): o resto é código de servidor ou partilhado.
+The alias `@/*` points to `src/*` (`tsconfig.json` and `vitest.config.mts`). There are 49 files with `"use client"` (not counting tests): the rest is server or shared code.
 
-### Tipos gerados da API
+### Generated API types
 
-![Do controller aos tipos](../out/development-api-types.svg)
+![From the controller to the types](../out/development-api-types.svg)
 
-Fonte: [development-api-types.puml](development-api-types.puml).
+Source: [development-api-types.puml](development-api-types.puml).
 
-O documento OpenAPI (CC-OPENAPI) é escrito em cada build da Api (`OpenApiGenerateDocumentsOnBuild` por omissão; o `Dockerfile` desliga-o com `-p:OpenApiGenerateDocumentsOnBuild=false`) para `backend/src/SportsBooking.Api/openapi/sportsbooking-api.json`. `npm run gen:api` (`openapi-typescript` 7.13.0) transforma-o em `frontend/src/lib/api/schema.d.ts` (DEV-WEBTYPES), que os módulos importam com `import type { components } from "@/lib/api/schema"` (as `features/*/api.ts` e `types.ts`, `lib/api/client.ts` e `lib/server/*`). Os dois ficheiros vão para o repositório e o CI falha se algum estiver desatualizado (secção 4). Nenhum tipo de resposta da API é escrito à mão.
+The OpenAPI document (CC-OPENAPI) is written on every Api build (`OpenApiGenerateDocumentsOnBuild` by default; the `Dockerfile` turns it off with `-p:OpenApiGenerateDocumentsOnBuild=false`) to `backend/src/SportsBooking.Api/openapi/sportsbooking-api.json`. `npm run gen:api` (`openapi-typescript` 7.13.0) turns it into `frontend/src/lib/api/schema.d.ts` (DEV-WEBTYPES), which the modules import with `import type { components } from "@/lib/api/schema"` (the `features/*/api.ts` and `types.ts`, `lib/api/client.ts` and `lib/server/*`). Both files go into the repository and CI fails if either is out of date (section 4). No API response type is written by hand.
 
-### A fronteira `server-only`
+### The `server-only` boundary
 
-Os quatro ficheiros de `src/lib/server/` (`session.ts`, `public-club.ts`, `admin-stats.ts`, `api-url.ts`) começam por `import "server-only"`: o Next.js falha o build se algum entrar num bundle de browser. Essa pasta lê os cookies do utilizador (`session.ts`, `admin-stats.ts`) e o `API_INTERNAL_URL` (o endereço interno da API, que o browser nunca vê), por isso só é importada por código de servidor: `components/area-guard.tsx`, `player-guard.tsx`, `guest-only.tsx`, `app/(player)/clubs/[slug]/page.tsx` e `app/admin/page.tsx`. O pacote `server-only` não está no `package.json`: é o Next.js que fornece o módulo no build; nos testes, `vitest.config.mts` troca-o por `src/test/server-only.ts`, para os módulos carregarem como módulos normais. O browser usa só `lib/api/client.ts` (WEB-API-CLIENT), que fala com `/api/*` na mesma origem.
+The four files in `src/lib/server/` (`session.ts`, `public-club.ts`, `admin-stats.ts`, `api-url.ts`) start with `import "server-only"`: Next.js fails the build if any of them enters a browser bundle. That folder reads the user's cookies (`session.ts`, `admin-stats.ts`) and `API_INTERNAL_URL` (the API's internal address, which the browser never sees), so it is only imported by server code: `components/area-guard.tsx`, `player-guard.tsx`, `guest-only.tsx`, `app/(player)/clubs/[slug]/page.tsx` and `app/admin/page.tsx`. The `server-only` package is not in `package.json`: Next.js provides the module at build time; in tests, `vitest.config.mts` swaps it for `src/test/server-only.ts`, so the modules load as normal modules. The browser only uses `lib/api/client.ts` (WEB-API-CLIENT), which talks to `/api/*` on the same origin.
 
-### Pacotes principais (versões exatas de `package.json`)
+### Main packages (exact versions from `package.json`)
 
-| Pacote | Versão | Para quê |
+| Package | Version | What for |
 | --- | --- | --- |
 | `next` | 16.4.2 | Framework (App Router, `cacheComponents`, `proxy.ts`, `output: "standalone"`) |
 | `react`, `react-dom` | 19.3.0 | Interface |
 | `typescript` | 5.9.3 | `strict` |
-| `@tanstack/react-query` | 5.104.1 | Dados da API |
-| `react-hook-form`, `@hookform/resolvers`, `zod` | 7.89.0, 5.9.1, 4.6.7 | Formulários e validação de UX |
-| `tailwindcss`, `@tailwindcss/turbopack` | 4.3.3 | Estilos |
-| `radix-ui`, `class-variance-authority`, `cn`, `lucide-react`, `tw-animate-css`, `shadcn` | 1.8.1, 0.7.1, 0.5.0, 1.61.0, 1.4.0, 4.22.1 | Componentes (shadcn/ui) |
-| `recharts` | 3.10.1 | Gráficos do admin |
-| `sonner`, `next-themes` | 2.0.8, 0.4.6 | Avisos e tema |
-| `openapi-typescript` | 7.13.0 | Tipos da API |
-| `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`, `@testing-library/user-event`, `msw` | 5.0.5, 29.1.1, 16.3.3, 10.4.2, 7.0.1, 14.6.8, 3.0.2 | Testes |
+| `@tanstack/react-query` | 5.104.1 | API data |
+| `react-hook-form`, `@hookform/resolvers`, `zod` | 7.89.0, 5.9.1, 4.6.7 | Forms and UX validation |
+| `tailwindcss`, `@tailwindcss/turbopack` | 4.3.3 | Styles |
+| `radix-ui`, `class-variance-authority`, `cn`, `lucide-react`, `tw-animate-css`, `shadcn` | 1.8.1, 0.7.1, 0.5.0, 1.61.0, 1.4.0, 4.22.1 | Components (shadcn/ui) |
+| `recharts` | 3.10.1 | Admin charts |
+| `sonner`, `next-themes` | 2.0.8, 0.4.6 | Notices and theme |
+| `openapi-typescript` | 7.13.0 | API types |
+| `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`, `@testing-library/user-event`, `msw` | 5.0.5, 29.1.1, 16.3.3, 10.4.2, 7.0.1, 14.6.8, 3.0.2 | Tests |
 | `eslint`, `eslint-config-next` | 9.39.5, 16.4.2 | Lint |
 
-Node 22 (`engines`, CI e imagens Docker). Os scripts: `dev`, `build`, `start`, `lint`, `typecheck` (`next typegen && tsc --noEmit`), `test` (`vitest run`), `test:watch` e `gen:api`.
+Node 22 (`engines`, CI and Docker images). The scripts: `dev`, `build`, `start`, `lint`, `typecheck` (`next typegen && tsc --noEmit`), `test` (`vitest run`), `test:watch` and `gen:api`.
 
-## 4. Pipeline de build e qualidade
+## 4. Build and quality pipeline
 
 ### CI (`ci.yml`)
 
-![Pipeline de CI](../out/development-ci.svg)
+![CI pipeline](../out/development-ci.svg)
 
-Fonte: [development-ci.puml](development-ci.puml). O deploy e os dados de produção estão na [secção seguinte](#deploy-dados-de-produção-e-keepalive-deployyml-prod-datayml-e-keepaliveyml).
+Source: [development-ci.puml](development-ci.puml). The deploy and the production data are in the [next section](#deploy-production-data-and-keepalive-deployyml-prod-datayml-and-keepaliveyml).
 
-`ci.yml` corre em cada `push` e `pull_request` (X-GHA), com `permissions: contents: read` e `concurrency` por ref que cancela a execução anterior. Os três jobs não dependem uns dos outros.
+`ci.yml` runs on every `push` and `pull_request` (X-GHA), with `permissions: contents: read` and a per-ref `concurrency` that cancels the previous run. The three jobs do not depend on each other.
 
-| Job | Id | Passos, por ordem | O que apanha |
+| Job | Id | Steps, in order | What it catches |
 | --- | --- | --- | --- |
-| `backend` | DEV-CI-BACKEND | `checkout` → instalar o SDK .NET → `dotnet tool restore` → `dotnet restore` → `dotnet build -c Release --no-restore` → `dotnet test -c Release --no-build` → `git diff --exit-code -- src/SportsBooking.Api/openapi` → `dotnet ef migrations has-pending-model-changes` → `dotnet package list --vulnerable --include-transitive` | Avisos (são erros), testes, OpenAPI desatualizado, alteração do modelo EF sem migração, pacotes NuGet vulneráveis (diretos e transitivos). |
-| `frontend` | DEV-CI-FRONTEND | `checkout` → `setup-node` (22, cache npm) → `npm ci` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build` → `npm run gen:api` + `git diff --exit-code -- src/lib/api` → `npm audit --omit=dev --audit-level=high` | Lint, tipos, testes, build, tipos da API desatualizados, vulnerabilidades altas nas dependências de produção. |
-| `diagrams` | DEV-CI-DIAGRAMS | `checkout` → `docs/architecture/render.sh` → `git status --porcelain -- docs/architecture/out` tem de ser vazio → `scripts/check-architecture-docs.sh` | Um `.svg` que não corresponde ao `.puml`, ou nunca commitado; uma ligação relativa que não chega a um ficheiro. |
+| `backend` | DEV-CI-BACKEND | `checkout` → install the .NET SDK → `dotnet tool restore` → `dotnet restore` → `dotnet build -c Release --no-restore` → `dotnet test -c Release --no-build` → `git diff --exit-code -- src/SportsBooking.Api/openapi` → `dotnet ef migrations has-pending-model-changes` → `dotnet package list --vulnerable --include-transitive` | Warnings (they are errors), tests, outdated OpenAPI, an EF model change without a migration, vulnerable NuGet packages (direct and transitive). |
+| `frontend` | DEV-CI-FRONTEND | `checkout` → `setup-node` (22, npm cache) → `npm ci` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build` → `npm run gen:api` + `git diff --exit-code -- src/lib/api` → `npm audit --omit=dev --audit-level=high` | Lint, types, tests, build, API types out of date, high vulnerabilities in production dependencies. |
+| `diagrams` | DEV-CI-DIAGRAMS | `checkout` → `docs/architecture/render.sh` → `git status --porcelain -- docs/architecture/out` must be empty → `scripts/check-architecture-docs.sh` | An `.svg` that does not match the `.puml`, or was never committed; a relative link that does not reach a file. |
 
-**Porque é que o SDK .NET não vem de `actions/setup-dotnet`.** Os downloads dessa action passam por `aka.ms` até `dotnetorigin.blob.core.windows.net`, que responde 409 (`PublicAccessNotPermitted`; [actions/setup-dotnet#794](https://github.com/actions/setup-dotnet/issues/794)). O passo descarrega `dotnet-install.sh` de `builds.dotnet.microsoft.com` e instala a versão exata de `global.json` (`--jsonfile global.json`, `--azure-feed https://builds.dotnet.microsoft.com/dotnet`); uma versão exata dispensa a pesquisa no `aka.ms`. Quando o problema for resolvido pode voltar-se à action (confirmar que o registo da instalação já não menciona `dotnetorigin`).
+**Why the .NET SDK does not come from `actions/setup-dotnet`.** That action's downloads go through `aka.ms` to `dotnetorigin.blob.core.windows.net`, which answers 409 (`PublicAccessNotPermitted`; [actions/setup-dotnet#794](https://github.com/actions/setup-dotnet/issues/794)). The step downloads `dotnet-install.sh` from `builds.dotnet.microsoft.com` and installs the exact version from `global.json` (`--jsonfile global.json`, `--azure-feed https://builds.dotnet.microsoft.com/dotnet`); an exact version avoids the `aka.ms` lookup. When the problem is resolved the action can be used again (confirm that the install log no longer mentions `dotnetorigin`).
 
-**CodeQL (`codeql.yml`, PL-CODEQL).** Um workflow à parte, para C# e JavaScript/TypeScript, sem build (`build-mode: none`), em cada `pull_request`, em cada `push` à `main` e às segundas-feiras. Não é um job do `ci.yml`: o `deploy.yml` só espera pelo workflow `CI`, por isso uma análise lenta ou que falhe nunca atrasa um deploy.
+**CodeQL (`codeql.yml`, PL-CODEQL).** A separate workflow, for C# and JavaScript/TypeScript, with no build (`build-mode: none`), on every `pull_request`, on every `push` to `main` and on Mondays. It is not a job in `ci.yml`: `deploy.yml` only waits for the `CI` workflow, so a slow or failing analysis never delays a deploy.
 
-**E2E (`e2e.yml`, PL-E2E).** Outro workflow à parte, em cada `pull_request` e em cada `push` à `main`, com `contents: read`: instala o Node 22, faz `npm ci` em `e2e/`, instala o Chromium (a pasta dos browsers vem da cache, com a chave da versão exata do Playwright), sobe a stack do `docker compose` com os dados de demonstração (`npm run stack:up`) e corre os quatro testes com um worker e uma repetição. Se falha, carrega o relatório, os traces e os vídeos como artefacto e mostra os registos dos contentores. Não é um job do `ci.yml` pela mesma razão do CodeQL: o `deploy.yml` só espera pelo `CI`. Ver a [ADR 0010](../adr/0010-testes-end-to-end-playwright.md).
+**E2E (`e2e.yml`, PL-E2E).** Another separate workflow, on every `pull_request` and every `push` to `main`, with `contents: read`: it installs Node 22, runs `npm ci` in `e2e/`, installs Chromium (the browsers folder comes from the cache, keyed on Playwright's exact version), brings up the `docker compose` stack with the demo data (`npm run stack:up`) and runs the four tests with one worker and one retry. If it fails, it uploads the report, the traces and the videos as an artifact and shows the containers' logs. It is not a job in `ci.yml` for the same reason as CodeQL: `deploy.yml` only waits for `CI`. See [ADR 0010](../adr/0010-playwright-end-to-end-tests.md).
 
-**Os testes de integração precisam de Docker**, que os runners `ubuntu-latest` têm; localmente, sem Docker, todos falham a ligar (parece haver centenas de falhas). A `main` **não tem proteção de branch** no GitHub (verificado em 2026-10-30: a API responde «Branch not protected»), por isso nada obriga o CI nem o E2E a estarem verdes: confirma-se à mão, antes de cada merge, que os três jobs do CI e o workflow E2E passaram.
+**The integration tests need Docker**, which the `ubuntu-latest` runners have; locally, without Docker, they all fail to connect (it looks like hundreds of failures). `main` **has no branch protection** on GitHub (verified on 2026-10-30: the API answers "Branch not protected"), so nothing requires CI or E2E to be green: it is checked by hand, before each merge, that the three CI jobs and the E2E workflow passed.
 
-### Deploy, dados de produção e keepalive (`deploy.yml`, `prod-data.yml` e `keepalive.yml`)
+### Deploy, production data and keepalive (`deploy.yml`, `prod-data.yml` and `keepalive.yml`)
 
-![Pipelines de deploy, de dados de produção e de keepalive](../out/development-deploy.svg)
+![Deploy, production data and keepalive pipelines](../out/development-deploy.svg)
 
-Fonte: [development-deploy.puml](development-deploy.puml).
+Source: [development-deploy.puml](development-deploy.puml).
 
-`deploy.yml` (PL-DEPLOY) corre depois de o CI acabar com sucesso num `push` à `main`, só com a variável `DEPLOY_ENABLED` a `true`, e tem quatro jobs em fila: `migrate` (PL-MIGBUNDLE, como dono do esquema), `deploy-api` (PL-DEPLOYHOOK, e espera 200 em `/health`), `deploy-web` (CLI da Vercel) e `smoke`. `prod-data.yml` (PL-PRODDATA) é manual e corre `migrate-only`, `set-admin-password` ou `seed-demo` contra a base de produção. Os dois partilham o grupo de `concurrency` `deploy`, sem cancelar o que está a correr. `keepalive.yml` (PL-KEEPALIVE) corre às segundas e quintas-feiras e à mão, só com `DEPLOY_ENABLED` a `true`, e faz um `GET /api/localities` pelo site público, com repetições durante cerca de 5 minutos: é uma consulta de leitura à base de dados, que também acorda a API, para o Supabase não pausar o projeto por inatividade. Tem o seu próprio grupo de `concurrency` e não usa segredos, só a variável `SITE_URL` (ver o [runbook, secção 10](../../deployment/runbook.md#10-manter-a-demo-ativa)). Os passos manuais e os segredos estão no [runbook](../../deployment/runbook.md) e em [environment-variables.md](../../deployment/environment-variables.md); a decisão, na [ADR 0009](../adr/0009-alvo-de-implantacao.md).
+`deploy.yml` (PL-DEPLOY) runs after CI finishes successfully on a `push` to `main`, only with the `DEPLOY_ENABLED` variable set to `true`, and has four jobs in a row: `migrate` (PL-MIGBUNDLE, as schema owner), `deploy-api` (PL-DEPLOYHOOK, and waits for 200 on `/health`), `deploy-web` (Vercel CLI) and `smoke`. `prod-data.yml` (PL-PRODDATA) is manual and runs `migrate-only`, `set-admin-password` or `seed-demo` against the production database. The two share the `deploy` `concurrency` group, without cancelling the one that is running. `keepalive.yml` (PL-KEEPALIVE) runs on Mondays and Thursdays and by hand, only with `DEPLOY_ENABLED` set to `true`, and makes a `GET /api/localities` through the public site, with retries for about 5 minutes: it is a read query against the database, which also wakes the API, so that Supabase does not pause the project for inactivity. It has its own `concurrency` group and uses no secrets, only the `SITE_URL` variable (see the [runbook, section 10](../../deployment/runbook.md#10-keep-the-demo-alive)). The manual steps and the secrets are in the [runbook](../../deployment/runbook.md) and in [environment-variables.md](../../deployment/environment-variables.md); the decision, in [ADR 0009](../adr/0009-deployment-target.md).
 
-**Em local.** O que o CI faz repete-se com `dotnet build backend/SportsBooking.slnx`, `dotnet test backend/SportsBooking.slnx` e, em `frontend/`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run gen:api`; os diagramas com `docs/architecture/render.sh` (ou `.ps1`), que só precisa de Docker.
+**Locally.** What CI does is repeated with `dotnet build backend/SportsBooking.slnx`, `dotnet test backend/SportsBooking.slnx` and, in `frontend/`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run gen:api`; the diagrams with `docs/architecture/render.sh` (or `.ps1`), which only needs Docker.
 
-## 5. Estratégia de testes
+## 5. Testing strategy
 
-Duas camadas automáticas no back end, uma no front end, quatro testes end-to-end com a stack completa (T08, US30) e verificação manual no browser para o resto. A prática, antes de fazer merge de uma história com interface, é percorrer à mão (ou com scripts de browser temporários, que não se guardam) os fluxos que os testes end-to-end não cobrem, com a stack completa (`docker compose`, dados de demonstração e Mailpit), e conferir os emails e os logs.
+Two automatic layers on the back end, one on the front end, four end-to-end tests with the complete stack (T08, US30) and manual verification in the browser for the rest. The practice, before merging a story with an interface, is to walk through by hand (or with temporary browser scripts, which are not kept) the flows that the end-to-end tests do not cover, with the complete stack (`docker compose`, demo data and Mailpit), and to check the emails and the logs.
 
-| Camada | Id | Ferramentas | O que cobre | O que não cobre |
+| Layer | Id | Tools | What it covers | What it does not cover |
 | --- | --- | --- | --- | --- |
-| Unitários do back end | DEV-TEST-UNIT | xUnit v3, Shouldly, `FakeTimeProvider` | Regras do domínio e das políticas (slots e mudanças de hora, janela de cancelamento, palavras-passe), validadores, serviços sem base de dados, composição de emails, peças de segurança da Api (acesso por `InternalsVisibleTo`) | Qualquer coisa que dependa de SQL, constraints ou transações. |
-| Integração do back end | DEV-TEST-INT | xUnit v3, `WebApplicationFactory<Program>`, Testcontainers PostgreSQL (`postgres:18.6`), Shouldly | Endpoints completos da autenticação à base de dados: autorização por perfil e por dono, `bookings_no_overlap` e pedidos simultâneos, códigos de erro, outbox e worker, arranque e seed, limites de pedidos | A interface. O provider em memória do EF Core nunca se usa. |
-| Componentes do front end | DEV-TEST-WEB | Vitest 5.0.5 (jsdom), Testing Library, MSW 3.0.2 | Comportamento da UI com a API simulada: erros por campo, mensagens por `code`, URL como estado, layout do calendário, funções puras (`datetime`, `redirects`, `selection`) | A API real, o browser real, os cookies httpOnly. |
-| End-to-end | DEV-E2E | Playwright 1.64.1 (Chromium), `docker compose` com os dados de demonstração | Quatro fluxos pelo site, o rewrite, a API e a base de dados: o jogador reserva e cancela; o segundo de dois jogadores recebe o 409 `slot_taken`; o dono vê a reserva no calendário e um clube inexistente dá 404; uma conta nova exporta os dados, apaga-se e deixa de entrar. | Tudo o resto (admin, séries, recuperação de palavra-passe, emails), que fica nas camadas de cima e na verificação manual. |
-| Verificação manual | — | Browser, `docker compose`, Mailpit | Os fluxos que o end-to-end não cobre, antes do merge. | Não se repete automaticamente. |
+| Back end unit | DEV-TEST-UNIT | xUnit v3, Shouldly, `FakeTimeProvider` | Domain and policy rules (slots and clock changes, cancellation window, passwords), validators, services without a database, email composition, Api security pieces (access through `InternalsVisibleTo`) | Anything that depends on SQL, constraints or transactions. |
+| Back end integration | DEV-TEST-INT | xUnit v3, `WebApplicationFactory<Program>`, Testcontainers PostgreSQL (`postgres:18.6`), Shouldly | Complete endpoints from authentication to the database: authorization by profile and by owner, `bookings_no_overlap` and simultaneous requests, error codes, outbox and worker, startup and seed, request limits | The interface. EF Core's in-memory provider is never used. |
+| Front end components | DEV-TEST-WEB | Vitest 5.0.5 (jsdom), Testing Library, MSW 3.0.2 | UI behaviour with the API simulated: per-field errors, messages by `code`, URL as state, calendar layout, pure functions (`datetime`, `redirects`, `selection`) | The real API, the real browser, the httpOnly cookies. |
+| End-to-end | DEV-E2E | Playwright 1.64.1 (Chromium), `docker compose` with the demo data | Four flows through the site, the rewrite, the API and the database: the player books and cancels; the second of two players gets the 409 `slot_taken`; the owner sees the booking in the calendar and a non-existent club gives 404; a new account exports its data, deletes itself and can no longer sign in. | Everything else (admin, series, password recovery, emails), which stays in the layers above and in manual verification. |
+| Manual verification | — | Browser, `docker compose`, Mailpit | The flows that end-to-end does not cover, before the merge. | Not repeated automatically. |
 
-**Contagens** (2026-10-30, `f4057ca` com o pull request de endurecimento pré-deploy da T06, `Release`, verificadas ao correr os testes):
+**Counts** (2026-10-30, `f4057ca` with the T06 pre-deploy hardening pull request, `Release`, verified by running the tests):
 
-| Conjunto | Casos executados | Métodos de teste | Notas |
+| Set | Cases run | Test methods | Notes |
 | --- | --- | --- | --- |
-| Unitários do back end | 549 | 291 em 39 classes | `dotnet test --project backend/tests/SportsBooking.UnitTests`; os `[Theory]` contam uma vez por linha de dados. |
-| Integração do back end | 831 | 593 em 49 classes | Cerca de 2 min 40 s, com Docker. |
-| Front end | 995 | — | 64 ficheiros de teste; cerca de 100 s. |
+| Back end unit | 549 | 291 in 39 classes | `dotnet test --project backend/tests/SportsBooking.UnitTests`; `[Theory]`s count once per data row. |
+| Back end integration | 831 | 593 in 49 classes | About 2 min 40 s, with Docker. |
+| Front end | 995 | — | 64 test files; about 100 s. |
 
-Os «métodos» vêm de `dotnet <SportsBooking.*Tests.dll> -list methods`; os «casos» do resumo do `dotnet test` e do `vitest run`.
+The "methods" come from `dotnet <SportsBooking.*Tests.dll> -list methods`; the "cases" from the summary of `dotnet test` and `vitest run`.
 
-### Como são os testes de integração
+### What the integration tests are like
 
-- **Um PostgreSQL por execução, uma base por teste que precisa.** `ApiFactory` (`AssemblyFixture`, ambiente `Testing`) arranca um contentor `postgres:18.6` e aplica as migrações no arranque (`Database:ApplyMigrationsOnStartup=true`, como em Development). Os testes partilham essa base e dão a cada teste localidades ou nomes únicos; os que dependem do arranque ou de totais usam `factory.CreateIsolatedApp(nome, definições)`, com base própria e logs capturados.
-- **Dados com `TestVenues`** (donos, clubes, campos, bloqueios, reservas) pelo modelo do domínio, e sessões com `CreateSignedInAsync`, sem o custo do PBKDF2.
-- **Origem, rede e relógio.** A origem do site é `https://localhost` (para os cookies `Secure`); o `TestClientAddress` fixa o IP de ligação; limites de pedidos muito altos no anfitrião partilhado (testados em apps isoladas); `FakeTimeProvider` (ou `SettableTimeProvider`) onde a hora conta, sabendo que o token de acesso é validado contra o relógio do sistema. O outbox fica desligado (`Outbox:Enabled=false`) e os testes do worker correm o processador à mão com `FakeEmailSender`; `MailpitTests` usa um Mailpit real.
-- **Limites das pools de ligações.** Cada anfitrião de teste tem a sua própria pool do Npgsql, e o PostgreSQL tem um limite de ligações para a suite inteira. Sem cuidado, algumas dezenas de anfitrões (alguns já descartados, com ligações ociosas) esgotavam as ligações e faziam falhar testes sem relação. Por isso: o contentor arranca com `max_connections=400` (a omissão é 100); as apps isoladas usam `Maximum Pool Size=8;Minimum Pool Size=0;Connection Idle Lifetime=15`; `AdminTestApp` usa `Maximum Pool Size=4` e um semáforo que deixa no máximo 4 anfitriões ao mesmo tempo; `PasswordResetTests` e `BookingNotificationTests` usam 6; o teste de 20 pedidos à espera do trinco do campo (`RecurringBookingTests`) usa 8, para não tirar vinte ligações ao servidor. Os testes que criam a sua própria pool chamam `NpgsqlConnection.ClearPool` ao terminar.
+- **One PostgreSQL per run, one database per test that needs it.** `ApiFactory` (`AssemblyFixture`, `Testing` environment) starts a `postgres:18.6` container and applies the migrations at startup (`Database:ApplyMigrationsOnStartup=true`, as in Development). The tests share that database and give each test unique localities or names; those that depend on startup or on totals use `factory.CreateIsolatedApp(name, settings)`, with their own database and captured logs.
+- **Data with `TestVenues`** (owners, clubs, pitches, blocks, bookings) through the domain model, and sessions with `CreateSignedInAsync`, without the cost of PBKDF2.
+- **Origin, network and clock.** The site origin is `https://localhost` (for the `Secure` cookies); `TestClientAddress` fixes the connection IP; very high request limits on the shared host (tested in isolated apps); `FakeTimeProvider` (or `SettableTimeProvider`) where time matters, knowing that the access token is validated against the system clock. The outbox is off (`Outbox:Enabled=false`) and the worker tests run the processor by hand with `FakeEmailSender`; `MailpitTests` uses a real Mailpit.
+- **Connection pool limits.** Each test host has its own Npgsql pool, and PostgreSQL has a connection limit for the whole suite. Without care, a few dozen hosts (some already disposed, with idle connections) exhausted the connections and made unrelated tests fail. That is why: the container starts with `max_connections=400` (the default is 100); the isolated apps use `Maximum Pool Size=8;Minimum Pool Size=0;Connection Idle Lifetime=15`; `AdminTestApp` uses `Maximum Pool Size=4` and a semaphore that lets at most 4 hosts run at the same time; `PasswordResetTests` and `BookingNotificationTests` use 6; the test with 20 requests waiting on the pitch lock (`RecurringBookingTests`) uses 8, so as not to take twenty connections from the server. Tests that create their own pool call `NpgsqlConnection.ClearPool` when they finish.
 
-## 6. Convenções
+## 6. Conventions
 
-**Git.** A regra é que a `main` só recebe pull requests com o CI verde, com **squash merge**; não está imposta por proteção de branch, e o CI verde confirma-se à mão antes de cada merge. Uma branch por história (`feat/US18-short-name`, `chore/T01-...` para as técnicas, `docs/...`, `ci/...`), a sair da `main`. Os commits seguem Conventional Commits com o id da história: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`, `docs(architecture): ...`. Cada bug ganha primeiro um teste que o reproduz, e só depois a correção. A história de `main` tem um commit por história (squash); os primeiros cinco pull requests (#1 a #5) ficaram com commits de merge.
+**Git.** The rule is that `main` only receives pull requests with green CI, with **squash merge**; it is not enforced by branch protection, and green CI is checked by hand before each merge. One branch per story (`feat/US18-short-name`, `chore/T01-...` for the technical ones, `docs/...`, `ci/...`), branching from `main`. Commits follow Conventional Commits with the story id: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`, `docs(architecture): ...`. Each bug first gets a test that reproduces it, and only then the fix. `main`'s history has one commit per story (squash); the first five pull requests (#1 to #5) were left with merge commits.
 
-**Código e texto.** Código, identificadores, commits e branches em inglês; texto da interface e mensagens de erro da API em pt-PT. Os documentos de arquitetura estão em pt-PT, com os nomes do código em inglês.
+**Code and text.** Code, identifiers, commits and branches in English; interface text and API error messages in pt-PT. The architecture documents are in English, with the code's names kept as they are.
 
-**ADRs.** As decisões importantes ficam em `docs/architecture/adr/` (`NNNN-titulo-curto.md`; uma ADR aceite não se reescreve, é substituída por outra). O [índice](../adr/README.md) tem o estado de cada uma; as ADRs 0001 a 0008 estão aceites e a 0009 (alvo de implantação) está proposta.
+**ADRs.** Important decisions go in `docs/architecture/adr/` (`NNNN-short-title.md`; an accepted ADR is not rewritten, it is replaced by another). The [index](../adr/README.md) has the status of each one; ADRs 0001 to 0008 are accepted and 0009 (deployment target) is proposed.
 
-**Migrações.** Gera-se com `dotnet ef migrations add <Nome> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`, a partir de `backend/`. Nunca se edita uma migração já aplicada; acrescenta-se outra (há 21). A pasta está marcada como `generated_code`. SQL à mão (a `bookings_no_overlap`, índices parciais) entra na própria migração.
+**Migrations.** Generated with `dotnet ef migrations add <Name> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`, from `backend/`. An already applied migration is never edited; another is added (there are 21). The folder is marked `generated_code`. Hand-written SQL (`bookings_no_overlap`, partial indexes) goes into the migration itself.
 
-**Definição de pronto.** Uma história só está pronta quando cada critério de aceitação está coberto por testes (unitário, integração e/ou componente) e o CI está verde.
+**Definition of done.** A story is only done when each acceptance criterion is covered by tests (unit, integration and/or component) and CI is green.
 
-### Como se acrescenta uma funcionalidade
+### How a feature is added
 
-A ordem segue as dependências: cada passo assenta no anterior. Os commits de squash de uma história (por exemplo `eb94b07`, US20) tocam em todos estes sítios.
+The order follows the dependencies: each step builds on the previous one. The squash commits of a story (for example `eb94b07`, US20) touch all of these places.
 
-| # | Passo | Onde | Verificação |
+| # | Step | Where | Verification |
 | --- | --- | --- | --- |
-| 1 | Regra no `docs/backlog.md` (critérios) e, se for decisão técnica, em `docs/stack.md` | DEV-DOCS | — |
-| 2 | **Entidade e migração**: método com intenção na entidade (setters privados), configuração EF, `dotnet ef migrations add` | L-DOM, L-INF (`Persistence/Migrations/`) | `has-pending-model-changes` vazio |
-| 3 | **Serviço** com `Result<T>`, validador FluentValidation e códigos de erro estáveis; a interface (`I*Store`) na Application e a implementação na Infrastructure; registo em `AddApplication()` / `AddInfrastructure()` | L-APP, L-INF | testes unitários |
-| 4 | **Endpoint**: controller fino sob a política do perfil (nas rotas do dono, `api/manage/clubs/{clubId}/…` e `OwnedClubs`) | L-API | — |
-| 5 | **Testes**: unitários para a regra, integração para o endpoint (autorização, erros, concorrência); rotas novas nas listas dos testes de acesso (`OwnerAreaAccessTests`, `AdminAreaAccessTests`) | DEV-TEST-UNIT, DEV-TEST-INT | `dotnet test` |
-| 6 | **OpenAPI e tipos**: `dotnet build` regenera o documento; `npm run gen:api` regenera `schema.d.ts`; commit dos dois | CC-OPENAPI, DEV-WEBTYPES | `git diff` vazio no CI |
-| 7 | **Front end**: `api.ts` da funcionalidade, componentes, esquema Zod que espelha os limites da API, mensagens por `code` em `error-messages.ts`, estado no endereço, testes de componentes com MSW | WEB-F-*, WEB-API-CLIENT | `lint`, `typecheck`, `test`, `build`; verificação manual no browser |
-| 8 | **Documentação**: critérios do backlog, `AGENTS.md` se a regra muda o mapa do código, e, se mexe num elemento do inventário, o inventário e os diagramas (e `docs/architecture/render.sh`) | DEV-DOCS, DEV-ARCHDOCS | job `diagrams` |
+| 1 | Rule in `docs/backlog.md` (criteria) and, if it is a technical decision, in `docs/stack.md` | DEV-DOCS | — |
+| 2 | **Entity and migration**: intention-revealing method on the entity (private setters), EF configuration, `dotnet ef migrations add` | L-DOM, L-INF (`Persistence/Migrations/`) | `has-pending-model-changes` empty |
+| 3 | **Service** with `Result<T>`, FluentValidation validator and stable error codes; the interface (`I*Store`) in Application and the implementation in Infrastructure; registration in `AddApplication()` / `AddInfrastructure()` | L-APP, L-INF | unit tests |
+| 4 | **Endpoint**: thin controller under the profile's policy (on owner routes, `api/manage/clubs/{clubId}/…` and `OwnedClubs`) | L-API | — |
+| 5 | **Tests**: unit for the rule, integration for the endpoint (authorization, errors, concurrency); new routes in the access tests' lists (`OwnerAreaAccessTests`, `AdminAreaAccessTests`) | DEV-TEST-UNIT, DEV-TEST-INT | `dotnet test` |
+| 6 | **OpenAPI and types**: `dotnet build` regenerates the document; `npm run gen:api` regenerates `schema.d.ts`; commit both | CC-OPENAPI, DEV-WEBTYPES | empty `git diff` in CI |
+| 7 | **Front end**: the feature's `api.ts`, components, Zod schema that mirrors the API's limits, messages by `code` in `error-messages.ts`, state in the address, component tests with MSW | WEB-F-*, WEB-API-CLIENT | `lint`, `typecheck`, `test`, `build`; manual verification in the browser |
+| 8 | **Documentation**: backlog criteria, `AGENTS.md` if the rule changes the code map, and, if it touches an inventory element, the inventory and the diagrams (and `docs/architecture/render.sh`) | DEV-DOCS, DEV-ARCHDOCS | `diagrams` job |
 
-## 7. Notas e diferenças encontradas
+## 7. Notes and differences found
 
-Diferenças entre o código e outros documentos, só registadas aqui (esta parte não altera código, testes nem os outros documentos):
+Differences between the code and other documents, only recorded here (this part changes no code, tests or other documents):
 
-1. `docs/stack.md` (secção «Repositório, Git, CI e deploy») mostra um `Caddyfile` na árvore do repositório, que não existe: a [ADR 0009](../adr/0009-alvo-de-implantacao.md) substitui essa parte. A mesma secção promete ADRs «em `docs/`»: estão em `docs/architecture/adr/` (0001 a 0009).
-2. O `README.md` da raiz foi reescrito (pull request #29) e já descreve os três jobs de CI, incluindo `diagrams`, e a estrutura atual do repositório; esta nota fica só como registo.
-3. `frontend/Dockerfile` copia `/app/public`, que não existe no repositório; o próprio `Dockerfile` cria a pasta vazia (`mkdir -p public`) e explica-o num comentário. Não é erro.
-4. A `main` não tem proteção de branch no GitHub; o `README.md`, o `docs/stack.md` e o `AGENTS.md` dizem-no como é, e o CI verde confirma-se à mão antes de cada merge.
+1. `docs/stack.md` (section "Repository, Git, CI and deploy") shows a `Caddyfile` in the repository tree, which does not exist: [ADR 0009](../adr/0009-deployment-target.md) replaces that part. The same section promises ADRs "in `docs/`": they are in `docs/architecture/adr/` (0001 to 0009).
+2. The root `README.md` was rewritten (pull request #29) and now describes the three CI jobs, including `diagrams`, and the current repository structure; this note stays only as a record.
+3. `frontend/Dockerfile` copies `/app/public`, which does not exist in the repository; the `Dockerfile` itself creates the empty folder (`mkdir -p public`) and explains it in a comment. It is not an error.
+4. `main` has no branch protection on GitHub; `README.md`, `docs/stack.md` and `AGENTS.md` say so as it is, and green CI is checked by hand before each merge.

@@ -1,32 +1,32 @@
-' 4+1 vista lógica - Estados de uma reserva (D-BOOKING) · Booking.Status
+' 4+1 logical view - States of a booking (D-BOOKING) · Booking.Status
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: O estado de uma reserva muda só por métodos da entidade Booking; a exclusion constraint só cobre as reservas Confirmed (ADR 0003).
-' Não desenhado: controllers, HTTP e ecrãs.
+' For: whoever writes the code.
+' Documented decision: A booking's state changes only through methods of the Booking entity; the exclusion constraint covers only Confirmed bookings (ADR 0003).
+' Not drawn: controllers, HTTP and screens.
 @startuml logical-state-booking
 !include ../style.puml
-title Vista lógica - estados de uma reserva: Booking.Status
+title Logical view - states of a booking: Booking.Status
 
 hide empty description
-state Confirmed : confirmada\nocupa o slot (bookings_no_overlap)
-state CancelledByPlayer : cancelada pelo jogador\nCancelledAt
-state CancelledByClub : cancelada pelo clube\nCancelledAt, CancellationReason
-state NoShow : falta\nnão ocupa o slot
+state Confirmed : confirmed\noccupies the slot (bookings_no_overlap)
+state CancelledByPlayer : cancelled by the player\nCancelledAt
+state CancelledByClub : cancelled by the club\nCancelledAt, CancellationReason
+state NoShow : no-show\ndoes not occupy the slot
 
 [*] --> Confirmed : Booking.ForPlayer(…)\n(BookingService, RecurringBookingService)\nBooking.ForCustomer(…)\n(ClubBookingService.CreateAsync)
-Confirmed --> CancelledByPlayer : CancelByPlayer(window, now)\n[now < StartsAt − janela atual do clube]\nBookingCancellationService, sob o trinco do campo
-Confirmed --> CancelledByClub : CancelByClub(reason, now)\n[ainda não começou]\nClubBookingService.CancelAsync, sob o trinco do campo
-Confirmed --> NoShow : RecordNoShow(now)\n[now ≥ EndsAt]\nClubBookingService.MarkNoShowAsync, sob o trinco do campo
-NoShow --> Confirmed : UndoNoShow()\n[a constraint aceita; 23P01 → 409 slot_taken]\nClubBookingService.UndoNoShowAsync, sob o trinco do campo
+Confirmed --> CancelledByPlayer : CancelByPlayer(window, now)\n[now < StartsAt − the club's current window]\nBookingCancellationService, under the pitch lock
+Confirmed --> CancelledByClub : CancelByClub(reason, now)\n[not started yet]\nClubBookingService.CancelAsync, under the pitch lock
+Confirmed --> NoShow : RecordNoShow(now)\n[now ≥ EndsAt]\nClubBookingService.MarkNoShowAsync, under the pitch lock
+NoShow --> Confirmed : UndoNoShow()\n[the constraint accepts it; 23P01 → 409 slot_taken]\nClubBookingService.UndoNoShowAsync, under the pitch lock
 
 note right of CancelledByPlayer
-  Os dois cancelamentos são finais:
-  nenhum método sai deles.
-  A reserva nunca é apagada.
+  Both cancellations are final:
+  no method leaves them.
+  The booking is never deleted.
 end note
 
 note bottom of Confirmed
-  Recusas (o estado não muda):
+  Refusals (the state does not change):
   CancelByPlayer → NotConfirmed (422 booking_not_confirmed),
     OutsideWindow (422 outside_cancellation_window)
   CancelByClub → NotConfirmed (422), AlreadyStarted (422 booking_already_started)

@@ -1,8 +1,8 @@
-# Inventário de elementos
+# Element inventory
 
-Catálogo de tudo o que os diagramas podem usar. Cada elemento tem um **id estável**: os textos e as ADRs referem-se a ele por esse id, e nos diagramas o id é o alias no PlantUML, nunca texto desenhado (nomes e aliases na [secção 12](#12-nomes-e-aliases-nos-diagramas)). Só entra o que existe no código em 2026-10-29 (depois do merge `f4057ca` na `main`); a produção (T06, ids `PL-`) está numa secção à parte, no fim.
+Catalogue of everything the diagrams can use. Each element has a **stable id**: the texts and the ADRs refer to it by that id, and in the diagrams the id is the PlantUML alias, never drawn text (names and aliases in [section 12](#12-names-and-aliases-in-the-diagrams)). Only what exists in the code on 2026-10-29 goes in (after merge `f4057ca` into `main`); production (T06, ids `PL-`) is in a separate section, at the end.
 
-Os caminhos são relativos à raiz do repositório. Para não repetir prefixos longos:
+Paths are relative to the repository root. To avoid repeating long prefixes:
 
 - `Api/` = `backend/src/SportsBooking.Api/`
 - `App/` = `backend/src/SportsBooking.Application/`
@@ -10,331 +10,333 @@ Os caminhos são relativos à raiz do repositório. Para não repetir prefixos l
 - `Inf/` = `backend/src/SportsBooking.Infrastructure/`
 - `Web/` = `frontend/src/`
 
-**Convenção dos ids:** `P-` pessoas, `X-` sistemas externos, `C-` contentores, `L-` camadas (projetos) do back end, `API-` componentes da API por funcionalidade, `CC-` peças transversais da API, `WEB-` componentes do front end, `D-` entidades e valores do domínio (e entidades persistidas noutras camadas), `DB-` objetos da base de dados, `DEV-` elementos da vista de desenvolvimento (pastas, projetos de teste, jobs de CI, ficheiros gerados), `DEP-` nós e infraestrutura de implantação que existem hoje, `SC-` cenários de uso, `PL-` elementos da produção (T06). Um id nunca muda nem é reutilizado; um elemento que deixe de existir fica marcado como removido.
+**Id convention:** `P-` people, `X-` external systems, `C-` containers, `L-` back end layers (projects), `API-` API components by feature, `CC-` cross-cutting API pieces, `WEB-` front end components, `D-` domain entities and values (and entities persisted in other layers), `DB-` database objects, `DEV-` development view elements (folders, test projects, CI jobs, generated files), `DEP-` deployment nodes and infrastructure that exist today, `SC-` usage scenarios, `PL-` production elements (T06). An id never changes or is reused; an element that ceases to exist is marked as removed.
 
-## 1. Pessoas e atores
+## 1. People and actors
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| P-VIS | Visitante | Pessoa (sem sessão) | Pesquisa clubes, vê a página de um clube e os horários livres; para reservar é enviado para o login. | Rotas públicas `Web/app/(player)/`, `Api/Controllers/ClubsController.cs`, `LocalitiesController.cs` (`[AllowAnonymous]`) |
-| P-JOG | Jogador | Pessoa (perfil `Player`) | Regista-se, reserva slots (um ou semanais), vê e cancela as suas reservas, recebe emails. | `Dom/Accounts/Profiles.cs`; `Api/Controllers/BookingsController.cs`, `MeBookingsController.cs`; `Web/app/(player)/bookings/` |
-| P-DONO | Dono | Pessoa (perfil `Owner`) | Gere os seus clubes, campos, horários, bloqueios, faixas de preço, calendário, reservas para clientes, faltas e estatísticas. | `Api/Controllers/Manage*Controller.cs`; `Web/app/manage/` |
-| P-ADMIN | Admin | Pessoa (perfil `Admin`) | Dono da plataforma: vê contagens, gráficos e a lista de donos, desativa e reativa donos. Criado só pelo seed. | `Api/Controllers/AdminController.cs`; `Inf/Identity/AdminAccountSeeder.cs`; `Web/app/admin/` |
-| P-CLI | Cliente sem conta | Pessoa (não usa o sistema) | Pessoa que liga ou aparece no clube; o dono reserva em nome dela (nome e telemóvel). Não recebe email. | `Dom/Bookings/Booking.cs` (`ForCustomer`); `App/Bookings/ClubBookings.cs` (`CreateAsync`) |
-| P-OPS | Operador | Pessoa (quem corre a aplicação) | Arranca a stack, corre os comandos de linha (`seed-demo`, `set-admin-password`) e define as variáveis de ambiente. | `docker-compose.yml`, `README.md`, `Api/Program.cs` |
+| P-VIS | Visitor | Person (no session) | Searches clubs, sees a club's page and the free times; to book, is sent to login. | Public routes `Web/app/(player)/`, `Api/Controllers/ClubsController.cs`, `LocalitiesController.cs` (`[AllowAnonymous]`) |
+| P-JOG | Player | Person (`Player` profile) | Registers, books slots (single or weekly), sees and cancels their bookings, receives emails. | `Dom/Accounts/Profiles.cs`; `Api/Controllers/BookingsController.cs`, `MeBookingsController.cs`; `Web/app/(player)/bookings/` |
+| P-DONO | Owner | Person (`Owner` profile) | Manages their clubs, pitches, schedules, blocks, price bands, calendar, bookings for customers, no-shows and statistics. | `Api/Controllers/Manage*Controller.cs`; `Web/app/manage/` |
+| P-ADMIN | Admin | Person (`Admin` profile) | Platform owner: sees counts, charts and the owners list, deactivates and reactivates owners. Created only by the seed. | `Api/Controllers/AdminController.cs`; `Inf/Identity/AdminAccountSeeder.cs`; `Web/app/admin/` |
+| P-CLI | Customer without an account | Person (does not use the system) | A person who phones or turns up at the club; the owner books on their behalf (name and mobile number). Receives no email. | `Dom/Bookings/Booking.cs` (`ForCustomer`); `App/Bookings/ClubBookings.cs` (`CreateAsync`) |
+| P-OPS | Operator | Person (whoever runs the application) | Starts the stack, runs the command-line commands (`seed-demo`, `set-admin-password`) and sets the environment variables. | `docker-compose.yml`, `README.md`, `Api/Program.cs` |
 
-## 2. Sistemas externos
+## 2. External systems
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| X-SMTP | Servidor SMTP | Sistema externo | Recebe os emails da aplicação por SMTP (qualquer servidor; em produção será o Brevo, ver PL-BREVO). | `Inf/Notifications/SmtpEmailSender.cs` (MailKit), `EmailOptions.cs` (`Email:*`) |
-| X-MAILPIT | Mailpit | Sistema externo (só desenvolvimento) | Servidor SMTP falso com interface web: apanha todos os emails em desenvolvimento, nenhum sai para fora. | `docker-compose.yml` (serviço `mailpit`, `axllent/mailpit:v1.31.6`, portas 1025 e 8025) |
-| X-GHA | GitHub Actions | Sistema externo | CI (`ci.yml`): build, testes (com Testcontainers), verificação do OpenAPI e dos tipos gerados, migrações pendentes, pacotes vulneráveis, lint, tipos e build do front end. Não faz deploy; o deploy é o `deploy.yml` (PL-DEPLOY). Os testes end-to-end são o `e2e.yml` (PL-E2E), à parte. | `.github/workflows/ci.yml` |
-| X-GH | GitHub | Sistema externo | Repositório e pull requests (merge por squash). Não há proteção de branch na `main`: o CI verde confirma-se à mão antes de cada merge. | `README.md`, `AGENTS.md` (convenções) |
+| X-SMTP | SMTP server | External system | Receives the application's emails over SMTP (any server; in production it will be Brevo, see PL-BREVO). | `Inf/Notifications/SmtpEmailSender.cs` (MailKit), `EmailOptions.cs` (`Email:*`) |
+| X-MAILPIT | Mailpit | External system (development only) | Fake SMTP server with a web interface: catches all emails in development, none goes out. | `docker-compose.yml` (service `mailpit`, `axllent/mailpit:v1.31.6`, ports 1025 and 8025) |
+| X-GHA | GitHub Actions | External system | CI (`ci.yml`): build, tests (with Testcontainers), check of the OpenAPI and the generated types, pending migrations, vulnerable packages, lint, types and front end build. It does not deploy; the deploy is `deploy.yml` (PL-DEPLOY). The end-to-end tests are `e2e.yml` (PL-E2E), separately. | `.github/workflows/ci.yml` |
+| X-GH | GitHub | External system | Repository and pull requests (squash merge). There is no branch protection on `main`: green CI is checked by hand before each merge. | `README.md`, `AGENTS.md` (conventions) |
 
-## 3. Contentores
+## 3. Containers
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| C-WEB | Aplicação Next.js | Contentor (Node.js, Next.js 16 App Router, imagem `standalone`, porta 3000) | Serve as três áreas (`/`, `/manage`, `/admin`) e as páginas de conta. Server Components leem a API interna; Client Components falam com `/api/*` na mesma origem. Reencaminha `/api/*` para a API (WEB-REWRITE): em desenvolvimento faz de proxy reverso. | `frontend/` (`Dockerfile`, `next.config.ts`, `src/`) |
-| C-API | API ASP.NET Core | Contentor (.NET 10, controllers, porta 8080; publicada em 5080 no compose) | Única dona das regras de negócio e do acesso à base de dados; autenticação por cookies, autorização por perfil e por dono, ProblemDetails, rate limiting. | `backend/Dockerfile`, `Api/Program.cs` |
-| C-WORKER | Worker de emails (outbox) | Contentor lógico (`BackgroundService` dentro do processo da API) | Lê o outbox, compõe e envia os emails por SMTP com novas tentativas; corre em cada instância da API. | `Inf/Notifications/OutboxDispatcher.cs`, `OutboxProcessor.cs` (registado com `AddHostedService`) |
-| C-CLI | Comandos de linha da API | Contentor lógico (o mesmo executável da API, sem arrancar o servidor) | `seed-demo` (dados de demonstração) e `set-admin-password` (muda a palavra-passe do admin); correm depois das migrações e do seed do admin e saem. | `Api/Program.cs`; `Inf/Demo/DemoDataCommand.cs`; `Inf/Identity/AdminPasswordCommand.cs` |
-| C-DB | Base de dados PostgreSQL | Contentor (PostgreSQL 18.6) | Guarda todos os dados; impõe as regras que não podem falhar (sem reservas sobrepostas, histórico de donos só de acrescentar) e guarda as chaves do Data Protection. | `docker-compose.yml` (serviço `postgres`); `Inf/Persistence/` |
-| C-BROWSER | Browser do utilizador | Ambiente de execução (fora do nosso deploy) | Corre os Client Components e guarda os cookies httpOnly de sessão; fala só com C-WEB (mesma origem). | `Web/` (componentes com `"use client"`), `Web/lib/api/client.ts` |
+| C-WEB | Next.js application | Container (Node.js, Next.js 16 App Router, `standalone` image, port 3000) | Serves the three areas (`/`, `/manage`, `/admin`) and the account pages. Server Components read the internal API; Client Components talk to `/api/*` on the same origin. Forwards `/api/*` to the API (WEB-REWRITE): in development it acts as the reverse proxy. | `frontend/` (`Dockerfile`, `next.config.ts`, `src/`) |
+| C-API | ASP.NET Core API | Container (.NET 10, controllers, port 8080; published on 5080 in compose) | Sole owner of the business rules and of database access; cookie authentication, authorization by profile and by owner, ProblemDetails, rate limiting. | `backend/Dockerfile`, `Api/Program.cs` |
+| C-WORKER | Email worker (outbox) | Logical container (`BackgroundService` inside the API process) | Reads the outbox, composes and sends the emails over SMTP with retries; runs in each API instance. | `Inf/Notifications/OutboxDispatcher.cs`, `OutboxProcessor.cs` (registered with `AddHostedService`) |
+| C-CLI | API command-line commands | Logical container (the same executable as the API, without starting the server) | `seed-demo` (demo data) and `set-admin-password` (changes the admin's password); they run after the migrations and the admin seed and exit. | `Api/Program.cs`; `Inf/Demo/DemoDataCommand.cs`; `Inf/Identity/AdminPasswordCommand.cs` |
+| C-DB | PostgreSQL database | Container (PostgreSQL 18.6) | Stores all the data; enforces the rules that cannot fail (no overlapping bookings, append-only owner history) and stores the Data Protection keys. | `docker-compose.yml` (service `postgres`); `Inf/Persistence/` |
+| C-BROWSER | User's browser | Runtime environment (outside our deploy) | Runs the Client Components and keeps the httpOnly session cookies; talks only to C-WEB (same origin). | `Web/` (components with `"use client"`), `Web/lib/api/client.ts` |
 
-**Proxy reverso, como está hoje:** não há Caddy no repositório. Em desenvolvimento e no compose, o browser fala com C-WEB na porta 3000 e o Next.js reencaminha `/api/*` para `http://api:8080` (WEB-REWRITE). A API também está exposta diretamente na porta 5080 (Swagger em `/swagger`), e `http://localhost:5080` é uma das origens aceites em Development. O Caddy (PL-CADDY) não foi adotado.
+**Reverse proxy, as it is today:** there is no Caddy in the repository. In development and in compose, the browser talks to C-WEB on port 3000 and Next.js forwards `/api/*` to `http://api:8080` (WEB-REWRITE). The API is also exposed directly on port 5080 (Swagger at `/swagger`), and `http://localhost:5080` is one of the origins accepted in Development. Caddy (PL-CADDY) was not adopted.
 
-## 4. Componentes da API por funcionalidade
+## 4. API components by feature
 
-### Camadas (projetos do back end)
+### Layers (back end projects)
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| L-API | Camada Api | Projeto .NET | Controllers finos, cookies e autenticação, ProblemDetails, segurança HTTP; `Program.cs` compõe. Referencia só L-INF. | `backend/src/SportsBooking.Api/` |
-| L-APP | Camada Application | Projeto .NET | Serviços por caso de uso, validação, `Result`, `IAppDbContext` e as interfaces que a Infrastructure implementa. Referencia só L-DOM. | `backend/src/SportsBooking.Application/` |
-| L-INF | Camada Infrastructure | Projeto .NET | EF Core e PostgreSQL, Identity, sessões, SMTP, worker do outbox, comandos. Referencia L-APP. | `backend/src/SportsBooking.Infrastructure/` |
-| L-DOM | Camada Domain | Projeto .NET | Entidades, valores e regras, sem dependências. | `backend/src/SportsBooking.Domain/` |
+| L-API | Api layer | .NET project | Thin controllers, cookies and authentication, ProblemDetails, HTTP security; `Program.cs` composes. References only L-INF. | `backend/src/SportsBooking.Api/` |
+| L-APP | Application layer | .NET project | Services per use case, validation, `Result`, `IAppDbContext` and the interfaces that Infrastructure implements. References only L-DOM. | `backend/src/SportsBooking.Application/` |
+| L-INF | Infrastructure layer | .NET project | EF Core and PostgreSQL, Identity, sessions, SMTP, the outbox worker, commands. References L-APP. | `backend/src/SportsBooking.Infrastructure/` |
+| L-DOM | Domain layer | .NET project | Entities, values and rules, with no dependencies. | `backend/src/SportsBooking.Domain/` |
 
-### Componentes
+### Components
 
-Cada componente junta o controller (Api), os serviços (Application) e o que a Infrastructure lhe dá.
+Each component brings together the controller (Api), the services (Application) and what Infrastructure gives it.
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| API-AUTH | Contas e sessões | Componente | Registo de jogador e de dono, login e logout, `GET /api/auth/me`, refresh com rotação, bloqueio por tentativas, recuperação de palavra-passe, exportar os dados e apagar a conta (US30). | `Api/Controllers/AuthController.cs`, `MeAccountController.cs`; `App/Accounts/`, `App/Auth/`; `Inf/Identity/` (`AccountStore`, `AppUser`, `LoginLockout`, `FallbackPasswordHash`), `Inf/Auth/` (`SessionService`, `RefreshToken`, `PasswordReset`) |
-| API-ADMINSEED | Seed do admin | Componente (arranque) | Cria a conta de admin a partir de `AdminSeed:*` no arranque, em todos os ambientes; é o único código que dá o perfil Admin. | `Inf/Identity/AdminAccountSeeder.cs`, `AdminSeedOptions.cs`, `AdminSeedOptionsValidator.cs` |
-| API-CLUBS | Clubes do dono | Componente | Criar, listar, ver e editar os clubes do dono (slug, janela de cancelamento, aviso de novas reservas). | `Api/Controllers/ManageClubsController.cs`; `App/Clubs/` (`ClubService`, `IClubStore`); `Inf/Clubs/` |
-| API-CATALOG | Catálogo público | Componente | Pesquisa de clubes, localidades, página pública do clube e slots livres de um campo; só leitura, sem dados pessoais. | `Api/Controllers/ClubsController.cs`, `LocalitiesController.cs`; `App/Catalog/` (`ClubSearchService`, `PublicClubService`, `VisibleClubs`) |
-| API-PITCHES | Campos | Componente | Criar, editar, desativar e reativar campos (nome único por clube, desporto, preço base). | `Api/Controllers/ManagePitchesController.cs`; `App/Pitches/PitchService.cs`, `OwnedPitches.cs`, `IPitchStore.cs`; `Inf/Pitches/PitchStore.cs`, `PitchConfiguration.cs` |
-| API-SCHED | Horários e pré-visualização | Componente | Duração do slot e horário semanal de um campo; pré-visualização dos slots de um dia para o dono. | `Api/Controllers/ManagePitchScheduleController.cs`; `App/Pitches/PitchScheduleService.cs`, `PitchScheduleRequest.cs` |
-| API-BLOCKS | Bloqueios | Componente | Bloquear, listar e remover períodos de um campo, recusando sobreposições com bloqueios e reservas. | `Api/Controllers/ManageBlocksController.cs`; `App/Pitches/BlockService.cs`, `BlockRequest.cs`; `Inf/Pitches/BlockConfiguration.cs` |
-| API-PRICE | Faixas de preço | Componente | Faixas de preço por campo (dias, horas, preço), sem sobreposições, no máximo 20. | `Api/Controllers/ManagePriceBandsController.cs`; `App/Pitches/PriceBandService.cs`, `PriceBandRequest.cs`; `Inf/Pitches/PitchPriceBandConfiguration.cs` |
-| API-BOOK | Reservas do jogador | Componente | Reservar um slot, reservar uma série semanal (pré-visualização e criação), as minhas reservas e cancelar. | `Api/Controllers/BookingsController.cs`, `MeBookingsController.cs`; `App/Bookings/BookingService.cs`, `RecurringBookings.cs`, `MyBookings.cs`, `BookingCancellationService.cs`, `BookingSlotCheck.cs`, `IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
-| API-CLUBBOOK | Calendário e reservas do dono | Componente | Calendário diário e semanal, detalhes, cancelar com motivo, reservar para um cliente, marcar e anular faltas. | `Api/Controllers/ManageCalendarController.cs`, `ManageBookingsController.cs`; `App/Bookings/ClubCalendar.cs`, `ClubBookings.cs` |
-| API-NOTIF | Notificações (outbox) | Componente | Põe os emails no outbox na mesma transação da alteração; compõe os emails (pt-PT) quando são enviados. | `App/Notifications/` (`BookingEmailOutbox`, `BookingEmails`, `BookingNotifications`, `AccountEmails`, `OutboxMessage`); `Inf/Notifications/` (`OutboxProcessor`, `SmtpEmailSender`, `EmailOptions`) |
-| API-STATS | Estatísticas do dono | Componente | Ocupação, horas, receita e contagens por campo e por clube num período. | `Api/Controllers/ManageStatisticsController.cs`; `App/Statistics/` (`OccupationService`, `ClubStatisticsService`); `Inf/Statistics/OccupationStore.cs` (`OccupationStore`; no mesmo ficheiro está `RegistrationStatistics`, dos registos do admin, ver API-ADMIN) |
-| API-ADMIN | Administração | Componente | Totais, reservas e registos ao longo do tempo, lista de donos, top 10 de ocupação, desativar e reativar donos com histórico. | `Api/Controllers/AdminController.cs`; `App/Admin/`; `Inf/Admin/` (`BookingStatistics`, `OwnerStatusStore`, `OwnerStatusChange`); `Inf/Statistics/OccupationStore.cs` (`RegistrationStatistics`, US28, e `OccupationStore` para o top 10, US27) |
-| API-DEMO | Dados de demonstração | Componente (comando) | Cria donos, jogadores, clubes, campos, bloqueios e reservas determinísticos numa base vazia; recusa em produção. | `Inf/Demo/DemoDataCommand.cs`, `DemoDataSeeder.cs`, `DemoCatalog.cs` |
-| API-ADMINPW | Mudar a palavra-passe do admin | Componente (comando) | `set-admin-password`: lê `ADMIN_NEW_PASSWORD`, troca o hash e revoga as sessões do admin. | `Inf/Identity/AdminPasswordCommand.cs` |
-| API-PERSIST | Persistência | Componente | `IAppDbContext` (vista da Application sobre a base de dados), `AppDbContext`, migrações, registo de comandos falhados. | `App/Common/IAppDbContext.cs`; `Inf/Persistence/` (`AppDbContext`, `DatabaseOptions`, `FailedCommandLogger`, `Migrations/`); `Inf/DependencyInjection.cs` |
+| API-AUTH | Accounts and sessions | Component | Player and owner registration, login and logout, `GET /api/auth/me`, refresh with rotation, attempt lockout, password recovery, exporting the data and deleting the account (US30). | `Api/Controllers/AuthController.cs`, `MeAccountController.cs`; `App/Accounts/`, `App/Auth/`; `Inf/Identity/` (`AccountStore`, `AppUser`, `LoginLockout`, `FallbackPasswordHash`), `Inf/Auth/` (`SessionService`, `RefreshToken`, `PasswordReset`) |
+| API-ADMINSEED | Admin seed | Component (startup) | Creates the admin account from `AdminSeed:*` at startup, in every environment; it is the only code that gives the Admin profile. | `Inf/Identity/AdminAccountSeeder.cs`, `AdminSeedOptions.cs`, `AdminSeedOptionsValidator.cs` |
+| API-CLUBS | Owner's clubs | Component | Create, list, view and edit the owner's clubs (slug, cancellation window, new-booking notice). | `Api/Controllers/ManageClubsController.cs`; `App/Clubs/` (`ClubService`, `IClubStore`); `Inf/Clubs/` |
+| API-CATALOG | Public catalogue | Component | Club search, localities, the club's public page and a pitch's free slots; read-only, with no personal data. | `Api/Controllers/ClubsController.cs`, `LocalitiesController.cs`; `App/Catalog/` (`ClubSearchService`, `PublicClubService`, `VisibleClubs`) |
+| API-PITCHES | Pitches | Component | Create, edit, deactivate and reactivate pitches (name unique per club, sport, base price). | `Api/Controllers/ManagePitchesController.cs`; `App/Pitches/PitchService.cs`, `OwnedPitches.cs`, `IPitchStore.cs`; `Inf/Pitches/PitchStore.cs`, `PitchConfiguration.cs` |
+| API-SCHED | Schedules and preview | Component | Slot duration and weekly schedule of a pitch; preview of a day's slots for the owner. | `Api/Controllers/ManagePitchScheduleController.cs`; `App/Pitches/PitchScheduleService.cs`, `PitchScheduleRequest.cs` |
+| API-BLOCKS | Blocks | Component | Block, list and remove periods of a pitch, refusing overlaps with blocks and bookings. | `Api/Controllers/ManageBlocksController.cs`; `App/Pitches/BlockService.cs`, `BlockRequest.cs`; `Inf/Pitches/BlockConfiguration.cs` |
+| API-PRICE | Price bands | Component | Price bands per pitch (days, times, price), with no overlaps, at most 20. | `Api/Controllers/ManagePriceBandsController.cs`; `App/Pitches/PriceBandService.cs`, `PriceBandRequest.cs`; `Inf/Pitches/PitchPriceBandConfiguration.cs` |
+| API-BOOK | Player bookings | Component | Book a slot, book a weekly series (preview and creation), my bookings and cancelling. | `Api/Controllers/BookingsController.cs`, `MeBookingsController.cs`; `App/Bookings/BookingService.cs`, `RecurringBookings.cs`, `MyBookings.cs`, `BookingCancellationService.cs`, `BookingSlotCheck.cs`, `IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
+| API-CLUBBOOK | Owner's calendar and bookings | Component | Daily and weekly calendar, details, cancelling with a reason, booking for a customer, marking and undoing no-shows. | `Api/Controllers/ManageCalendarController.cs`, `ManageBookingsController.cs`; `App/Bookings/ClubCalendar.cs`, `ClubBookings.cs` |
+| API-NOTIF | Notifications (outbox) | Component | Puts the emails in the outbox in the same transaction as the change; composes the emails (pt-PT) when they are sent. | `App/Notifications/` (`BookingEmailOutbox`, `BookingEmails`, `BookingNotifications`, `AccountEmails`, `OutboxMessage`); `Inf/Notifications/` (`OutboxProcessor`, `SmtpEmailSender`, `EmailOptions`) |
+| API-STATS | Owner's statistics | Component | Occupation, hours, revenue and counts per pitch and per club over a period. | `Api/Controllers/ManageStatisticsController.cs`; `App/Statistics/` (`OccupationService`, `ClubStatisticsService`); `Inf/Statistics/OccupationStore.cs` (`OccupationStore`; the same file holds `RegistrationStatistics`, for the admin's registrations, see API-ADMIN) |
+| API-ADMIN | Administration | Component | Totals, bookings and registrations over time, owners list, top 10 by occupation, deactivating and reactivating owners with history. | `Api/Controllers/AdminController.cs`; `App/Admin/`; `Inf/Admin/` (`BookingStatistics`, `OwnerStatusStore`, `OwnerStatusChange`); `Inf/Statistics/OccupationStore.cs` (`RegistrationStatistics`, US28, and `OccupationStore` for the top 10, US27) |
+| API-DEMO | Demo data | Component (command) | Creates deterministic owners, players, clubs, pitches, blocks and bookings in an empty database; refuses in production. | `Inf/Demo/DemoDataCommand.cs`, `DemoDataSeeder.cs`, `DemoCatalog.cs` |
+| API-ADMINPW | Change the admin's password | Component (command) | `set-admin-password`: reads `ADMIN_NEW_PASSWORD`, changes the hash and revokes the admin's sessions. | `Inf/Identity/AdminPasswordCommand.cs` |
+| API-PERSIST | Persistence | Component | `IAppDbContext` (Application's view of the database), `AppDbContext`, migrations, logging of failed commands. | `App/Common/IAppDbContext.cs`; `Inf/Persistence/` (`AppDbContext`, `DatabaseOptions`, `FailedCommandLogger`, `Migrations/`); `Inf/DependencyInjection.cs` |
 
-### Partes dos componentes mais carregados
+### Parts of the busiest components
 
-Usadas nos diagramas de pormenor da [vista lógica](4plus1/logical.md). Cada parte pertence ao componente cujo id é o prefixo do seu.
+Used in the detail diagrams of the [logical view](4plus1/logical.md). Each part belongs to the component whose id is the prefix of its own.
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| API-BOOK-SINGLE | Uma reserva | Parte de API-BOOK | Reserva de um slot por um jogador. | `App/Bookings/BookingService.cs` |
-| API-BOOK-SERIES | Série semanal | Parte de API-BOOK | Pré-visualização e criação de uma série, uma data por transação. | `App/Bookings/RecurringBookings.cs` (`RecurringBookingService`, `RecurringOccurrences`) |
-| API-BOOK-MINE | As minhas reservas e cancelar | Parte de API-BOOK | Lista e detalhe das reservas do jogador; cancelamento pelo jogador. | `App/Bookings/MyBookings.cs`, `BookingCancellationService.cs` |
-| API-BOOK-STORE | Store das reservas | Parte de API-BOOK (usada também por API-CLUBBOOK) | Insere e grava reservas; 23P01 em `bookings_no_overlap` → `false`. | `App/Bookings/IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
-| API-AUTH-REG | Registo | Parte de API-AUTH | Registo de jogador e de dono, com início de sessão e com a aceitação dos Termos (T07); sem ela, 400 `terms_not_accepted`. | `App/Accounts/AccountRegistrationService.cs` |
-| API-AUTH-LOGIN | Login | Parte de API-AUTH | Login com uma só resposta para qualquer falha. | `App/Auth/LoginService.cs` |
-| API-AUTH-RESET | Recuperação de palavra-passe | Parte de API-AUTH | Pedido e confirmação; no envio, o token e o texto do email. | `App/Auth/PasswordReset.cs`; `Inf/Auth/PasswordReset.cs` (`PasswordResetStore`, `AccountEmailBuilder`) |
-| API-AUTH-PRIVACY | Exportar e apagar a conta | Parte de API-AUTH | US30: `GET /api/me/data-export` e `POST /api/me/delete-account`; a anonimização numa só transação. [ADR 0011](adr/0011-apagar-conta-por-anonimizacao.md). | `App/Accounts/AccountPrivacy.cs`; `Inf/Identity/AccountPrivacyStore.cs`; `Domain/Accounts/DeletedAccount.cs` |
-| API-AUTH-ACCOUNTS | Contas no Identity | Parte de API-AUTH | Criar, autenticar, procurar, saber se uma conta está ativa. | `App/Accounts/IAccountStore.cs`; `Inf/Identity/AccountStore.cs`, `FallbackPasswordHash.cs`, `LoginLockout.cs` |
-| API-NOTIF-OUTBOX | Pôr no outbox | Parte de API-NOTIF | Junta as mensagens de reservas ao `IAppDbContext` de quem chama. | `App/Notifications/BookingEmailOutbox.cs`, `OutboxMessage.cs` |
-| API-NOTIF-DISPATCH | Ciclo do worker | Parte de API-NOTIF (corre em C-WORKER) | `BackgroundService`: um scope por passagem, espera no `TimeProvider`. | `Inf/Notifications/OutboxDispatcher.cs` |
-| API-NOTIF-PROC | Processar o outbox | Parte de API-NOTIF (corre em C-WORKER) | Reclama as mensagens devidas (`SKIP LOCKED`), compõe, envia e grava o resultado. | `Inf/Notifications/OutboxProcessor.cs` |
-| API-NOTIF-COMPOSE | Compor os emails | Parte de API-NOTIF | Texto e HTML em pt-PT dos emails de reservas e de contas. | `App/Notifications/BookingEmails.cs`, `BookingNotifications.cs`, `AccountEmails.cs` |
-| API-NOTIF-SENDER | Enviar por SMTP | Parte de API-NOTIF | `IEmailSender` com MailKit, uma ligação por mensagem. | `App/Notifications/BookingEmails.cs` (`IEmailSender`); `Inf/Notifications/SmtpEmailSender.cs` |
+| API-BOOK-SINGLE | Single booking | Part of API-BOOK | Booking of a slot by a player. | `App/Bookings/BookingService.cs` |
+| API-BOOK-SERIES | Weekly series | Part of API-BOOK | Preview and creation of a series, one date per transaction. | `App/Bookings/RecurringBookings.cs` (`RecurringBookingService`, `RecurringOccurrences`) |
+| API-BOOK-MINE | My bookings and cancelling | Part of API-BOOK | List and detail of the player's bookings; cancelling by the player. | `App/Bookings/MyBookings.cs`, `BookingCancellationService.cs` |
+| API-BOOK-STORE | Booking store | Part of API-BOOK (also used by API-CLUBBOOK) | Inserts and saves bookings; 23P01 on `bookings_no_overlap` → `false`. | `App/Bookings/IBookingStore.cs`; `Inf/Bookings/BookingStore.cs` |
+| API-AUTH-REG | Registration | Part of API-AUTH | Player and owner registration, with session start and with acceptance of the Terms (T07); without it, 400 `terms_not_accepted`. | `App/Accounts/AccountRegistrationService.cs` |
+| API-AUTH-LOGIN | Login | Part of API-AUTH | Login with a single response for any failure. | `App/Auth/LoginService.cs` |
+| API-AUTH-RESET | Password recovery | Part of API-AUTH | Request and confirmation; at send time, the token and the email text. | `App/Auth/PasswordReset.cs`; `Inf/Auth/PasswordReset.cs` (`PasswordResetStore`, `AccountEmailBuilder`) |
+| API-AUTH-PRIVACY | Export and delete the account | Part of API-AUTH | US30: `GET /api/me/data-export` and `POST /api/me/delete-account`; anonymization in a single transaction. [ADR 0011](adr/0011-account-deletion-by-anonymization.md). | `App/Accounts/AccountPrivacy.cs`; `Inf/Identity/AccountPrivacyStore.cs`; `Domain/Accounts/DeletedAccount.cs` |
+| API-AUTH-ACCOUNTS | Accounts in Identity | Part of API-AUTH | Create, authenticate, look up, know whether an account is active. | `App/Accounts/IAccountStore.cs`; `Inf/Identity/AccountStore.cs`, `FallbackPasswordHash.cs`, `LoginLockout.cs` |
+| API-NOTIF-OUTBOX | Put in the outbox | Part of API-NOTIF | Attaches the booking messages to the caller's `IAppDbContext`. | `App/Notifications/BookingEmailOutbox.cs`, `OutboxMessage.cs` |
+| API-NOTIF-DISPATCH | Worker loop | Part of API-NOTIF (runs in C-WORKER) | `BackgroundService`: one scope per pass, waits on `TimeProvider`. | `Inf/Notifications/OutboxDispatcher.cs` |
+| API-NOTIF-PROC | Process the outbox | Part of API-NOTIF (runs in C-WORKER) | Claims the due messages (`SKIP LOCKED`), composes, sends and saves the result. | `Inf/Notifications/OutboxProcessor.cs` |
+| API-NOTIF-COMPOSE | Compose the emails | Part of API-NOTIF | Text and HTML in pt-PT of the booking and account emails. | `App/Notifications/BookingEmails.cs`, `BookingNotifications.cs`, `AccountEmails.cs` |
+| API-NOTIF-SENDER | Send over SMTP | Part of API-NOTIF | `IEmailSender` with MailKit, one connection per message. | `App/Notifications/BookingEmails.cs` (`IEmailSender`); `Inf/Notifications/SmtpEmailSender.cs` |
 
-### Peças transversais da API
+### Cross-cutting API pieces
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| CC-PROBLEM | Erros como ProblemDetails | Transversal | Falhas esperadas como `Result`/`ServiceError` com `code` estável; respostas RFC 9457 com `code` e `traceId`; exceções não tratadas → 500. | `App/Common/Result.cs`, `ErrorCodes.cs`, `ValidationResultExtensions.cs`; `Api/ErrorHandling/` |
-| CC-VALID | Validação | Transversal | Regras dos pedidos com FluentValidation, mensagens pt-PT por campo. | `App/**/*Validator*`, `*Request.cs` |
-| CC-COOKIES | Cookies de sessão e autenticação | Transversal | JWT de acesso (15 min) e refresh token (7 dias) em cookies httpOnly; o JwtBearer lê o cookie `access_token`. | `Api/Auth/AuthCookies.cs`, `AuthenticationSetup.cs`; `Inf/Auth/SessionService.cs`, `JwtOptions.cs`, `SessionClaims.cs` |
-| CC-AUTHZ | Autorização | Transversal | Política de fallback (exige sessão), uma política por perfil, e por dono (T02: `OwnedClubs`, `OwnedPitches`, `OwnedBookings`). | `Api/Auth/AuthenticationSetup.cs`, `HttpCurrentUser.cs`; `App/Common/ICurrentUser.cs`; `App/Clubs/OwnedClubs.cs`; `App/Pitches/OwnedPitches.cs` |
-| CC-ORIGIN | Verificação do Origin | Transversal (middleware) | POST/PUT/PATCH/DELETE só com um `Origin` aceite; senão 403 `origin_not_allowed`. | `Api/Security/OriginCheckMiddleware.cs`, `OriginCheckOptions.cs`, `SecuritySetup.cs` |
-| CC-HEADERS | Cabeçalhos de segurança da resposta | Transversal (middleware) | `X-Content-Type-Options: nosniff` em todas as respostas da API, sem o cabeçalho `Server`; o Swagger só existe em Development. | `Api/Security/SecuritySetup.cs` (`UseResponseSecurityHeaders`), `Api/Program.cs` (`AddServerHeader = false`) |
-| CC-RATE | Rate limiting e IP do cliente | Transversal (middleware) | Limites por IP (IPv6 por /64) nas rotas de autenticação e nas de leitura públicas; `X-Forwarded-For` só de proxies configurados. | `Api/Security/RateLimitingSetup.cs`, `AuthRateLimitOptions.cs`, `PublicRateLimitOptions.cs`, `ClientPartition.cs`, `TrustedProxyOptions.cs` |
-| CC-TIME | Relógio injetado | Transversal | Toda a hora atual vem de `TimeProvider` (`TimeProvider.System` em execução, falso nos testes). | `Inf/DependencyInjection.cs` (`AddSingleton(TimeProvider.System)`) |
-| CC-CLUBTIME | Hora do clube e slots | Transversal (domínio) | Conversão local↔UTC com as regras de mudança de hora, geração de slots por tempo real decorrido, janela de reservas. | `Dom/Scheduling/` (`ClubTime`, `SlotGenerator`, `OpeningHours`, `TimeSlot`, `SlotDuration`, `BookingWindow`) |
-| CC-DAYCAL | Slots de um dia e «livre» | Transversal (aplicação) | A única conta de slots de um dia com bloqueios e reservas e a única definição de «livre»; partilhada pela pré-visualização do dono, os slots públicos e a pesquisa. | `App/Pitches/PitchDayCalendar.cs`, `BookingDateInput.cs` |
-| CC-SLOTCHECK | Verificação de um slot reservável | Transversal (aplicação) | As regras para reservar um slot (campo ativo, janela, grelha, começado, bloqueios), partilhadas pelas reservas do jogador, do dono e das séries. | `App/Bookings/BookingSlotCheck.cs` |
-| CC-LOCK | Trinco do campo | Transversal | Transação com `SELECT … FOR UPDATE` na linha do campo, que serializa reservas, bloqueios, cancelamentos, faltas e faixas de preço. | `App/Pitches/IPitchLock.cs`; `Inf/Pitches/PitchLock.cs` |
-| CC-DATAPROT | Chaves do Data Protection | Transversal | Chaves que protegem os tokens de recuperação de palavra-passe, guardadas na base de dados com um nome de aplicação fixo. | `Inf/DependencyInjection.cs` (`PersistKeysToDbContext`); `Inf/Persistence/AppDbContext.cs` |
-| CC-OPENAPI | Documento OpenAPI | Transversal | Gerado no build (`openapi/sportsbooking-api.json`), Swagger UI em desenvolvimento, fonte dos tipos do front end. | `Api/openapi/`, `Api/ErrorHandling/ProblemDetailsSchemaTransformer.cs`; `Web/lib/api/schema.d.ts` |
-| CC-HEALTH | Health check | Transversal | `GET /health`, só de liveness: responde 200 se o processo está vivo e não toca na base de dados (`AddHealthChecks()` sem nenhuma verificação registada). | `Api/Program.cs` (`AddHealthChecks`, `MapHealthChecks`) |
+| CC-PROBLEM | Errors as ProblemDetails | Cross-cutting | Expected failures as `Result`/`ServiceError` with a stable `code`; RFC 9457 responses with `code` and `traceId`; unhandled exceptions → 500. | `App/Common/Result.cs`, `ErrorCodes.cs`, `ValidationResultExtensions.cs`; `Api/ErrorHandling/` |
+| CC-VALID | Validation | Cross-cutting | Request rules with FluentValidation, pt-PT messages per field. | `App/**/*Validator*`, `*Request.cs` |
+| CC-COOKIES | Session cookies and authentication | Cross-cutting | Access JWT (15 min) and refresh token (7 days) in httpOnly cookies; JwtBearer reads the `access_token` cookie. | `Api/Auth/AuthCookies.cs`, `AuthenticationSetup.cs`; `Inf/Auth/SessionService.cs`, `JwtOptions.cs`, `SessionClaims.cs` |
+| CC-AUTHZ | Authorization | Cross-cutting | Fallback policy (requires a session), one policy per profile, and per owner (T02: `OwnedClubs`, `OwnedPitches`, `OwnedBookings`). | `Api/Auth/AuthenticationSetup.cs`, `HttpCurrentUser.cs`; `App/Common/ICurrentUser.cs`; `App/Clubs/OwnedClubs.cs`; `App/Pitches/OwnedPitches.cs` |
+| CC-ORIGIN | Origin check | Cross-cutting (middleware) | POST/PUT/PATCH/DELETE only with an accepted `Origin`; otherwise 403 `origin_not_allowed`. | `Api/Security/OriginCheckMiddleware.cs`, `OriginCheckOptions.cs`, `SecuritySetup.cs` |
+| CC-HEADERS | Response security headers | Cross-cutting (middleware) | `X-Content-Type-Options: nosniff` on every API response, without the `Server` header; Swagger only exists in Development. | `Api/Security/SecuritySetup.cs` (`UseResponseSecurityHeaders`), `Api/Program.cs` (`AddServerHeader = false`) |
+| CC-RATE | Rate limiting and client IP | Cross-cutting (middleware) | Per-IP limits (IPv6 per /64) on the authentication routes and the public read ones; `X-Forwarded-For` only from configured proxies. | `Api/Security/RateLimitingSetup.cs`, `AuthRateLimitOptions.cs`, `PublicRateLimitOptions.cs`, `ClientPartition.cs`, `TrustedProxyOptions.cs` |
+| CC-TIME | Injected clock | Cross-cutting | All current time comes from `TimeProvider` (`TimeProvider.System` at run time, fake in the tests). | `Inf/DependencyInjection.cs` (`AddSingleton(TimeProvider.System)`) |
+| CC-CLUBTIME | Club time and slots | Cross-cutting (domain) | Local↔UTC conversion with the clock-change rules, slot generation by real elapsed time, booking window. | `Dom/Scheduling/` (`ClubTime`, `SlotGenerator`, `OpeningHours`, `TimeSlot`, `SlotDuration`, `BookingWindow`) |
+| CC-DAYCAL | A day's slots and «free» | Cross-cutting (application) | The single calculation of a day's slots with blocks and bookings and the single definition of «free»; shared by the owner's preview, the public slots and the search. | `App/Pitches/PitchDayCalendar.cs`, `BookingDateInput.cs` |
+| CC-SLOTCHECK | Check of a bookable slot | Cross-cutting (application) | The rules for booking a slot (active pitch, window, grid, started, blocks), shared by the player's, the owner's and the series' bookings. | `App/Bookings/BookingSlotCheck.cs` |
+| CC-LOCK | Pitch lock | Cross-cutting | Transaction with `SELECT … FOR UPDATE` on the pitch's row, which serializes bookings, blocks, cancellations, no-shows and price bands. | `App/Pitches/IPitchLock.cs`; `Inf/Pitches/PitchLock.cs` |
+| CC-DATAPROT | Data Protection keys | Cross-cutting | Keys that protect the password recovery tokens, stored in the database with a fixed application name. | `Inf/DependencyInjection.cs` (`PersistKeysToDbContext`); `Inf/Persistence/AppDbContext.cs` |
+| CC-OPENAPI | OpenAPI document | Cross-cutting | Generated at build time (`openapi/sportsbooking-api.json`), Swagger UI in development, source of the front end types. | `Api/openapi/`, `Api/ErrorHandling/ProblemDetailsSchemaTransformer.cs`; `Web/lib/api/schema.d.ts` |
+| CC-HEALTH | Health check | Cross-cutting | `GET /health`, liveness only: answers 200 if the process is alive and does not touch the database (`AddHealthChecks()` with no check registered). | `Api/Program.cs` (`AddHealthChecks`, `MapHealthChecks`) |
 
-## 5. Componentes do front end
+## 5. Front end components
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+The interface is in Portuguese (pt-PT), so on-screen texts are quoted in Portuguese, followed by their English meaning in parentheses.
+
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| WEB-AREA-PLAYER | Área do jogador | Grupo de rotas | Pesquisa (`/`), página do clube (`/clubs/[slug]`) e «As minhas reservas» (`/bookings`, só jogadores). | `Web/app/(player)/` |
-| WEB-AREA-MANAGE | Área do dono | Grupo de rotas | Clubes, campos, calendário, estatísticas (`/manage/...`). | `Web/app/manage/` |
-| WEB-AREA-ADMIN | Área do admin | Grupo de rotas | Painel (`/admin`) e página de um dono (`/admin/owners/[id]`). | `Web/app/admin/` |
-| WEB-AREA-ACCOUNT | Páginas de conta | Grupo de rotas | Login, registo de jogador e de dono, pedir e definir nova palavra-passe. | `Web/app/login/`, `register/`, `register/owner/`, `forgot-password/`, `reset-password/` |
-| WEB-F-ACCOUNT | Funcionalidade: a minha conta | Funcionalidade | Página `/account`, secção «Privacidade e dados»: exportar os dados e apagar a conta (US30). | `Web/features/account/`, `Web/components/account-guard.tsx` |
-| WEB-F-AUTH | Funcionalidade: contas | Funcionalidade | Formulários de login, registo e recuperação; estado da sessão no cabeçalho; `useCurrentUser`. | `Web/features/auth/` |
-| WEB-F-CATALOG | Funcionalidade: catálogo | Funcionalidade | Pesquisa no endereço, resultados, detalhes do clube. | `Web/features/catalog/` |
-| WEB-F-BOOKING | Funcionalidade: reservar | Funcionalidade | Escolha no endereço (`?pitch=&date=&slot=&weeks=`), lista de slots, resumo, confirmação, série semanal. | `Web/features/booking/` |
-| WEB-F-MYBOOK | Funcionalidade: as minhas reservas | Funcionalidade | Separadores e páginas no endereço, cancelar com confirmação, série «2 de 4». | `Web/features/my-bookings/` |
-| WEB-F-CLUBS | Funcionalidade: clubes do dono | Funcionalidade | Lista de clubes, formulário do clube (inclui o aviso de novas reservas). | `Web/features/clubs/` |
-| WEB-F-PITCHES | Funcionalidade: campos | Funcionalidade | Campos, horário, pré-visualização, bloqueios e faixas de preço (um painel de cada vez). | `Web/features/pitches/` |
-| WEB-F-CALENDAR | Funcionalidade: calendário | Funcionalidade | Vista diária e semanal (layout por tempo real), detalhes, cancelar, nova reserva para cliente, faltas. | `Web/features/calendar/` |
-| WEB-F-STATS | Funcionalidade: estatísticas | Funcionalidade | Estatísticas do dono por clube e por campo, filtro de período. | `Web/features/statistics/`, `Web/components/period-filter.tsx` |
-| WEB-F-ADMIN | Funcionalidade: admin | Funcionalidade | Cartões, gráficos (Recharts), lista de donos, top 10, página do dono e desativar/reativar. | `Web/features/admin/` |
-| WEB-API-CLIENT | Cliente da API (browser) | Biblioteca | Única porta para `/api/*` no browser: ProblemDetails → `ApiError`, um refresh partilhado no 401 (Web Lock entre separadores), mensagens por código. | `Web/lib/api/` (`client.ts`, `error-messages.ts`, `form-errors.ts`, `schema.d.ts`) |
-| WEB-SERVER | Chamadas à API no servidor | Biblioteca (`server-only`) | Sessão (`/api/auth/me` com o cookie do utilizador), página pública do clube (sem cookies), totais do admin; URL interno da API. | `Web/lib/server/` (`session.ts`, `public-club.ts`, `admin-stats.ts`, `api-url.ts`) |
-| WEB-GUARDS | Guardas das áreas | Componentes | Redirecionam por perfil no servidor (conveniência; a API decide sempre). | `Web/components/area-guard.tsx`, `player-guard.tsx`, `account-guard.tsx`, `guest-only.tsx`; `Web/lib/auth/redirects.ts`, `request-path.ts` |
-| WEB-PROXY | `proxy.ts` | Middleware do Next.js | Em `/manage/*`, `/admin/*` e `/bookings`, escreve o caminho pedido no cabeçalho `x-pathname` para o regresso depois do login, e responde 404 a um id impossível nessas áreas e a um clube público (`/clubs/{slug}`) que a API não tem. Não renova sessões. | `Web/proxy.ts`, `Web/lib/not-found-check.ts` |
-| WEB-REWRITE | Rewrites e cabeçalhos | Configuração do Next.js | Reencaminha `/api/*` para a API interna; aplica os cabeçalhos de WEB-HEADERS a todas as páginas e os próprios de `/reset-password` (`no-referrer`, `no-store`, que ganham aos gerais); sem `X-Powered-By`. | `frontend/next.config.ts` |
-| WEB-HEADERS | Cabeçalhos de segurança do site | Módulo (funções puras) | `Content-Security-Policy` (só a própria origem; `'unsafe-inline'` em scripts e estilos, limite conhecido), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, e HSTS com `upgrade-insecure-requests` só com `ENABLE_HSTS=true` no build, fora de desenvolvimento. O Zod corre sem o parser compilado (`zod-config.ts`) para não testar `eval` sob a política. | `frontend/src/lib/security-headers.ts`, `frontend/src/lib/zod-config.ts` |
-| WEB-UX | Fundações de UX e acessibilidade | Módulos partilhados do front end | Regra única do anel de foco e tokens de contraste (`globals.css`); foco depois das ações (`useFocusOn`, `useRestoreFocus`) e `ResultNotice`; guarda dos erros inesperados (`isExpectedApiError`, `unexpectedErrorMessage`); moldura das páginas (`PublicHeader`, `Main`, `SkipLink`, `PAGE_WIDTH`, páginas 404 e de erro); `Skeleton`, `LoadingRegion`, `EmptyState`; para o fluxo do jogador, `Button size="cta"`, `BookingActions` (barra fixa em mobile), `useRetryAfter` e `RateLimitMessage` (tempo de espera depois de um 429), o menu «Conta» de `AccountStatus` e `formatLisbonDayHeading`; para a área do dono, `AccountMenu` partilhado, `ScrollRegion`, `PAGE_WIDTH.calendar` e `StatisticsTable`; para o admin, `ChartDataTable` e `useDocumentTitle`. | `frontend/src/lib/focus.ts`, `frontend/src/lib/document-title.ts`, `frontend/src/lib/api/expected-error.ts`, `frontend/src/components/` (`account-menu`, `scroll-region`, `result-notice`, `public-header`, `main`, `skip-link`, `page-width`, `loading-region`, `empty-state`, `ui/skeleton`), `frontend/src/app/` (`globals.css`, `not-found.tsx`, `error.tsx`, `global-error.tsx`) |
-| WEB-DATETIME | Datas em hora de Lisboa | Biblioteca | Toda a formatação e aritmética de datas do front end, com as regras de mudança de hora da API. | `Web/lib/datetime.ts` |
-| WEB-UI | Componentes partilhados | Biblioteca | shadcn/ui, campos de formulário, cabeçalhos das áreas, erros e carregamento de rota, providers (TanStack Query, toasts). | `Web/components/`, `Web/components/ui/` |
+| WEB-AREA-PLAYER | Player area | Route group | Search (`/`), club page (`/clubs/[slug]`) and `As minhas reservas` (My bookings) (`/bookings`, players only). | `Web/app/(player)/` |
+| WEB-AREA-MANAGE | Owner area | Route group | Clubs, pitches, calendar, statistics (`/manage/...`). | `Web/app/manage/` |
+| WEB-AREA-ADMIN | Admin area | Route group | Dashboard (`/admin`) and an owner's page (`/admin/owners/[id]`). | `Web/app/admin/` |
+| WEB-AREA-ACCOUNT | Account pages | Route group | Login, player and owner registration, requesting and setting a new password. | `Web/app/login/`, `register/`, `register/owner/`, `forgot-password/`, `reset-password/` |
+| WEB-F-ACCOUNT | Feature: my account | Feature | The `/account` page, section `Privacidade e dados` (Privacy and data): exporting the data and deleting the account (US30). | `Web/features/account/`, `Web/components/account-guard.tsx` |
+| WEB-F-AUTH | Feature: accounts | Feature | Login, registration and recovery forms; session state in the header; `useCurrentUser`. | `Web/features/auth/` |
+| WEB-F-CATALOG | Feature: catalogue | Feature | Search in the address, results, club details. | `Web/features/catalog/` |
+| WEB-F-BOOKING | Feature: booking | Feature | Choice in the address (`?pitch=&date=&slot=&weeks=`), slot list, summary, confirmation, weekly series. | `Web/features/booking/` |
+| WEB-F-MYBOOK | Feature: my bookings | Feature | Tabs and pages in the address, cancelling with confirmation, series `2 de 4` (2 of 4). | `Web/features/my-bookings/` |
+| WEB-F-CLUBS | Feature: owner's clubs | Feature | Club list, club form (includes the new-booking notice). | `Web/features/clubs/` |
+| WEB-F-PITCHES | Feature: pitches | Feature | Pitches, schedule, preview, blocks and price bands (one panel at a time). | `Web/features/pitches/` |
+| WEB-F-CALENDAR | Feature: calendar | Feature | Daily and weekly view (real-time layout), details, cancelling, new booking for a customer, no-shows. | `Web/features/calendar/` |
+| WEB-F-STATS | Feature: statistics | Feature | Owner's statistics per club and per pitch, period filter. | `Web/features/statistics/`, `Web/components/period-filter.tsx` |
+| WEB-F-ADMIN | Feature: admin | Feature | Cards, charts (Recharts), owners list, top 10, owner page and deactivate/reactivate. | `Web/features/admin/` |
+| WEB-API-CLIENT | API client (browser) | Library | The only door to `/api/*` in the browser: ProblemDetails → `ApiError`, one shared refresh on 401 (Web Lock between tabs), messages by code. | `Web/lib/api/` (`client.ts`, `error-messages.ts`, `form-errors.ts`, `schema.d.ts`) |
+| WEB-SERVER | Server-side API calls | Library (`server-only`) | Session (`/api/auth/me` with the user's cookie), the club's public page (no cookies), admin totals; internal API URL. | `Web/lib/server/` (`session.ts`, `public-club.ts`, `admin-stats.ts`, `api-url.ts`) |
+| WEB-GUARDS | Area guards | Components | Redirect by profile on the server (a convenience; the API always decides). | `Web/components/area-guard.tsx`, `player-guard.tsx`, `account-guard.tsx`, `guest-only.tsx`; `Web/lib/auth/redirects.ts`, `request-path.ts` |
+| WEB-PROXY | `proxy.ts` | Next.js middleware | On `/manage/*`, `/admin/*` and `/bookings`, writes the requested path to the `x-pathname` header for the return after login, and answers 404 to an impossible id in those areas and to a public club (`/clubs/{slug}`) that the API does not have. Does not renew sessions. | `Web/proxy.ts`, `Web/lib/not-found-check.ts` |
+| WEB-REWRITE | Rewrites and headers | Next.js configuration | Forwards `/api/*` to the internal API; applies WEB-HEADERS' headers to all pages and `/reset-password`'s own (`no-referrer`, `no-store`, which win over the general ones); no `X-Powered-By`. | `frontend/next.config.ts` |
+| WEB-HEADERS | Site security headers | Module (pure functions) | `Content-Security-Policy` (own origin only; `'unsafe-inline'` in scripts and styles, a known limit), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS with `upgrade-insecure-requests` only with `ENABLE_HSTS=true` at build time, outside development. Zod runs without the compiled parser (`zod-config.ts`) so as not to probe `eval` under the policy. | `frontend/src/lib/security-headers.ts`, `frontend/src/lib/zod-config.ts` |
+| WEB-UX | UX and accessibility foundations | Shared front end modules | A single focus-ring rule and contrast tokens (`globals.css`); focus after actions (`useFocusOn`, `useRestoreFocus`) and `ResultNotice`; the guard for unexpected errors (`isExpectedApiError`, `unexpectedErrorMessage`); page frame (`PublicHeader`, `Main`, `SkipLink`, `PAGE_WIDTH`, 404 and error pages); `Skeleton`, `LoadingRegion`, `EmptyState`; for the player's flow, `Button size="cta"`, `BookingActions` (fixed bar on mobile), `useRetryAfter` and `RateLimitMessage` (wait time after a 429), the `Conta` (Account) menu of `AccountStatus` and `formatLisbonDayHeading`; for the owner area, the shared `AccountMenu`, `ScrollRegion`, `PAGE_WIDTH.calendar` and `StatisticsTable`; for the admin, `ChartDataTable` and `useDocumentTitle`. | `frontend/src/lib/focus.ts`, `frontend/src/lib/document-title.ts`, `frontend/src/lib/api/expected-error.ts`, `frontend/src/components/` (`account-menu`, `scroll-region`, `result-notice`, `public-header`, `main`, `skip-link`, `page-width`, `loading-region`, `empty-state`, `ui/skeleton`), `frontend/src/app/` (`globals.css`, `not-found.tsx`, `error.tsx`, `global-error.tsx`) |
+| WEB-DATETIME | Dates in Lisbon time | Library | All of the front end's date formatting and arithmetic, with the API's clock-change rules. | `Web/lib/datetime.ts` |
+| WEB-UI | Shared components | Library | shadcn/ui, form fields, area headers, route errors and loading, providers (TanStack Query, toasts). | `Web/components/`, `Web/components/ui/` |
 
-## 6. Entidades do domínio e invariantes
+## 6. Domain entities and invariants
 
-| Id | Nome | Tipo | Invariantes principais | Onde aparece no código |
+| Id | Name | Type | Main invariants | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| D-CLUB | Clube | Entidade (Domain) | Um só dono (`OwnerId`); `Slug` único, gerado do nome na criação e nunca mudado; `LocalityKey` acompanha a localidade; janela de cancelamento de 1 a 168 h (24 por omissão); fuso `Europe/Lisbon`. | `Dom/Clubs/Club.cs`, `ClubRules.cs`, `ClubSlug.cs` |
-| D-PITCH | Campo | Entidade (Domain) | Nunca é apagado (ativo/inativo); preço base > 0 e ≤ 500, duas casas; nome único no clube (`NameKey`); slot de 30, 60 ou 90 min; os slots só vêm de `SlotsOn` → `SlotGenerator`; o preço de um slot só vem de `PriceForSlot`. | `Dom/Pitches/Pitch.cs`, `PitchRules.cs`, `PitchScheduleRules.cs`, `Sport.cs` |
-| D-OPENDAY | Dia de abertura | Entidade dependente (Domain) | No máximo um intervalo por dia da semana; horas de 30 em 30 min; fecho `00:00` = meia-noite, nunca depois da meia-noite. | `Dom/Pitches/PitchOpeningDay.cs`, `Dom/Scheduling/OpeningHours.cs` |
-| D-PRICEBAND | Faixa de preço | Entidade dependente (Domain) | Pelo menos um dia; início e fim de 30 em 30 min, fim `00:00` = meia-noite; nunca se sobrepõe a outra do mesmo campo num dia partilhado (tocar é permitido); no máximo 20 por campo. | `Dom/Pitches/PitchPriceBand.cs`, `PriceBandRules.cs` |
-| D-BLOCK | Bloqueio | Entidade (Domain) | `[StartsAt, EndsAt)` em UTC com fim depois do início; motivo opcional até 200; só se remove antes de começar. | `Dom/Pitches/Block.cs` |
-| D-BOOKING | Reserva | Entidade (Domain) | De um jogador **ou** de um cliente, nunca os dois nem nenhum; nunca apagada, muda de estado (`Confirmed`, `CancelledByPlayer`, `CancelledByClub`, `NoShow`) por métodos que devolvem o resultado; guarda o preço do momento; série semanal opcional (`SeriesId`). | `Dom/Bookings/Booking.cs` |
-| D-SLOT | Slot | Valor (Domain) | Intervalo `[início, fim)` em UTC de duração exata; «começado» quando o início ≤ agora. | `Dom/Scheduling/TimeSlot.cs`, `SlotDuration.cs` |
-| D-POLICIES | Regras de conta | Valores (Domain) | Email, nome, telemóvel e palavra-passe (≥ 8 caracteres); versão dos Termos aceite (até 32 caracteres); perfis `Player`, `Owner`, `Admin`. | `Dom/Accounts/` |
-| D-USER | Conta | Entidade (Infrastructure, Identity) | Um email = uma conta = um perfil; email normalizado único; `RegisteredAt`; desativada quando `DeactivatedAt` está preenchido; `AcceptedTermsVersion` e `TermsAcceptedAt` preenchidos no registo (T07), vazios nas contas anteriores e nas dos seeds. | `Inf/Identity/AppUser.cs` |
-| D-REFRESH | Refresh token | Entidade (Infrastructure) | Só o SHA-256 é guardado; rotação condicional atómica; validade absoluta; reutilização revoga todas as sessões da conta. | `Inf/Auth/RefreshToken.cs` |
-| D-OUTBOX | Mensagem do outbox | Entidade (Application) | Tipo e payload sem endereços; um só resultado (enviada, ignorada ou falhada); novas tentativas com intervalo a dobrar. | `App/Notifications/OutboxMessage.cs` |
-| D-STATUSCHG | Mudança de estado de um dono | Entidade (Infrastructure) | Só se acrescenta (nunca alterada nem apagada); ação, motivo e admin que a fez. | `Inf/Admin/OwnerStatusChange.cs` |
+| D-CLUB | Club | Entity (Domain) | A single owner (`OwnerId`); unique `Slug`, generated from the name at creation and never changed; `LocalityKey` follows the locality; cancellation window from 1 to 168 h (24 by default); `Europe/Lisbon` time zone. | `Dom/Clubs/Club.cs`, `ClubRules.cs`, `ClubSlug.cs` |
+| D-PITCH | Pitch | Entity (Domain) | Never deleted (active/inactive); base price > 0 and ≤ 500, two decimal places; name unique in the club (`NameKey`); slot of 30, 60 or 90 min; slots only come from `SlotsOn` → `SlotGenerator`; a slot's price only comes from `PriceForSlot`. | `Dom/Pitches/Pitch.cs`, `PitchRules.cs`, `PitchScheduleRules.cs`, `Sport.cs` |
+| D-OPENDAY | Opening day | Dependent entity (Domain) | At most one interval per weekday; hours in 30-minute steps; closing `00:00` = midnight, never after midnight. | `Dom/Pitches/PitchOpeningDay.cs`, `Dom/Scheduling/OpeningHours.cs` |
+| D-PRICEBAND | Price band | Dependent entity (Domain) | At least one day; start and end in 30-minute steps, end `00:00` = midnight; never overlaps another on the same pitch on a shared day (touching is allowed); at most 20 per pitch. | `Dom/Pitches/PitchPriceBand.cs`, `PriceBandRules.cs` |
+| D-BLOCK | Block | Entity (Domain) | `[StartsAt, EndsAt)` in UTC with the end after the start; optional reason up to 200; can only be removed before it starts. | `Dom/Pitches/Block.cs` |
+| D-BOOKING | Booking | Entity (Domain) | From a player **or** from a customer, never both and never neither; never deleted, changes state (`Confirmed`, `CancelledByPlayer`, `CancelledByClub`, `NoShow`) through methods that return the result; stores the price at the time; optional weekly series (`SeriesId`). | `Dom/Bookings/Booking.cs` |
+| D-SLOT | Slot | Value (Domain) | `[start, end)` interval in UTC of exact duration; "started" when the start ≤ now. | `Dom/Scheduling/TimeSlot.cs`, `SlotDuration.cs` |
+| D-POLICIES | Account rules | Values (Domain) | Email, name, phone and password (≥ 8 characters); accepted Terms version (up to 32 characters); profiles `Player`, `Owner`, `Admin`. | `Dom/Accounts/` |
+| D-USER | Account | Entity (Infrastructure, Identity) | One email = one account = one profile; unique normalized email; `RegisteredAt`; deactivated when `DeactivatedAt` is set; `AcceptedTermsVersion` and `TermsAcceptedAt` set at registration (T07), empty on earlier accounts and the seeds'. | `Inf/Identity/AppUser.cs` |
+| D-REFRESH | Refresh token | Entity (Infrastructure) | Only the SHA-256 is stored; atomic conditional rotation; absolute lifetime; reuse revokes all the account's sessions. | `Inf/Auth/RefreshToken.cs` |
+| D-OUTBOX | Outbox message | Entity (Application) | Type and payload without addresses; a single outcome (sent, skipped or failed); retries with a doubling interval. | `App/Notifications/OutboxMessage.cs` |
+| D-STATUSCHG | An owner's status change | Entity (Infrastructure) | Append-only (never changed or deleted); action, reason and the admin who made it. | `Inf/Admin/OwnerStatusChange.cs` |
 
-## 7. Objetos da base de dados
+## 7. Database objects
 
-| Id | Nome | Tipo | Para quê | Onde aparece no código |
+| Id | Name | Type | What for | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| DB-USERS | `users`, `roles`, `user_roles` (e `user_claims`, `user_logins`, `user_tokens`, `role_claims`) | Tabelas (Identity) | Contas, perfis e dados do Identity; `ix_users_normalized_email` (único), `ix_users_registered_at`; `accepted_terms_version` e `terms_accepted_at`, opcionais; `deleted_at` (US30), opcional, numa conta apagada e anonimizada. | `Inf/Identity/IdentityModelConfiguration.cs`; migrações `AddIdentity`, `AddAccountDetailsAndSessions`, `AddUserRegisteredAt`, `AddTermsAcceptance` |
-| DB-REFRESH | `refresh_tokens` | Tabela | Hashes dos refresh tokens, `ix_refresh_tokens_token_hash`. | `Inf/Auth/RefreshToken.cs` |
-| DB-CLUBS | `clubs` | Tabela | Clubes; `ix_clubs_slug`, `ix_clubs_locality_key`, `ix_clubs_owner_id_name`, `ck_clubs_cancellation_window_hours`. | `Inf/Clubs/ClubConfiguration.cs` |
-| DB-PITCHES | `pitches`, `pitch_opening_hours`, `pitch_price_bands` | Tabelas | Campos (`ix_pitches_club_id_name_key` único, `ck_pitches_*`), horário semanal e faixas de preço (`ck_pitch_price_bands_*`). | `Inf/Pitches/PitchConfiguration.cs`, `PitchPriceBandConfiguration.cs` |
-| DB-BLOCKS | `blocks` | Tabela | Bloqueios (`ix_blocks_pitch_id_starts_at`). | `Inf/Pitches/BlockConfiguration.cs` |
-| DB-BOOKINGS | `bookings` | Tabela | Reservas; `ck_bookings_player_or_customer`, `ck_bookings_status`, `ck_bookings_price`; índices por campo, jogador, criação e série. | `Inf/Bookings/BookingConfiguration.cs` |
-| DB-NOOVERLAP | `bookings_no_overlap` | Exclusion constraint (GiST) | Nenhuma reserva confirmada se sobrepõe a outra do mesmo campo: `pitch_id WITH =`, `tstzrange(starts_at, ends_at) WITH &&`, `WHERE status = 'Confirmed'`. Violação = SQLSTATE 23P01 → 409 `slot_taken`. | Migração `AddBookings` (SQL à mão) |
-| DB-GIST | `btree_gist` | Extensão | Necessária para o `=` sobre `pitch_id` no índice GiST. | Migração `AddBookings` |
-| DB-OUTBOX | `outbox_messages` | Tabela | Emails por enviar e o seu resultado; `ix_outbox_messages_pending_next_attempt_at`, `ck_outbox_messages_one_outcome`. | `Inf/Notifications/OutboxMessageConfiguration.cs` |
-| DB-OUTBOXUQ | `ux_outbox_messages_booking_notification` | Índice único parcial | No máximo um lembrete e um aviso ao dono por reserva (`type`, `payload ->> 'bookingId'`). | Migração `AddNoShowNotificationsAndReminders` (SQL à mão) |
-| DB-STATUSCHG | `owner_status_changes` | Tabela | Histórico de desativações e reativações de donos; chaves estrangeiras `RESTRICT`. | `Inf/Admin/OwnerStatusChange.cs` |
-| DB-AUDITTRG | `owner_status_changes_append_only` | Função e triggers (`owner_status_changes_no_update_delete`, `owner_status_changes_no_truncate`) | Recusa `UPDATE`, `DELETE` e `TRUNCATE` no histórico (SQLSTATE 23001). | Migração `AddOwnerStatusChanges` (SQL à mão) |
-| DB-DPKEYS | `data_protection_keys` | Tabela | Chaves do Data Protection (CC-DATAPROT). | Migração `AddDataProtectionKeys` |
-| DB-MIGHIST | `__EFMigrationsHistory` | Tabela (EF Core) | Migrações aplicadas. | `Inf/Persistence/Migrations/` |
+| DB-USERS | `users`, `roles`, `user_roles` (and `user_claims`, `user_logins`, `user_tokens`, `role_claims`) | Tables (Identity) | Accounts, profiles and Identity data; `ix_users_normalized_email` (unique), `ix_users_registered_at`; optional `accepted_terms_version` and `terms_accepted_at`; `deleted_at` (US30), optional, on a deleted and anonymized account. | `Inf/Identity/IdentityModelConfiguration.cs`; migrations `AddIdentity`, `AddAccountDetailsAndSessions`, `AddUserRegisteredAt`, `AddTermsAcceptance` |
+| DB-REFRESH | `refresh_tokens` | Table | Hashes of the refresh tokens, `ix_refresh_tokens_token_hash`. | `Inf/Auth/RefreshToken.cs` |
+| DB-CLUBS | `clubs` | Table | Clubs; `ix_clubs_slug`, `ix_clubs_locality_key`, `ix_clubs_owner_id_name`, `ck_clubs_cancellation_window_hours`. | `Inf/Clubs/ClubConfiguration.cs` |
+| DB-PITCHES | `pitches`, `pitch_opening_hours`, `pitch_price_bands` | Tables | Pitches (`ix_pitches_club_id_name_key` unique, `ck_pitches_*`), weekly schedule and price bands (`ck_pitch_price_bands_*`). | `Inf/Pitches/PitchConfiguration.cs`, `PitchPriceBandConfiguration.cs` |
+| DB-BLOCKS | `blocks` | Table | Blocks (`ix_blocks_pitch_id_starts_at`). | `Inf/Pitches/BlockConfiguration.cs` |
+| DB-BOOKINGS | `bookings` | Table | Bookings; `ck_bookings_player_or_customer`, `ck_bookings_status`, `ck_bookings_price`; indexes by pitch, player, creation and series. | `Inf/Bookings/BookingConfiguration.cs` |
+| DB-NOOVERLAP | `bookings_no_overlap` | Exclusion constraint (GiST) | No confirmed booking overlaps another on the same pitch: `pitch_id WITH =`, `tstzrange(starts_at, ends_at) WITH &&`, `WHERE status = 'Confirmed'`. Violation = SQLSTATE 23P01 → 409 `slot_taken`. | Migration `AddBookings` (hand-written SQL) |
+| DB-GIST | `btree_gist` | Extension | Needed for the `=` on `pitch_id` in the GiST index. | Migration `AddBookings` |
+| DB-OUTBOX | `outbox_messages` | Table | Emails waiting to be sent and their outcome; `ix_outbox_messages_pending_next_attempt_at`, `ck_outbox_messages_one_outcome`. | `Inf/Notifications/OutboxMessageConfiguration.cs` |
+| DB-OUTBOXUQ | `ux_outbox_messages_booking_notification` | Partial unique index | At most one reminder and one owner notice per booking (`type`, `payload ->> 'bookingId'`). | Migration `AddNoShowNotificationsAndReminders` (hand-written SQL) |
+| DB-STATUSCHG | `owner_status_changes` | Table | History of owner deactivations and reactivations; `RESTRICT` foreign keys. | `Inf/Admin/OwnerStatusChange.cs` |
+| DB-AUDITTRG | `owner_status_changes_append_only` | Function and triggers (`owner_status_changes_no_update_delete`, `owner_status_changes_no_truncate`) | Refuses `UPDATE`, `DELETE` and `TRUNCATE` on the history (SQLSTATE 23001). | Migration `AddOwnerStatusChanges` (hand-written SQL) |
+| DB-DPKEYS | `data_protection_keys` | Table | Data Protection keys (CC-DATAPROT). | Migration `AddDataProtectionKeys` |
+| DB-MIGHIST | `__EFMigrationsHistory` | Table (EF Core) | Applied migrations. | `Inf/Persistence/Migrations/` |
 
-## 8. Produção (T06)
+## 8. Production (T06)
 
-Estes ids só aparecem nas vistas de implantação em produção, que existe desde 2026-11-09. Os ids «não adotado» ficam aqui para os documentos antigos continuarem a fazer sentido.
+These ids only appear in the production deployment views, which has existed since 2026-11-09. The "not adopted" ids stay here so that older documents keep making sense.
 
-| Id | Nome | Tipo | O que se prevê | Fonte |
+| Id | Name | Type | What is planned | Source |
 | --- | --- | --- | --- | --- |
-| PL-CADDY | Caddy | Contentor (proxy reverso) | **Não adotado** (ADR 0009). Previa HTTPS e juntar o front end e a API na mesma origem; essa função é do rewrite do Next.js. | `docs/stack.md` (Deploy) |
-| PL-HOST | Máquina de produção | Nó de implantação | **Não adotado** (ADR 0009). Uma máquina virtual com docker compose. | `docs/stack.md` (Deploy) |
-| PL-GHCR | GitHub Container Registry | Sistema externo | **Não adotado** (ADR 0009): o Render constrói a imagem a partir do repositório. | `docs/stack.md` (Deploy) |
-| PL-DEPLOY | Workflow de deploy | Pipeline | `.github/workflows/deploy.yml`: depois do CI verde na `main`, aplica as migrações, chama o deploy hook do Render, publica o site com a CLI da Vercel e faz um smoke. | `.github/workflows/deploy.yml`, [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-MIGBUNDLE | Migration bundle | Artefacto | `dotnet ef migrations bundle`, construído e aplicado no GitHub Actions como dono do esquema (a API liga-se com um utilizador sem DDL). | `.github/workflows/deploy.yml`, `prod-data.yml` |
-| PL-DBUSERS | Dois utilizadores da base de dados | Configuração | `postgres`, dono do esquema (migrações, comandos, `btree_gist`), e `sportsbooking_app`, só com leitura e escrita (a API). | `docs/deployment/supabase-roles.sql` |
-| PL-BREVO | Brevo | Sistema externo (SMTP) | O servidor SMTP de produção (X-SMTP em produção), com um remetente verificado por email. | `docs/deployment/environment-variables.md`, `docs/backlog.md` (US22, T06) |
-| PL-PGMANAGED | PostgreSQL gerido | Sistema externo (alternativa) | **Não adotado** como alternativa à parte: o PostgreSQL gerido é o PL-SUPABASE. | `docs/stack.md` (Deploy) |
-| PL-BACKUP | Cópia diária | Tarefa | **Não adotado** nesta demonstração: o plano gratuito do Supabase não inclui cópias automáticas e os dados são de demonstração. | `docs/stack.md` (Deploy), [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-RENDER | Render | Sistema externo (plataforma de alojamento) | Aloja a API em produção, no plano gratuito. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-RENDER-WEB | Serviço web público do Render | Nó de implantação | **Não adotado** (ADR 0009): o site corre na Vercel (PL-VERCEL). | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-RENDER-API | Serviço web público da API no Render | Nó de implantação | Corre C-API com C-WORKER, em Docker, com URL público. Adormece sem tráfego e o deploy automático está desligado. (Na primeira versão da ADR 0009 era um serviço privado.) | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-SUPABASE | Supabase PostgreSQL | Sistema externo (PostgreSQL gerido) | Hospeda a base de dados (C-DB) em produção, no plano gratuito. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-RENDER-EDGE | Borda do Render | Infraestrutura gerida (proxy de entrada) | Cloudflare e balanceadores do Render: terminam o TLS de `*.onrender.com` e encaminham para PL-RENDER-API. A cadeia de `X-Forwarded-For` não está documentada. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-RENDER-NET | Rede privada do Render | Rede | **Não adotado** (ADR 0009): a Vercel chega à API pela Internet. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-SUPAPOOL | Pooler de ligações do Supabase | Infraestrutura gerida | Supavisor em modo sessão (porta 5432, IPv4), usado pela API e pelo GitHub Actions; o modo transação e o anfitrião direto ficam excluídos. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-DNS | DNS do domínio próprio | Sistema externo | **Não adotado** (ADR 0009): sem domínio próprio, usam-se os endereços `*.vercel.app` e `*.onrender.com`. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-DEPENDABOT | Dependabot | Configuração | `.github/dependabot.yml` para NuGet, npm, GitHub Actions e os `Dockerfile` do back end e do front end. **Feito** antes da T06 (o id mantém-se); o Docker acrescentou-se na `chore/repo-hygiene`. | `.github/dependabot.yml`, `docs/backlog.md` (T06), `docs/stack.md` (checklist de segurança) |
-| PL-SECHEADERS | Cabeçalhos de segurança | Configuração e código | Feitos antes da T06 (o id mantém-se): ver CC-HEADERS e WEB-HEADERS. O HSTS liga-se com `ENABLE_HSTS=true` na Vercel. | `docs/backlog.md` (T06), `docs/stack.md` (checklist de segurança) |
-| PL-VERCEL | Vercel | Sistema externo (plataforma de alojamento) | Aloja C-WEB em produção, no plano Hobby; é a única origem que o browser conhece. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-VERCEL-EDGE | Borda da Vercel | Infraestrutura gerida (proxy de entrada) | HTTPS em `*.vercel.app`, e o rewrite de `/api/*` para a API, fixado no build. Escreve `X-Forwarded-For` com o IP do visitante. | [ADR 0009](adr/0009-alvo-de-implantacao.md), [vista física](4plus1/physical.md) |
-| PL-DEPLOYHOOK | Deploy hook do Render | Configuração | URL secreto que lança o deploy de um commit na API; chamado por PL-DEPLOY, com o deploy automático desligado. | `.github/workflows/deploy.yml`, `docs/deployment/runbook.md` |
-| PL-CODEQL | Workflow de CodeQL | Pipeline | `.github/workflows/codeql.yml`: análise de código para C# e JavaScript/TypeScript (`build-mode: none`) em `pull_request`, em `push` à `main` e às segundas-feiras. Independente do CI e do deploy. | `.github/workflows/codeql.yml`, `docs/backlog.md` (T06) |
-| PL-E2E | Workflow de E2E | Pipeline | `.github/workflows/e2e.yml`, em `pull_request` e em `push` à `main`: constrói e sobe a stack do `docker compose` com os dados de demonstração e corre os testes Playwright de `e2e/`; carrega o relatório, os traces e os vídeos se falha. Independente do CI e do deploy. | `.github/workflows/e2e.yml`, [ADR 0010](adr/0010-testes-end-to-end-playwright.md) |
-| PL-KEEPALIVE | Workflow de keepalive | Pipeline | `.github/workflows/keepalive.yml`, às segundas e quintas e à mão, só com `DEPLOY_ENABLED=true`: um `GET /api/localities` pelo site público (consulta de leitura à base de dados, que também acorda a API) para o Supabase não pausar o projeto por inatividade. Sem segredos; usa a variável `SITE_URL`. | `.github/workflows/keepalive.yml`, `docs/deployment/runbook.md`, [ADR 0009](adr/0009-alvo-de-implantacao.md) |
-| PL-PRODDATA | Workflow de dados de produção | Pipeline | `.github/workflows/prod-data.yml`, manual: `migrate-only`, `set-admin-password` e `seed-demo` contra o Supabase, porque o plano gratuito do Render não tem shell. | `.github/workflows/prod-data.yml`, `docs/deployment/runbook.md` |
+| PL-CADDY | Caddy | Container (reverse proxy) | **Not adopted** (ADR 0009). It was to provide HTTPS and put the front end and the API on the same origin; that role belongs to the Next.js rewrite. | `docs/stack.md` (Deploy) |
+| PL-HOST | Production machine | Deployment node | **Not adopted** (ADR 0009). A virtual machine with docker compose. | `docs/stack.md` (Deploy) |
+| PL-GHCR | GitHub Container Registry | External system | **Not adopted** (ADR 0009): Render builds the image from the repository. | `docs/stack.md` (Deploy) |
+| PL-DEPLOY | Deploy workflow | Pipeline | `.github/workflows/deploy.yml`: after green CI on `main`, applies the migrations, calls Render's deploy hook, publishes the site with the Vercel CLI and runs a smoke test. | `.github/workflows/deploy.yml`, [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-MIGBUNDLE | Migration bundle | Artifact | `dotnet ef migrations bundle`, built and applied in GitHub Actions as the schema owner (the API connects with a user without DDL). | `.github/workflows/deploy.yml`, `prod-data.yml` |
+| PL-DBUSERS | Two database users | Configuration | `postgres`, schema owner (migrations, commands, `btree_gist`), and `sportsbooking_app`, with read and write only (the API). | `docs/deployment/supabase-roles.sql` |
+| PL-BREVO | Brevo | External system (SMTP) | The production SMTP server (X-SMTP in production), with a sender verified by email. | `docs/deployment/environment-variables.md`, `docs/backlog.md` (US22, T06) |
+| PL-PGMANAGED | Managed PostgreSQL | External system (alternative) | **Not adopted** as a separate alternative: the managed PostgreSQL is PL-SUPABASE. | `docs/stack.md` (Deploy) |
+| PL-BACKUP | Daily backup | Task | **Not adopted** in this demo: Supabase's free plan does not include automatic backups and the data is demo data. | `docs/stack.md` (Deploy), [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-RENDER | Render | External system (hosting platform) | Hosts the API in production, on the free plan. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-RENDER-WEB | Render's public web service | Deployment node | **Not adopted** (ADR 0009): the site runs on Vercel (PL-VERCEL). | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-RENDER-API | API's public web service on Render | Deployment node | Runs C-API with C-WORKER, in Docker, with a public URL. Sleeps without traffic and automatic deploy is turned off. (In the first version of ADR 0009 it was a private service.) | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-SUPABASE | Supabase PostgreSQL | External system (managed PostgreSQL) | Hosts the database (C-DB) in production, on the free plan. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-RENDER-EDGE | Render edge | Managed infrastructure (ingress proxy) | Cloudflare and Render's load balancers: terminate the TLS of `*.onrender.com` and forward to PL-RENDER-API. The `X-Forwarded-For` chain is not documented. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-RENDER-NET | Render private network | Network | **Not adopted** (ADR 0009): Vercel reaches the API over the Internet. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-SUPAPOOL | Supabase connection pooler | Managed infrastructure | Supavisor in session mode (port 5432, IPv4), used by the API and GitHub Actions; transaction mode and the direct host are excluded. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-DNS | Own domain's DNS | External system | **Not adopted** (ADR 0009): without a domain of our own, the `*.vercel.app` and `*.onrender.com` addresses are used. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-DEPENDABOT | Dependabot | Configuration | `.github/dependabot.yml` for NuGet, npm, GitHub Actions and the back end and front end `Dockerfile`s. **Done** before T06 (the id stays); Docker was added in `chore/repo-hygiene`. | `.github/dependabot.yml`, `docs/backlog.md` (T06), `docs/stack.md` (security checklist) |
+| PL-SECHEADERS | Security headers | Configuration and code | Done before T06 (the id stays): see CC-HEADERS and WEB-HEADERS. HSTS is turned on with `ENABLE_HSTS=true` on Vercel. | `docs/backlog.md` (T06), `docs/stack.md` (security checklist) |
+| PL-VERCEL | Vercel | External system (hosting platform) | Hosts C-WEB in production, on the Hobby plan; it is the only origin the browser knows. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-VERCEL-EDGE | Vercel edge | Managed infrastructure (ingress proxy) | HTTPS on `*.vercel.app`, and the `/api/*` rewrite to the API, fixed at build time. Writes `X-Forwarded-For` with the visitor's IP. | [ADR 0009](adr/0009-deployment-target.md), [physical view](4plus1/physical.md) |
+| PL-DEPLOYHOOK | Render deploy hook | Configuration | Secret URL that launches the deploy of a commit on the API; called by PL-DEPLOY, with automatic deploy turned off. | `.github/workflows/deploy.yml`, `docs/deployment/runbook.md` |
+| PL-CODEQL | CodeQL workflow | Pipeline | `.github/workflows/codeql.yml`: code analysis for C# and JavaScript/TypeScript (`build-mode: none`) on `pull_request`, on `push` to `main` and on Mondays. Independent of CI and the deploy. | `.github/workflows/codeql.yml`, `docs/backlog.md` (T06) |
+| PL-E2E | E2E workflow | Pipeline | `.github/workflows/e2e.yml`, on `pull_request` and on `push` to `main`: builds and brings up the `docker compose` stack with the demo data and runs the Playwright tests in `e2e/`; uploads the report, traces and videos if it fails. Independent of CI and the deploy. | `.github/workflows/e2e.yml`, [ADR 0010](adr/0010-playwright-end-to-end-tests.md) |
+| PL-KEEPALIVE | Keepalive workflow | Pipeline | `.github/workflows/keepalive.yml`, on Mondays and Thursdays and by hand, only with `DEPLOY_ENABLED=true`: a `GET /api/localities` through the public site (a read query against the database, which also wakes the API) so that Supabase does not pause the project for inactivity. No secrets; uses the `SITE_URL` variable. | `.github/workflows/keepalive.yml`, `docs/deployment/runbook.md`, [ADR 0009](adr/0009-deployment-target.md) |
+| PL-PRODDATA | Production data workflow | Pipeline | `.github/workflows/prod-data.yml`, manual: `migrate-only`, `set-admin-password` and `seed-demo` against Supabase, because Render's free plan has no shell. | `.github/workflows/prod-data.yml`, `docs/deployment/runbook.md` |
 
-**Nota (plano de produção).** `docs/stack.md` descreve uma máquina virtual com Caddy. O alvo em produção (ADR 0009, aceite em 2026-11-09) é Vercel, Render gratuito com a API pública, Supabase e Brevo: o Next.js (C-WEB) continua a ser o proxy reverso. A ADR diz que partes da Stack substitui.
+**Note (production plan).** `docs/stack.md` describes a virtual machine with Caddy. The production target (ADR 0009, accepted on 2026-11-09) is Vercel, free Render with the API public, Supabase and Brevo: Next.js (C-WEB) remains the reverse proxy. The ADR says which parts of the Stack it replaces.
 
-## 9. Vista de desenvolvimento
+## 9. Development view
 
-Elementos que só a [vista de desenvolvimento](4plus1/development.md) usa: pastas do repositório, projetos de teste, ficheiros gerados e jobs de CI. Os projetos do back end são as camadas `L-` e as pastas do front end reutilizam os ids `WEB-`.
+Elements that only the [development view](4plus1/development.md) uses: repository folders, test projects, generated files and CI jobs. The back end projects are the `L-` layers and the front end folders reuse the `WEB-` ids.
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| DEV-BACKEND | `backend/` | Pasta | Solução .NET: quatro projetos em `src/`, dois de teste em `tests/`, versões centrais dos pacotes, `Dockerfile`. | `backend/` |
-| DEV-FRONTEND | `frontend/` | Pasta | Aplicação Next.js (`src/`), configuração, `Dockerfile`. | `frontend/` |
-| DEV-DOCS | `docs/` | Pasta | `backlog.md`, `stack.md` e a arquitetura. | `docs/` |
-| DEV-ARCHDOCS | `docs/architecture/` | Pasta | Estes documentos, as ADRs, os diagramas (`.puml` em `c4/` e `4plus1/`, `.svg` em `out/`), o estilo comum (`style.puml`), o tipo de letra (`fonts/`) e os scripts que os desenham. | `docs/architecture/` |
-| DEV-SCRIPTS | `scripts/` | Pasta | Verificação das ligações, da galeria e dos aliases dos diagramas; geração dos ícones do site. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1`, `scripts/generate-icons.mjs` |
-| DEV-WORKFLOWS | `.github/workflows/` | Pasta | Os workflows: CI, CodeQL, E2E, deploy, dados de produção e keepalive. | `.github/workflows/` |
-| DEV-E2E | `e2e/` | Pasta | Testes end-to-end: Playwright (Chromium), quatro fluxos, `scripts/stack.mjs` que sobe a stack do `docker compose` com os dados de demonstração, e `compose.e2e.yml`. Não depende de código do front end nem da API. | `e2e/`, [ADR 0010](adr/0010-testes-end-to-end-playwright.md) |
-| DEV-COMPOSE | `docker-compose.yml` | Ficheiro | Stack local: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
-| DEV-ROOTCFG | Configuração da raiz | Ficheiros | SDK fixado, estilo de código, fins de linha, ficheiros ignorados, README e AGENTS. | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` |
-| DEV-TEST-UNIT | Testes unitários do back end | Projeto de teste | Domínio, serviços e peças da API sem base de dados (xUnit v3, Shouldly, `FakeTimeProvider`). | `backend/tests/SportsBooking.UnitTests/` |
-| DEV-TEST-INT | Testes de integração do back end | Projeto de teste | Endpoints completos contra PostgreSQL real (Testcontainers), com `ApiFactory`. | `backend/tests/SportsBooking.IntegrationTests/` |
-| DEV-TEST-WEB | Testes do front end | Testes | Vitest, Testing Library e MSW; os `*.test.ts(x)` ficam ao lado do código, o apoio em `src/test/`. | `Web/test/`, `frontend/vitest.config.mts`, `frontend/vitest.setup.ts` |
-| DEV-WEBTYPES | Tipos da API gerados | Ficheiro gerado | Tipos TypeScript gerados do documento OpenAPI (CC-OPENAPI) por `openapi-typescript`; nunca se editam à mão. | `Web/lib/api/schema.d.ts` |
-| DEV-CI-BACKEND | Job `backend` | Job de CI | «Backend (build + tests)». | `.github/workflows/ci.yml` |
-| DEV-CI-FRONTEND | Job `frontend` | Job de CI | «Frontend (lint, typecheck, tests, build)». | `.github/workflows/ci.yml` |
-| DEV-CI-DIAGRAMS | Job `diagrams` | Job de CI | «Docs (architecture diagrams)»: desenha (com a imagem PlantUML fixada em `style.puml`) e compara os SVG, e corre `scripts/check-architecture-docs.sh` (ligações, galeria e aliases). | `.github/workflows/ci.yml` |
+| DEV-BACKEND | `backend/` | Folder | .NET solution: four projects in `src/`, two test ones in `tests/`, central package versions, `Dockerfile`. | `backend/` |
+| DEV-FRONTEND | `frontend/` | Folder | Next.js application (`src/`), configuration, `Dockerfile`. | `frontend/` |
+| DEV-DOCS | `docs/` | Folder | `backlog.md`, `stack.md` and the architecture. | `docs/` |
+| DEV-ARCHDOCS | `docs/architecture/` | Folder | These documents, the ADRs, the diagrams (`.puml` in `c4/` and `4plus1/`, `.svg` in `out/`), the common style (`style.puml`), the typeface (`fonts/`) and the scripts that render them. | `docs/architecture/` |
+| DEV-SCRIPTS | `scripts/` | Folder | Check of the links, the gallery and the diagram aliases; generation of the site's icons. | `scripts/check-architecture-docs.sh`, `scripts/check-architecture-docs.ps1`, `scripts/generate-icons.mjs` |
+| DEV-WORKFLOWS | `.github/workflows/` | Folder | The workflows: CI, CodeQL, E2E, deploy, production data and keepalive. | `.github/workflows/` |
+| DEV-E2E | `e2e/` | Folder | End-to-end tests: Playwright (Chromium), four flows, `scripts/stack.mjs` which brings up the `docker compose` stack with the demo data, and `compose.e2e.yml`. Does not depend on front end or API code. | `e2e/`, [ADR 0010](adr/0010-playwright-end-to-end-tests.md) |
+| DEV-COMPOSE | `docker-compose.yml` | File | Local stack: `postgres`, `mailpit`, `api`, `frontend`. | `docker-compose.yml`, `.env.example` |
+| DEV-ROOTCFG | Root configuration | Files | Pinned SDK, code style, line endings, ignored files, README and AGENTS. | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md` |
+| DEV-TEST-UNIT | Back end unit tests | Test project | Domain, services and API pieces without a database (xUnit v3, Shouldly, `FakeTimeProvider`). | `backend/tests/SportsBooking.UnitTests/` |
+| DEV-TEST-INT | Back end integration tests | Test project | Complete endpoints against a real PostgreSQL (Testcontainers), with `ApiFactory`. | `backend/tests/SportsBooking.IntegrationTests/` |
+| DEV-TEST-WEB | Front end tests | Tests | Vitest, Testing Library and MSW; the `*.test.ts(x)` files sit next to the code, the support in `src/test/`. | `Web/test/`, `frontend/vitest.config.mts`, `frontend/vitest.setup.ts` |
+| DEV-WEBTYPES | Generated API types | Generated file | TypeScript types generated from the OpenAPI document (CC-OPENAPI) by `openapi-typescript`; never edited by hand. | `Web/lib/api/schema.d.ts` |
+| DEV-CI-BACKEND | `backend` job | CI job | "Backend (build + tests)". | `.github/workflows/ci.yml` |
+| DEV-CI-FRONTEND | `frontend` job | CI job | "Frontend (lint, typecheck, tests, build)". | `.github/workflows/ci.yml` |
+| DEV-CI-DIAGRAMS | `diagrams` job | CI job | "Docs (architecture diagrams)": renders (with the PlantUML image pinned in `style.puml`) and compares the SVGs, and runs `scripts/check-architecture-docs.sh` (links, gallery and aliases). | `.github/workflows/ci.yml` |
 
-## 10. Vista física (implantação de hoje)
+## 10. Physical view (today's deployment)
 
-Nós e infraestrutura do ambiente que existe hoje, usados pela [vista física](4plus1/physical.md). Os de produção são `PL-` (secção 8).
+Nodes and infrastructure of the environment that exists today, used by the [physical view](4plus1/physical.md). The production ones are `PL-` (section 8).
 
-| Id | Nome | Tipo | Responsabilidade | Onde aparece no código |
+| Id | Name | Type | Responsibility | Where it appears in the code |
 | --- | --- | --- | --- | --- |
-| DEP-DEVHOST | Máquina de desenvolvimento | Nó de implantação | Corre o Docker (Engine ou Desktop), o browser e, opcionalmente, a API e o front end fora do Docker. | `README.md`, `docker-compose.yml` |
-| DEP-COMPOSE-NET | Projeto compose `sportsbooking` e a sua rede | Nó de implantação (rede bridge do Docker) | Liga `postgres`, `mailpit`, `api` e `frontend`, que se chamam pelo nome do serviço; publica as portas 3000, 5080, 5432, 1025 e 8025 no anfitrião. | `docker-compose.yml` (`name: sportsbooking`) |
-| DEP-PGVOLUME | Volume `postgres-data` | Volume do Docker | Guarda os ficheiros do PostgreSQL em `/var/lib/postgresql`; sobrevive a `docker compose down`, apaga-se com `down -v`. | `docker-compose.yml` (`volumes`) |
+| DEP-DEVHOST | Development machine | Deployment node | Runs Docker (Engine or Desktop), the browser and, optionally, the API and the front end outside Docker. | `README.md`, `docker-compose.yml` |
+| DEP-COMPOSE-NET | Compose project `sportsbooking` and its network | Deployment node (Docker bridge network) | Connects `postgres`, `mailpit`, `api` and `frontend`, which call each other by service name; publishes ports 3000, 5080, 5432, 1025 and 8025 on the host. | `docker-compose.yml` (`name: sportsbooking`) |
+| DEP-PGVOLUME | `postgres-data` volume | Docker volume | Stores PostgreSQL's files in `/var/lib/postgresql`; survives `docker compose down`, deleted with `down -v`. | `docker-compose.yml` (`volumes`) |
 
-## 11. Cenários
+## 11. Scenarios
 
-Os casos de uso da [vista de cenários](4plus1/scenarios.md). Cada um liga elementos e diagramas das outras vistas; não há elementos novos nos diagramas.
+The use cases of the [scenarios view](4plus1/scenarios.md). Each links elements and diagrams of the other views; there are no new elements in the diagrams.
 
-| Id | Nome | Tipo | Atores | Onde aparece |
+| Id | Name | Type | Actors | Where it appears |
 | --- | --- | --- | --- | --- |
-| SC-01 | Visitante pesquisa e reserva um slot | Cenário | P-VIS, P-JOG | US16, US17, US18; [4plus1/scenarios.md](4plus1/scenarios.md) |
-| SC-02 | Dono configura clube, campos, horários e preços | Cenário | P-DONO | US02, US06 a US10; idem |
-| SC-03 | Dono cancela uma reserva no calendário | Cenário | P-DONO, P-JOG | US11, US12, US22; idem |
-| SC-04 | Reserva semanal com uma data saltada | Cenário | P-JOG | US20; idem |
-| SC-05 | Recuperação da palavra-passe | Cenário | P-VIS (com conta) | US05; idem |
-| SC-06 | Admin desativa um dono | Cenário | P-ADMIN, P-DONO | US29; idem |
-| SC-07 | Corrida pelo mesmo slot | Cenário | P-JOG | T03, US18; idem |
+| SC-01 | Visitor searches for and books a slot | Scenario | P-VIS, P-JOG | US16, US17, US18; [4plus1/scenarios.md](4plus1/scenarios.md) |
+| SC-02 | Owner sets up club, pitches, schedules and prices | Scenario | P-DONO | US02, US06 to US10; same |
+| SC-03 | Owner cancels a booking in the calendar | Scenario | P-DONO, P-JOG | US11, US12, US22; same |
+| SC-04 | Weekly booking with one date skipped | Scenario | P-JOG | US20; same |
+| SC-05 | Password recovery | Scenario | P-VIS (with an account) | US05; same |
+| SC-06 | Admin deactivates an owner | Scenario | P-ADMIN, P-DONO | US29; same |
+| SC-07 | Race for the same slot | Scenario | P-JOG | T03, US18; same |
 
-## 12. Nomes e aliases nos diagramas
+## 12. Names and aliases in the diagrams
 
-Os diagramas desenham só nomes. O id fica no alias do PlantUML: o id com `_` (`C-API` → `C_API`) e, quando várias classes pertencem ao mesmo elemento, o id seguido do nome da classe (`D_BOOKING_BookingStatus`). Um elemento pode ter nomes mais curtos em alguns diagramas; esta tabela liga cada alias ao id, aos nomes desenhados e aos diagramas onde aparece, e o verificador (`scripts/check-architecture-docs`) confirma-a nos dois sentidos.
+The diagrams draw only names. The id stays in the PlantUML alias: the id with `_` (`C-API` → `C_API`) and, when several classes belong to the same element, the id followed by the class name (`D_BOOKING_BookingStatus`). An element can have shorter names in some diagrams; this table links each alias to the id, to the drawn names and to the diagrams where it appears, and the checker (`scripts/check-architecture-docs`) confirms it in both directions.
 
-Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inventário (`FEATURES` junta as nove funcionalidades `WEB-F-*`). As caixas dos diagramas de sequência (`box`) não têm alias no PlantUML: API ASP.NET Core = C-API, Next.js = C-WEB, Worker do outbox = C-WORKER.
+Id `—`: groupings that only exist in the drawing, with no element of their own in the inventory (`FEATURES` groups the nine `WEB-F-*` features). The boxes of the sequence diagrams (`box`) have no alias in PlantUML: ASP.NET Core API = C-API, Next.js = C-WEB, Outbox worker = C-WORKER.
 
-| Alias | Id | Nome desenhado | Diagramas |
+| Alias | Id | Drawn name | Diagrams |
 | --- | --- | --- | --- |
-| `ADDACC` | L-INF | AddAccounts · Identity, IAccountStore, seed do admin, Data Protection, PasswordHasherOptions | development-di |
-| `ADDAPI` | L-API | Extensões próprias da API | development-di |
+| `ADDACC` | L-INF | AddAccounts · Identity, IAccountStore, admin seed, Data Protection, PasswordHasherOptions | development-di |
+| `ADDAPI` | L-API | The API's own extensions | development-di |
 | `ADDAPP` | L-APP | AddApplication() | development-di |
 | `ADDINF` | L-INF | AddInfrastructure(config) | development-di |
 | `ADDMAIL` | L-INF | AddEmail · EmailOptions, OutboxOptions, IEmailSender, OutboxProcessor, OutboxDispatcher (HostedService) | development-di |
 | `ADDSES` | L-INF | AddSessions · JwtOptions, ISessionService, PublicSiteOptions, IPasswordResetStore, AccountEmailBuilder | development-di |
-| `API_ADMIN` | API-ADMIN | Administração; Estado dos donos | process-owner-deactivation, 03-components-api-accounts, 03-components-api-overview |
+| `API_ADMIN` | API-ADMIN | Administration; Owner status | process-owner-deactivation, 03-components-api-accounts, 03-components-api-overview |
 | `API_ADMINPW` | API-ADMINPW | set-admin-password | 03-components-api-accounts |
-| `API_ADMINSEED` | API-ADMINSEED | Seed do admin | 03-components-api-accounts |
-| `API_AUTH` | API-AUTH | AuthController.Me; Contas e sessões; Contas e sessões (AuthController, api/auth; MeAccountController, api/me); Contas | process-guard, process-login, process-refresh, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
-| `API_AUTH_ACCOUNTS` | API-AUTH-ACCOUNTS | Contas; Contas no Identity | process-book, process-login, process-series, 03-components-api-accounts |
+| `API_ADMINSEED` | API-ADMINSEED | Admin seed | 03-components-api-accounts |
+| `API_AUTH` | API-AUTH | AuthController.Me; Accounts and sessions; Accounts and sessions (AuthController, api/auth; MeAccountController, api/me); Accounts | process-guard, process-login, process-refresh, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
+| `API_AUTH_ACCOUNTS` | API-AUTH-ACCOUNTS | Accounts; Accounts in Identity | process-book, process-login, process-series, 03-components-api-accounts |
 | `API_AUTH_LOGIN` | API-AUTH-LOGIN | Login | process-login, 03-components-api-accounts |
-| `API_AUTH_REG` | API-AUTH-REG | Registo | 03-components-api-accounts |
-| `API_AUTH_RESET` | API-AUTH-RESET | AccountEmailBuilder; Recuperação | process-outbox-skip, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-notifications |
-| `API_BLOCKS` | API-BLOCKS | Bloqueios | 03-components-api-overview |
-| `API_BOOK` | API-BOOK | Reservas do jogador (BookingsController, MeBookingsController; política Player); Reservas do jogador | 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
-| `API_BOOK_MINE` | API-BOOK-MINE | Cancelar (jogador); Cancelar; As minhas reservas e cancelar | process-cancel-club, process-cancel-player, 03-components-api-bookings |
-| `API_BOOK_SERIES` | API-BOOK-SERIES | Série semanal | process-series, 03-components-api-bookings |
-| `API_BOOK_SINGLE` | API-BOOK-SINGLE | Uma reserva | process-book, 03-components-api-bookings |
-| `API_BOOK_STORE` | API-BOOK-STORE | Store das reservas | process-book, process-series, 03-components-api-bookings |
-| `API_CATALOG` | API-CATALOG | Clubes visíveis; Catálogo público | 03-components-api-bookings, 03-components-api-overview |
-| `API_CLUBBOOK` | API-CLUBBOOK | Reservas do dono; Calendário e reservas do dono | process-cancel-club, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
-| `API_CLUBS` | API-CLUBS | Clubes do dono | 03-components-api-overview |
-| `API_NOTIF` | API-NOTIF | Outbox; Notificações (outbox) | 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
-| `API_NOTIF_COMPOSE` | API-NOTIF-COMPOSE | Compor; Compor os emails | process-outbox-skip, process-outbox, 03-components-api-notifications |
-| `API_NOTIF_DISPATCH` | API-NOTIF-DISPATCH | Ciclo; Ciclo do worker | process-outbox, 03-components-api-notifications |
-| `API_NOTIF_OUTBOX` | API-NOTIF-OUTBOX | Pôr no outbox | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-notifications |
-| `API_NOTIF_PROC` | API-NOTIF-PROC | Processar; Processar o outbox; Processar o que está devido | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
-| `API_NOTIF_SENDER` | API-NOTIF-SENDER | Enviar | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
-| `API_PERSIST` | API-PERSIST | Persistência | 03-components-api-overview |
-| `API_PITCHES` | API-PITCHES | Campos | 03-components-api-overview |
-| `API_PRICE` | API-PRICE | Faixas de preço | 03-components-api-overview |
-| `API_SCHED` | API-SCHED | Horários | 03-components-api-overview |
-| `API_STATS` | API-STATS | Estatísticas do dono | 03-components-api-overview |
-| `A_SRC` | — | README.md, inventory.md, style.puml, render.sh, render.ps1, c4/ e 4plus1/ (.md e .puml), out/ (.svg), fonts/, adr/ | development-repo |
-| `B_API` | C-API | Processo da API (porta 8080; 5080 no anfitrião) | 02-containers-dev |
+| `API_AUTH_REG` | API-AUTH-REG | Registration | 03-components-api-accounts |
+| `API_AUTH_RESET` | API-AUTH-RESET | AccountEmailBuilder; Recovery | process-outbox-skip, process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-notifications |
+| `API_BLOCKS` | API-BLOCKS | Blocks | 03-components-api-overview |
+| `API_BOOK` | API-BOOK | Player bookings (BookingsController, MeBookingsController; Player policy); Player bookings | 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
+| `API_BOOK_MINE` | API-BOOK-MINE | Cancel (player); Cancel; My bookings and cancelling | process-cancel-club, process-cancel-player, 03-components-api-bookings |
+| `API_BOOK_SERIES` | API-BOOK-SERIES | Weekly series | process-series, 03-components-api-bookings |
+| `API_BOOK_SINGLE` | API-BOOK-SINGLE | Single booking | process-book, 03-components-api-bookings |
+| `API_BOOK_STORE` | API-BOOK-STORE | Booking store | process-book, process-series, 03-components-api-bookings |
+| `API_CATALOG` | API-CATALOG | Visible clubs; Public catalogue | 03-components-api-bookings, 03-components-api-overview |
+| `API_CLUBBOOK` | API-CLUBBOOK | Owner bookings; Owner's calendar and bookings | process-cancel-club, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview |
+| `API_CLUBS` | API-CLUBS | Owner's clubs | 03-components-api-overview |
+| `API_NOTIF` | API-NOTIF | Outbox; Notifications (outbox) | 03-components-api-accounts, 03-components-api-bookings, 03-components-api-overview |
+| `API_NOTIF_COMPOSE` | API-NOTIF-COMPOSE | Compose; Compose the emails | process-outbox-skip, process-outbox, 03-components-api-notifications |
+| `API_NOTIF_DISPATCH` | API-NOTIF-DISPATCH | Loop; Worker loop | process-outbox, 03-components-api-notifications |
+| `API_NOTIF_OUTBOX` | API-NOTIF-OUTBOX | Put in the outbox | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-notifications |
+| `API_NOTIF_PROC` | API-NOTIF-PROC | Process; Process the outbox; Process what is due | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
+| `API_NOTIF_SENDER` | API-NOTIF-SENDER | Send | process-outbox-skip, process-outbox, process-reset-request, 03-components-api-notifications |
+| `API_PERSIST` | API-PERSIST | Persistence | 03-components-api-overview |
+| `API_PITCHES` | API-PITCHES | Pitches | 03-components-api-overview |
+| `API_PRICE` | API-PRICE | Price bands | 03-components-api-overview |
+| `API_SCHED` | API-SCHED | Schedules | 03-components-api-overview |
+| `API_STATS` | API-STATS | Owner's statistics | 03-components-api-overview |
+| `A_SRC` | — | README.md, inventory.md, style.puml, render.sh, render.ps1, c4/ and 4plus1/ (.md and .puml), out/ (.svg), fonts/, adr/ | development-repo |
+| `B_API` | C-API | API process (port 8080; 5080 on the host) | 02-containers-dev |
 | `B_CFG` | — | Directory.Build.props, Directory.Packages.props, dotnet-tools.json, SportsBooking.slnx, Dockerfile | development-repo |
 | `B_SRC` | — | src/ | development-repo |
 | `B_TESTS` | — | tests/ | development-repo |
-| `CC_AUTHZ` | CC-AUTHZ | Autorização por dono; Autorização | process-cancel-club, process-owner-deactivation, 03-components-api-bookings |
+| `CC_AUTHZ` | CC-AUTHZ | Per-owner authorization; Authorization | process-cancel-club, process-owner-deactivation, 03-components-api-bookings |
 | `CC_CLUBTIME` | CC-CLUBTIME | Dom/Scheduling | logical-code-slots |
 | `CC_CLUBTIME_BookingWindow` | CC-CLUBTIME | BookingWindow | logical-code-slots |
 | `CC_CLUBTIME_ClubTime` | CC-CLUBTIME | ClubTime | logical-code-slots |
 | `CC_CLUBTIME_OpeningHours` | CC-CLUBTIME | OpeningHours | logical-code-slots |
 | `CC_CLUBTIME_SlotDuration` | CC-CLUBTIME | SlotDuration | logical-code-slots |
 | `CC_CLUBTIME_SlotGenerator` | CC-CLUBTIME | SlotGenerator | logical-code-slots |
-| `CC_COOKIES` | CC-COOKIES | JwtBearer; Sessões e cookies | process-guard, process-login, process-refresh, 03-components-api-accounts |
+| `CC_COOKIES` | CC-COOKIES | JwtBearer; Sessions and cookies | process-guard, process-login, process-refresh, 03-components-api-accounts |
 | `CC_DATAPROT` | CC-DATAPROT | Data Protection | process-reset-confirm, process-reset-request, 03-components-api-accounts, 03-components-api-notifications |
-| `CC_DAYCAL` | CC-DAYCAL | PitchDayCalendar; Slots de um dia e «livre» | logical-code-slots, 03-components-api-overview |
+| `CC_DAYCAL` | CC-DAYCAL | PitchDayCalendar; A day's slots and «free» | logical-code-slots, 03-components-api-overview |
 | `CC_DAYCAL_DaySlot` | CC-DAYCAL | DaySlot | logical-code-slots |
 | `CC_DAYCAL_PitchInZone` | CC-DAYCAL | PitchInZone | logical-code-slots |
-| `CC_LOCK` | CC-LOCK | Trinco do campo | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-bookings |
-| `CC_SLOTCHECK` | CC-SLOTCHECK | BookingSlotCheck; Verificação do slot | logical-code-slots, process-book, process-series, 03-components-api-bookings |
-| `CC_TIME` | CC-TIME | Relógio; Relógio injetado | process-outbox, 03-components-api-notifications |
-| `COMPOSE` | DEP-COMPOSE-NET | docker compose (nome: sportsbooking) | 02-containers-dev |
-| `C_API` | C-API | API ASP.NET Core; API; API ASP.NET Core (pedidos); serviço api | logical-layers, physical, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 03-components-web, 04-deployment-dev, 04-deployment-prod |
-| `C_BROWSER` | C-BROWSER | Browser do utilizador; Browser | physical, process-guard, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-web, 04-deployment-dev, 04-deployment-prod |
-| `C_CLI` | C-CLI | seed-demo, set-admin-password [O mesmo executável, outro processo] | process-runtime |
-| `C_DB` | C-DB | Base de dados; PostgreSQL; serviço postgres | physical, process-book, process-cancel-club, process-cancel-player, process-login, process-outbox-skip, process-outbox, process-reset-confirm, process-reset-request, process-runtime, process-series, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 04-deployment-dev, 04-deployment-prod |
-| `C_WEB` | C-WEB | Aplicação Next.js; Next.js; serviço frontend | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-overview, 03-components-web-features, 03-components-web, 04-deployment-dev, 04-deployment-prod |
-| `C_WORKER` | C-WORKER | Worker de emails; Worker do outbox; Worker de emails (BackgroundService no processo da API) | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-notifications, 04-deployment-dev, 04-deployment-prod |
+| `CC_LOCK` | CC-LOCK | Pitch lock | process-book, process-cancel-club, process-cancel-player, process-series, 03-components-api-bookings |
+| `CC_SLOTCHECK` | CC-SLOTCHECK | BookingSlotCheck; Slot check | logical-code-slots, process-book, process-series, 03-components-api-bookings |
+| `CC_TIME` | CC-TIME | Clock; Injected clock | process-outbox, 03-components-api-notifications |
+| `COMPOSE` | DEP-COMPOSE-NET | docker compose (name: sportsbooking) | 02-containers-dev |
+| `C_API` | C-API | ASP.NET Core API; API; ASP.NET Core API (requests); api service | logical-layers, physical, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_BROWSER` | C-BROWSER | User's browser; Browser | physical, process-guard, process-refresh-client, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_CLI` | C-CLI | seed-demo, set-admin-password [The same executable, another process] | process-runtime |
+| `C_DB` | C-DB | Database; PostgreSQL; postgres service | physical, process-book, process-cancel-club, process-cancel-player, process-login, process-outbox-skip, process-outbox, process-reset-confirm, process-reset-request, process-runtime, process-series, 02-containers-dev, 02-containers-prod, 03-components-api-accounts, 03-components-api-bookings, 03-components-api-notifications, 03-components-api-overview, 04-deployment-dev, 04-deployment-prod |
+| `C_WEB` | C-WEB | Next.js application; Next.js; frontend service | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-overview, 03-components-web-features, 03-components-web, 04-deployment-dev, 04-deployment-prod |
+| `C_WORKER` | C-WORKER | Email worker; Outbox worker; Email worker (BackgroundService in the API process) | physical, process-runtime, 02-containers-dev, 02-containers-prod, 03-components-api-notifications, 04-deployment-dev, 04-deployment-prod |
 | `DB_BLOCKS` | DB-BLOCKS | blocks | 03-components-api-bookings |
 | `DB_BOOKINGS` | DB-BOOKINGS | bookings | 03-components-api-bookings, 03-components-api-notifications |
 | `DB_DPKEYS` | DB-DPKEYS | data_protection_keys | 03-components-api-accounts |
@@ -345,20 +347,20 @@ Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inve
 | `DB_REFRESH` | DB-REFRESH | refresh_tokens | process-owner-deactivation, process-refresh, 03-components-api-accounts |
 | `DB_STATUSCHG` | DB-STATUSCHG | owner_status_changes | process-owner-deactivation, 03-components-api-accounts |
 | `DB_USERS` | DB-USERS | users; users, user_roles; users, roles, user_roles | process-owner-deactivation, process-refresh, 03-components-api-accounts, 03-components-api-notifications |
-| `DEP_COMPOSE_NET` | DEP-COMPOSE-NET | Projeto compose «sportsbooking», rede por omissão | 04-deployment-dev |
-| `DEP_DEVHOST` | DEP-DEVHOST | Máquina de desenvolvimento | 04-deployment-dev |
-| `DEP_PGVOLUME` | DEP-PGVOLUME | volume postgres-data | 04-deployment-dev |
+| `DEP_COMPOSE_NET` | DEP-COMPOSE-NET | Compose project «sportsbooking», default network | 04-deployment-dev |
+| `DEP_DEVHOST` | DEP-DEVHOST | Development machine | 04-deployment-dev |
+| `DEP_PGVOLUME` | DEP-PGVOLUME | postgres-data volume | 04-deployment-dev |
 | `DEV_ARCHDOCS` | DEV-ARCHDOCS | architecture/ | development-repo |
 | `DEV_BACKEND` | DEV-BACKEND | backend/ | development-repo |
 | `DEV_COMPOSE` | DEV-COMPOSE | docker-compose.yml | development-repo |
 | `DEV_DOCS` | DEV-DOCS | docs/ | development-repo |
 | `DEV_FRONTEND` | DEV-FRONTEND | frontend/ | development-repo |
-| `DEV_ROOTCFG` | DEV-ROOTCFG | Configuração da raiz | development-repo |
+| `DEV_ROOTCFG` | DEV-ROOTCFG | Root configuration | development-repo |
 | `DEV_SCRIPTS` | DEV-SCRIPTS | scripts/ | development-repo |
 | `DEV_TEST_INT` | DEV-TEST-INT | SportsBooking.IntegrationTests | development-backend |
 | `DEV_TEST_UNIT` | DEV-TEST-UNIT | SportsBooking.UnitTests | development-backend |
-| `DEV_TEST_WEB` | DEV-TEST-WEB | Testes do front end | development-frontend |
-| `DEV_WEBTYPES` | DEV-WEBTYPES | Tipos da API gerados | development-frontend |
+| `DEV_TEST_WEB` | DEV-TEST-WEB | Front end tests | development-frontend |
+| `DEV_WEBTYPES` | DEV-WEBTYPES | Generated API types | development-frontend |
 | `DEV_WORKFLOWS` | DEV-WORKFLOWS | .github/workflows/ | development-repo |
 | `D_BLOCK` | D-BLOCK | Block | logical-domain-booking |
 | `D_BOOKING` | D-BOOKING | Booking | logical-code-booking, logical-domain-accounts, logical-domain-booking |
@@ -384,7 +386,7 @@ Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inve
 | `D_STATUSCHG` | D-STATUSCHG | OwnerStatusChange | logical-domain-accounts |
 | `D_STATUSCHG_OwnerStatusAction` | D-STATUSCHG | OwnerStatusAction | logical-domain-accounts |
 | `D_USER` | D-USER | AppUser | logical-domain-accounts, logical-domain-booking |
-| `FEATURES` | — | Contas, Catálogo, Reservar, As minhas reservas, Clubes do dono, Campos, Calendário, Estatísticas, Admin | development-frontend |
+| `FEATURES` | — | Accounts, Catalogue, Booking, My bookings, Owner's clubs, Pitches, Calendar, Statistics, Admin | development-frontend |
 | `F_CFG` | — | package.json, package-lock.json, next.config.ts, vitest.config.mts, eslint.config.mjs, tsconfig.json, components.json, Dockerfile | development-repo |
 | `F_SRC` | — | src/ | development-repo |
 | `LIBMISC` | — | lib/auth/ · redirects.ts, request-path.ts lib/guid.ts, lib/utils.ts | development-frontend |
@@ -392,58 +394,58 @@ Id `—`: agrupamentos que só existem no desenho, sem elemento próprio no inve
 | `L_APP` | L-APP | SportsBooking.Application; Application | development-backend, logical-domain-accounts, logical-layers |
 | `L_DOM` | L-DOM | SportsBooking.Domain; Domain | development-backend, logical-domain-accounts, logical-domain-booking, logical-layers |
 | `L_INF` | L-INF | SportsBooking.Infrastructure; Infrastructure | development-backend, logical-domain-accounts, logical-domain-booking, logical-layers |
-| `PIPE` | L-API | Pipeline e arranque | development-di |
+| `PIPE` | L-API | Pipeline and startup | development-di |
 | `PL_BREVO` | PL-BREVO | Brevo | 01-context, 02-containers-prod, 04-deployment-prod |
 | `PL_BREVO_NODE` | PL-BREVO | Brevo | physical |
 | `PL_DEPLOY` | PL-DEPLOY | deploy.yml | physical, 04-deployment-prod |
 | `PL_MIGBUNDLE` | PL-MIGBUNDLE | Migration bundle | physical, 04-deployment-prod |
 | `PL_PRODDATA` | PL-PRODDATA | prod-data.yml | physical, 04-deployment-prod |
-| `PL_RENDER` | PL-RENDER | Render (plano gratuito, Frankfurt); Render | physical, 01-context, 02-containers-prod, 04-deployment-prod |
-| `PL_RENDER_API` | PL-RENDER-API | Serviço web público (Docker); Serviço web público | physical, 02-containers-prod, 04-deployment-prod |
-| `PL_RENDER_EDGE` | PL-RENDER-EDGE | Borda do Render | physical, 04-deployment-prod |
+| `PL_RENDER` | PL-RENDER | Render (free plan, Frankfurt); Render | physical, 01-context, 02-containers-prod, 04-deployment-prod |
+| `PL_RENDER_API` | PL-RENDER-API | Public web service (Docker); Public web service | physical, 02-containers-prod, 04-deployment-prod |
+| `PL_RENDER_EDGE` | PL-RENDER-EDGE | Render edge | physical, 04-deployment-prod |
 | `PL_SUPABASE` | PL-SUPABASE | Supabase (Free); Supabase | physical, 02-containers-prod, 04-deployment-prod |
-| `PL_SUPAPOOL` | PL-SUPAPOOL | Pooler de ligações | physical, 04-deployment-prod |
+| `PL_SUPAPOOL` | PL-SUPAPOOL | Connection pooler | physical, 04-deployment-prod |
 | `PL_VERCEL` | PL-VERCEL | Vercel (Hobby); Vercel | physical, 01-context, 02-containers-prod, 04-deployment-prod |
-| `PL_VERCEL_EDGE` | PL-VERCEL-EDGE | Borda da Vercel | physical, 04-deployment-prod |
+| `PL_VERCEL_EDGE` | PL-VERCEL-EDGE | Vercel edge | physical, 04-deployment-prod |
 | `PROG` | L-API | Program.cs | development-di |
 | `P_ADMIN` | P-ADMIN | Admin | scenarios-use-cases, 01-context |
-| `P_CLI` | P-CLI | Cliente sem conta | 01-context |
-| `P_DONO` | P-DONO | Dono | scenarios-use-cases, 01-context |
-| `P_JOG` | P-JOG | Jogador | scenarios-use-cases, 01-context |
-| `P_OPS` | P-OPS | Operador | process-runtime, 01-context |
-| `P_VIS` | P-VIS | Visitante | scenarios-use-cases, 01-context |
-| `ROOT` | — | / · raiz do repositório | development-repo |
-| `SC_01` | SC-01 | Pesquisa e reserva um slot | scenarios-use-cases |
-| `SC_02` | SC-02 | Configura clube, campos, horários e preços | scenarios-use-cases |
-| `SC_03` | SC-03 | Cancela uma reserva | scenarios-use-cases |
-| `SC_04` | SC-04 | Reserva semanal | scenarios-use-cases |
-| `SC_05` | SC-05 | Recupera a palavra-passe | scenarios-use-cases |
-| `SC_06` | SC-06 | Desativa um dono | scenarios-use-cases |
-| `SC_07` | SC-07 | Corrida pelo mesmo slot | scenarios-use-cases |
-| `SYS` | — | App de Reservas de Campos | 01-context |
+| `P_CLI` | P-CLI | Customer without an account | 01-context |
+| `P_DONO` | P-DONO | Owner | scenarios-use-cases, 01-context |
+| `P_JOG` | P-JOG | Player | scenarios-use-cases, 01-context |
+| `P_OPS` | P-OPS | Operator | process-runtime, 01-context |
+| `P_VIS` | P-VIS | Visitor | scenarios-use-cases, 01-context |
+| `ROOT` | — | / · repository root | development-repo |
+| `SC_01` | SC-01 | Searches for and books a slot | scenarios-use-cases |
+| `SC_02` | SC-02 | Sets up club, pitches, schedules and prices | scenarios-use-cases |
+| `SC_03` | SC-03 | Cancels a booking | scenarios-use-cases |
+| `SC_04` | SC-04 | Weekly booking | scenarios-use-cases |
+| `SC_05` | SC-05 | Recovers the password | scenarios-use-cases |
+| `SC_06` | SC-06 | Deactivates an owner | scenarios-use-cases |
+| `SC_07` | SC-07 | Race for the same slot | scenarios-use-cases |
+| `SYS` | — | Pitch Booking App | 01-context |
 | `S_SRC` | — | check-architecture-docs.sh, check-architecture-docs.ps1, generate-icons.mjs | development-repo |
-| `WEB_API_CLIENT` | WEB-API-CLIENT | Cliente da API (browser); separador A; Cliente da API | development-frontend, process-refresh-client, process-refresh, 03-components-web |
-| `WEB_API_CLIENT_B` | WEB-API-CLIENT | separador B | process-refresh-client |
-| `WEB_AREA_ACCOUNT` | WEB-AREA-ACCOUNT | Páginas de conta | development-frontend, 03-components-web-features, 03-components-web |
-| `WEB_AREA_ADMIN` | WEB-AREA-ADMIN | Área do admin | development-frontend, 03-components-web-features, 03-components-web |
-| `WEB_AREA_MANAGE` | WEB-AREA-MANAGE | Área do dono; app/manage/layout.tsx | development-frontend, process-guard, 03-components-web-features, 03-components-web |
-| `WEB_AREA_PLAYER` | WEB-AREA-PLAYER | Área do jogador | development-frontend, 03-components-web-features, 03-components-web |
-| `WEB_DATETIME` | WEB-DATETIME | Datas em hora de Lisboa | development-frontend |
-| `WEB_F_ADMIN` | WEB-F-ADMIN | Página do dono; Admin | process-owner-deactivation, 03-components-web-features |
-| `WEB_F_AUTH` | WEB-F-AUTH | Contas; Página de login | process-login, process-refresh-client, process-reset-confirm, process-reset-request, 03-components-web-features |
-| `WEB_F_BOOKING` | WEB-F-BOOKING | Reservar | process-book, process-series, 03-components-web-features |
-| `WEB_F_CALENDAR` | WEB-F-CALENDAR | Calendário | process-cancel-club, 03-components-web-features |
-| `WEB_F_CATALOG` | WEB-F-CATALOG | Catálogo | 03-components-web-features |
-| `WEB_F_CLUBS` | WEB-F-CLUBS | Clubes do dono | 03-components-web-features |
-| `WEB_F_MYBOOK` | WEB-F-MYBOOK | As minhas reservas | process-cancel-player, 03-components-web-features |
-| `WEB_F_PITCHES` | WEB-F-PITCHES | Campos | 03-components-web-features |
-| `WEB_F_STATS` | WEB-F-STATS | Estatísticas | 03-components-web-features |
-| `WEB_GUARDS` | WEB-GUARDS | Guardas das áreas; AreaGuard; Guardas | development-frontend, process-guard, 03-components-web |
+| `WEB_API_CLIENT` | WEB-API-CLIENT | API client (browser); tab A; API client | development-frontend, process-refresh-client, process-refresh, 03-components-web |
+| `WEB_API_CLIENT_B` | WEB-API-CLIENT | tab B | process-refresh-client |
+| `WEB_AREA_ACCOUNT` | WEB-AREA-ACCOUNT | Account pages | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_AREA_ADMIN` | WEB-AREA-ADMIN | Admin area | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_AREA_MANAGE` | WEB-AREA-MANAGE | Owner area; app/manage/layout.tsx | development-frontend, process-guard, 03-components-web-features, 03-components-web |
+| `WEB_AREA_PLAYER` | WEB-AREA-PLAYER | Player area | development-frontend, 03-components-web-features, 03-components-web |
+| `WEB_DATETIME` | WEB-DATETIME | Dates in Lisbon time | development-frontend |
+| `WEB_F_ADMIN` | WEB-F-ADMIN | Owner page; Admin | process-owner-deactivation, 03-components-web-features |
+| `WEB_F_AUTH` | WEB-F-AUTH | Accounts; Login page | process-login, process-refresh-client, process-reset-confirm, process-reset-request, 03-components-web-features |
+| `WEB_F_BOOKING` | WEB-F-BOOKING | Booking | process-book, process-series, 03-components-web-features |
+| `WEB_F_CALENDAR` | WEB-F-CALENDAR | Calendar | process-cancel-club, 03-components-web-features |
+| `WEB_F_CATALOG` | WEB-F-CATALOG | Catalogue | 03-components-web-features |
+| `WEB_F_CLUBS` | WEB-F-CLUBS | Owner's clubs | 03-components-web-features |
+| `WEB_F_MYBOOK` | WEB-F-MYBOOK | My bookings | process-cancel-player, 03-components-web-features |
+| `WEB_F_PITCHES` | WEB-F-PITCHES | Pitches | 03-components-web-features |
+| `WEB_F_STATS` | WEB-F-STATS | Statistics | 03-components-web-features |
+| `WEB_GUARDS` | WEB-GUARDS | Area guards; AreaGuard; Guards | development-frontend, process-guard, 03-components-web |
 | `WEB_PROXY` | WEB-PROXY | src/proxy.ts; proxy.ts | development-frontend, process-guard, 03-components-web |
 | `WEB_REWRITE` | WEB-REWRITE | Rewrites | 03-components-web |
-| `WEB_SERVER` | WEB-SERVER | Chamadas à API no servidor; lib/server/session.ts; Chamadas no servidor | development-frontend, process-guard, 03-components-web |
-| `WEB_UI` | WEB-UI | Componentes partilhados | development-frontend |
+| `WEB_SERVER` | WEB-SERVER | Server-side API calls; lib/server/session.ts; Server-side calls | development-frontend, process-guard, 03-components-web |
+| `WEB_UI` | WEB-UI | Shared components | development-frontend |
 | `W_SRC` | — | ci.yml | development-repo |
 | `X_GHA` | X-GHA | GitHub Actions | physical, 04-deployment-prod |
-| `X_MAILPIT` | X-MAILPIT | Mailpit; serviço mailpit | 02-containers-dev, 04-deployment-dev |
-| `X_SMTP` | X-SMTP | Servidor SMTP | process-outbox, process-reset-request, process-runtime, 01-context, 03-components-api-notifications |
+| `X_MAILPIT` | X-MAILPIT | Mailpit; mailpit service | 02-containers-dev, 04-deployment-dev |
+| `X_SMTP` | X-SMTP | SMTP server | process-outbox, process-reset-request, process-runtime, 01-context, 03-components-api-notifications |

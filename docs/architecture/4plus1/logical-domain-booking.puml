@@ -1,11 +1,11 @@
-' 4+1 vista lógica - Modelo do domínio · clubes, campos, bloqueios e reservas
+' 4+1 logical view - Domain model · clubs, pitches, blocks and bookings
 ' Version 1.1 - 2026-11-10
-' Para: quem programa.
-' Decisão documentada: Entidades com setters privados e métodos com intenção; o Domain não conhece a persistência, o HTTP nem os ecrãs.
-' Não desenhado: controllers, HTTP e ecrãs; as contas estão em logical-domain-accounts.
+' For: whoever writes the code.
+' Documented decision: Entities with private setters and intention-revealing methods; Domain knows nothing about persistence, HTTP or screens.
+' Not drawn: controllers, HTTP and screens; accounts are in logical-domain-accounts.
 @startuml logical-domain-booking
 !include ../style.puml
-title Vista lógica - modelo do domínio: clubes, campos, bloqueios e reservas
+title Logical view - domain model: clubs, pitches, blocks and bookings
 
 hide empty members
 
@@ -127,23 +127,23 @@ package "Infrastructure" as L_INF {
   }
 }
 
-D_CLUB "0..*" --> "1" D_USER : OwnerId (dono)
+D_CLUB "0..*" --> "1" D_USER : OwnerId (owner)
 D_PITCH "0..*" --> "1" D_CLUB : ClubId
 D_PITCH *-- "0..7" D_OPENDAY : OpeningDays
 D_PITCH *-- "0..20" D_PRICEBAND : PriceBands
 D_BLOCK "0..*" --> "1" D_PITCH : PitchId
 D_BOOKING "0..*" --> "1" D_PITCH : PitchId
-D_BOOKING "0..*" --> "0..1" D_USER : PlayerId (jogador)
+D_BOOKING "0..*" --> "0..1" D_USER : PlayerId (player)
 D_PITCH ..> D_PITCH_Sport
 D_PITCH ..> D_PITCH_PitchStatus
 D_BOOKING ..> D_BOOKING_BookingStatus
 
 note right of D_BOOKING
-  De um jogador (PlayerId) **ou** de um cliente
-  (CustomerName + CustomerPhone), nunca os dois
-  nem nenhum: ck_bookings_player_or_customer.
-  SeriesId é só um Guid partilhado pelas reservas
-  de um pedido semanal; não há entidade «série».
+  From a player (PlayerId) **or** from a customer
+  (CustomerName + CustomerPhone), never both
+  and never neither: ck_bookings_player_or_customer.
+  SeriesId is just a Guid shared by the bookings
+  of one weekly request; there is no «series» entity.
 end note
 
 @enduml

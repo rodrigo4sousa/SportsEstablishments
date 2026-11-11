@@ -1,54 +1,54 @@
-' 4+1 vista de desenvolvimento - Vista de desenvolvimento · pipeline de CI (.github/workflows/ci.yml)
+' 4+1 development view - Development view · CI pipeline (.github/workflows/ci.yml)
 ' Version 1.2 - 2026-11-10
-' Para: quem vai mudar o código.
-' Decisão documentada: o que o CI (ci.yml) verifica, job a job, antes de se juntar à main. O deploy está em development-deploy.puml.
-' Não desenhado: classes, endpoints e regras de negócio.
+' For: whoever is going to change the code.
+' Documented decision: what CI (ci.yml) checks, job by job, before a change joins main. The deploy is in development-deploy.puml.
+' Not drawn: classes, endpoints and business rules.
 @startuml development-ci
 !include ../style.puml
-title Vista de desenvolvimento - pipeline de CI (.github/workflows/ci.yml)
+title Development view - CI pipeline (.github/workflows/ci.yml)
 
 start
-:push ou pull_request\nGitHub → GitHub Actions\nconcurrency: cancela a execução anterior da mesma ref;\npermissions: contents read;
+:push or pull_request\nGitHub → GitHub Actions\nconcurrency: cancels the previous run of the same ref;\npermissions: contents read;
 fork
   partition "Backend (build + tests) · ubuntu-latest · wd backend" {
     :checkout;
-    :Instalar o SDK .NET\ndotnet-install.sh ~-~-jsonfile global.json\n(builds.dotnet.microsoft.com, versão exata);
+    :Install the .NET SDK\ndotnet-install.sh ~-~-jsonfile global.json\n(builds.dotnet.microsoft.com, exact version);
     note right
-      Não se usa actions/setup-dotnet: os downloads passam
-      por aka.ms para dotnetorigin.blob.core.windows.net,
-      que responde 409 (actions/setup-dotnet#794).
-      Uma versão exata evita a pesquisa no aka.ms.
+      actions/setup-dotnet is not used: its downloads go
+      through aka.ms to dotnetorigin.blob.core.windows.net,
+      which answers 409 (actions/setup-dotnet#794).
+      An exact version avoids the aka.ms lookup.
     end note
     :dotnet tool restore (dotnet-ef);
     :dotnet restore;
-    :dotnet build -c Release ~-~-no-restore\navisos são erros; regenera o openapi/;
-    :dotnet test -c Release ~-~-no-build\nunitários + integração com Testcontainers (PostgreSQL);
-    :git diff ~-~-exit-code -- src/SportsBooking.Api/openapi\n(OpenAPI atualizado);
-    :dotnet ef migrations has-pending-model-changes\n(modelo EF sem migração em falta);
-    :dotnet package list ~-~-vulnerable ~-~-include-transitive\nfalha se houver "vulnerabilities";
+    :dotnet build -c Release ~-~-no-restore\nwarnings are errors; regenerates openapi/;
+    :dotnet test -c Release ~-~-no-build\nunit + integration with Testcontainers (PostgreSQL);
+    :git diff ~-~-exit-code -- src/SportsBooking.Api/openapi\n(OpenAPI up to date);
+    :dotnet ef migrations has-pending-model-changes\n(EF model with no missing migration);
+    :dotnet package list ~-~-vulnerable ~-~-include-transitive\nfails if there are "vulnerabilities";
   }
 fork again
   partition "Frontend (lint, typecheck, tests, build) · ubuntu-latest · wd frontend" {
     :checkout;
-    :setup-node (node 22, cache npm);
+    :setup-node (node 22, npm cache);
     :npm ci;
     :npm run lint;
     :npm run typecheck\nnext typegen && tsc ~-~-noEmit;
     :npm test (Vitest);
     :npm run build;
-    :npm run gen:api\ngit diff ~-~-exit-code -- src/lib/api\n(tipos em dia com o OpenAPI);
+    :npm run gen:api\ngit diff ~-~-exit-code -- src/lib/api\n(types up to date with OpenAPI);
     :npm audit ~-~-omit=dev ~-~-audit-level=high;
   }
 fork again
   partition "Docs (architecture diagrams) · ubuntu-latest" {
     :checkout;
-    :docs/architecture/render.sh\nimagem plantuml/plantuml:<versão de style.puml>;
-    :git status ~-~-porcelain -- docs/architecture/out\nvazio = SVG em dia (apanha também um .svg nunca commitado);
+    :docs/architecture/render.sh\nimage plantuml/plantuml:<version from style.puml>;
+    :git status ~-~-porcelain -- docs/architecture/out\nempty = SVGs up to date (also catches an .svg never committed);
     :scripts/check-architecture-docs.sh
-ligações, galeria e aliases dos diagramas;
+links, gallery and diagram aliases;
   }
 end fork
-:Os três jobs são independentes (sem needs:);
+:The three jobs are independent (no needs:);
 stop
 
 @enduml

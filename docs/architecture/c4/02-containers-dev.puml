@@ -1,31 +1,31 @@
-' C4 nível 2 - Contentores · desenvolvimento (docker compose)
+' C4 level 2 - Containers · development (docker compose)
 ' Version 1.1 - 2026-11-10
-' Não desenhado: classes, pastas e componentes internos; o C-CLI (seed-demo, set-admin-password) é o mesmo executável da API e não tem caixa.
+' Not drawn: classes, folders and internal components; C-CLI (seed-demo, set-admin-password) is the same executable as the API and has no box.
 @startuml 02-containers-dev
 !include <C4/C4_Container>
 !include ../style.puml
 
-title Contentores - desenvolvimento (docker compose)
+title Containers - development (docker compose)
 
 LAYOUT_LEFT_RIGHT()
 
-Container_Ext(C_BROWSER, "Browser do utilizador", "Browser")
+Container_Ext(C_BROWSER, "User's browser", "Browser")
 
-System_Boundary(COMPOSE, "docker compose (nome: sportsbooking)") {
-  Container(C_WEB, "Aplicação Next.js", "Next.js 16, Node.js, porta 3000")
-  Container_Boundary(B_API, "Processo da API (porta 8080; 5080 no anfitrião)") {
-    Container(C_API, "API ASP.NET Core", ".NET 10, controllers")
-    Container(C_WORKER, "Worker de emails", "BackgroundService")
+System_Boundary(COMPOSE, "docker compose (name: sportsbooking)") {
+  Container(C_WEB, "Next.js application", "Next.js 16, Node.js, port 3000")
+  Container_Boundary(B_API, "API process (port 8080; 5080 on the host)") {
+    Container(C_API, "ASP.NET Core API", ".NET 10, controllers")
+    Container(C_WORKER, "Email worker", "BackgroundService")
   }
-  ContainerDb(C_DB, "Base de dados", "PostgreSQL 18.6, porta 5432")
+  ContainerDb(C_DB, "Database", "PostgreSQL 18.6, port 5432")
 }
 
 System_Ext(X_MAILPIT, "Mailpit")
 
-Rel(C_BROWSER, C_WEB, $plain("Abre páginas e chama /api/*"), "HTTP, porta 3000, cookies")
-Rel(C_WEB, C_API, $plain("Reencaminha /api/* e lê a API nos Server Components"), "HTTP, api:8080")
-Rel(C_BROWSER, C_API, $plain("Swagger e chamadas diretas (ferramentas)"), "HTTP, porta 5080")
-Rel(C_API, C_DB, $plain("Lê e escreve"), "SQL, Npgsql")
-Rel(C_WORKER, C_DB, $plain("Lê o outbox e marca o resultado"), "SQL")
-Rel(C_WORKER, X_MAILPIT, $plain("Envia o email"), "SMTP, porta 1025")
+Rel(C_BROWSER, C_WEB, $plain("Opens pages and calls /api/*"), "HTTP, port 3000, cookies")
+Rel(C_WEB, C_API, $plain("Forwards /api/* and reads the API in Server Components"), "HTTP, api:8080")
+Rel(C_BROWSER, C_API, $plain("Swagger and direct calls (tools)"), "HTTP, port 5080")
+Rel(C_API, C_DB, $plain("Reads and writes"), "SQL, Npgsql")
+Rel(C_WORKER, C_DB, $plain("Reads the outbox and records the result"), "SQL")
+Rel(C_WORKER, X_MAILPIT, $plain("Sends the email"), "SMTP, port 1025")
 @enduml
