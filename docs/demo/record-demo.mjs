@@ -18,6 +18,7 @@ const PLAYER_EMAIL = "jogador01@example.test";
 const OWNER_EMAIL = "dono01@example.test";
 const CLUB_NAME = "Padel Foz Clube"; // owned by dono01 in DemoCatalog
 const SPORT_LABEL = "Padel";
+const LOCALE = "en-GB"; // dd/mm/yyyy in the date fields; the site itself is put in English by the NEXT_LOCALE cookie
 const LOCALITY = "Porto";
 
 if (!ADMIN_PASSWORD) {
@@ -81,37 +82,41 @@ const overlay = () => {
 };
 
 const browser = await chromium.launch({
-  headless: false, // headless Chromium shows pt-PT dates as month/day; a headed window shows day/month
+  // Headless Chromium shows dates as month/day. A headed window follows the browser language, and every en-* language falls back to
+  // month/day in Chromium's date field (checked with en-GB, en-AU, en-IE, en-NZ); only a pt-PT shell gives dd/mm/yyyy. The shell
+  // language is invisible in the video: the site is English because of the NEXT_LOCALE cookie and the en-GB context locale.
+  headless: false,
   args: ["--disable-extensions", "--hide-scrollbars", "--lang=pt-PT"],
 });
 
 // ---- Warm-up (never recorded): visit every route of the flow once in a throwaway context, so the recorded run sees warm
 // caches and connection pools and no first-request delays. It signs in but books nothing. ----
 {
-  const warmContext = await browser.newContext({ viewport: SIZE, locale: "pt-PT", timezoneId: "Europe/Lisbon" });
+  const warmContext = await browser.newContext({ viewport: SIZE, locale: LOCALE, timezoneId: "Europe/Lisbon" });
+  await warmContext.addCookies([{ name: "NEXT_LOCALE", value: "en", url: BASE_URL }]);
   const warm = await warmContext.newPage();
   warm.setDefaultTimeout(30_000);
   const login = async (email, password) => {
     await warm.goto(`${BASE_URL}/login`);
     await warm.locator("#login-email").fill(email);
     await warm.locator("#login-password").fill(password);
-    await warm.getByRole("button", { name: "Entrar", exact: true }).click();
+    await warm.getByRole("button", { name: "Sign in", exact: true }).click();
   };
   const logout = async () => {
-    await warm.getByRole("button", { name: "Sair", exact: true }).click();
+    await warm.getByRole("button", { name: "Sign out", exact: true }).click();
     await warm.waitForURL(/\/login/);
   };
   await warm.goto(`${BASE_URL}/?sport=padel&locality=Porto`);
-  await warm.getByRole("list", { name: "Clubes" }).getByRole("link", { name: new RegExp(CLUB_NAME) }).click();
-  await warm.getByRole("list", { name: "Horários" }).waitFor();
+  await warm.getByRole("list", { name: "Clubs" }).getByRole("link", { name: new RegExp(CLUB_NAME) }).click();
+  await warm.getByRole("list", { name: "Times" }).waitFor();
   await login("jogador01@example.test", DEMO_PASSWORD);
   await warm.waitForURL(/\/($|\?)/);
   await warm.goto(`${BASE_URL}/bookings`);
-  await warm.getByText("As minhas reservas").first().waitFor();
+  await warm.getByRole("heading", { name: "My bookings" }).first().waitFor();
   await logout();
   await login("dono01@example.test", DEMO_PASSWORD);
   await warm.waitForURL(/\/manage/);
-  await warm.getByRole("link", { name: new RegExp(`^Calendário.*${CLUB_NAME}`) }).click();
+  await warm.getByRole("link", { name: new RegExp(`^Calendar of ${CLUB_NAME}`) }).click();
   await warm.waitForURL(/\/calendar/);
   await warm.getByRole("group", { name: /Padel/ }).first().waitFor();
   await logout();
@@ -124,12 +129,13 @@ const browser = await chromium.launch({
 const context = await browser.newContext({
   viewport: SIZE,
   screen: SIZE,
-  locale: "pt-PT",
+  locale: LOCALE,
   timezoneId: "Europe/Lisbon",
   colorScheme: "light",
   recordVideo: { dir: outDir, size: SIZE },
 });
 const recordingStartedAt = Date.now();
+await context.addCookies([{ name: "NEXT_LOCALE", value: "en", url: BASE_URL }]); // English before the first page load
 await context.addInitScript(overlay);
 const page = await context.newPage();
 page.setDefaultTimeout(20_000);
@@ -186,11 +192,11 @@ async function signIn(email, password) {
   await pause(500);
   await type(page.locator("#login-email"), email);
   await type(page.locator("#login-password"), password);
-  await click(page.getByRole("button", { name: "Entrar", exact: true }), { after: 0 });
+  await click(page.getByRole("button", { name: "Sign in", exact: true }), { after: 0 });
 }
 
 async function signOut() {
-  const button = page.getByRole("button", { name: "Sair", exact: true });
+  const button = page.getByRole("button", { name: "Sign out", exact: true });
   await click(button, { after: 0 });
   await page.waitForURL(/\/login/);
   await afterLoad();
@@ -198,19 +204,25 @@ async function signOut() {
 
 // ---- Warm-up (not shown): load the app once so the first frame of the video is already the search page. ----
 await page.goto(`${BASE_URL}/`);
-await page.getByRole("form", { name: "Pesquisar clubes" }).waitFor();
+await page.getByRole("form", { name: "Search clubs" }).waitFor();
 await page.waitForLoadState("networkidle");
 await afterLoad();
 const trimStart = (Date.now() - recordingStartedAt) / 1000 + 0.2;
 
 // ---- a. Search clubs by sport, locality and date, and open a result ----
 await pause(1000);
-await choose(page.getByLabel("Desporto"), SPORT_LABEL);
-await choose(page.getByLabel("Localidade"), LOCALITY);
-await click(page.getByLabel("Data"), { after: 100 });
-await page.getByLabel("Data").fill(tomorrow);
+// The language switcher, shown once: the site is already in English, so choosing EN again only reloads the page.
+await click(page.getByRole("banner").getByRole("group", { name: "Language" }).getByRole("button", { name: "EN – English" }), { after: 0 });
+await page.getByRole("form", { name: "Search clubs" }).waitFor();
+await page.waitForLoadState("networkidle");
+await afterLoad();
+await pause(900);
+await choose(page.getByLabel("Sport"), SPORT_LABEL);
+await choose(page.getByLabel("Location"), LOCALITY);
+await click(page.getByLabel("Date", { exact: true }), { after: 100 });
+await page.getByLabel("Date", { exact: true }).fill(tomorrow);
 await pause(800);
-const results = page.getByRole("list", { name: "Clubes" });
+const results = page.getByRole("list", { name: "Clubs" });
 await results.waitFor();
 await pause(1000);
 await click(results.getByRole("link", { name: new RegExp(CLUB_NAME) }), { after: 0 });
@@ -218,7 +230,7 @@ await click(results.getByRole("link", { name: new RegExp(CLUB_NAME) }), { after:
 // ---- b. Pick the first free slot tomorrow, sign in, come back to it, confirm ----
 await page.waitForURL(/\/clubs\//);
 await afterLoad();
-const slots = page.getByRole("list", { name: "Horários" });
+const slots = page.getByRole("list", { name: "Times" });
 await slots.waitFor();
 await pause(800);
 const pitchName = (await page.locator("#booking-pitch option:checked").textContent())?.split("·")[0].trim() ?? "";
@@ -228,22 +240,22 @@ const slotText = ((await firstFree.textContent()) ?? "").replace(/\s+/g, " ").tr
 const startTime = slotText.match(/\d{2}:\d{2}/)?.[0];
 if (!startTime) throw new Error(`Could not read the slot time from "${slotText}"`);
 await click(firstFree, { after: 700 });
-await click(page.getByRole("link", { name: "Entrar para reservar" }), { after: 0 });
+await click(page.getByRole("link", { name: "Sign in to book" }), { after: 0 });
 await signIn(PLAYER_EMAIL, DEMO_PASSWORD);
 
 // Back on the same club page, with the same slot chosen.
 await page.waitForURL(/\/clubs\//);
 await afterLoad();
-const confirm = page.getByRole("button", { name: "Confirmar reserva" });
+const confirm = page.getByRole("button", { name: "Confirm booking" });
 await confirm.waitFor();
-const playerName = ((await page.getByText(/^Olá, /).first().textContent()) ?? "").replace(/^Olá,\s*/, "").replace(/[.!]$/, "").trim();
+const playerName = ((await page.getByText(/^Hello, /).first().textContent()) ?? "").replace(/^Hello,\s*/, "").replace(/[.!]$/, "").trim();
 await pause(1000);
 await click(confirm, { after: 0 });
-await page.getByRole("heading", { name: "Reserva confirmada" }).waitFor();
+await page.getByRole("heading", { name: "Booking confirmed" }).waitFor();
 await pause(1800);
 
-// ---- c. My bookings (the "As minhas reservas" page) ----
-await click(page.getByRole("link", { name: "As minhas reservas" }).first(), { after: 0 });
+// ---- c. My bookings (the "My bookings" page) ----
+await click(page.getByRole("link", { name: "My bookings" }).first(), { after: 0 });
 await page.waitForURL(/\/bookings/);
 await afterLoad();
 const myList = page.getByText(CLUB_NAME).first();
@@ -255,12 +267,12 @@ await signOut();
 await signIn(OWNER_EMAIL, DEMO_PASSWORD);
 await page.waitForURL(/\/manage/);
 await afterLoad();
-await click(page.getByRole("link", { name: new RegExp(`^Calendário.*${CLUB_NAME}`) }), { after: 0 });
+await click(page.getByRole("link", { name: new RegExp(`^Calendar of ${CLUB_NAME}`) }), { after: 0 });
 await page.waitForURL(/\/calendar/);
 await afterLoad();
 await page.getByRole("group", { name: pitchName }).first().waitFor();
 await pause(800);
-const dateField = page.locator('input[type="date"][aria-label="Data"]:visible');
+const dateField = page.locator('input[type="date"][aria-label="Date"]:visible');
 await click(dateField, { after: 100 });
 await dateField.fill(tomorrow);
 await pause(900);
@@ -268,7 +280,7 @@ const startsAt = new RegExp(String.raw`(^|\s)${startTime}\s*[–-]`); // the sta
 const booking = page.locator("[data-booking-id]").filter({ hasText: playerName }).filter({ hasText: startsAt }).first();
 await booking.waitFor();
 await click(booking, { after: 0 });
-await page.getByText("Fechar", { exact: true }).first().waitFor();
+await page.getByText("Close", { exact: true }).first().waitFor();
 await pause(2500);
 
 // ---- e. Admin dashboard ----
