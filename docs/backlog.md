@@ -798,7 +798,7 @@ As the platform owner, I want to publish the Terms and Conditions and the Privac
 
 As a developer, I want a small, stable set of end-to-end tests that runs in CI against the real stack, so that I have a signal that the site, the API and the database work together.
 
-- `e2e/` exists (Playwright, Chromium only), with three flows and no more: (1) the player signs in with a seeded account, books a free time, sees it in `As minhas reservas` and cancels; (2) two players, in two browser contexts, have the same time on screen: the second gets the 409 `slot_taken` and the interface's message, and only one booking exists; (3) the owner signs in, sees the booking in the calendar and a club that does not exist really answers 404.
+- `e2e/` exists (Playwright, Chromium only), with five flows and no more (the first three are T08's, the fourth was added by US30 and the fifth by T09): (1) the player signs in with a seeded account, books a free time, sees it in `As minhas reservas` and cancels; (2) two players, in two browser contexts, have the same time on screen: the second gets the 409 `slot_taken` and the interface's message, and only one booking exists; (3) the owner signs in, sees the booking in the calendar and a club that does not exist really answers 404; (4) a person exports their data, deletes the account and can no longer sign in; (5) a player switches the site to English, reloads and books in English.
 - It runs against the repository's `docker compose` with the demo data (`e2e/scripts/stack.mjs`), locally (`npm run e2e` in `e2e/`) and in CI (`.github/workflows/e2e.yml`, separate from `ci.yml` so that `deploy.yml` does not wait for it). Decision and alternatives in [ADR 0010](architecture/adr/0010-playwright-end-to-end-tests.md).
 - Stable: locators by role and name, no fixed waits, one worker, one retry only in CI, `trace` and `video` on the first retry and the report uploaded as an artifact on failure.
 - Repeatable on the same database: each test uses days from day 20 on and cancels the bookings it makes.
@@ -828,8 +828,8 @@ As a visitor who does not read Portuguese, I want the whole site and my emails i
   - API error messages (ProblemDetails `title`/`detail`, FluentValidation) stay in pt-PT: the site never shows them.
   - `global-error.tsx` has no request language: it starts in pt-PT and switches to the cookie's or the browser's language once mounted.
   - The demo seed has no description or rules fields; its free text is 10 values (5 block reasons and 5 club cancellation reasons) stored in one language like anything an owner types, so it is not translated. Production data is not touched.
-  - The fifth E2E flow goes beyond the three of ADR 0010 on purpose (ADR 0012).
-  - The screenshots and the demo GIF stay in Portuguese.
+  - The fifth E2E flow was added on purpose, beyond the earlier four (ADR 0010, ADR 0012).
+  - The screenshots and the demo GIF were redone in English afterwards (`docs/demo`); the seed's Portuguese free text is kept off screen.
 
 ## Points summary
  

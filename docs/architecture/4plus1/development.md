@@ -21,7 +21,7 @@ Source: [development-repo.puml](development-repo.puml).
 | `docs/architecture/` | DEV-ARCHDOCS | These documents, `adr/` (the index and the written ADRs), `c4/` and `4plus1/` with the `.puml` files, `out/` with the `.svg` files, `style.puml` (the common style) and `render.sh` and `render.ps1`. |
 | `scripts/` | DEV-SCRIPTS | `check-architecture-docs.sh` and `check-architecture-docs.ps1`; `generate-icons.mjs`, which generates the site's icons from `icon.svg`. |
 | `.github/workflows/` | DEV-WORKFLOWS | `ci.yml`, `codeql.yml`, `e2e.yml`, `deploy.yml`, `prod-data.yml` and `keepalive.yml`. |
-| `e2e/` | DEV-E2E | End-to-end tests (Playwright, Chromium) with their own `package.json`, `playwright.config.ts`, `tests/` (four flows), `support/`, `scripts/stack.mjs` (brings up and seeds the stack) and `compose.e2e.yml`. |
+| `e2e/` | DEV-E2E | End-to-end tests (Playwright, Chromium) with their own `package.json`, `playwright.config.ts`, `tests/` (five flows), `support/`, `scripts/stack.mjs` (brings up and seeds the stack) and `compose.e2e.yml`. |
 | `docker-compose.yml`, `.env.example` | DEV-COMPOSE | The local stack: `postgres` (image `postgres:18.6`), `mailpit` (`axllent/mailpit:v1.31.6`), `api` (built from `backend/`) and `frontend` (built from `frontend/`). |
 | `global.json`, `.editorconfig`, `.gitattributes`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md` | DEV-ROOTCFG | At the root. `global.json` pins SDK 10.0.400 (`rollForward: latestFeature`) and picks the `Microsoft.Testing.Platform` runner. `.editorconfig` enforces UTF-8, `lf`, 2 spaces (4 in `.cs`) and file-scoped namespaces. `.gitattributes` pins `eol=lf`. |
 
@@ -129,7 +129,7 @@ Source: [development-ci.puml](development-ci.puml). The deploy and the productio
 
 **CodeQL (`codeql.yml`, PL-CODEQL).** A separate workflow, for C# and JavaScript/TypeScript, with no build (`build-mode: none`), on every `pull_request`, on every `push` to `main` and on Mondays. It is not a job in `ci.yml`: `deploy.yml` only waits for the `CI` workflow, so a slow or failing analysis never delays a deploy.
 
-**E2E (`e2e.yml`, PL-E2E).** Another separate workflow, on every `pull_request` and every `push` to `main`, with `contents: read`: it installs Node 22, runs `npm ci` in `e2e/`, installs Chromium (the browsers folder comes from the cache, keyed on Playwright's exact version), brings up the `docker compose` stack with the demo data (`npm run stack:up`) and runs the four tests with one worker and one retry. If it fails, it uploads the report, the traces and the videos as an artifact and shows the containers' logs. It is not a job in `ci.yml` for the same reason as CodeQL: `deploy.yml` only waits for `CI`. See [ADR 0010](../adr/0010-playwright-end-to-end-tests.md).
+**E2E (`e2e.yml`, PL-E2E).** Another separate workflow, on every `pull_request` and every `push` to `main`, with `contents: read`: it installs Node 22, runs `npm ci` in `e2e/`, installs Chromium (the browsers folder comes from the cache, keyed on Playwright's exact version), brings up the `docker compose` stack with the demo data (`npm run stack:up`) and runs the five tests with one worker and one retry. If it fails, it uploads the report, the traces and the videos as an artifact and shows the containers' logs. It is not a job in `ci.yml` for the same reason as CodeQL: `deploy.yml` only waits for `CI`. See [ADR 0010](../adr/0010-playwright-end-to-end-tests.md).
 
 **The integration tests need Docker**, which the `ubuntu-latest` runners have; locally, without Docker, they all fail to connect (it looks like hundreds of failures). `main` **has no branch protection** on GitHub (verified on 2026-10-30: the API answers "Branch not protected"), so nothing requires CI or E2E to be green: it is checked by hand, before each merge, that the three CI jobs and the E2E workflow passed.
 
@@ -145,14 +145,14 @@ Source: [development-deploy.puml](development-deploy.puml).
 
 ## 5. Testing strategy
 
-Two automatic layers on the back end, one on the front end, four end-to-end tests with the complete stack (T08, US30) and manual verification in the browser for the rest. The practice, before merging a story with an interface, is to walk through by hand (or with temporary browser scripts, which are not kept) the flows that the end-to-end tests do not cover, with the complete stack (`docker compose`, demo data and Mailpit), and to check the emails and the logs.
+Two automatic layers on the back end, one on the front end, five end-to-end tests with the complete stack (T08, US30, T09) and manual verification in the browser for the rest. The practice, before merging a story with an interface, is to walk through by hand (or with temporary browser scripts, which are not kept) the flows that the end-to-end tests do not cover, with the complete stack (`docker compose`, demo data and Mailpit), and to check the emails and the logs.
 
 | Layer | Id | Tools | What it covers | What it does not cover |
 | --- | --- | --- | --- | --- |
 | Back end unit | DEV-TEST-UNIT | xUnit v3, Shouldly, `FakeTimeProvider` | Domain and policy rules (slots and clock changes, cancellation window, passwords), validators, services without a database, email composition, Api security pieces (access through `InternalsVisibleTo`) | Anything that depends on SQL, constraints or transactions. |
 | Back end integration | DEV-TEST-INT | xUnit v3, `WebApplicationFactory<Program>`, Testcontainers PostgreSQL (`postgres:18.6`), Shouldly | Complete endpoints from authentication to the database: authorization by profile and by owner, `bookings_no_overlap` and simultaneous requests, error codes, outbox and worker, startup and seed, request limits | The interface. EF Core's in-memory provider is never used. |
 | Front end components | DEV-TEST-WEB | Vitest 5.0.5 (jsdom), Testing Library, MSW 3.0.2 | UI behaviour with the API simulated: per-field errors, messages by `code`, URL as state, calendar layout, pure functions (`datetime`, `redirects`, `selection`) | The real API, the real browser, the httpOnly cookies. |
-| End-to-end | DEV-E2E | Playwright 1.64.1 (Chromium), `docker compose` with the demo data | Four flows through the site, the rewrite, the API and the database: the player books and cancels; the second of two players gets the 409 `slot_taken`; the owner sees the booking in the calendar and a non-existent club gives 404; a new account exports its data, deletes itself and can no longer sign in. | Everything else (admin, series, password recovery, emails), which stays in the layers above and in manual verification. |
+| End-to-end | DEV-E2E | Playwright 1.64.1 (Chromium), `docker compose` with the demo data | Five flows through the site, the rewrite, the API and the database: the player books and cancels; the second of two players gets the 409 `slot_taken`; the owner sees the booking in the calendar and a non-existent club gives 404; a new account exports its data, deletes itself and can no longer sign in; a player switches the site to English, reloads and books. | Everything else (admin, series, password recovery, emails), which stays in the layers above and in manual verification. |
 | Manual verification | — | Browser, `docker compose`, Mailpit | The flows that end-to-end does not cover, before the merge. | Not repeated automatically. |
 
 **Counts** (2026-10-30, `f4057ca` with the T06 pre-deploy hardening pull request, `Release`, verified by running the tests):
@@ -176,9 +176,9 @@ The "methods" come from `dotnet <SportsBooking.*Tests.dll> -list methods`; the "
 
 **Git.** The rule is that `main` only receives pull requests with green CI, with **squash merge**; it is not enforced by branch protection, and green CI is checked by hand before each merge. One branch per story (`feat/US18-short-name`, `chore/T01-...` for the technical ones, `docs/...`, `ci/...`), branching from `main`. Commits follow Conventional Commits with the story id: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`, `docs(architecture): ...`. Each bug first gets a test that reproduces it, and only then the fix. `main`'s history has one commit per story (squash); the first five pull requests (#1 to #5) were left with merge commits.
 
-**Code and text.** Code, identifiers, commits and branches in English; interface text and API error messages in pt-PT. The architecture documents are in English, with the code's names kept as they are.
+**Code and text.** Code, identifiers, commits and branches in English; the interface is available in Portuguese (pt-PT, the default) and English, and API error messages are in pt-PT. The architecture documents are in English, with the code's names kept as they are.
 
-**ADRs.** Important decisions go in `docs/architecture/adr/` (`NNNN-short-title.md`; an accepted ADR is not rewritten, it is replaced by another). The [index](../adr/README.md) has the status of each one; ADRs 0001 to 0008 are accepted and 0009 (deployment target) is proposed.
+**ADRs.** Important decisions go in `docs/architecture/adr/` (`NNNN-short-title.md`; an accepted ADR is not rewritten, it is replaced by another). The [index](../adr/README.md) has the status of each one; all twelve ADRs (0001 to 0012) are accepted, including 0009 (deployment target).
 
 **Migrations.** Generated with `dotnet ef migrations add <Name> --project src/SportsBooking.Infrastructure --startup-project src/SportsBooking.Api --output-dir Persistence/Migrations`, from `backend/`. An already applied migration is never edited; another is added (there are 21). The folder is marked `generated_code`. Hand-written SQL (`bookings_no_overlap`, partial indexes) goes into the migration itself.
 
@@ -203,7 +203,7 @@ The order follows the dependencies: each step builds on the previous one. The sq
 
 Differences between the code and other documents, only recorded here (this part changes no code, tests or other documents):
 
-1. `docs/stack.md` (section "Repository, Git, CI and deploy") shows a `Caddyfile` in the repository tree, which does not exist: [ADR 0009](../adr/0009-deployment-target.md) replaces that part. The same section promises ADRs "in `docs/`": they are in `docs/architecture/adr/` (0001 to 0009).
+1. `docs/stack.md` (section "Repository, Git, CI and deploy") shows a `Caddyfile` in the repository tree, which does not exist: [ADR 0009](../adr/0009-deployment-target.md) replaces that part. The same section promises ADRs "in `docs/`": they are in `docs/architecture/adr/` (0001 to 0012).
 2. The root `README.md` was rewritten (pull request #29) and now describes the three CI jobs, including `diagrams`, and the current repository structure; this note stays only as a record.
 3. `frontend/Dockerfile` copies `/app/public`, which does not exist in the repository; the `Dockerfile` itself creates the empty folder (`mkdir -p public`) and explains it in a comment. It is not an error.
 4. `main` has no branch protection on GitHub; `README.md`, `docs/stack.md` and `AGENTS.md` say so as it is, and green CI is checked by hand before each merge.

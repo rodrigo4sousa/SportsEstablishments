@@ -19,7 +19,7 @@ Alternatives:
 Option 3:
 
 - **Writing:** the service attaches the `OutboxMessage` to the request's `IAppDbContext` **before** `SaveChanges`, inside the pitch lock transaction; the message and the booking are saved, or undone, together. The payload never carries addresses: it carries ids (the booking, or only the account), and the recipient and the text are read at send time.
-- **Sending:** `OutboxDispatcher` (a `BackgroundService` in the API process) runs `OutboxProcessor.ProcessDueAsync` in one transaction per batch, with `SELECT … FOR UPDATE SKIP LOCKED` (batch of 20, pass every 10 s). It composes the email in pt-PT in Lisbon time and sends it over SMTP (MailKit, one connection per message).
+- **Sending:** `OutboxDispatcher` (a `BackgroundService` in the API process) runs `OutboxProcessor.ProcessDueAsync` in one transaction per batch, with `SELECT … FOR UPDATE SKIP LOCKED` (batch of 20, pass every 10 s). It composes the email in the recipient's language (pt-PT or English, T09) in Lisbon time and sends it over SMTP (MailKit, one connection per message).
 - **Failures:** each failure counts as an attempt and postpones the next one with a doubling interval (1, 2, 4, 8, 16 minutes, at most 1 hour); on the 6th the message is marked failed and a Warning is logged with the id and the exception type, never the address. A message that no longer applies (a reminder for a cancelled or already started booking, a notice to a deactivated owner) is closed with `Skip`, which is not a failure.
 - A partial unique index (DB-OUTBOXUQ) guarantees at most one reminder and one owner notice per booking.
 

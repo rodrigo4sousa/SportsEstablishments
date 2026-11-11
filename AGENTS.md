@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Product
-Portfolio web app for booking sports pitches/courts (futsal, 7-a-side football, padel, tennis; in the UI: `futsal`, `futebol 7`, `padel`, `ténis`) in Portuguese clubs. One Next.js app with three areas on top of one ASP.NET Core API:
+Portfolio web app (the UI is available in Portuguese (pt-PT, default) and English) for booking sports pitches/courts (futsal, 7-a-side football, padel, tennis; in the UI: `futsal`, `futebol 7`, `padel`, `ténis`) in Portuguese clubs. One Next.js app with three areas on top of one ASP.NET Core API:
 - **Jogador** (`/`): searches clubs, sees free slots, books and cancels.
 - **Dono** (`/manage`): owns one or more clubs; manages pitches, opening hours, blocks, calendar, bookings for walk-in customers.
 - **Admin** (`/admin`): platform owner. Created only by seed (env vars), never by an endpoint. Sees counts only, never player names/emails.
@@ -96,7 +96,7 @@ Source of truth: [docs/backlog.md](docs/backlog.md) (stories, acceptance criteri
 
 ## Conventions
 - Code, identifiers, commits, branch names: **English**. User-facing UI text: **Portuguese (pt-PT) and English**, always both (see Languages). API error messages: **Portuguese (pt-PT)** (the site never shows them, it words errors by `code`).
-- Documentation (Markdown, diagram sources, tooling messages) is in **English**. Where it quotes what the user sees, it gives the current Portuguese text in backticks followed by its English meaning in parentheses, e.g. `As minhas reservas` (My bookings), because the UI is still Portuguese.
+- Documentation (Markdown, diagram sources, tooling messages) is in **English**. Where it quotes what the user sees, it gives the current Portuguese text in backticks followed by its English meaning in parentheses, e.g. `As minhas reservas` (My bookings), because the UI is available in Portuguese (pt-PT, default) and English.
 - Commits: Conventional Commits with the story ID: `feat(US18): ...`, `test(T03): ...`, `fix(US19): ...`.
 - Branches: `feat/US18-short-name` (`chore/T01-...` for technical stories). Merge to `main` only via PR with green CI (squash). There is no branch protection on `main` in GitHub: the CI result is checked by hand before every merge.
 - Merge order: branch from `main`, one PR per story, squash merge.

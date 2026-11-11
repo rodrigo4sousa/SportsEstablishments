@@ -283,7 +283,7 @@ Source: [03-components-api-notifications.puml](03-components-api-notifications.p
 | Put in the outbox | BookingEmailOutbox, OutboxMessage.Create | Attaches the message to the caller's IAppDbContext; does not save. |
 | Worker loop | OutboxDispatcher | One scope per pass; waits the interval on TimeProvider; Outbox:Enabled. |
 | Process what is due | OutboxProcessor.ProcessDueAsync | SKIP LOCKED; sends, skips, gives up or tries again (OutboxRetry). |
-| Compose the emails | BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer | pt-PT, Lisbon time, text and HTML. |
+| Compose the emails | BookingEmailComposer, BookingSeriesEmailComposer, BookingNotificationComposer, AccountEmailComposer | The recipient's language (pt-PT or English), Lisbon time, text and HTML. |
 | Send | IEmailSender, SmtpEmailSender (MailKit) | One connection per message. |
 | Data Protection | Identity | Recovery token (system clock). |
 | Injected clock | TimeProvider | The current time and the wait between passes. |
