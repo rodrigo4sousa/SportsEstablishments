@@ -265,7 +265,7 @@ describe("OwnerDetails", () => {
       expect(posted).toEqual([]);
     });
 
-    it("shows the API's message for the reason when it refuses it", async () => {
+    it("shows its own message, never the API's text, for the reason when it refuses it", async () => {
       serve({}, { post: () => problem(400, "validation_failed", { reason: ["Indica o motivo."] }) });
       const user = userEvent.setup();
       renderWithProviders(<OwnerDetails ownerId={OWNER_ID} />);
@@ -274,7 +274,7 @@ describe("OwnerDetails", () => {
       await user.type(screen.getByLabelText("Motivo da desativação"), "Motivo");
       await user.click(screen.getByRole("button", { name: "Confirmar desativação" }));
 
-      expect(await within(form("Desativar dono")).findByText("Indica o motivo.")).toBeInTheDocument();
+      expect(await within(form("Desativar dono")).findByText("Verifica o motivo: é obrigatório e tem um limite de caracteres.")).toBeInTheDocument();
     });
 
     it("says the owner is already deactivated (422), closes the form and shows the owner as the API has them", async () => {

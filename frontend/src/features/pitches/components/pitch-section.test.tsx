@@ -223,7 +223,7 @@ describe("PitchSection", () => {
     await user.type(within(form).getByLabelText(/preço por horário/i), "10");
     await user.click(within(form).getByRole("button", { name: "Adicionar campo" }));
 
-    await waitFor(() => expect(within(form).getByLabelText(/nome do campo/i)).toHaveAccessibleDescription("Já existe um campo com este nome neste clube."));
+    await waitFor(() => expect(within(form).getByLabelText(/nome do campo/i)).toHaveAccessibleDescription("Verifica o nome: é obrigatório, tem no máximo 100 caracteres e não pode repetir o de outro campo deste clube."));
     expect(screen.getByRole("form", { name: "Adicionar campo" })).toBeInTheDocument();
   });
 

@@ -95,7 +95,7 @@ describe("RegisterForm", () => {
     await submit(user);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
-    expect(body).toEqual({ name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION });
+    expect(body).toEqual({ name: "Ana Silva", email: "ana@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION, preferredLanguage: "pt-PT" });
     expect(queryClient.getQueryData(currentUserQueryKey)).toEqual(account);
     // The form is cleared, so returning to it never shows the password again.
     expect(field(/palavra-passe/i)).toHaveValue("");
@@ -331,7 +331,7 @@ describe("RegisterForm for owners", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/manage"));
     // The same fields as the player form, and no profile: the endpoint decides it.
-    expect(body).toEqual({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION });
+    expect(body).toEqual({ name: "Rui Dono", email: "rui@exemplo.pt", password: "palavra-passe", phone: "912345678", acceptedTermsVersion: LEGAL_VERSION, preferredLanguage: "pt-PT" });
     expect(playerEndpointCalls).toBe(0);
     expect(queryClient.getQueryData(currentUserQueryKey)).toEqual(owner);
     expect(field(/palavra-passe/i)).toHaveValue("");

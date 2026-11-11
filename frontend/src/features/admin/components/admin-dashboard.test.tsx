@@ -332,12 +332,12 @@ describe("AdminDashboard", () => {
       expect(within(chartTable()).getAllByRole("row").slice(1).map((row) => row.lastChild?.textContent)).toEqual(["0", "0", "0"]);
     });
 
-    it("shows the API's message for a range that is refused, and the others keep working", async () => {
+    it("shows its own message, never the API's text, for a range that is refused, and the others keep working", async () => {
       serve({ chart: () => problem(400, "validation_failed", { to: ["O intervalo tem demasiados períodos: no máximo 366 dias."] }) });
 
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
-      expect(await screen.findByText("O intervalo tem demasiados períodos: no máximo 366 dias.")).toBeInTheDocument();
+      expect(await screen.findByText("Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até» e o período tem um limite (366 dias, 104 semanas ou 60 meses).")).toBeInTheDocument();
       expect(screen.getByRole("table", { name: "Donos e os seus números" })).toBeInTheDocument();
     });
 
@@ -584,12 +584,12 @@ describe("AdminDashboard", () => {
       expect(await screen.findByRole("table", { name: "Donos e os seus números" })).toBeInTheDocument();
     });
 
-    it("shows the API's message for a search that is refused", async () => {
+    it("shows its own message, never the API's text, for a search that is refused", async () => {
       serve({ owners: () => problem(400, "validation_failed", { search: ["A pesquisa pode ter no máximo 100 caracteres."] }) });
 
       renderWithProviders(<AdminDashboard initialStats={STATS} />);
 
-      expect(await screen.findByText("A pesquisa pode ter no máximo 100 caracteres.")).toBeInTheDocument();
+      expect(await screen.findByText("A pesquisa não é aceite. Usa no máximo 100 caracteres.")).toBeInTheDocument();
     });
   });
 

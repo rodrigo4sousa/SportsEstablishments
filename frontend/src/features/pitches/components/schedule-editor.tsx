@@ -2,7 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { fetchSchedule, pitchesQueryKey, saveSchedule, scheduleQueryKey, slotsQueryKey, type DayHours, type PitchSchedule } from "../api";
 import { SLOT_DURATIONS, TIME_STEP_MINUTES, WEEKDAYS, type WeekdayKey } from "../schedule";
 import { useRestoreFocus } from "@/lib/focus";
-import { scheduleSchema, type ScheduleFormData, type ScheduleFormValues } from "../schemas/schedule";
+import { createScheduleSchema, type ScheduleFormData, type ScheduleFormValues } from "../schemas/schedule";
 
 const DEFAULT_OPENS = "09:00";
 const DEFAULT_CLOSES = "22:00";
@@ -76,8 +77,15 @@ type ScheduleFormProps = {
 
 function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("pitches.schedule");
+  const common = useTranslations("common");
+  const weekdays = useTranslations("weekdays");
+  const validation = useTranslations("pitches.scheduleValidation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("schedule");
+  const schema = useMemo(() => createScheduleSchema(validation), [validation]);
   const form = useForm<ScheduleFormValues, unknown, ScheduleFormData>({
-    resolver: zodResolver(scheduleSchema),
+    resolver: zodResolver(schema),
     defaultValues: valuesOf(schedule),
   });
   const { errors } = form.formState;
@@ -90,17 +98,17 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
       form.reset(valuesOf(saved));
       // The preview shows what the schedule generates: it has to follow the new hours and slot length.
       await queryClient.invalidateQueries({ queryKey: slotsQueryKey(clubId, pitchId), refetchType: "all" });
-      toast.success("Horário guardado.");
+      toast.success(t("saved"));
     },
     onError: async (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, formErrors(error.fieldErrors), FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, formErrors(error.fieldErrors), FIELDS, fieldMessage)) {
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
       if (error.code === "pitch_not_found") {
         await queryClient.invalidateQueries({ queryKey: pitchesQueryKey(clubId), refetchType: "all" });
         onGone();
@@ -114,12 +122,12 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
   return (
     <form
       noValidate
-      aria-label="Horário do campo"
+      aria-label={t("form")}
       className="flex flex-col gap-4"
       onSubmit={form.handleSubmit((values) => save.mutate(requestOf(values)))}
     >
       <div className="flex flex-col gap-2">
-        <Label htmlFor={`slot-duration-${pitchId}`}>Duração do horário</Label>
+        <Label htmlFor={`slot-duration-${pitchId}`}>{t("duration")}</Label>
         <NativeSelect
           id={`slot-duration-${pitchId}`}
           className="sm:max-w-48"
@@ -129,7 +137,7 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
         >
           {SLOT_DURATIONS.map((minutes) => (
             <option key={minutes} value={minutes}>
-              {minutes} minutos
+              {t("minutes", { minutes })}
             </option>
           ))}
         </NativeSelect>
@@ -141,8 +149,9 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
       </div>
 
       <fieldset className="flex flex-col divide-y rounded-md border">
-        <legend className="sr-only">Horário de funcionamento (hora de Lisboa)</legend>
-        {WEEKDAYS.map(({ key, label }) => {
+        <legend className="sr-only">{t("legend")}</legend>
+        {WEEKDAYS.map(({ key }) => {
+          const label = weekdays(key);
           const closed = days[key].closed;
           const row = errors.days?.[key];
           const id = `${pitchId}-${key}`;
@@ -165,20 +174,20 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
                       },
                     })}
                   />
-                  Fechado
+                  {t("closed")}
                 </label>
                 {closed ? null : (
                   <>
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`${id}-opens`} className="text-sm font-normal">
-                        Abre
+                        {t("opens")}
                       </Label>
                       <Input
                         id={`${id}-opens`}
                         type="time"
                         step={TIME_STEP_MINUTES * 60}
                         className="w-32"
-                        aria-label={`${label}: abertura`}
+                        aria-label={t("opensOf", { day: label })}
                         aria-invalid={row?.opens ? true : undefined}
                         aria-describedby={row?.opens ? `${id}-opens-error` : undefined}
                         {...form.register(`days.${key}.opens`)}
@@ -186,14 +195,14 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
                     </div>
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`${id}-closes`} className="text-sm font-normal">
-                        Fecha
+                        {t("closes")}
                       </Label>
                       <Input
                         id={`${id}-closes`}
                         type="time"
                         step={TIME_STEP_MINUTES * 60}
                         className="w-32"
-                        aria-label={`${label}: fecho`}
+                        aria-label={t("closesOf", { day: label })}
                         aria-invalid={row?.closes ? true : undefined}
                         aria-describedby={row?.closes ? `${id}-closes-error` : undefined}
                         {...form.register(`days.${key}.closes`)}
@@ -219,11 +228,11 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
           );
         })}
       </fieldset>
-      <p className="text-sm text-muted-foreground">Horas de Lisboa, de meia em meia hora. Fecho às 00:00 é meia-noite.</p>
+      <p className="text-sm text-muted-foreground">{t("note")}</p>
 
       <div>
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
-          {save.isPending ? "A guardar…" : "Guardar horário"}
+          {save.isPending ? common("saving") : t("save")}
         </Button>
       </div>
     </form>
@@ -232,6 +241,9 @@ function ScheduleForm({ clubId, pitchId, schedule, onGone }: ScheduleFormProps) 
 
 /** US08: loads a pitch's schedule and shows the editor for the whole week. A new pitch is closed every day. */
 export function ScheduleEditor({ clubId, pitchId, onGone }: { clubId: string; pitchId: string; onGone: () => void }) {
+  const t = useTranslations("pitches.schedule");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
   const schedule = useQuery({
     queryKey: scheduleQueryKey(clubId, pitchId),
     queryFn: () => fetchSchedule(clubId, pitchId),
@@ -248,18 +260,18 @@ export function ScheduleEditor({ clubId, pitchId, onGone }: { clubId: string; pi
   if (schedule.isPending) {
     return (
       <p role="status" className="text-muted-foreground">
-        A carregar o horário…
+        {t("loading")}
       </p>
     );
   }
 
   if (schedule.isError) {
-    const code = schedule.error instanceof ApiError ? schedule.error.code : "unknown_error";
+    const code = schedule.error instanceof ApiError ? schedule.error.code : UNKNOWN_ERROR;
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(code)}</p>
+        <p>{apiErrors.message(code)}</p>
         <Button type="button" variant="outline" onClick={() => void schedule.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );

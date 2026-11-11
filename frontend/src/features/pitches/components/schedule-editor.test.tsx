@@ -211,11 +211,11 @@ describe("ScheduleEditor", () => {
     await user.click(screen.getByRole("button", { name: "Guardar horário" }));
 
     await waitFor(() => expect(screen.getByLabelText("Duração do horário")).toHaveAccessibleDescription("A duração do horário tem de ser 30, 60 ou 90 minutos."));
-    expect(opens("Terça-feira")).toHaveAccessibleDescription("As horas vão de meia em meia hora, por exemplo 09:00 ou 09:30.");
+    expect(opens("Terça-feira")).toHaveAccessibleDescription("Verifica a hora de abertura: HH:mm, de meia em meia hora.");
     expect(closes("Terça-feira")).not.toHaveAttribute("aria-invalid");
-    expect(closes("Quinta-feira")).toHaveAccessibleDescription("A hora de fecho tem de ser depois da abertura.");
+    expect(closes("Quinta-feira")).toHaveAccessibleDescription("Verifica a hora de fecho: depois da abertura, até às 00:00, de meia em meia hora.");
     expect(opens("Quinta-feira")).not.toHaveAttribute("aria-invalid");
-    expect(within(row("Sexta-feira")).getByText("Um dia fechado não tem horas: tira as horas de sexta-feira ou abre o dia.")).toBeInTheDocument();
+    expect(within(row("Sexta-feira")).getByText("Verifica o horário deste dia.")).toBeInTheDocument();
     expect(within(row("Segunda-feira")).queryByText(/Um dia fechado/)).not.toBeInTheDocument();
   });
 

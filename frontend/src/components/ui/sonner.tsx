@@ -7,17 +7,19 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const t = useTranslations("toaster")
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      // UX-024: the region a screen reader announces; Sonner's default is English.
-      containerAriaLabel="Notificações"
+      // UX-024: the region a screen reader announces, in the page's language (T09).
+      containerAriaLabel={t("label")}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { RateLimitMessage } from "@/components/rate-limit-message";
@@ -11,16 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/form-field";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
 import { useRetryAfter } from "@/lib/api/use-retry-after";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { safeNext } from "@/lib/auth/redirects";
 import { LEGAL_VERSION, PRIVACY_PATH, TERMS_PATH } from "@/features/legal/legal-info";
 import { currentUserQueryKey, registerAccount, type RegisterAccountRequest, type RegistrationVariant } from "../api";
 import {
   PASSWORD_MIN_LENGTH,
-  registerSchema,
+  createRegisterSchema,
   type RegisterFormData,
   type RegisterFormValues,
 } from "../schemas/register";
@@ -38,10 +40,10 @@ type RegisterFormProps = {
   next?: string | null;
 };
 
-const FORM_LABELS: Record<RegistrationVariant, string> = {
-  player: "Criar conta",
-  owner: "Criar conta de dono",
-};
+const FORM_LABELS = {
+  player: "formPlayer",
+  owner: "formOwner",
+} as const satisfies Record<RegistrationVariant, string>;
 
 /**
  * US01 and US02 registration. On success the user is signed in and goes to `next` if it is a page of their area (a
@@ -51,8 +53,15 @@ const FORM_LABELS: Record<RegistrationVariant, string> = {
 export function RegisterForm({ variant = "player", next = null }: RegisterFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("auth");
+  const validation = useTranslations("validation");
+  // T09: the account's emails start in the language the person signed up in.
+  const locale = useLocale();
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage();
+  const schema = useMemo(() => createRegisterSchema(validation, apiErrors.message("terms_not_accepted")), [validation, apiErrors]);
   const form = useForm<RegisterFormValues, unknown, RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(schema),
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
@@ -68,7 +77,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
     },
     onError: (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
@@ -78,19 +87,19 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
         return;
       }
       if (error.code === "email_taken") {
-        form.setError("email", { message: errorMessage(error.code) }, { shouldFocus: true });
+        form.setError("email", { message: apiErrors.message(error.code) }, { shouldFocus: true });
         return;
       }
       if (error.code === "terms_not_accepted") {
-        form.setError("acceptTerms", { message: errorMessage(error.code) });
+        form.setError("acceptTerms", { message: apiErrors.message(error.code) });
         // `shouldFocus` above does nothing for a checkbox in React Hook Form; `setFocus` does.
         form.setFocus("acceptTerms");
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS, fieldMessage)) {
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
@@ -101,7 +110,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
   return (
     <form
       noValidate
-      aria-label={FORM_LABELS[variant]}
+      aria-label={t(`register.${FORM_LABELS[variant]}`)}
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => {
         retry.clear();
@@ -111,10 +120,11 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
           password: values.password,
           phone: values.phone,
           acceptedTermsVersion: LEGAL_VERSION,
+          preferredLanguage: locale,
         });
       })}
     >
-      <FormField id="register-name" label="Nome" error={errors.name?.message}>
+      <FormField id="register-name" label={t("register.name")} error={errors.name?.message}>
         <Input
           id="register-name"
           autoComplete="name"
@@ -124,7 +134,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
         />
       </FormField>
 
-      <FormField id="register-email" label="Email" error={errors.email?.message}>
+      <FormField id="register-email" label={t("email")} error={errors.email?.message}>
         <Input
           id="register-email"
           type="email"
@@ -138,8 +148,8 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
 
       <FormField
         id="register-password"
-        label="Palavra-passe"
-        hint={`Pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`}
+        label={t("password")}
+        hint={t("register.passwordHint", { min: PASSWORD_MIN_LENGTH })}
         error={errors.password?.message}
       >
         <Input
@@ -152,7 +162,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
         />
       </FormField>
 
-      <FormField id="register-phone" label="Telemóvel (opcional)" error={errors.phone?.message}>
+      <FormField id="register-phone" label={t("register.phone")} error={errors.phone?.message}>
         <Input
           id="register-phone"
           type="tel"
@@ -176,18 +186,22 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
             {...form.register("acceptTerms")}
           />
           <Label htmlFor="register-acceptTerms" className="block leading-snug font-normal">
-            Li e aceito os{" "}
-            <Link href={TERMS_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
-              Termos e Condições
-            </Link>{" "}
-            e tomei conhecimento da{" "}
-            <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
-              Política de Privacidade
-            </Link>
+            {t.rich("register.acceptTerms", {
+              terms: (chunks) => (
+                <Link href={TERMS_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="underline underline-offset-4">
+                  {chunks}
+                </Link>
+              ),
+            })}
           </Label>
         </div>
         <p id="register-acceptTerms-hint" className="text-sm text-muted-foreground">
-          As ligações abrem num novo separador.
+          {t("register.newTabHint")}
         </p>
         {errors.acceptTerms ? (
           <p id="register-acceptTerms-error" className="text-sm text-destructive">
@@ -199,7 +213,7 @@ export function RegisterForm({ variant = "player", next = null }: RegisterFormPr
       <RateLimitMessage retry={retry} />
 
       <Button type="submit" disabled={registration.isPending || retry.waiting}>
-        {registration.isPending ? "A criar conta…" : "Criar conta"}
+        {registration.isPending ? t("register.submitting") : t("register.submit")}
       </Button>
     </form>
   );

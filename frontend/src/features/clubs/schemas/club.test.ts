@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { clubSchema } from "./club";
+import { testTranslator } from "@/test/intl";
+import { createClubSchema } from "./club";
+
+const clubSchema = createClubSchema(testTranslator("clubs.validation"), testTranslator("validation"));
 
 const valid = {
   name: "Clube de Ténis da Foz",

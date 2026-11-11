@@ -167,7 +167,7 @@ describe("BlockForm", () => {
 
     await submit();
 
-    await waitFor(() => expectError("Início: data", "O início não pode estar no passado."));
+    await waitFor(() => expectError("Início: data", "Verifica o início: não pode estar no passado e vai de meia em meia hora."));
     expect(field("Fim: data")).not.toHaveAttribute("aria-invalid");
     expect(onDone).not.toHaveBeenCalled();
   });
@@ -186,7 +186,7 @@ describe("BlockForm", () => {
 
     await submit();
 
-    await waitFor(() => expectError("Fim: data", "O bloqueio não pode acabar daqui a mais de 90 dias."));
+    await waitFor(() => expectError("Fim: data", "Verifica o fim: depois do início, no máximo 90 dias à frente e de meia em meia hora."));
     expectError("Motivo (opcional)", "O motivo pode ter no máximo 200 caracteres.");
   });
 

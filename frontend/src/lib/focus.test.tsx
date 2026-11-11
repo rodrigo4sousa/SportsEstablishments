@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";
 import { describe, expect, it } from "vitest";
@@ -11,7 +12,7 @@ function Result({ trigger }: { trigger?: unknown }) {
 
 describe("useFocusOn", () => {
   it("focuses the element when it first appears, and makes it focusable without putting it in the Tab order", () => {
-    render(<Result />);
+    renderWithIntl(<Result />);
 
     const result = screen.getByText("Feito");
     expect(result).toHaveFocus();
@@ -19,7 +20,7 @@ describe("useFocusOn", () => {
   });
 
   it("does not focus while the trigger is falsy, and does when it becomes truthy", () => {
-    const { rerender } = render(<Result trigger={false} />);
+    const { rerender } = renderWithIntl(<Result trigger={false} />);
     expect(screen.getByText("Feito")).not.toHaveFocus();
 
     rerender(<Result trigger />);
@@ -28,7 +29,7 @@ describe("useFocusOn", () => {
   });
 
   it("focuses again when the trigger changes (a new result replacing the old one)", async () => {
-    const { rerender } = render(
+    const { rerender } = renderWithIntl(
       <>
         <button type="button">Outro</button>
         <Result trigger="primeiro" />
@@ -48,7 +49,7 @@ describe("useFocusOn", () => {
   });
 
   it("does not make the element a live region, so a screen reader reads it once (focus), not twice", () => {
-    render(<Result />);
+    renderWithIntl(<Result />);
 
     const result = screen.getByText("Feito");
     expect(result).not.toHaveAttribute("role");
@@ -75,7 +76,7 @@ function Opener() {
 
 describe("useRestoreFocus", () => {
   it("puts focus back on the control that opened something, when closing it left focus on the page", async () => {
-    render(<Opener />);
+    renderWithIntl(<Opener />);
     await userEvent.click(screen.getByRole("button", { name: "Abrir" }));
 
     await userEvent.click(screen.getByRole("button", { name: "Não" }));
@@ -108,7 +109,7 @@ describe("useRestoreFocus", () => {
         </>
       );
     }
-    render(<TakenByResult />);
+    renderWithIntl(<TakenByResult />);
 
     await userEvent.click(screen.getByRole("button", { name: "Fechar" }));
 

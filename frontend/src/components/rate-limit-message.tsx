@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useFocusOn } from "@/lib/focus";
 import type { RetryAfter } from "@/lib/api/use-retry-after";
 
@@ -10,6 +11,7 @@ import type { RetryAfter } from "@/lib/api/use-retry-after";
  * own polite status.
  */
 export function RateLimitMessage({ retry }: { retry: RetryAfter }) {
+  const t = useTranslations("rateLimit");
   const focus = useFocusOn<HTMLParagraphElement>(retry.startedAt);
   const active = retry.waiting || retry.expired;
 
@@ -24,22 +26,23 @@ export function RateLimitMessage({ retry }: { retry: RetryAfter }) {
           }`}
         >
           {retry.waiting ? (
-            <>
-              Fizeste demasiados pedidos seguidos. Podes tentar novamente dentro de{" "}
-              <span role="timer" className="font-medium tabular-nums">
-                {retry.remaining} {retry.remaining === 1 ? "segundo" : "segundos"}
-              </span>
-              .
-            </>
+            t.rich("waiting", {
+              seconds: retry.remaining,
+              timer: (chunks) => (
+                <span role="timer" className="font-medium tabular-nums">
+                  {chunks}
+                </span>
+              ),
+            })
           ) : (
-            "Já podes tentar novamente."
+            t("ready")
           )}
         </p>
       ) : null}
       {/* Mounted when the wait starts, empty, so the words that fill it when the wait ends are announced. */}
       {retry.startedAt !== null ? (
         <span role="status" className="sr-only">
-          {retry.expired ? "Já podes tentar novamente." : ""}
+          {retry.expired ? t("ready") : ""}
         </span>
       ) : null}
     </>

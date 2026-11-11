@@ -2,6 +2,7 @@
 
 import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/features/auth/components/logout-button";
@@ -26,12 +27,13 @@ type AccountMenuProps = {
  * leaving it with Tab or a click elsewhere. It is one set of elements, shown by CSS, so a screen reader never meets them twice.
  */
 export function AccountMenu({ accountName, links = [] }: AccountMenuProps) {
+  const t = useTranslations("accountMenu");
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
 
   return (
     <nav
-      aria-label="Conta"
+      aria-label={t("label")}
       className="relative"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -55,7 +57,7 @@ export function AccountMenu({ accountName, links = [] }: AccountMenuProps) {
         className="sm:hidden"
         onClick={() => setOpen((current) => !current)}
       >
-        Conta
+        {t("toggle")}
         <ChevronDownIcon aria-hidden="true" className={open ? "rotate-180" : ""} />
       </Button>
       <div
@@ -63,7 +65,7 @@ export function AccountMenu({ accountName, links = [] }: AccountMenuProps) {
         className={`${open ? "flex" : "hidden"} absolute top-full right-0 z-40 mt-2 w-64 flex-col items-stretch gap-1 rounded-md border bg-background p-2 shadow-md sm:static sm:mt-0 sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:p-0 sm:shadow-none`}
       >
         <p className="px-2 py-1 text-sm sm:p-0">
-          Olá, <span className="font-medium">{accountName}</span>
+          {t.rich("greeting", { name: accountName, strong: (chunks) => <span className="font-medium">{chunks}</span> })}
         </p>
         {links.map((link) => (
           <Link

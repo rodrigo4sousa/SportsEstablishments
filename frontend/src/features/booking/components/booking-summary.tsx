@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { formatPrice } from "@/features/pitches/price";
-import { formatLisbonLongDate, formatLisbonSlotTime } from "@/lib/datetime";
+import { useFormats } from "@/i18n/formats";
 import { useFocusOn } from "@/lib/focus";
 
 export type BookingDetails = {
@@ -16,20 +16,22 @@ export type BookingDetails = {
 
 /** The lines that say what is being booked, or was booked: club, pitch, date, time and price (US18). */
 export function BookingDetailList({ details }: { details: BookingDetails }) {
+  const t = useTranslations("booking.summary");
+  const formats = useFormats();
   return (
     <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[max-content_1fr]">
-      <dt className="text-muted-foreground">Clube</dt>
+      <dt className="text-muted-foreground">{t("club")}</dt>
       <dd>{details.clubName}</dd>
-      <dt className="text-muted-foreground">Campo</dt>
+      <dt className="text-muted-foreground">{t("pitch")}</dt>
       <dd>{details.pitchName}</dd>
-      <dt className="text-muted-foreground">Data</dt>
-      <dd>{formatLisbonLongDate(details.startsAt)}</dd>
-      <dt className="text-muted-foreground">Hora</dt>
+      <dt className="text-muted-foreground">{t("date")}</dt>
+      <dd>{formats.longDate(details.startsAt)}</dd>
+      <dt className="text-muted-foreground">{t("time")}</dt>
       <dd className="tabular-nums">
-        {formatLisbonSlotTime(details.startsAt)} – {formatLisbonSlotTime(details.endsAt)}
+        {formats.slotTime(details.startsAt)} – {formats.slotTime(details.endsAt)}
       </dd>
-      <dt className="text-muted-foreground">Preço</dt>
-      <dd className="tabular-nums">{formatPrice(details.price)}</dd>
+      <dt className="text-muted-foreground">{t("price")}</dt>
+      <dd className="tabular-nums">{formats.price(details.price)}</dd>
     </dl>
   );
 }
@@ -42,10 +44,11 @@ type BookingSummaryProps = {
 
 /** US18: what the player is about to book, before confirming. */
 export function BookingSummary({ details, children }: BookingSummaryProps) {
+  const t = useTranslations("booking.summary");
   return (
     <section aria-labelledby="booking-summary" className="flex flex-col gap-4 rounded-lg border p-4">
       <h3 id="booking-summary" className="font-semibold">
-        Resumo da reserva
+        {t("title")}
       </h3>
       <BookingDetailList details={details} />
       <div className="flex flex-wrap items-center gap-3">{children}</div>
@@ -66,6 +69,7 @@ type BookingActionsProps = {
  * it: a sticky element cannot leave the box it is in.
  */
 export function BookingActions({ details, children }: BookingActionsProps) {
+  const formats = useFormats();
   return (
     <div
       data-slot="booking-actions"
@@ -74,9 +78,9 @@ export function BookingActions({ details, children }: BookingActionsProps) {
       {/* The summary above already says it all; this repeats it for the eye only, where the button is. */}
       <p aria-hidden="true" className="text-sm sm:hidden">
         <span className="font-medium tabular-nums">
-          {formatLisbonSlotTime(details.startsAt)} – {formatLisbonSlotTime(details.endsAt)}
+          {formats.slotTime(details.startsAt)} – {formats.slotTime(details.endsAt)}
         </span>{" "}
-        · <span className="tabular-nums">{formatPrice(details.price)}</span>
+        · <span className="tabular-nums">{formats.price(details.price)}</span>
       </p>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </div>
@@ -94,16 +98,17 @@ export function BookingConfirmation({ details, onDismiss, dismissLabel }: Bookin
   // The summary this replaces had focus (the confirm button): focus goes to the heading, which a screen reader reads. The
   // section is not a live region, or it would be read twice (UX-002).
   const focus = useFocusOn<HTMLHeadingElement>();
+  const t = useTranslations("booking.summary");
   return (
     <section aria-labelledby="booking-confirmed" className="flex flex-col gap-4 rounded-lg border border-emerald-600/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
       <h3 id="booking-confirmed" {...focus} className="font-semibold">
-        Reserva confirmada
+        {t("confirmed")}
       </h3>
       <BookingDetailList details={details} />
-      <p className="text-sm text-muted-foreground">Enviámos-te um email de confirmação. Podes cancelar a reserva em «As minhas reservas», até ao prazo do clube.</p>
+      <p className="text-sm text-muted-foreground">{t("confirmedNote")}</p>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <Link href="/bookings" className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0">
-          Ver as minhas reservas
+          {t("myBookings")}
         </Link>
         <button type="button" onClick={onDismiss} className="min-h-11 text-sm underline underline-offset-4 sm:min-h-0">
           {dismissLabel}

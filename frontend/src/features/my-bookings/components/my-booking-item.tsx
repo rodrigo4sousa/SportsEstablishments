@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/features/pitches/price";
-import { sportLabel } from "@/features/pitches/sports";
-import { formatLisbonDateTime, formatLisbonSlotTime } from "@/lib/datetime";
+import { useSportLabel } from "@/features/pitches/sports";
+import { useFormats } from "@/i18n/formats";
 import { useFocusOn, useRestoreFocus } from "@/lib/focus";
-import { statusLabel } from "../status";
+import { useStatusLabel } from "../status";
 import type { MyBooking } from "../types";
 
 type MyBookingItemProps = {
@@ -32,6 +32,10 @@ type MyBookingItemProps = {
  * through `lib/datetime.ts`.
  */
 export function MyBookingItem({ booking, cancellable, confirming, cancelling, refusal, onAskToCancel, onKeep, onConfirmCancel }: MyBookingItemProps) {
+  const t = useTranslations("myBookings.item");
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
+  const statusLabel = useStatusLabel();
   const isConfirmed = booking.status === "confirmed";
   const deadline = booking.cancellationDeadline;
   const explanationId = `cancel-info-${booking.id}`;
@@ -44,7 +48,7 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, re
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <p className="font-medium">
           <span data-slot="booking-time" className="tabular-nums">
-            {formatLisbonSlotTime(booking.startsAt)} – {formatLisbonSlotTime(booking.endsAt)}
+            {formats.slotTime(booking.startsAt)} – {formats.slotTime(booking.endsAt)}
           </span>
           {" · "}
           {/* The link is padded and pulled back, so it is easy to hit on a phone without making the row taller. */}
@@ -59,16 +63,17 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, re
               : "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
           }
         >
-          <span className="sr-only">Estado: </span>
+          <span className="sr-only">{t("status")}</span>
           {statusLabel(booking.status)}
         </p>
       </div>
 
       <p data-slot="booking-details" className="text-sm text-muted-foreground">
-        {booking.pitchName} · {sportLabel(booking.sport)} · <span className="tabular-nums">{formatPrice(booking.price)}</span>
+        {booking.pitchName} · {sportLabel(booking.sport)} · <span className="tabular-nums">{formats.price(booking.price)}</span>
         {booking.series ? (
           <>
-            {" · "}Reserva semanal: <span className="tabular-nums">{booking.series.position} de {booking.series.count}</span>
+            {" · "}
+            {t.rich("weekly", { position: booking.series.position, count: booking.series.count, num: (chunks) => <span className="tabular-nums">{chunks}</span> })}
           </>
         ) : null}
       </p>
@@ -77,28 +82,28 @@ export function MyBookingItem({ booking, cancellable, confirming, cancelling, re
 
       {isConfirmed && cancellable ? (
         confirming ? (
-          <div role="group" aria-label="Confirmar cancelamento" {...confirmationFocus} className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
-            <p className="text-sm">Queres mesmo cancelar esta reserva? O horário volta a ficar livre para outros jogadores.</p>
+          <div role="group" aria-label={t("confirmGroup")} {...confirmationFocus} className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-sm">{t("confirmQuestion")}</p>
             <div className="flex flex-wrap items-center gap-3">
               <Button type="button" size="cta" variant="destructive" disabled={cancelling} onClick={onConfirmCancel}>
-                {cancelling ? "A cancelar…" : "Sim, cancelar reserva"}
+                {cancelling ? t("cancelling") : t("confirmCancel")}
               </Button>
               <Button type="button" size="cta" variant="outline" disabled={cancelling} onClick={onKeep}>
-                Manter reserva
+                {t("keep")}
               </Button>
             </div>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Button ref={askButton} type="button" size="cta" variant="outline" disabled={!booking.canCancel} aria-describedby={explanationId} onClick={onAskToCancel}>
-              Cancelar reserva
+              {t("cancel")}
             </Button>
             <p id={explanationId} className="text-sm text-muted-foreground">
               {deadline === null
                 ? null
                 : booking.canCancel
-                  ? `Podes cancelar até ${formatLisbonDateTime(deadline)}.`
-                  : `Já não é possível cancelar: o prazo terminou a ${formatLisbonDateTime(deadline)}.`}
+                  ? t("canCancelUntil", { deadline: formats.dateTime(deadline) })
+                  : t("deadlinePassed", { deadline: formats.dateTime(deadline) })}
             </p>
           </div>
         )

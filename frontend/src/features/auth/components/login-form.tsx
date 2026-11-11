@@ -3,6 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { RateLimitMessage } from "@/components/rate-limit-message";
@@ -10,12 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NETWORK_ERROR } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { useApiFieldMessage } from "@/lib/api/form-errors";
 import { useRetryAfter } from "@/lib/api/use-retry-after";
 import { safeNext } from "@/lib/auth/redirects";
 import { currentUserQueryKey, login } from "../api";
-import { loginSchema, type LoginFormData, type LoginFormValues } from "../schemas/login";
+import { createLoginSchema, type LoginFormData, type LoginFormValues } from "../schemas/login";
 
 const EMPTY_FORM: LoginFormValues = { email: "", password: "" };
 
@@ -31,8 +34,13 @@ type LoginFormProps = {
 export function LoginForm({ next }: LoginFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("auth");
+  const validation = useTranslations("validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage();
+  const schema = useMemo(() => createLoginSchema(validation), [validation]);
   const form = useForm<LoginFormValues, unknown, LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
     defaultValues: EMPTY_FORM,
   });
   const { errors } = form.formState;
@@ -48,7 +56,7 @@ export function LoginForm({ next }: LoginFormProps) {
     },
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.code === "too_many_requests" && error.retryAfterSeconds !== undefined) {
@@ -59,9 +67,8 @@ export function LoginForm({ next }: LoginFormProps) {
       }
       if (error.code === "validation_failed") {
         for (const field of ["email", "password"] as const) {
-          const messages = error.fieldErrors[field];
-          if (messages?.length) {
-            form.setError(field, { message: messages.join(" ") });
+          if (error.fieldErrors[field]?.length) {
+            form.setError(field, { message: fieldMessage(field) });
           }
         }
         return;
@@ -70,17 +77,17 @@ export function LoginForm({ next }: LoginFormProps) {
         form.resetField("password");
         // The submit button was disabled while the request ran and lost focus: send it to the field to try again (UX-002).
         form.setFocus("password");
-        form.setError("root", { message: errorMessage(error.code) });
+        form.setError("root", { message: apiErrors.message(error.code) });
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
   const describedBy = (field: "email" | "password") => (errors[field] ? `login-${field}-error` : undefined);
 
   return (
-    <form noValidate aria-label="Entrar" className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
+    <form noValidate aria-label={t("login.form")} className="flex flex-col gap-5" onSubmit={form.handleSubmit((values) => {
         retry.clear();
         signIn.mutate(values);
       })}>
@@ -91,7 +98,7 @@ export function LoginForm({ next }: LoginFormProps) {
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="login-email">Email</Label>
+        <Label htmlFor="login-email">{t("email")}</Label>
         <Input
           id="login-email"
           type="email"
@@ -109,7 +116,7 @@ export function LoginForm({ next }: LoginFormProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="login-password">Palavra-passe</Label>
+        <Label htmlFor="login-password">{t("password")}</Label>
         <Input
           id="login-password"
           type="password"
@@ -128,7 +135,7 @@ export function LoginForm({ next }: LoginFormProps) {
       <RateLimitMessage retry={retry} />
 
       <Button type="submit" disabled={signIn.isPending || retry.waiting}>
-        {signIn.isPending ? "A entrar…" : "Entrar"}
+        {signIn.isPending ? t("login.submitting") : t("login.submit")}
       </Button>
     </form>
   );

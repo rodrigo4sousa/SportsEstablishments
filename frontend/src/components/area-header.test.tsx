@@ -60,6 +60,9 @@ describe("the area menu (UX-013)", () => {
 
     const toggle = screen.getByRole("button", { name: "Conta" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // The brand, then the language switcher (PT, EN, T09), then the menu button.
+    await user.tab();
+    await user.tab();
     await user.tab();
     await user.tab();
     expect(toggle).toHaveFocus();

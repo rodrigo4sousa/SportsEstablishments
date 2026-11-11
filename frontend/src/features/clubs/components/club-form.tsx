@@ -4,15 +4,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { errorMessage } from "@/lib/api/error-messages";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
-import { showApiFieldErrors } from "@/lib/api/form-errors";
+import { useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
+import { showApiFieldErrors, useApiFieldMessage } from "@/lib/api/form-errors";
 import { clubQueryKey, clubsQueryKey, createClub, updateClub, type ClubRequest, type OwnerClub } from "../api";
 import { useRestoreFocus } from "@/lib/focus";
 import {
@@ -22,7 +24,7 @@ import {
   DEFAULT_CANCELLATION_WINDOW_HOURS,
   MAX_CANCELLATION_WINDOW_HOURS,
   MIN_CANCELLATION_WINDOW_HOURS,
-  clubSchema,
+  createClubSchema,
   type ClubFormData,
   type ClubFormValues,
 } from "../schemas/club";
@@ -67,8 +69,14 @@ type ClubFormProps = {
 export function ClubForm({ club }: ClubFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("clubs.form");
+  const validation = useTranslations("clubs.validation");
+  const sharedValidation = useTranslations("validation");
+  const apiErrors = useApiErrors();
+  const fieldMessage = useApiFieldMessage("club");
+  const schema = useMemo(() => createClubSchema(validation, sharedValidation), [validation, sharedValidation]);
   const form = useForm<ClubFormValues, unknown, ClubFormData>({
-    resolver: zodResolver(clubSchema),
+    resolver: zodResolver(schema),
     defaultValues: club ? valuesOf(club) : NEW_CLUB,
   });
   const { errors } = form.formState;
@@ -81,21 +89,21 @@ export function ClubForm({ club }: ClubFormProps) {
       await queryClient.invalidateQueries({ queryKey: clubsQueryKey, refetchType: "all" });
       if (club) {
         form.reset(valuesOf(saved));
-        toast.success("Alterações guardadas.");
+        toast.success(t("saved"));
         return;
       }
-      toast.success("Clube criado.");
+      toast.success(t("created"));
       router.replace(`/manage/clubs/${saved.id}`);
     },
     onError: (error) => {
       if (!isExpectedApiError(error)) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
-      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS)) {
+      if (error.code === "validation_failed" && showApiFieldErrors(form, error.fieldErrors, FIELDS, fieldMessage)) {
         return;
       }
-      toast.error(errorMessage(error.code));
+      toast.error(apiErrors.message(error.code));
     },
   });
 
@@ -109,15 +117,15 @@ export function ClubForm({ club }: ClubFormProps) {
   return (
     <form
       noValidate
-      aria-label={club ? "Editar clube" : "Criar clube"}
+      aria-label={club ? t("edit") : t("create")}
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => save.mutate(values))}
     >
-      <FormField id="club-name" label="Nome" error={errors.name?.message} hint={club ? undefined : `Até ${CLUB_NAME_MAX_LENGTH} caracteres.`}>
+      <FormField id="club-name" label={t("name")} error={errors.name?.message} hint={club ? undefined : t("nameHint", { max: CLUB_NAME_MAX_LENGTH })}>
         <Input id="club-name" autoComplete="organization" aria-invalid={invalid("name")} aria-describedby={describedBy("name", !club)} {...form.register("name")} />
       </FormField>
 
-      <FormField id="club-address" label="Morada" error={errors.address?.message}>
+      <FormField id="club-address" label={t("address")} error={errors.address?.message}>
         <Input
           id="club-address"
           autoComplete="street-address"
@@ -128,7 +136,7 @@ export function ClubForm({ club }: ClubFormProps) {
         />
       </FormField>
 
-      <FormField id="club-locality" label="Localidade" error={errors.locality?.message}>
+      <FormField id="club-locality" label={t("locality")} error={errors.locality?.message}>
         <Input
           id="club-locality"
           autoComplete="address-level2"
@@ -139,7 +147,7 @@ export function ClubForm({ club }: ClubFormProps) {
         />
       </FormField>
 
-      <FormField id="club-phone" label="Telefone" error={errors.phone?.message}>
+      <FormField id="club-phone" label={t("phone")} error={errors.phone?.message}>
         <Input
           id="club-phone"
           type="tel"
@@ -151,7 +159,7 @@ export function ClubForm({ club }: ClubFormProps) {
         />
       </FormField>
 
-      <FormField id="club-contactEmail" label="Email de contacto" error={errors.contactEmail?.message}>
+      <FormField id="club-contactEmail" label={t("contactEmail")} error={errors.contactEmail?.message}>
         <Input
           id="club-contactEmail"
           type="email"
@@ -165,8 +173,8 @@ export function ClubForm({ club }: ClubFormProps) {
 
       <FormField
         id="club-cancellationWindowHours"
-        label="Janela de cancelamento (horas)"
-        hint={`Quantas horas antes do início um jogador ainda pode cancelar (de ${MIN_CANCELLATION_WINDOW_HOURS} a ${MAX_CANCELLATION_WINDOW_HOURS}).`}
+        label={t("window")}
+        hint={t("windowHint", { min: MIN_CANCELLATION_WINDOW_HOURS, max: MAX_CANCELLATION_WINDOW_HOURS })}
         error={errors.cancellationWindowHours?.message}
       >
         <Input
@@ -188,25 +196,25 @@ export function ClubForm({ club }: ClubFormProps) {
           {...form.register("notifyOnNewBooking")}
         />
         <div className="flex flex-col gap-1">
-          <Label htmlFor="club-notifyOnNewBooking">Receber um email por cada nova reserva</Label>
+          <Label htmlFor="club-notifyOnNewBooking">{t("notify")}</Label>
           <p id="club-notifyOnNewBooking-hint" className="text-sm text-muted-foreground">
-            Só para as reservas que os jogadores fazem; as que fazes tu para clientes não enviam email.
+            {t("notifyHint")}
           </p>
         </div>
       </div>
 
       {club ? (
         <p className="text-sm text-muted-foreground">
-          Endereço público: <span className="font-mono">/clubs/{club.slug}</span>. Não muda se mudares o nome.
+          {t.rich("publicAddress", { slug: club.slug, code: (chunks) => <span className="font-mono">{chunks}</span> })}
         </p>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button ref={submitButton} type="submit" size="cta" disabled={save.isPending}>
-          {save.isPending ? "A guardar…" : club ? "Guardar alterações" : "Criar clube"}
+          {save.isPending ? t("saving") : club ? t("saveChanges") : t("create")}
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/manage">Voltar aos clubes</Link>
+          <Link href="/manage">{t("back")}</Link>
         </Button>
       </div>
     </form>

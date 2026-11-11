@@ -4,7 +4,11 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { server } from "@/test/msw";
 import { renderWithProviders } from "@/test/render";
-import { FORGOT_PASSWORD_MESSAGE, ForgotPasswordForm } from "./forgot-password-form";
+import { ForgotPasswordForm } from "./forgot-password-form";
+
+/** What every accepted request is answered with (US05), from the pt-PT catalog. */
+const FORGOT_PASSWORD_MESSAGE =
+  "Se existir uma conta com este email, vais receber uma ligação para redefinir a palavra-passe. A ligação é válida durante 1 hora.";
 
 function problem(status: number, code: string, errors?: Record<string, string[]>) {
   return HttpResponse.json(
@@ -43,9 +47,6 @@ describe("ForgotPasswordForm", () => {
 
       const status = await screen.findByRole("status");
       expect(status).toHaveTextContent(FORGOT_PASSWORD_MESSAGE);
-      expect(FORGOT_PASSWORD_MESSAGE).toBe(
-        "Se existir uma conta com este email, vais receber uma ligação para redefinir a palavra-passe. A ligação é válida durante 1 hora.",
-      );
       expect(bodies).toEqual([{ email: email.trim() }]);
       expect(screen.queryByLabelText(/^email$/i)).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Voltar a entrar" })).toHaveAttribute("href", "/login");
@@ -65,13 +66,13 @@ describe("ForgotPasswordForm", () => {
     expect(bodies).toEqual([]);
   });
 
-  it("shows the API's message for the email when it refuses it", async () => {
+  it("shows its own message, never the API's text, for the email when it refuses it", async () => {
     server.use(http.post("/api/auth/password-reset/request", () => problem(400, "validation_failed", { email: ["Indica um email válido."] })));
     renderWithProviders(<ForgotPasswordForm />);
 
     await ask("a@b.pt");
 
-    expect(await screen.findByLabelText(/^email$/i)).toHaveAccessibleDescription("Indica um email válido.");
+    expect(await screen.findByLabelText(/^email$/i)).toHaveAccessibleDescription("Indica um email válido, por exemplo nome@exemplo.pt.");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 

@@ -145,7 +145,7 @@ describe("PitchForm (new pitch)", () => {
 
     await user.click(screen.getByRole("button", { name: "Adicionar campo" }));
 
-    await waitFor(() => expectFieldError(/nome do campo/i, "Já existe um campo com este nome neste clube."));
+    await waitFor(() => expectFieldError(/nome do campo/i, "Verifica o nome: é obrigatório, tem no máximo 100 caracteres e não pode repetir o de outro campo deste clube."));
     expect(field(/nome do campo/i)).toHaveFocus();
     expect(onDone).not.toHaveBeenCalled();
     // The values typed are still there to correct.
@@ -167,7 +167,7 @@ describe("PitchForm (new pitch)", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar campo" }));
 
     await waitFor(() => expectFieldError(/desporto/i, "Escolhe um desporto da lista"));
-    expectFieldError(/preço por horário/i, "O preço por horário não pode passar de 500 €.");
+    expectFieldError(/preço por horário/i, "O preço por horário tem de ser maior que 0 € e no máximo 500 €, com até duas casas decimais.");
   });
 
   it("shows a toast for an unexpected error and keeps the form", async () => {

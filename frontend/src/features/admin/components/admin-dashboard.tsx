@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { ApiError } from "@/lib/api/client";
 import { loginUrl } from "@/lib/auth/redirects";
 import { adminQueryKey, type ChartQuery, type OwnersQuery } from "../api";
@@ -27,6 +28,7 @@ type AdminDashboardProps = {
  * the changes. A session that ended and cannot be renewed sends the admin back to sign in.
  */
 export function AdminDashboard({ initialStats }: AdminDashboardProps) {
+  const t = useTranslations("admin.dashboard");
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -56,15 +58,15 @@ export function AdminDashboard({ initialStats }: AdminDashboardProps) {
     <div className="flex flex-col gap-10">
       <section aria-labelledby="admin-totals" className="flex flex-col gap-4">
         <h2 id="admin-totals" className="text-lg font-semibold">
-          Totais
+          {t("totals")}
         </h2>
         <StatsCards initialStats={initialStats} />
       </section>
       <section aria-labelledby="admin-period" className="flex flex-col gap-3">
         <h2 id="admin-period" className="text-lg font-semibold">
-          Período
+          {t("period")}
         </h2>
-        <p className="text-sm text-muted-foreground">Vale para as reservas, os registos e os clubes com maior ocupação.</p>
+        <p className="text-sm text-muted-foreground">{t("periodNote")}</p>
         <PeriodFilter
           idPrefix="admin-period"
           from={chart.from}
@@ -76,25 +78,25 @@ export function AdminDashboard({ initialStats }: AdminDashboardProps) {
       </section>
       <section aria-labelledby="admin-chart" className="flex flex-col gap-4">
         <h2 id="admin-chart" className="text-lg font-semibold">
-          Reservas ao longo do tempo
+          {t("bookingsOverTime")}
         </h2>
         <BookingsChart query={chart} onChange={changeChart} />
       </section>
       <section aria-labelledby="admin-registrations" className="flex flex-col gap-4">
         <h2 id="admin-registrations" className="text-lg font-semibold">
-          Novos registos
+          {t("registrations")}
         </h2>
         <RegistrationsChart period={period} granularity={registrations} onGranularity={changeRegistrations} />
       </section>
       <section aria-labelledby="admin-top" className="flex flex-col gap-4">
         <h2 id="admin-top" className="text-lg font-semibold">
-          Clubes com maior ocupação
+          {t("topClubs")}
         </h2>
         <TopOccupationTable period={period} />
       </section>
       <section aria-labelledby="admin-owners" className="flex flex-col gap-4">
         <h2 id="admin-owners" className="text-lg font-semibold">
-          Donos
+          {t("owners")}
         </h2>
         <OwnersTable query={owners} onChange={changeOwners} />
       </section>

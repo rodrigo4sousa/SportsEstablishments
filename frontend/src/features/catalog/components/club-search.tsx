@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { LoadingRegion } from "@/components/loading-region";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,17 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import { SPORTS, sportLabel } from "@/features/pitches/sports";
-import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
+import { SPORTS, useSportLabel } from "@/features/pitches/sports";
+import { BOOKING_DAYS_AHEAD, previewDateRange } from "@/features/pitches/schedule";
+import { useFormats } from "@/i18n/formats";
 import { ApiError } from "@/lib/api/client";
-import { formatDateKeyLong, isDateKey } from "@/lib/datetime";
+import { UNKNOWN_ERROR } from "@/lib/api/error-messages";
+import { isDateKey } from "@/lib/datetime";
 import { fetchLocalities, localitiesQueryKey, searchClubs, searchQueryKey } from "../api";
-import { publicErrorMessage } from "../messages";
+import { usePublicErrorMessage } from "../messages";
 import { clubHref, filtersFromParams, searchHref } from "../search-filters";
 import type { ClubSearchItem, ClubSearchPage, SearchFilters } from "../types";
-
-const ALL_SPORTS = "Todos os desportos";
-const ALL_LOCALITIES = "Todas as localidades";
 
 /**
  * US16: search the clubs that can take bookings by sport, locality and date (today by default, up to 30 days ahead).
@@ -29,6 +29,9 @@ const ALL_LOCALITIES = "Todas as localidades";
  * shared and the back button works; the results come from the API, 20 per page, with a free-slot indicator for the date.
  */
 export function ClubSearch() {
+  const t = useTranslations("catalog.search");
+  const dates = useTranslations("dates");
+  const sportLabel = useSportLabel();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -56,23 +59,23 @@ export function ClubSearch() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form noValidate aria-label="Pesquisar clubes" className="grid gap-4 sm:grid-cols-3" onSubmit={(event) => event.preventDefault()}>
+      <form noValidate aria-label={t("form")} className="grid gap-4 sm:grid-cols-3" onSubmit={(event) => event.preventDefault()}>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="search-sport">Desporto</Label>
+          <Label htmlFor="search-sport">{t("sport")}</Label>
           <NativeSelect id="search-sport" value={filters.sport} onChange={(event) => change({ sport: event.target.value })}>
-            <option value="">{ALL_SPORTS}</option>
+            <option value="">{t("allSports")}</option>
             {SPORTS.map((sport) => (
               <option key={sport.code} value={sport.code}>
-                {sport.label}
+                {sportLabel(sport.code)}
               </option>
             ))}
           </NativeSelect>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="search-locality">Localidade</Label>
+          <Label htmlFor="search-locality">{t("locality")}</Label>
           <NativeSelect id="search-locality" value={filters.locality} onChange={(event) => change({ locality: event.target.value })}>
-            <option value="">{ALL_LOCALITIES}</option>
+            <option value="">{t("allLocalities")}</option>
             {options.map((locality) => (
               <option key={locality} value={locality}>
                 {locality}
@@ -82,7 +85,7 @@ export function ClubSearch() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="search-date">Data</Label>
+          <Label htmlFor="search-date">{t("date")}</Label>
           <Input
             id="search-date"
             type="date"
@@ -106,7 +109,7 @@ export function ClubSearch() {
         />
       ) : (
         <p id="search-date-error" role="alert" className="text-sm text-destructive">
-          {shownDate === "" ? "Escolhe uma data." : DATE_OUT_OF_WINDOW}
+          {shownDate === "" ? dates("chooseDate") : dates("outOfWindow", { days: BOOKING_DAYS_AHEAD })}
         </p>
       )}
     </div>
@@ -122,9 +125,13 @@ type ResultsProps = {
 };
 
 function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
+  const t = useTranslations("catalog.search");
+  const common = useTranslations("common");
+  const publicErrorMessage = usePublicErrorMessage();
+  const formats = useFormats();
   if (query.isPending) {
     return (
-      <LoadingRegion label="A procurar clubes…" className="flex flex-col gap-3">
+      <LoadingRegion label={t("searching")} className="flex flex-col gap-3">
         {[0, 1, 2].map((key) => (
           <Skeleton key={key} className="h-20 w-full rounded-lg" />
         ))}
@@ -133,12 +140,12 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   }
 
   if (query.isError) {
-    const code = query.error instanceof ApiError ? query.error.code : "unknown_error";
+    const code = query.error instanceof ApiError ? query.error.code : UNKNOWN_ERROR;
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p>{publicErrorMessage(code)}</p>
         <Button type="button" size="cta" variant="outline" onClick={onRetry}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
@@ -147,10 +154,7 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   const { items, page, pageSize, totalCount } = query.data;
   if (totalCount === 0) {
     return (
-      <EmptyState
-        title="Não encontrámos clubes com estes filtros."
-        description="Experimenta outra localidade, outro desporto ou outra data."
-      />
+      <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
     );
   }
 
@@ -158,36 +162,34 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
   if (items.length === 0) {
     return (
       <div role="status" className="flex flex-col items-start gap-3">
-        <p className="text-muted-foreground">Esta página não tem resultados.</p>
+        <p className="text-muted-foreground">{t("emptyPage")}</p>
         <Button type="button" size="cta" variant="outline" onClick={() => onPage(1)}>
-          Voltar à primeira página
+          {t("firstPage")}
         </Button>
       </div>
     );
   }
 
   return (
-    <section aria-label="Resultados" className="flex flex-col gap-4">
+    <section aria-label={t("results")} className="flex flex-col gap-4">
       {/* UX-017: the club names below are h3, so the page needs an h2 between them and its h1. */}
-      <h2 className="sr-only">Clubes encontrados</h2>
+      <h2 className="sr-only">{t("found")}</h2>
       <p role="status" className="text-sm text-muted-foreground">
-        {totalCount === 1 ? "1 clube" : `${totalCount} clubes`} · {formatDateKeyLong(date)}
+        {t("count", { count: totalCount, date: formats.dateKeyLong(date) })}
       </p>
-      <ul aria-label="Clubes" className="flex flex-col gap-3">
+      <ul aria-label={t("clubs")} className="flex flex-col gap-3">
         {items.map((club) => (
           <ClubResult key={club.slug} club={club} filters={filters} />
         ))}
       </ul>
       {pages > 1 ? (
-        <nav aria-label="Páginas" className="flex items-center justify-between gap-3">
+        <nav aria-label={common("pages")} className="flex items-center justify-between gap-3">
           <Button type="button" size="cta" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            Anterior
+            {common("previous")}
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Página {page} de {pages}
-          </p>
+          <p className="text-sm text-muted-foreground">{common("pageOf", { page, pages })}</p>
           <Button type="button" size="cta" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>
-            Seguinte
+            {common("next")}
           </Button>
         </nav>
       ) : null}
@@ -200,6 +202,8 @@ function Results({ query, filters, date, onPage, onRetry }: ResultsProps) {
  * club) and its ::after covers the card; the focus ring is drawn around the card, not around the words.
  */
 function ClubResult({ club, filters }: { club: ClubSearchItem; filters: SearchFilters }) {
+  const t = useTranslations("catalog.search");
+  const sportLabel = useSportLabel();
   return (
     <li className="relative flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-1">
@@ -216,9 +220,9 @@ function ClubResult({ club, filters }: { club: ClubSearchItem; filters: SearchFi
         </p>
       </div>
       {club.hasFreeSlots ? (
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Há horários livres</p>
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t("hasFreeSlots")}</p>
       ) : (
-        <p className="text-sm text-muted-foreground">Sem horários livres</p>
+        <p className="text-sm text-muted-foreground">{t("noFreeSlots")}</p>
       )}
     </li>
   );

@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { LoadingRegion } from "@/components/loading-region";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/lib/document-title";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
 import { PitchSection } from "@/features/pitches/components/pitch-section";
 import { clubQueryKey, fetchClub } from "../api";
 import { ClubForm } from "./club-form";
@@ -15,6 +16,9 @@ import { ClubNotFound } from "./club-not-found";
 
 /** US06: loads one of the owner's clubs and shows its edit form; a 404 (missing, or another owner's) is the not-found page. */
 export function EditClub({ clubId }: { clubId: string }) {
+  const t = useTranslations("clubs.edit");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
   const club = useQuery({
     queryKey: clubQueryKey(clubId),
     queryFn: () => fetchClub(clubId),
@@ -23,11 +27,11 @@ export function EditClub({ clubId }: { clubId: string }) {
     refetchOnWindowFocus: false,
   });
 
-  useDocumentTitle("Editar clube", club.data?.name);
+  useDocumentTitle(t("pageTitle"), club.data?.name);
 
   if (club.isPending) {
     return (
-      <LoadingRegion label="A carregar o clube…" className="flex flex-col gap-6">
+      <LoadingRegion label={t("loading")} className="flex flex-col gap-6">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-11 w-full sm:w-80" />
         <Skeleton className="h-64 w-full" />
@@ -39,12 +43,12 @@ export function EditClub({ clubId }: { clubId: string }) {
     if (club.error instanceof ApiError && club.error.status === 404) {
       return <ClubNotFound />;
     }
-    const code = club.error instanceof ApiError ? club.error.code : "unknown_error";
+    const code = club.error instanceof ApiError ? club.error.code : UNKNOWN_ERROR;
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(code)}</p>
+        <p>{apiErrors.message(code)}</p>
         <Button type="button" variant="outline" onClick={() => void club.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
@@ -57,16 +61,16 @@ export function EditClub({ clubId }: { clubId: string }) {
         <p className="text-lg font-medium">{club.data.name}</p>
         <div className="flex flex-wrap gap-3">
           <Button asChild size="cta">
-            <Link href={`/manage/clubs/${club.data.id}/calendar`}>Calendário de reservas</Link>
+            <Link href={`/manage/clubs/${club.data.id}/calendar`}>{t("calendar")}</Link>
           </Button>
           <Button asChild variant="outline" size="cta">
-            <Link href={`/manage/clubs/${club.data.id}/statistics`}>Estatísticas</Link>
+            <Link href={`/manage/clubs/${club.data.id}/statistics`}>{t("statistics")}</Link>
           </Button>
         </div>
       </div>
       <section aria-labelledby="club-data-heading" className="flex flex-col gap-4">
         <h2 id="club-data-heading" className="text-xl font-semibold tracking-tight">
-          Dados do clube
+          {t("data")}
         </h2>
         <ClubForm club={club.data} />
       </section>

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { LoadingRegion } from "@/components/loading-region";
@@ -13,24 +14,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { catalogQueryKey, clubSlotsQueryKey, fetchPublicSlots, publicSlotsQueryKey } from "@/features/catalog/api";
-import { publicErrorMessage } from "@/features/catalog/messages";
+import { usePublicErrorMessage } from "@/features/catalog/messages";
 import type { PublicClub } from "@/features/catalog/types";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { myBookingsQueryKey } from "@/features/my-bookings/api";
-import { formatPrice } from "@/features/pitches/price";
-import { DATE_OUT_OF_WINDOW, previewDateRange } from "@/features/pitches/schedule";
-import { sportLabel } from "@/features/pitches/sports";
+import { BOOKING_DAYS_AHEAD, previewDateRange } from "@/features/pitches/schedule";
+import { useSportLabel } from "@/features/pitches/sports";
+import { useFormats } from "@/i18n/formats";
 import { ApiError, NETWORK_ERROR } from "@/lib/api/client";
-import { isExpectedApiError, unexpectedErrorMessage } from "@/lib/api/expected-error";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { isExpectedApiError } from "@/lib/api/expected-error";
 import { loginUrl } from "@/lib/auth/redirects";
-import { formatDateKeyLong } from "@/lib/datetime";
 import { createBooking, createRecurring, previewRecurring, skippedOf, type Booking, type RecurringResult, type SkippedDate } from "../api";
 import { resolveSelection, sameInstant, selectionHref, type SelectionPatch } from "../selection";
 import { BookingActions, BookingConfirmation, BookingSummary } from "./booking-summary";
 import { RecurringConfirmation, RecurringNoneBooked, RecurringPreviewList, WeeksSelect } from "./recurring";
 import { SlotList } from "./slot-list";
-
-const SLOT_GONE = "Este horário já não está disponível. Escolhe outro.";
 
 /**
  * US17 and US18: the free slots of a club's pitches, and booking one. The player picks a pitch and a date (today to 30
@@ -39,6 +38,13 @@ const SLOT_GONE = "Este horário já não está disponível. Escolhe outro.";
  * slots but no booking button. If the slot was taken meanwhile the API answers 409 and the slots are loaded again.
  */
 export function ClubBooking({ club }: { club: PublicClub }) {
+  const t = useTranslations("booking");
+  const common = useTranslations("common");
+  const dates = useTranslations("dates");
+  const apiErrors = useApiErrors();
+  const publicErrorMessage = usePublicErrorMessage();
+  const sportLabel = useSportLabel();
+  const formats = useFormats();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -86,7 +92,7 @@ export function ClubBooking({ club }: { club: PublicClub }) {
     },
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.status === 401) {
@@ -115,7 +121,7 @@ export function ClubBooking({ club }: { club: PublicClub }) {
     },
     onError: (error) => {
       if (!isExpectedApiError(error, { handlesNetworkError: true })) {
-        toast.error(unexpectedErrorMessage(error));
+        toast.error(apiErrors.unexpected(error));
         return;
       }
       if (error.status === 401) {
@@ -154,28 +160,28 @@ export function ClubBooking({ club }: { club: PublicClub }) {
   return (
     <section aria-labelledby="club-slots" className="flex flex-col gap-4">
       <h2 id="club-slots" className="text-lg font-semibold">
-        Horários
+        {t("title")}
       </h2>
       <p className="text-sm text-muted-foreground">
-        {cannotBook ? "Escolhe o campo e o dia para ver os horários." : "Escolhe o campo e o dia, depois um horário livre, e confirma a reserva."}
+        {cannotBook ? t("introViewer") : t("introPlayer")}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="booking-pitch">Campo</Label>
+          <Label htmlFor="booking-pitch">{t("pitch")}</Label>
           <NativeSelect id="booking-pitch" value={pitch.id} onChange={(event) => pick({ pitch: event.target.value, slot: null })}>
             {club.pitches.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
                 {/* With price bands, one price would mislead (UX-026): each slot shows its own. */}
                 {candidate.name} · {sportLabel(candidate.sport)}
-                {candidate.hasPriceBands ? "" : ` · ${formatPrice(candidate.pricePerSlot)}`}
+                {candidate.hasPriceBands ? "" : ` · ${formats.price(candidate.pricePerSlot)}`}
               </option>
             ))}
           </NativeSelect>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="booking-date">Data</Label>
+          <Label htmlFor="booking-date">{t("date")}</Label>
           <Input
             id="booking-date"
             type="date"
@@ -194,7 +200,7 @@ export function ClubBooking({ club }: { club: PublicClub }) {
         <ResultNotice kind="error">{failure}</ResultNotice>
       ) : slotGone ? (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {SLOT_GONE}
+          {t("slotGone")}
         </p>
       ) : null}
 
@@ -211,19 +217,19 @@ export function ClubBooking({ club }: { club: PublicClub }) {
             endsAt: confirmed.endsAt,
             price: confirmed.price,
           }}
-          dismissLabel="Ver outros horários"
+          dismissLabel={t("seeOtherTimes")}
           onDismiss={() => setConfirmed(null)}
         />
       ) : null}
 
       {!selection.dateInWindow ? (
         <p id="booking-date-error" role="alert" className="text-sm text-destructive">
-          {selection.date === "" ? "Escolhe uma data." : DATE_OUT_OF_WINDOW}
+          {selection.date === "" ? dates("chooseDate") : dates("outOfWindow", { days: BOOKING_DAYS_AHEAD })}
         </p>
       ) : slots.isPending ? (
         // The shape of the loaded list (the date, the legend, and about a day of slots in the same grid), so what comes after it on the page
         // (the pitches and the contacts) does not jump when the slots arrive.
-        <LoadingRegion label="A carregar os horários…" className="flex flex-col gap-4">
+        <LoadingRegion label={t("loadingSlots")} className="flex flex-col gap-4">
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-5 w-56" />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
@@ -234,16 +240,16 @@ export function ClubBooking({ club }: { club: PublicClub }) {
         </LoadingRegion>
       ) : slots.isError ? (
         <div role="alert" className="flex flex-col items-start gap-3">
-          <p>{publicErrorMessage(slots.error instanceof ApiError ? slots.error.code : "unknown_error")}</p>
+          <p>{publicErrorMessage(slots.error instanceof ApiError ? slots.error.code : UNKNOWN_ERROR)}</p>
           <Button type="button" variant="outline" onClick={() => void slots.refetch()}>
-            Tentar novamente
+            {common("retry")}
           </Button>
         </div>
       ) : slots.data.slots.length === 0 ? (
-        <p className="text-muted-foreground">Sem horários neste dia.</p>
+        <p className="text-muted-foreground">{t("noSlots")}</p>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">{formatDateKeyLong(slots.data.date)}</p>
+          <p className="text-sm text-muted-foreground">{formats.dateKeyLong(slots.data.date)}</p>
           <SlotList
             slots={slots.data.slots}
             selected={chosenFree?.startsAt ?? null}
@@ -254,7 +260,7 @@ export function ClubBooking({ club }: { club: PublicClub }) {
       )}
 
       {cannotBook ? (
-        <p className="text-sm text-muted-foreground">Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.</p>
+        <p className="text-sm text-muted-foreground">{t("onlyPlayers")}</p>
       ) : chosenFree ? (
         <>
           <BookingSummary
@@ -264,13 +270,13 @@ export function ClubBooking({ club }: { club: PublicClub }) {
             {isPlayer && selection.weeks > 1 ? (
               recurringPreview.isPending ? (
                 <p role="status" className="basis-full text-sm text-muted-foreground">
-                  A ver quais das datas estão livres…
+                  {t("checkingRecurring")}
                 </p>
               ) : recurringPreview.isError ? (
                 <div role="alert" className="flex basis-full flex-col items-start gap-2">
-                  <p className="text-sm">{publicErrorMessage(recurringPreview.error instanceof ApiError ? recurringPreview.error.code : "unknown_error")}</p>
+                  <p className="text-sm">{publicErrorMessage(recurringPreview.error instanceof ApiError ? recurringPreview.error.code : UNKNOWN_ERROR)}</p>
                   <Button type="button" variant="outline" size="sm" onClick={() => void recurringPreview.refetch()}>
-                    Tentar novamente
+                    {common("retry")}
                   </Button>
                 </div>
               ) : (
@@ -296,7 +302,7 @@ export function ClubBooking({ club }: { club: PublicClub }) {
                       repeat.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt, weeks: selection.weeks });
                     }}
                   >
-                    {repeat.isPending ? "A reservar…" : freeDates === 1 ? "Confirmar 1 reserva" : `Confirmar ${freeDates || ""} reservas`.replace("  ", " ")}
+                    {repeat.isPending ? t("booking") : t("confirmMany", { count: freeDates })}
                   </Button>
                 ) : (
                   <Button
@@ -308,23 +314,23 @@ export function ClubBooking({ club }: { club: PublicClub }) {
                       book.mutate({ pitchId: pitch.id, startsAt: chosenFree.startsAt });
                     }}
                   >
-                    {book.isPending ? "A reservar…" : "Confirmar reserva"}
+                    {book.isPending ? t("booking") : t("confirm")}
                   </Button>
                 )}
                 <Button type="button" size="cta" variant="outline" disabled={book.isPending || repeat.isPending} onClick={() => pick({ slot: null })}>
-                  Escolher outro horário
+                  {t("chooseAnother")}
                 </Button>
               </>
             ) : session === "checking" ? (
               <Button type="button" size="cta" disabled>
-                A verificar a sessão…
+                {t("checkingSession")}
               </Button>
             ) : (
               <>
                 <Button asChild size="cta">
-                  <Link href={loginUrl(returnPath)}>Entrar para reservar</Link>
+                  <Link href={loginUrl(returnPath)}>{t("signInToBook")}</Link>
                 </Button>
-                <p className="text-sm text-muted-foreground">Depois de entrares, voltas a este horário.</p>
+                <p className="text-sm text-muted-foreground">{t("returnAfterSignIn")}</p>
               </>
             )}
           </BookingActions>

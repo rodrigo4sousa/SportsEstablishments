@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { LoadingRegion } from "@/components/loading-region";
 import { Button } from "@/components/ui/button";
@@ -13,12 +14,12 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ClubName } from "@/features/clubs/components/club-name";
 import { ClubNotFound } from "@/features/clubs/components/club-not-found";
-import { sportLabel } from "@/features/pitches/sports";
+import { useSportLabel } from "@/features/pitches/sports";
+import { useFormats } from "@/i18n/formats";
 import { previewDateRange } from "@/features/pitches/schedule";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
 import {
-  formatDateKeyLong,
   formatLisbonDate,
   lisbonDateKey,
   lisbonToday,
@@ -43,10 +44,10 @@ import { DayGrid, type NewBookingAction } from "./day-grid";
 import { NewBookingForm, type NewBookingPrefill } from "./new-booking-form";
 import { ClockChangeNote, WeekGrid } from "./week-grid";
 
-const MODES: { mode: CalendarMode; label: string }[] = [
-  { mode: "day", label: "Vista diária" },
-  { mode: "week", label: "Vista semanal" },
-];
+const MODES = [
+  { mode: "day", label: "dayView" },
+  { mode: "week", label: "weekView" },
+] as const satisfies ReadonlyArray<{ mode: CalendarMode; label: string }>;
 
 /**
  * US11: the owner's calendar of one club. The daily view has a column per pitch and a row per hour; the weekly view shows
@@ -57,6 +58,11 @@ const MODES: { mode: CalendarMode; label: string }[] = [
  * not-found page.
  */
 export function ClubCalendar({ clubId }: { clubId: string }) {
+  const t = useTranslations("calendar.page");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
+  const formats = useFormats();
+  const sportLabel = useSportLabel();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -141,7 +147,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
   };
   const onCreated = (booking: ClubBooking) => {
     setNewBooking(null);
-    setCreated(`Reserva criada para ${booking.bookerName}.`);
+    setCreated(t("created", { name: booking.bookerName }));
     // Show it: its day (and its pitch, in the weekly view) with its details open.
     show({
       date: lisbonDateKey(booking.startsAt),
@@ -168,15 +174,15 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
           href={`/manage/clubs/${clubId}`}
           className="text-sm text-muted-foreground underline underline-offset-4"
         >
-          ← Voltar ao clube
+          {t("back")}
         </Link>
-        <ClubName clubId={clubId} page="Calendário" />
+        <ClubName clubId={clubId} page={t("pageName")} />
       </div>
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
         <div
           role="group"
-          aria-label="Tipo de vista"
+          aria-label={t("viewType")}
           className="flex items-center gap-2"
         >
           {MODES.map(({ mode, label }) => (
@@ -187,14 +193,14 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
               aria-pressed={view.mode === mode}
               onClick={() => show({ mode, booking: null })}
             >
-              {label}
+              {t(label)}
             </Button>
           ))}
         </div>
 
         <div
           role="group"
-          aria-label={weekly ? "Escolher a semana" : "Escolher o dia"}
+          aria-label={weekly ? t("chooseWeek") : t("chooseDay")}
           className="flex flex-wrap items-center gap-2"
         >
           <Button
@@ -203,14 +209,14 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
             disabled={previous === null}
             onClick={() => goToDate(previous)}
           >
-            {weekly ? "Semana anterior" : "Dia anterior"}
+            {weekly ? t("previousWeek") : t("previousDay")}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => goToDate(today)}
           >
-            Hoje
+            {t("today")}
           </Button>
           <Button
             type="button"
@@ -218,11 +224,11 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
             disabled={next === null}
             onClick={() => goToDate(next)}
           >
-            {weekly ? "Semana seguinte" : "Dia seguinte"}
+            {weekly ? t("nextWeek") : t("nextDay")}
           </Button>
           <Input
             type="date"
-            aria-label="Data"
+            aria-label={t("date")}
             className="w-44"
             min={CALENDAR_MIN_DATE}
             max={CALENDAR_MAX_DATE}
@@ -235,7 +241,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
           // The week is one pitch, and on a phone so is the day (UX-005); a wider screen shows every pitch of the day, so no choice is needed there.
           <div className={`flex flex-col gap-1 ${weekly ? "" : "sm:hidden"}`}>
             <Label htmlFor="calendar-pitch" className="text-sm">
-              Campo
+              {t("pitch")}
             </Label>
             <NativeSelect
               id="calendar-pitch"
@@ -248,7 +254,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
               {data.pitches.map((pitch) => (
                 <option key={pitch.id} value={pitch.id}>
                   {pitch.name} · {sportLabel(pitch.sport)}
-                  {pitch.status === "inactive" ? " · Inativo" : ""}
+                  {pitch.status === "inactive" ? t("inactive") : ""}
                 </option>
               ))}
             </NativeSelect>
@@ -265,7 +271,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
             })
           }
         >
-          Nova reserva
+          {t("newBooking")}
         </Button>
 
         <label className="flex items-center gap-2 text-sm">
@@ -277,15 +283,22 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
               show({ includeCancelled: event.target.checked })
             }
           />
-          Mostrar reservas canceladas
+          {t("showCancelled")}
         </label>
       </div>
 
       <h2 className="text-lg font-semibold first-letter:uppercase">
         {weekly
-          ? `${formatDateKeyLong(monday)} – ${formatDateKeyLong(range.to)} (${formatLisbonDate(`${monday}T12:00:00Z`)} – ${formatLisbonDate(`${range.to}T12:00:00Z`)})`
-          : `${formatDateKeyLong(view.date)} (${formatLisbonDate(`${view.date}T12:00:00Z`)})`}
+          ? t("weekHeading", {
+              from: formats.dateKeyLong(monday),
+              to: formats.dateKeyLong(range.to),
+              fromShort: formatLisbonDate(`${monday}T12:00:00Z`),
+              toShort: formatLisbonDate(`${range.to}T12:00:00Z`),
+            })
+          : t("dayHeading", { date: formats.dateKeyLong(view.date), short: formatLisbonDate(`${view.date}T12:00:00Z`) })}
       </h2>
+      {/* T09: venue times are Lisbon's, whatever the language or the browser's time zone. */}
+      <p className="-mt-4 text-sm text-muted-foreground">{t("timesNote")}</p>
 
       {created ? (
         <p
@@ -311,41 +324,37 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           {calendar.isPending ? (
-            <LoadingRegion label="A carregar o calendário…">
+            <LoadingRegion label={t("loading")}>
               <Skeleton className="h-96 w-full" />
             </LoadingRegion>
           ) : calendar.isError ? (
             <div role="alert" className="flex flex-col items-start gap-3">
               <p>
-                {errorMessage(
-                  calendar.error instanceof ApiError
-                    ? calendar.error.code
-                    : "unknown_error",
-                )}
+                {apiErrors.message(calendar.error instanceof ApiError ? calendar.error.code : UNKNOWN_ERROR)}
               </p>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => void calendar.refetch()}
               >
-                Tentar novamente
+                {common("retry")}
               </Button>
             </div>
           ) : calendar.data.pitches.length === 0 ? (
             <EmptyState
-              title="Este clube ainda não tem campos ativos."
-              description="O calendário aparece quando houver um campo ativo."
+              title={t("noPitchesTitle")}
+              description={t("noPitchesDescription")}
               action={
                 <Button asChild variant="outline">
                   <Link href={`/manage/clubs/${clubId}`}>
-                    Ir para os campos do clube
+                    {t("goToPitches")}
                   </Link>
                 </Button>
               }
             />
           ) : weekly ? (
             weekLayout === null ? (
-              <EmptyState title="Este campo não abre nesta semana e não tem reservas nem bloqueios." />
+              <EmptyState title={t("weekEmpty")} />
             ) : (
               <>
                 <ClockChangeNote layout={weekLayout} />
@@ -358,7 +367,7 @@ export function ClubCalendar({ clubId }: { clubId: string }) {
               </>
             )
           ) : dayLayout === null ? (
-            <EmptyState title="Nenhum campo abre neste dia e não há reservas nem bloqueios." />
+            <EmptyState title={t("dayEmpty")} />
           ) : (
             <DayGrid
               layout={dayLayout}

@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account } from "@/features/auth/api";
 import { PlayerGuard } from "./player-guard";
@@ -25,7 +26,7 @@ function accountOf(profile: string): Account {
 }
 
 async function renderGuard() {
-  render(await PlayerGuard({ fallbackPath: "/bookings", children: <p>As minhas reservas</p> }));
+  renderWithIntl(await PlayerGuard({ fallbackPath: "/bookings", children: <p>As minhas reservas</p> }));
 }
 
 describe("PlayerGuard", () => {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageShell } from "@/components/page-shell";
@@ -6,9 +7,12 @@ import { RouteLoading } from "@/components/route-loading";
 import { ClubStatistics } from "@/features/statistics/components/club-statistics";
 import { isGuid } from "@/lib/guid";
 
-export const metadata: Metadata = {
-  title: "Estatísticas do clube",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pages.clubStatistics");
+  return {
+    title: t("title"),
+  };
+}
 
 export default async function Page({ params }: PageProps<"/manage/clubs/[id]/statistics">) {
   const { id } = await params;
@@ -16,9 +20,10 @@ export default async function Page({ params }: PageProps<"/manage/clubs/[id]/sta
   if (!isGuid(id)) {
     notFound();
   }
+  const t = await getTranslations("pages.clubStatistics");
 
   return (
-    <PageShell title="Estatísticas do clube">
+    <PageShell title={t("title")}>
       <Suspense fallback={<RouteLoading />}>
         <ClubStatistics clubId={id} />
       </Suspense>

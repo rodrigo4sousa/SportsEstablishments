@@ -4,21 +4,20 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { LoadingRegion } from "@/components/loading-region";
 import { ResultNotice } from "@/components/result-notice";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { useFormats } from "@/i18n/formats";
 import { loginUrl } from "@/lib/auth/redirects";
 import { useDocumentTitle } from "@/lib/document-title";
-import { formatLisbonDate, formatLisbonDateTime } from "@/lib/datetime";
 import { useRestoreFocus } from "@/lib/focus";
 import { adminOwnerHistoryQueryKey, adminOwnerQueryKey, fetchAdminOwner, fetchOwnerHistory } from "../api";
 import { OwnerStatusForm } from "./owner-status-form";
-
-const number = new Intl.NumberFormat("pt-PT");
 
 type OwnerDetailsProps = {
   ownerId: string;
@@ -33,6 +32,10 @@ type Notice = { kind: "success" | "error"; text: string };
  * emails and names are the only personal data here, and players only exist as counts.
  */
 export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
+  const t = useTranslations("admin.owner");
+  const common = useTranslations("common");
+  const apiErrors = useApiErrors();
+  const formats = useFormats();
   const router = useRouter();
   const pathname = usePathname();
   const [formOpen, setFormOpen] = useState(false);
@@ -41,7 +44,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const owner = useQuery({ queryKey: adminOwnerQueryKey(ownerId), queryFn: () => fetchAdminOwner(ownerId) });
-  useDocumentTitle("Dono", owner.data?.name);
+  useDocumentTitle(t("pageName"), owner.data?.name);
   const history = useQuery({ queryKey: adminOwnerHistoryQueryKey(ownerId), queryFn: () => fetchOwnerHistory(ownerId), enabled: owner.isSuccess });
 
   // The session ended and could not be renewed: sign in again and come back here.
@@ -54,13 +57,13 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
 
   const back = (
     <Link href="/admin" className="-my-2 inline-flex min-h-11 w-fit items-center text-sm underline-offset-4 hover:underline sm:min-h-0 sm:py-0">
-      ← Donos
+      {t("back")}
     </Link>
   );
 
   if (owner.isPending || sessionEnded) {
     return (
-      <LoadingRegion label="A carregar o dono…" className="flex flex-col gap-6">
+      <LoadingRegion label={t("loading")} className="flex flex-col gap-6">
         <Skeleton className="h-7 w-56" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-11 w-48" />
@@ -73,9 +76,9 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
     }
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(owner.error instanceof ApiError ? owner.error.code : "unknown_error")}</p>
+        <p>{apiErrors.message(owner.error instanceof ApiError ? owner.error.code : UNKNOWN_ERROR)}</p>
         <Button type="button" variant="outline" onClick={() => void owner.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
@@ -92,19 +95,19 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
             {data.name}
           </h2>
           {data.deactivated ? (
-            <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Desativado</span>
+            <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">{t("deactivated")}</span>
           ) : (
-            <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Ativo</span>
+            <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{t("active")}</span>
           )}
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-          <Fact label="Email" value={data.email} />
-          <Fact label="Registo" value={formatLisbonDate(data.registeredAt)} />
-          <Fact label="Clubes" value={number.format(data.clubs)} />
-          <Fact label="Campos ativos" value={number.format(data.pitches)} />
-          <Fact label="Reservas" value={number.format(data.bookings)} />
-          <Fact label="Jogadores" value={number.format(data.players)} />
-          <Fact label="Reservas futuras confirmadas" value={number.format(data.futureBookings)} />
+          <Fact label={t("email")} value={data.email} />
+          <Fact label={t("registered")} value={formats.date(data.registeredAt)} />
+          <Fact label={t("clubs")} value={formats.count(data.clubs)} />
+          <Fact label={t("activePitches")} value={formats.count(data.pitches)} />
+          <Fact label={t("bookings")} value={formats.count(data.bookings)} />
+          <Fact label={t("players")} value={formats.count(data.players)} />
+          <Fact label={t("futureBookings")} value={formats.count(data.futureBookings)} />
         </dl>
       </section>
 
@@ -113,7 +116,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
 
       <section aria-labelledby="owner-status" className="flex flex-col gap-3">
         <h2 id="owner-status" className="text-lg font-semibold">
-          Estado da conta
+          {t("statusTitle")}
         </h2>
         {formOpen ? (
           <OwnerStatusForm
@@ -122,7 +125,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
             onCancel={() => setFormOpen(false)}
             onChanged={(changed) => {
               setFormOpen(false);
-              setNotice({ kind: "success", text: changed.deactivated ? "Dono desativado." : "Dono reativado." });
+              setNotice({ kind: "success", text: changed.deactivated ? t("deactivatedNotice") : t("reactivatedNotice") });
             }}
             onRefused={(message) => {
               setFormOpen(false);
@@ -141,7 +144,7 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
                 setFormOpen(true);
               }}
             >
-              {data.deactivated ? "Reativar dono" : "Desativar dono"}
+              {data.deactivated ? t("reactivate") : t("deactivate")}
             </Button>
           </div>
         )}
@@ -149,31 +152,31 @@ export function OwnerDetails({ ownerId }: OwnerDetailsProps) {
 
       <section aria-labelledby="owner-history" className="flex flex-col gap-3">
         <h2 id="owner-history" className="text-lg font-semibold">
-          Histórico
+          {t("history")}
         </h2>
         {history.isError ? (
           <div role="alert" className="flex flex-col items-start gap-3">
-            <p>{errorMessage(history.error instanceof ApiError ? history.error.code : "unknown_error")}</p>
+            <p>{apiErrors.message(history.error instanceof ApiError ? history.error.code : UNKNOWN_ERROR)}</p>
             <Button type="button" variant="outline" onClick={() => void history.refetch()}>
-              Tentar novamente
+              {common("retry")}
             </Button>
           </div>
         ) : history.isPending ? (
-          <LoadingRegion label="A carregar o histórico…">
+          <LoadingRegion label={t("loadingHistory")}>
             <Skeleton className="h-20 w-full" />
           </LoadingRegion>
         ) : history.data.length === 0 ? (
-          <EmptyState title="Este dono nunca foi desativado." />
+          <EmptyState title={t("neverDeactivated")} />
         ) : (
-          <ol aria-label="Histórico de estados" className="flex flex-col gap-3">
+          <ol aria-label={t("historyList")} className="flex flex-col gap-3">
             {history.data.map((change) => (
               <li key={change.id} className="flex flex-col gap-1 rounded-lg border p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">{change.action === "deactivated" ? "Desativado" : "Reativado"}</p>
-                  <p className="text-sm text-muted-foreground">{formatLisbonDateTime(change.at)}</p>
+                  <p className="font-medium">{change.action === "deactivated" ? t("historyDeactivated") : t("historyReactivated")}</p>
+                  <p className="text-sm text-muted-foreground">{formats.dateTime(change.at)}</p>
                 </div>
                 <p className="text-sm">{change.reason}</p>
-                <p className="text-sm text-muted-foreground">Por {change.adminName}</p>
+                <p className="text-sm text-muted-foreground">{t("by", { name: change.adminName })}</p>
               </li>
             ))}
           </ol>
@@ -194,11 +197,13 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 /** An id that is not an owner's, or a malformed one (the page's own 404 shows this too). */
 export function OwnerNotFound() {
+  const t = useTranslations("admin.owner");
+  const apiErrors = useApiErrors();
   return (
     <div role="alert" className="flex flex-col items-start gap-3">
-      <p>{errorMessage("owner_not_found")}</p>
+      <p>{apiErrors.message("owner_not_found")}</p>
       <Link href="/admin" className="text-sm underline underline-offset-4">
-        Voltar aos donos
+        {t("backToOwners")}
       </Link>
     </div>
   );

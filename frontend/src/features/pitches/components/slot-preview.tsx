@@ -2,15 +2,16 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/error-messages";
-import { formatLisbonLongDate, formatLisbonSlotTime, isDateKey } from "@/lib/datetime";
+import { UNKNOWN_ERROR, useApiErrors } from "@/lib/api/error-messages";
+import { useFormats } from "@/i18n/formats";
+import { isDateKey } from "@/lib/datetime";
 import { fetchSlots, slotsQueryKey } from "../api";
-import { formatPrice } from "../price";
-import { DATE_OUT_OF_WINDOW, previewDateRange } from "../schedule";
+import { BOOKING_DAYS_AHEAD, previewDateRange } from "../schedule";
 
 /**
  * US08: the slots a pitch's hours generate on a date, today to 30 days ahead, in Lisbon time. A read-only preview:
@@ -18,6 +19,12 @@ import { DATE_OUT_OF_WINDOW, previewDateRange } from "../schedule";
  * The repeated October hour is labelled "(verão)" and "(inverno)". Each slot shows the price a booking costs now (US10).
  */
 export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: string }) {
+  const t = useTranslations("pitches.preview");
+  const common = useTranslations("common");
+  const dates = useTranslations("dates");
+  const time = useTranslations("time");
+  const apiErrors = useApiErrors();
+  const formats = useFormats();
   const [range] = useState(() => previewDateRange());
   const [date, setDate] = useState(range.min);
   const inWindow = isDateKey(date) && date >= range.min && date <= range.max;
@@ -33,34 +40,34 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
   if (!inWindow) {
     result = (
       <p id={`${inputId}-error`} role="alert" className="text-sm text-destructive">
-        {date === "" ? "Escolhe uma data." : DATE_OUT_OF_WINDOW}
+        {date === "" ? dates("chooseDate") : dates("outOfWindow", { days: BOOKING_DAYS_AHEAD })}
       </p>
     );
   } else if (slots.isPending) {
     result = (
       <p role="status" className="text-muted-foreground">
-        A carregar os horários…
+        {t("loading")}
       </p>
     );
   } else if (slots.isError) {
-    const code = slots.error instanceof ApiError ? slots.error.code : "unknown_error";
+    const code = slots.error instanceof ApiError ? slots.error.code : UNKNOWN_ERROR;
     result = (
       <div role="alert" className="flex flex-col items-start gap-3">
-        <p>{errorMessage(code)}</p>
+        <p>{apiErrors.message(code)}</p>
         <Button type="button" variant="outline" onClick={() => void slots.refetch()}>
-          Tentar novamente
+          {common("retry")}
         </Button>
       </div>
     );
   } else if (slots.data.slots.length === 0) {
-    result = <p className="text-muted-foreground">Sem horários neste dia: o campo está fechado ou as horas de abertura não chegam para uma reserva.</p>;
+    result = <p className="text-muted-foreground">{t("empty")}</p>;
   } else {
     result = (
       <>
         <p className="text-sm text-muted-foreground">
-          {formatLisbonLongDate(slots.data.slots[0].startsAt)} · {slots.data.slots.length} horários de {slots.data.slotDurationMinutes} minutos
+          {t("summary", { date: formats.longDate(slots.data.slots[0].startsAt), count: slots.data.slots.length, minutes: slots.data.slotDurationMinutes })}
         </p>
-        <ul aria-label="Horários gerados" className="flex flex-wrap gap-2">
+        <ul aria-label={t("list")} className="flex flex-wrap gap-2">
           {slots.data.slots.map((slot) => (
             <li
               key={slot.startsAt}
@@ -68,17 +75,17 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
               data-booked={slot.booked || undefined}
               className={`rounded-md border px-3 py-1 text-sm tabular-nums ${slot.blocked || slot.booked ? "border-dashed bg-muted text-muted-foreground" : ""}`}
             >
-              {formatLisbonSlotTime(slot.startsAt)} – {formatLisbonSlotTime(slot.endsAt)} · {formatPrice(slot.price)}
+              {formats.slotTime(slot.startsAt)} – {formats.slotTime(slot.endsAt)} · {formats.price(slot.price)}
               {slot.booked ? (
                 <>
                   {" "}
-                  <span className="ml-1 font-medium">Reservado</span>
+                  <span className="ml-1 font-medium">{t("booked")}</span>
                 </>
               ) : null}
               {slot.blocked ? (
                 <>
                   {" "}
-                  <span className="ml-1 font-medium">Bloqueado</span>
+                  <span className="ml-1 font-medium">{t("blocked")}</span>
                 </>
               ) : null}
             </li>
@@ -89,10 +96,10 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
   }
 
   return (
-    <section aria-label="Pré-visualização dos horários" className="flex flex-col gap-3">
-      <h4 className="font-medium">Pré-visualização dos horários</h4>
+    <section aria-label={t("title")} className="flex flex-col gap-3">
+      <h4 className="font-medium">{t("title")}</h4>
       <div className="flex flex-col gap-2">
-        <Label htmlFor={inputId}>Data</Label>
+        <Label htmlFor={inputId}>{common("date")}</Label>
         <Input
           id={inputId}
           type="date"
@@ -106,7 +113,9 @@ export function SlotPreview({ clubId, pitchId }: { clubId: string; pitchId: stri
         />
       </div>
       {result}
-      <p className="text-sm text-muted-foreground">Mostra os horários que as horas de abertura geram; os bloqueios e as reservas aparecem marcados.</p>
+      <p className="text-sm text-muted-foreground">
+        {t("note")} {time("lisbonTimeNote")}
+      </p>
     </section>
   );
 }

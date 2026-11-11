@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { PAGE_WIDTH, type PageWidth } from "@/components/page-width";
 import { AccountMenu, type AccountMenuLink } from "@/components/account-menu";
 
@@ -12,7 +13,10 @@ type AreaHeaderProps = {
   links?: AccountMenuLink[];
 };
 
-/** Header of the owner and admin areas: where you are, who is signed in, the area's pages and the way out (the same menu as the player header). */
+/**
+ * Header of the owner and admin areas: where you are, the language, who is signed in, the area's pages and the way out (the same menu
+ * as the player header).
+ */
 export function AreaHeader({ title, homeHref, accountName, width = "narrow", links }: AreaHeaderProps) {
   return (
     <header className="border-b">
@@ -20,7 +24,10 @@ export function AreaHeader({ title, homeHref, accountName, width = "narrow", lin
         <Link href={homeHref} className="font-semibold tracking-tight">
           {title}
         </Link>
-        <AccountMenu accountName={accountName} links={links} />
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <AccountMenu accountName={accountName} links={links} />
+        </div>
       </div>
     </header>
   );

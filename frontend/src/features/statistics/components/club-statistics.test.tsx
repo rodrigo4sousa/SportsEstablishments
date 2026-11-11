@@ -150,12 +150,12 @@ describe("ClubStatistics", () => {
     await waitFor(() => expect(currentPath()).toBe(`/manage/clubs/${CLUB}/statistics`));
   });
 
-  it("shows the API's message for a refused period", async () => {
+  it("shows its own message, never the API's text, for a refused period", async () => {
     serve(() => problem(400, "validation_failed", { to: ["O período pode ter no máximo 366 dias."] }));
 
     renderWithProviders(<ClubStatistics clubId={CLUB} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("O período pode ter no máximo 366 dias.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Este período não é aceite. Verifica as datas: «De» não pode ser depois de «Até», as datas vão de 2000 a 2100 e o período tem no máximo 366 dias.");
   });
 
   it("shows a message, and tries again on request, for any other failure", async () => {

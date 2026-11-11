@@ -1,0 +1,1197 @@
+{
+  "metadata": {
+    "siteName": "Reservas de Campos",
+    "titleTemplate": "%s · Reservas de Campos",
+    "description": "Find clubs and book futsal, 7-a-side football, padel and tennis courts."
+  },
+  "time": {
+    "summerTime": "(summer time)",
+    "winterTime": "(winter time)",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "lisbonTimeNote": "Times are Lisbon time."
+  },
+  "apiErrors": {
+    "invalid_credentials": "Incorrect email or password.",
+    "invalid_password": "The password is incorrect.",
+    "owner_has_clubs": "An account with clubs cannot be deleted here. Contact the administration:",
+    "admin_cannot_delete_account": "The administrator account cannot be deleted.",
+    "club_not_found": "This club does not exist or is not yours.",
+    "pitch_not_found": "This pitch no longer exists at this club.",
+    "block_not_found": "This block no longer exists.",
+    "block_overlap": "This period overlaps another block on this pitch.",
+    "block_already_started": "A block that has already started cannot be removed.",
+    "series_unavailable": "None of the chosen dates is available, so no booking was made.",
+    "price_band_not_found": "This price band no longer exists.",
+    "price_band_overlap": "This band overlaps another price band of this pitch on one of the chosen days.",
+    "price_band_limit_reached": "A pitch can have at most 20 price bands.",
+    "slot_taken": "This time has just been booked. Choose another one.",
+    "slot_blocked": "This time is not available. Choose another one.",
+    "slot_started": "This time has already started. Choose another one.",
+    "invalid_slot": "This time no longer exists. Choose another one.",
+    "outside_booking_window": "You can only book from today up to 30 days ahead.",
+    "pitch_inactive": "This pitch is no longer taking bookings.",
+    "club_unavailable": "This club is no longer taking bookings.",
+    "booking_not_found": "This booking no longer exists.",
+    "booking_already_started": "This booking has already started, so it can no longer be cancelled.",
+    "booking_not_ended": "A no-show can only be marked after the booking has ended.",
+    "booking_not_no_show": "This booking is not marked as a no-show.",
+    "booking_not_confirmed": "This booking is no longer confirmed, so it cannot be cancelled.",
+    "outside_cancellation_window": "The deadline to cancel this booking has passed.",
+    "invalid_or_expired_reset_link": "This link is no longer valid: it has expired or was already used. Ask for a new one.",
+    "owner_not_found": "This owner no longer exists.",
+    "owner_already_deactivated": "This owner is already deactivated.",
+    "owner_not_deactivated": "This owner is not deactivated.",
+    "forbidden": "You do not have permission to do this.",
+    "email_taken": "An account with this email already exists.",
+    "terms_not_accepted": "To create an account, you must accept the Terms and Conditions and acknowledge the Privacy Policy.",
+    "validation_failed": "Some fields have errors. Correct them and try again.",
+    "origin_not_allowed": "The request was refused. Reload the page and try again.",
+    "too_many_requests": "You made too many requests in a row. Wait a moment and try again.",
+    "network_error": "The server could not be reached. Check your connection and try again.",
+    "unknown_error": "Something unexpected went wrong. Try again later.",
+    "pitch_has_future_bookings": "This pitch has confirmed bookings that have not ended yet, so it cannot be deactivated.",
+    "block_overlaps_bookings": "This period has confirmed bookings. Cancel them first or choose another period."
+  },
+  "header": {
+    "brand": "Reservas de Campos"
+  },
+  "accountMenu": {
+    "label": "Account",
+    "toggle": "Account",
+    "greeting": "Hello, <strong>{name}</strong>"
+  },
+  "areaLinks": {
+    "myClubs": "My clubs",
+    "statistics": "Statistics",
+    "myAccount": "My account"
+  },
+  "footer": {
+    "legalLabel": "Legal information",
+    "terms": "Terms and Conditions",
+    "privacy": "Privacy Policy"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "ptShort": "PT",
+    "enShort": "EN",
+    "ptName": "Português",
+    "enName": "English"
+  },
+  "skipLink": {
+    "label": "Skip to content"
+  },
+  "loading": {
+    "page": "Loading…"
+  },
+  "routeError": {
+    "title": "Something unexpected went wrong.",
+    "body": "This page could not be shown. Try again; if it keeps happening, go back to the start.",
+    "retry": "Try again",
+    "home": "Back to the start"
+  },
+  "rateLimit": {
+    "waiting": "You made too many requests in a row. You can try again in <timer>{seconds, plural, one {# second} other {# seconds}}</timer>.",
+    "ready": "You can try again now."
+  },
+  "periodFilter": {
+    "label": "Period",
+    "from": "From",
+    "to": "To",
+    "last30Days": "Last 30 days"
+  },
+  "areas": {
+    "owner": "Owner area",
+    "admin": "Administration"
+  },
+  "notFound": {
+    "documentTitle": "Page not found · Reservas de Campos",
+    "title": "Page not found",
+    "body": "This address does not exist or is no longer available.",
+    "searchClubs": "Search clubs"
+  },
+  "globalError": {
+    "documentTitle": "Error · Reservas de Campos",
+    "title": "Something unexpected went wrong.",
+    "body": "The application could not be shown. Try again; if it keeps happening, come back later.",
+    "retry": "Try again",
+    "home": "Back to the start"
+  },
+  "pages": {
+    "search": {
+      "metaTitle": "Search clubs",
+      "title": "Find where to play",
+      "intro": "Search for futsal, 7-a-side football, padel and tennis clubs, see the free times and book your pitch.",
+      "noAccount": "You can search without an account; to book, you need a player account. Do you run a club? <link>Create an owner account</link>."
+    },
+    "account": {
+      "title": "My account"
+    },
+    "bookings": {
+      "title": "My bookings"
+    },
+    "club": {
+      "notFoundTitle": "Club not found",
+      "back": "← Search clubs",
+      "notFoundHeading": "Club"
+    },
+    "admin": {
+      "title": "Administration"
+    },
+    "owner": {
+      "metaTitle": "Owner · Administration",
+      "title": "Owner"
+    },
+    "forgotPassword": {
+      "title": "Forgot your password",
+      "intro": "Enter your account's email and we will send you a link to choose a new password."
+    },
+    "login": {
+      "title": "Sign in",
+      "intro": "Sign in to book pitches or manage your club.",
+      "home": "Back to the start"
+    },
+    "manage": {
+      "title": "Your clubs"
+    },
+    "newClub": {
+      "title": "New club"
+    },
+    "editClub": {
+      "title": "Edit club"
+    },
+    "calendar": {
+      "title": "Calendar"
+    },
+    "clubStatistics": {
+      "title": "Club statistics",
+      "notFoundTitle": "Statistics"
+    },
+    "statistics": {
+      "title": "Statistics"
+    },
+    "register": {
+      "title": "Create an account",
+      "intro": "Create your player account to book pitches and manage your bookings.",
+      "ownerPrompt": "Do you run a club? <link>Create an owner account</link>",
+      "home": "Back to the start"
+    },
+    "registerOwner": {
+      "title": "Create an owner account",
+      "intro": "Create your owner account to register your club and manage its pitches and bookings.",
+      "playerPrompt": "Only want to book pitches? <link>Create a player account</link>",
+      "haveAccount": "Already have an account? <link>Sign in</link>"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "intro": "Choose a new password for your account."
+    }
+  },
+  "validation": {
+    "nameRequired": "Enter your name.",
+    "nameMax": "The name can have at most {max} characters.",
+    "emailRequired": "Enter your email.",
+    "emailInvalid": "Enter a valid email, for example name@example.com.",
+    "passwordRequired": "Enter the password.",
+    "passwordMin": "The password must have at least {min} characters.",
+    "phoneInvalid": "Enter a valid mobile number, with 9 to 15 digits.",
+    "confirmationRequired": "Repeat the new password.",
+    "passwordsDiffer": "The passwords do not match."
+  },
+  "fieldErrors": {
+    "invalid": "This value was not accepted. Check it and try again.",
+    "shared": {
+      "name": "Check the name: it is required and has a character limit.",
+      "email": "Enter a valid email, for example name@example.com.",
+      "password": "Check the password: it must have at least 8 characters.",
+      "newPassword": "The password must have at least 8 characters.",
+      "phone": "Enter a valid mobile number, with 9 to 15 digits.",
+      "reason": "Check the reason: it is required and has a character limit.",
+      "preferredLanguage": "Choose Portuguese or English."
+    },
+    "account": {
+      "password": "Enter the password."
+    },
+    "club": {
+      "name": "Check the club's name: it is required and has at most 100 characters.",
+      "address": "Check the address: it is required and has at most 200 characters.",
+      "locality": "Check the location: it is required and has at most 100 characters.",
+      "phone": "Enter a valid phone number, with 9 to 15 digits.",
+      "contactEmail": "Enter a valid email, for example name@example.com.",
+      "cancellationWindowHours": "The cancellation window must be between 1 and 168 hours."
+    },
+    "pitch": {
+      "name": "Check the name: it is required, has at most 100 characters and cannot repeat another pitch's name at this club.",
+      "sport": "Choose a sport from the list: futsal, 7-a-side football, padel or tennis.",
+      "pricePerSlot": "The price per time slot must be more than €0 and at most €500, with up to two decimal places."
+    },
+    "schedule": {
+      "slotDurationMinutes": "The time slot length must be 30, 60 or 90 minutes.",
+      "opens": "Check the opening time: HH:mm, in half-hour steps.",
+      "closes": "Check the closing time: after the opening, until 00:00, in half-hour steps.",
+      "closed": "Check this day's hours."
+    },
+    "block": {
+      "startDate": "Check the start: it cannot be in the past and goes in half-hour steps.",
+      "endDate": "Check the end: after the start, at most 90 days ahead, in half-hour steps.",
+      "reason": "The reason can have at most 200 characters."
+    },
+    "priceBand": {
+      "days": "Choose at least one day of the week.",
+      "start": "Check the start time: HH:mm, in half-hour steps.",
+      "end": "Check the end time: after the start, until 00:00, in half-hour steps.",
+      "price": "The price must be more than €0 and at most €500, with up to two decimal places."
+    },
+    "booking": {
+      "pitchId": "Choose the pitch to book.",
+      "startsAt": "Choose a free time.",
+      "customerName": "Check the customer's name: it is required and has at most 100 characters.",
+      "customerPhone": "Enter a valid mobile number, with 9 to 15 digits.",
+      "reason": "Check the reason: it is required and has at most 200 characters."
+    },
+    "period": {
+      "statistics": "This period is not accepted. Check the dates: “From” cannot be after “To”, dates go from 2000 to 2100 and the period has at most 366 days.",
+      "admin": "This period is not accepted. Check the dates: “From” cannot be after “To” and the period has a limit (366 days, 104 weeks or 60 months).",
+      "search": "The search is not accepted. Use at most 100 characters."
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": {
+      "form": "Sign in",
+      "submit": "Sign in",
+      "submitting": "Signing in…"
+    },
+    "loginScreen": {
+      "checkingSession": "Checking your session…",
+      "forgotPassword": "Forgot your password?",
+      "noAccount": "Don't have an account yet? <link>Create an account</link>"
+    },
+    "accountStatus": {
+      "label": "Account",
+      "signIn": "Sign in",
+      "register": "Create account",
+      "myBookings": "My bookings",
+      "myAccount": "My account"
+    },
+    "logout": "Sign out",
+    "registerScreen": {
+      "haveAccount": "Already have an account? <link>Sign in</link>"
+    },
+    "register": {
+      "formPlayer": "Create an account",
+      "formOwner": "Create an owner account",
+      "name": "Name",
+      "passwordHint": "At least {min} characters.",
+      "phone": "Mobile (optional)",
+      "acceptTerms": "I have read and accept the <terms>Terms and Conditions</terms> and have taken note of the <privacy>Privacy Policy</privacy>",
+      "newTabHint": "The links open in a new tab.",
+      "submit": "Create account",
+      "submitting": "Creating account…"
+    },
+    "forgot": {
+      "form": "Recover password",
+      "sent": "If an account with this email exists, you will receive a link to reset the password. The link is valid for 1 hour.",
+      "notArrived": "Didn't arrive? Check your spam folder and, after a few minutes, <again>ask for another link</again>.",
+      "backToLogin": "Back to sign in",
+      "submit": "Send link",
+      "submitting": "Sending…"
+    },
+    "reset": {
+      "form": "Set the new password",
+      "askNewLink": "Ask for a new link",
+      "done": "Your password was changed. You can now sign in with the new password.",
+      "signIn": "Sign in",
+      "newPassword": "New password",
+      "newPasswordHint": "At least {min} characters.",
+      "confirmation": "Repeat the new password",
+      "submit": "Set password",
+      "submitting": "Saving…"
+    }
+  },
+  "sports": {
+    "futsal": "Futsal",
+    "football7": "7-a-side football",
+    "padel": "Padel",
+    "tennis": "Tennis"
+  },
+  "weekdays": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "dates": {
+    "chooseDate": "Choose a date.",
+    "outOfWindow": "Choose a date from today up to {days} days ahead."
+  },
+  "common": {
+    "retry": "Try again",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {pages}",
+    "pages": "Pages",
+    "email": "Email",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "edit": "Edit",
+    "remove": "Remove",
+    "removing": "Removing…",
+    "confirmRemoval": "Confirm removal",
+    "date": "Date",
+    "time": "Time"
+  },
+  "catalog": {
+    "publicClubNotFound": "This club is no longer available.",
+    "search": {
+      "form": "Search clubs",
+      "sport": "Sport",
+      "allSports": "All sports",
+      "locality": "Location",
+      "allLocalities": "All locations",
+      "date": "Date",
+      "searching": "Searching for clubs…",
+      "emptyTitle": "We found no clubs with these filters.",
+      "emptyDescription": "Try another location, sport or date.",
+      "emptyPage": "This page has no results.",
+      "firstPage": "Back to the first page",
+      "results": "Results",
+      "found": "Clubs found",
+      "count": "{count, plural, one {1 club} other {# clubs}} · {date}",
+      "clubs": "Clubs",
+      "hasFreeSlots": "Free times available",
+      "noFreeSlots": "No free times"
+    },
+    "details": {
+      "contacts": "Contacts",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "pitches": "Pitches",
+      "noPitches": "This club has no pitches available at the moment.",
+      "price": "{price} per time slot",
+      "basePrice": "Base price: {price} per time slot",
+      "priceBandsNote": "Some times have a different price; each time's price is shown when you choose a time."
+    },
+    "notFound": {
+      "title": "Club not found",
+      "body": "This club does not exist or is no longer available.",
+      "search": "Search clubs"
+    }
+  },
+  "booking": {
+    "slotGone": "This time is no longer available. Choose another one.",
+    "title": "Times",
+    "introViewer": "Choose the pitch and the day to see the times.",
+    "introPlayer": "Choose the pitch and the day, then a free time, and confirm the booking.",
+    "pitch": "Pitch",
+    "date": "Date",
+    "loadingSlots": "Loading the times…",
+    "noSlots": "No times on this day.",
+    "onlyPlayers": "Only players can book. Sign in with a player account to book.",
+    "checkingRecurring": "Checking which of the dates are free…",
+    "booking": "Booking…",
+    "confirmMany": "{count, plural, =0 {Confirm bookings} one {Confirm 1 booking} other {Confirm # bookings}}",
+    "confirm": "Confirm booking",
+    "chooseAnother": "Choose another time",
+    "checkingSession": "Checking your session…",
+    "signInToBook": "Sign in to book",
+    "returnAfterSignIn": "After you sign in, you come back to this time.",
+    "seeOtherTimes": "See other times",
+    "slots": {
+      "list": "Times",
+      "free": "Free",
+      "unavailable": "Unavailable (struck through)"
+    },
+    "summary": {
+      "club": "Club",
+      "pitch": "Pitch",
+      "date": "Date",
+      "time": "Time",
+      "price": "Price",
+      "title": "Booking summary",
+      "confirmed": "Booking confirmed",
+      "confirmedNote": "We sent you a confirmation email. You can cancel the booking in “My bookings”, up to the club's deadline.",
+      "myBookings": "See my bookings"
+    },
+    "recurring": {
+      "repeat": "Repeat weekly",
+      "weeks": "{count, plural, one {1 week (no repetition)} other {# weeks}}",
+      "allFree": "All {count} dates are free.",
+      "noneFree": "None of the dates is free.",
+      "someFree": "{free} of {count} dates are free; the others are left out.",
+      "dates": "Dates of the weekly booking",
+      "free": "Free",
+      "unavailable": "Unavailable: {reason}",
+      "skippedList": "Dates left out",
+      "confirmed": "{count, plural, one {1 booking confirmed} other {# bookings confirmed}}",
+      "made": "Bookings made",
+      "leftOut": "Left out:",
+      "note": "Each booking stands on its own: you can cancel any of them in “My bookings”. We sent you an email with the summary.",
+      "requested": "Requested dates:",
+      "reasons": {
+        "taken": "is already booked",
+        "blocked": "is blocked by the club",
+        "closed": "the pitch is closed that day",
+        "not_a_slot": "is not one of the pitch's times that day",
+        "outside_window": "is outside the booking period (up to 30 days ahead)",
+        "started": "has already started",
+        "pitch_inactive": "the pitch no longer takes bookings",
+        "other": "is not available"
+      }
+    }
+  },
+  "bookingStatus": {
+    "confirmed": "Confirmed",
+    "cancelled_by_player": "Cancelled by the player",
+    "cancelled_by_club": "Cancelled by the club",
+    "no_show": "No-show"
+  },
+  "myBookings": {
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "emptyUpcoming": "You have no upcoming bookings. Search for a club to book a pitch.",
+    "emptyPast": "You have no past bookings yet.",
+    "cancelled": "Booking cancelled. The time is free again.",
+    "tabs": "Upcoming or past",
+    "upcomingHeading": "Upcoming bookings",
+    "pastHeading": "Past bookings",
+    "loading": "Loading the bookings…",
+    "emptyPage": "This page has no bookings.",
+    "firstPage": "Back to the first page",
+    "count": "{count, plural, one {1 booking} other {# bookings}}",
+    "item": {
+      "status": "Status: ",
+      "weekly": "Weekly booking: <num>{position} of {count}</num>",
+      "confirmGroup": "Confirm cancellation",
+      "confirmQuestion": "Do you really want to cancel this booking? The time becomes free for other players again.",
+      "cancelling": "Cancelling…",
+      "confirmCancel": "Yes, cancel booking",
+      "keep": "Keep booking",
+      "cancel": "Cancel booking",
+      "canCancelUntil": "You can cancel until {deadline}.",
+      "deadlinePassed": "It can no longer be cancelled: the deadline was {deadline}.",
+      "timesNote": "Times are Lisbon time."
+    }
+  },
+  "account": {
+    "privacy": "Privacy and data",
+    "adminCannotDelete": "The administrator account cannot be deleted.",
+    "export": {
+      "intro": "Download a JSON file with your profile, your bookings and the version of the Terms you accepted.",
+      "preparing": "Preparing the file…",
+      "button": "Export my data",
+      "done": "Your data was downloaded ({file})."
+    },
+    "delete": {
+      "intro": "Deleting the account is final and cannot be undone.",
+      "form": "Confirm with the password",
+      "password": "Password",
+      "deleting": "Deleting…",
+      "confirm": "Yes, delete my account",
+      "keep": "Keep account",
+      "button": "Delete my account",
+      "confirmGroup": "Confirm the account deletion",
+      "question": "Do you really want to delete your account?",
+      "effectBookings": "Your future bookings are cancelled and their times become free.",
+      "effectData": "Your name, email and mobile number are deleted. Past bookings stay in the clubs' history, without identifying you.",
+      "effectSessions": "Every session ends, on every device, and you can no longer sign in with this account.",
+      "effectNoEmail": "We do not send a confirmation email.",
+      "deletedTitle": "Account deleted",
+      "deletedBody": "Your account was deleted and the session ended. Future bookings were cancelled.",
+      "home": "Go to the home page"
+    },
+    "language": {
+      "heading": "Email language",
+      "intro": "The emails we send you (bookings, reminders, password) are written in this language. The site's language is changed with the PT | EN switch.",
+      "label": "Language",
+      "pt": "Portuguese",
+      "en": "English",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Email language saved."
+    }
+  },
+  "clubs": {
+    "validation": {
+      "nameRequired": "Enter the club's name.",
+      "nameMax": "The name can have at most {max} characters.",
+      "addressRequired": "Enter the club's address.",
+      "addressMax": "The address can have at most {max} characters.",
+      "localityRequired": "Enter the club's location.",
+      "localityMax": "The location can have at most {max} characters.",
+      "phoneRequired": "Enter the club's phone number.",
+      "phoneInvalid": "Enter a valid phone number, with 9 to 15 digits.",
+      "emailRequired": "Enter the club's contact email.",
+      "windowRequired": "Enter the cancellation window, in hours.",
+      "windowInvalid": "The cancellation window must be between {min} and {max} hours."
+    },
+    "form": {
+      "edit": "Edit club",
+      "create": "Create club",
+      "saved": "Changes saved.",
+      "created": "Club created.",
+      "name": "Name",
+      "nameHint": "Up to {max} characters.",
+      "address": "Address",
+      "locality": "Location",
+      "phone": "Phone",
+      "contactEmail": "Contact email",
+      "window": "Cancellation window (hours)",
+      "windowHint": "How many hours before the start a player can still cancel (from {min} to {max}).",
+      "notify": "Receive an email for each new booking",
+      "notifyHint": "Only for bookings made by players; the ones you make for customers send no email.",
+      "publicAddress": "Public address: <code>/clubs/{slug}</code>. It does not change if you change the name.",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "back": "Back to the clubs"
+    },
+    "list": {
+      "loading": "Loading your clubs…",
+      "statistics": "Statistics",
+      "newClub": "New club",
+      "calendar": "Calendar",
+      "calendarOf": "Calendar of {club}",
+      "statisticsOf": "Statistics of {club}",
+      "edit": "Edit",
+      "editClub": "Edit {club}"
+    },
+    "edit": {
+      "pageTitle": "Edit club",
+      "loading": "Loading the club…",
+      "calendar": "Booking calendar",
+      "statistics": "Statistics",
+      "data": "Club details"
+    },
+    "none": {
+      "title": "You don't have any club yet",
+      "body": "Create your first club to set up its pitches and opening hours and start taking bookings.",
+      "create": "Create the first club"
+    },
+    "notFound": {
+      "title": "Club not found",
+      "body": "This club does not exist or is not yours.",
+      "back": "Back to the clubs"
+    }
+  },
+  "price": {
+    "errors": {
+      "required": "Enter the price per time slot.",
+      "invalid": "Enter a valid price, for example 12.50.",
+      "notPositive": "The price per time slot must be more than €0.",
+      "tooHigh": "The price per time slot cannot be more than €{max}.",
+      "decimals": "The price per time slot can have at most two decimal places."
+    }
+  },
+  "pitches": {
+    "validation": {
+      "nameRequired": "Enter the pitch's name.",
+      "nameMax": "The name can have at most {max} characters.",
+      "sportRequired": "Choose the pitch's sport.",
+      "sportInvalid": "Choose a sport from the list: futsal, 7-a-side football, padel or tennis."
+    },
+    "scheduleValidation": {
+      "duration": "The time slot length must be 30, 60 or 90 minutes.",
+      "opensRequired": "Enter the opening time.",
+      "closesRequired": "Enter the closing time.",
+      "invalidTime": "Enter the time as HH:mm, for example 09:00.",
+      "offStep": "Times go in half-hour steps, for example 09:00 or 09:30.",
+      "notAfterOpening": "The closing time must be after the opening time. The latest closing time is 00:00 (midnight); hours past midnight are not accepted."
+    },
+    "blockValidation": {
+      "startRequired": "Enter the start of the block.",
+      "endRequired": "Enter the end of the block.",
+      "startTimeRequired": "Enter the start time.",
+      "endTimeRequired": "Enter the end time.",
+      "invalidDate": "Enter a valid date.",
+      "invalidTime": "Enter the time as HH:mm, for example 09:00.",
+      "offStep": "Times go in half-hour steps, for example 09:00 or 09:30.",
+      "past": "The start cannot be in the past.",
+      "endNotAfterStart": "The end must be after the start.",
+      "reason": "The reason can have at most {max} characters."
+    },
+    "bandValidation": {
+      "days": "Choose at least one day of the week.",
+      "startRequired": "Enter the band's start time.",
+      "endRequired": "Enter the band's end time.",
+      "invalidTime": "Enter the time as HH:mm, for example 18:00.",
+      "offStep": "Times go in half-hour steps, for example 18:00 or 18:30.",
+      "endNotAfterStart": "The end must be after the start. The latest end is 00:00 (midnight); bands past midnight are not accepted."
+    },
+    "section": {
+      "reactivated": "“{name}” was reactivated.",
+      "deactivated": "“{name}” was deactivated.",
+      "title": "Pitches",
+      "add": "Add pitch",
+      "loading": "Loading the pitches…",
+      "emptyTitle": "This club has no pitches yet.",
+      "emptyDescription": "Add the first one to set it up.",
+      "inactive": "Inactive",
+      "pricePerSlot": "{price} per time slot",
+      "schedule": "Hours",
+      "scheduleOf": "Hours of {pitch}",
+      "blocks": "Blocks",
+      "blocksOf": "Blocks of {pitch}",
+      "prices": "Price bands",
+      "pricesOf": "Price bands of {pitch}",
+      "editOf": "Edit {pitch}",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate",
+      "deactivateOf": "Deactivate {pitch}",
+      "reactivateOf": "Reactivate {pitch}",
+      "pages": "Pages of pitches"
+    },
+    "form": {
+      "saved": "Changes saved.",
+      "added": "Pitch added.",
+      "edit": "Edit pitch",
+      "add": "Add pitch",
+      "name": "Pitch name",
+      "sport": "Sport",
+      "chooseSport": "Choose the sport",
+      "price": "Price per time slot (€)",
+      "priceHint": "For example 12.50.",
+      "save": "Save pitch"
+    },
+    "schedule": {
+      "saved": "Hours saved.",
+      "form": "Pitch hours",
+      "duration": "Time slot length",
+      "minutes": "{minutes} minutes",
+      "legend": "Opening hours (Lisbon time)",
+      "closed": "Closed",
+      "opens": "Opens",
+      "closes": "Closes",
+      "opensOf": "{day}: opening",
+      "closesOf": "{day}: closing",
+      "note": "Lisbon time, in half-hour steps. Closing at 00:00 is midnight.",
+      "save": "Save hours",
+      "loading": "Loading the hours…"
+    },
+    "preview": {
+      "loading": "Loading the times…",
+      "empty": "No times on this day: the pitch is closed or its opening hours are too short for a booking.",
+      "summary": "{date} · {count, plural, one {1 time slot} other {# time slots}} of {minutes} minutes",
+      "list": "Generated times",
+      "booked": "Booked",
+      "blocked": "Blocked",
+      "title": "Preview of the times",
+      "note": "Shows the times the opening hours generate; blocks and bookings are marked."
+    },
+    "blocks": {
+      "removed": "Block removed.",
+      "loading": "Loading the blocks…",
+      "empty": "No current or future blocks.",
+      "list": "Blocks of the pitch",
+      "noReason": "No reason",
+      "ongoing": " · Ongoing",
+      "removeOf": "Remove block of {when}",
+      "confirmGroup": "Confirm removal",
+      "confirmQuestion": "Remove this block? The times become free again.",
+      "pages": "Pages of blocks",
+      "title": "Blocks",
+      "add": "New block"
+    },
+    "blockForm": {
+      "created": "Block created.",
+      "dateOf": "{part}: date",
+      "timeOf": "{part}: time",
+      "form": "Create block",
+      "start": "Start",
+      "end": "End",
+      "note": "Lisbon time, in half-hour steps. A block can span several days.",
+      "reason": "Reason (optional)",
+      "submit": "Create block"
+    },
+    "bands": {
+      "removed": "Band removed.",
+      "loading": "Loading the bands…",
+      "empty": "No price bands: every time costs the pitch's base price.",
+      "list": "Price bands of the pitch",
+      "editOf": "Edit band {hours}",
+      "removeOf": "Remove band {hours}",
+      "confirmGroup": "Confirm removal",
+      "confirmQuestion": "Remove this band? The times go back to the base price. Bookings already made keep their price.",
+      "title": "Price bands",
+      "add": "New band",
+      "full": "A pitch can have at most {max} bands."
+    },
+    "bandForm": {
+      "saved": "Band saved.",
+      "created": "Band created.",
+      "edit": "Edit price band",
+      "create": "Create price band",
+      "days": "Days of the week",
+      "start": "Start",
+      "end": "End",
+      "price": "Price per time slot (€)",
+      "note": "The club's time (Lisbon), in half-hour steps. It applies to times that start inside the band; an end of 00:00 is midnight.",
+      "save": "Save band",
+      "submit": "Create band"
+    }
+  },
+  "calendar": {
+    "validation": {
+      "reasonRequired": "Enter the reason for the cancellation.",
+      "reasonTooLong": "The reason can have at most {max} characters.",
+      "pitch": "Choose the pitch to book.",
+      "slot": "Choose a free time.",
+      "nameRequired": "Enter the customer's name.",
+      "nameTooLong": "The name can have at most {max} characters.",
+      "phoneRequired": "Enter the customer's mobile number.",
+      "phoneInvalid": "Enter a valid mobile number, with 9 to 15 digits."
+    },
+    "page": {
+      "dayView": "Day view",
+      "weekView": "Week view",
+      "created": "Booking created for {name}.",
+      "back": "← Back to the club",
+      "pageName": "Calendar",
+      "viewType": "View",
+      "chooseWeek": "Choose the week",
+      "chooseDay": "Choose the day",
+      "previousWeek": "Previous week",
+      "previousDay": "Previous day",
+      "today": "Today",
+      "nextWeek": "Next week",
+      "nextDay": "Next day",
+      "date": "Date",
+      "pitch": "Pitch",
+      "inactive": " · Inactive",
+      "newBooking": "New booking",
+      "showCancelled": "Show cancelled bookings",
+      "weekHeading": "{from} – {to} ({fromShort} – {toShort})",
+      "dayHeading": "{date} ({short})",
+      "loading": "Loading the calendar…",
+      "noPitchesTitle": "This club has no active pitches yet.",
+      "noPitchesDescription": "The calendar appears once there is an active pitch.",
+      "goToPitches": "Go to the club's pitches",
+      "weekEmpty": "This pitch does not open this week and has no bookings or blocks.",
+      "dayEmpty": "No pitch opens on this day and there are no bookings or blocks.",
+      "timesNote": "Times are Lisbon time."
+    },
+    "grid": {
+      "createdByClub": "Created by the club",
+      "dayCalendar": "Day calendar",
+      "weekCalendar": "Week calendar",
+      "hours": "Hours",
+      "inactive": " · Inactive",
+      "newBookingAt": "New booking: {pitch}, {time}",
+      "newBookingAtDay": "New booking: {day}, {date}, {time}",
+      "closedOf": "{name}: closed",
+      "closed": "Closed",
+      "block": "Block",
+      "blockLabel": "Block, {times}",
+      "blockLabelWithReason": "Block, {times}, {reason}",
+      "dayLabel": "{name}, {date}",
+      "hoursLong": " · {hours} h",
+      "clockChangeDay": "{date}, with {hours} hours",
+      "clockChange": "The clocks change this week ({days}). Each day is drawn by the time actually elapsed since it started, so on that day, after the change, the bookings sit one hour off the hour scale; the time written on each booking is the right one."
+    },
+    "details": {
+      "undoSlotTaken": "The no-show could not be undone: another confirmed booking now takes this time.",
+      "noShows": "{count, plural, =0 {No no-shows at your clubs} one {1 no-show at your clubs} other {# no-shows at your clubs}}",
+      "marked": "No-show marked.",
+      "undone": "No-show undone. The booking is confirmed again.",
+      "label": "Booking details",
+      "title": "Booking",
+      "close": "Close",
+      "loading": "Loading the booking…",
+      "customer": "Customer",
+      "player": "Player",
+      "noShowsLabel": "No-shows",
+      "phone": "Mobile",
+      "origin": "Origin",
+      "pitch": "Pitch",
+      "date": "Date",
+      "time": "Time",
+      "price": "Price",
+      "status": "Status",
+      "bookedAt": "Booked on",
+      "cancelledAt": "Cancelled on",
+      "reason": "Reason",
+      "cancelled": "Booking cancelled. The time is free again.",
+      "cancel": "Cancel booking",
+      "started": "This booking has already started, so it can no longer be cancelled.",
+      "ended": "This booking has ended. If the player did not turn up, mark the no-show; you can undo it later.",
+      "marking": "Marking…",
+      "markNoShow": "Mark no-show",
+      "undoing": "Undoing…",
+      "undoNoShow": "Undo no-show"
+    },
+    "cancelForm": {
+      "form": "Cancel booking",
+      "reason": "Reason for the cancellation",
+      "reasonHint": "Required, up to {max} characters.",
+      "cancelling": "Cancelling…",
+      "confirm": "Confirm cancellation",
+      "keep": "Keep booking"
+    },
+    "newBooking": {
+      "booked": "Booked",
+      "blocked": "Blocked",
+      "started": "Already started",
+      "form": "New booking",
+      "title": "New booking for a customer",
+      "close": "Close",
+      "pitch": "Pitch",
+      "date": "Date",
+      "slot": "Time",
+      "loadingSlots": "Loading the times…",
+      "noSlots": "No times on this day: the pitch is closed.",
+      "name": "Customer's name",
+      "nameHint": "Up to {max} characters.",
+      "phone": "Customer's mobile",
+      "phoneHint": "For example 912 345 678 or +351 912 345 678.",
+      "noEmail": "The customer has no account, so they get no email.",
+      "booking": "Booking…",
+      "submit": "Create booking"
+    }
+  },
+  "statistics": {
+    "emptyTitle": "You don't have any clubs yet.",
+    "emptyDescription": "Create the first one to see statistics.",
+    "createFirst": "Create the first club",
+    "range": "From {from} to {to}.",
+    "byClub": "Occupation and revenue by club",
+    "club": "Club",
+    "bookedHours": "Booked hours",
+    "openHours": "Open hours",
+    "occupation": "Occupation",
+    "revenue": "Revenue",
+    "confirmed": "Confirmed",
+    "noShows": "No-shows",
+    "total": "Total",
+    "loading": "Loading the statistics…",
+    "pageName": "Statistics",
+    "back": "← Back to the club",
+    "pitch": "Pitch",
+    "allPitches": "All pitches",
+    "pitchGone": "This pitch no longer exists at this club.",
+    "seeAllPitches": "See all pitches",
+    "clubRange": "{club}, from {from} to {to}.",
+    "clubEmpty": "This club has no pitches with open hours or bookings in this period.",
+    "byPitch": "Occupation and revenue by pitch",
+    "inactive": " · inactive"
+  },
+  "admin": {
+    "loadingTotals": "Loading the totals…",
+    "totalsList": "Platform totals",
+    "owners": "Owners",
+    "deactivatedOwners": "{count, plural, one {<num>#</num> deactivated owner} other {<num>#</num> deactivated owners}}",
+    "visibleClubs": "Visible clubs",
+    "clubsOfDeactivated": "{count, plural, one {<num>#</num> club of a deactivated owner} other {<num>#</num> clubs of deactivated owners}}",
+    "clubsWithoutPitches": "{count, plural, one {<num>#</num> club with no active pitches} other {<num>#</num> clubs with no active pitches}}",
+    "activePitches": "Active pitches",
+    "onlyActiveOwners": "Only of active owners.",
+    "players": "Players",
+    "deactivatedPlayers": "{count, plural, one {<num>#</num> deactivated player} other {<num>#</num> deactivated players}}",
+    "confirmedBookings": "Confirmed bookings",
+    "pastAndFuture": "Past and future.",
+    "dashboard": {
+      "totals": "Totals",
+      "period": "Period",
+      "periodNote": "Applies to the bookings, the registrations and the clubs with the highest occupation.",
+      "bookingsOverTime": "Bookings over time",
+      "registrations": "New registrations",
+      "topClubs": "Clubs with the highest occupation",
+      "owners": "Owners"
+    },
+    "chart": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "groupBy": "Group by",
+      "includeCancelled": "Include cancelled",
+      "loading": "Loading the chart…",
+      "summary": "{count, plural, one {1 booking made} other {# bookings made}} between {from} and {to}.",
+      "summaryWithCancelled": "{count, plural, one {1 booking made} other {# bookings made}} between {from} and {to}, cancelled ones included.",
+      "empty": "There have been no bookings in this range yet.",
+      "image": "Bar chart of the bookings made in each period",
+      "bookings": "Bookings",
+      "tableCaption": "Bookings made in each period",
+      "periodColumn": "Period",
+      "weekRange": "{from} to {to}"
+    },
+    "registrations": {
+      "groupBy": "Group registrations by",
+      "loading": "Loading the registrations…",
+      "summary": "{owners, plural, one {1 owner} other {# owners}} and {players, plural, one {1 player} other {# players}} registered between {from} and {to}.",
+      "empty": "There have been no registrations in this range yet.",
+      "image": "Bar chart of the owners and players registered in each period",
+      "owners": "Owners",
+      "players": "Players",
+      "tableCaption": "Registrations in each period"
+    },
+    "chartTable": {
+      "show": "See the numbers in a table"
+    },
+    "top": {
+      "loading": "Loading the clubs…",
+      "empty": "No club had open hours between {from} and {to}.",
+      "range": "From {from} to {to}.",
+      "region": "Table of the clubs with the highest occupation",
+      "caption": "Clubs with the highest occupation",
+      "club": "Club",
+      "owner": "Owner",
+      "locality": "Location",
+      "occupation": "Occupation",
+      "bookedHours": "Booked hours",
+      "openHours": "Open hours"
+    },
+    "ownersTable": {
+      "name": "Name",
+      "email": "Email",
+      "registered": "Registered",
+      "status": "Status",
+      "clubs": "Clubs",
+      "pitches": "Pitches",
+      "bookings": "Bookings",
+      "players": "Players",
+      "search": "Search owner",
+      "searchPlaceholder": "Name or email",
+      "searchButton": "Search",
+      "clear": "Clear",
+      "loading": "Loading the owners…",
+      "noMatch": "No owner matches the search.",
+      "none": "There are no registered owners yet.",
+      "emptyPage": "This page has no owners.",
+      "firstPage": "Back to the first page",
+      "count": "{count, plural, one {1 owner} other {# owners}}",
+      "sortBy": "Sort by",
+      "ascending": "Ascending order",
+      "descending": "Descending order",
+      "region": "Owners and their numbers",
+      "deactivated": "Deactivated",
+      "active": "Active",
+      "pages": "Pages of owners"
+    },
+    "owner": {
+      "pageName": "Owner",
+      "back": "← Owners",
+      "loading": "Loading the owner…",
+      "deactivated": "Deactivated",
+      "active": "Active",
+      "email": "Email",
+      "registered": "Registered",
+      "clubs": "Clubs",
+      "activePitches": "Active pitches",
+      "bookings": "Bookings",
+      "players": "Players",
+      "futureBookings": "Confirmed future bookings",
+      "statusTitle": "Account status",
+      "deactivatedNotice": "Owner deactivated.",
+      "reactivatedNotice": "Owner reactivated.",
+      "reactivate": "Reactivate owner",
+      "deactivate": "Deactivate owner",
+      "history": "History",
+      "loadingHistory": "Loading the history…",
+      "neverDeactivated": "This owner has never been deactivated.",
+      "historyList": "Status history",
+      "historyDeactivated": "Deactivated",
+      "historyReactivated": "Reactivated",
+      "by": "By {name}",
+      "backToOwners": "Back to the owners"
+    },
+    "statusForm": {
+      "deactivateNote": "The owner can no longer sign in, and their clubs no longer appear in the search or take bookings. A session they already have open can last up to 15 minutes.",
+      "futureBookings": "{count, plural, =0 {There are no future bookings at this owner's clubs.} one {1 future booking stays confirmed: it is not cancelled.} other {# future bookings stay confirmed: they are not cancelled.}}",
+      "reactivateNote": "The owner can sign in again (with a new session) and their clubs return to the search and to bookings.",
+      "deactivationReason": "Reason for the deactivation",
+      "reactivationReason": "Reason for the reactivation",
+      "reasonHint": "Required, up to {max} characters. It is recorded with your name and cannot be edited.",
+      "saving": "Saving…",
+      "confirmDeactivation": "Confirm deactivation",
+      "confirmReactivation": "Confirm reactivation",
+      "back": "Back"
+    },
+    "validation": {
+      "reasonRequired": "Enter the reason.",
+      "reasonTooLong": "The reason can have at most {max} characters."
+    }
+  },
+  "toaster": {
+    "label": "Notifications"
+  },
+  "legal": {
+    "lastUpdated": "Last updated: {date} · Version {version}",
+    "languageNote": "This text exists in Portuguese and in English. The English version is a courtesy translation: if the two differ, the Portuguese text prevails.",
+    "terms": {
+      "metaTitle": "Terms and Conditions",
+      "description": "The rules for using this pitch booking demo.",
+      "intro": "By creating an account, you accept these Terms. If you do not agree with them, do not create an account.",
+      "service": {
+        "title": "What this service is",
+        "p1": "This application is a personal, non-commercial demo, made to show a programming project. It lets you search clubs and book futsal, 7-a-side football, padel and tennis courts.",
+        "fictional": "The clubs, pitches and bookings shown here may be fictional.",
+        "free": "It is free and comes with no guarantee of any kind. It may be changed or shut down at any time, without notice.",
+        "noBackups": "No backups are made: data may be lost.",
+        "sleeps": "The API goes to sleep after 15 minutes without use and takes about a minute to wake up, so the first request can be slow. While it sleeps, emails wait, and a reminder whose booking has already started is not sent."
+      },
+      "accounts": {
+        "title": "Accounts",
+        "profiles": "There are player accounts and club owner accounts. One email belongs to one account and one profile only.",
+        "everywhere": "A player account works at every club on the platform.",
+        "secret": "Keep your password secret. If you think someone else has used it, change it and let us know.",
+        "demo": "The demo accounts have public passwords and are shared: anyone can sign in to them and see or change what is there. Do not put real data in those accounts.",
+        "deactivation": "An owner's account can be deactivated by the platform's administration, for example if it does not comply with these Terms. A deactivated account cannot sign in and its clubs are no longer shown to the public; bookings already made stay confirmed."
+      },
+      "bookings": {
+        "title": "Bookings",
+        "window": "You can book from today up to 30 days ahead, in each pitch's time slots (30, 60 or 90 minutes). Times are Lisbon time.",
+        "payments": "The application does not process payments: you pay on site, directly to the club. Each booking keeps the price of the moment it was made.",
+        "cancel": "You can cancel a booking until the end of the club's cancellation window (24 hours before the start by default; each club sets its own, between 1 and 168 hours). The window in force when you cancel is the one that counts. After that, the application does not let you cancel.",
+        "clubCancel": "The club can cancel a booking that has not started yet, giving the reason; you receive an email.",
+        "noShow": "After a booking has ended, the club owner can mark it as a no-show and undo that mark. The owner sees how many no-shows you have at their clubs.",
+        "weekly": "You can book the same time for 2 to 4 weeks in a row. The free dates are booked and the others are left out, and they are shown before you confirm. Each date is a separate booking, with its own price, cancelled on its own.",
+        "neverDeleted": "Bookings are never deleted: they change status (confirmed, cancelled by the player, cancelled by the club or no-show)."
+      },
+      "owners": {
+        "title": "Club owners' responsibilities",
+        "data": "You must keep your clubs' details correct and up to date: name, address, contacts, pitches, opening hours and prices. These details are public.",
+        "customers": "If you book on behalf of a customer without an account, only enter their name and mobile number if you have a reason to, after telling them. You answer to that customer for that data, as the <link>Privacy Policy</link> explains."
+      },
+      "use": {
+        "title": "Acceptable use",
+        "intro": "You must not:",
+        "access": "try to access other people's accounts or data, or get around the application's protections;",
+        "overload": "overload the service or extract its data automatically;",
+        "impersonate": "pretend to be someone else or make fake bookings;",
+        "content": "write illegal or offensive content in the text fields, or other people's personal data without a reason."
+      },
+      "availability": {
+        "title": "Availability and liability",
+        "p1": "The service is provided free of charge, as it is, with no guarantee that it is available, that it has no errors or that the clubs' information is correct. As it is a demo, confirm directly with the club any booking you depend on.",
+        "p2": "To the extent the law allows, the person responsible for this demo is not liable for losses caused by the service being unavailable, by lost data or by incorrect information. Nothing in these Terms excludes or limits rights or liabilities that the law does not allow to be excluded or limited."
+      },
+      "changes": {
+        "title": "Changes",
+        "p1": "These Terms may change. When they do, the date and the version at the top of this page are updated. Each new account keeps a record of the version it accepted."
+      },
+      "law": {
+        "title": "Governing law",
+        "p1": "These Terms are governed by Portuguese law."
+      },
+      "contact": {
+        "title": "Contact",
+        "p1": "For any question about these Terms, write to <email></email>."
+      }
+    },
+    "privacy": {
+      "metaTitle": "Privacy Policy",
+      "description": "Which personal data this demo processes, what for, and what rights you have.",
+      "intro": "This application is a personal, non-commercial demo. This page explains which personal data it processes, what for, and what rights you have under the General Data Protection Regulation (GDPR, Regulation (EU) 2016/679).",
+      "controller": {
+        "title": "Data controller",
+        "p1": "{name}. For data protection matters, write to <email></email>."
+      },
+      "data": {
+        "title": "Which data we process, what for and on what legal basis",
+        "account": {
+          "title": "Account",
+          "what": "Name, email, mobile number (optional), profile, registration date, the language of your emails, the version of the Terms accepted and the date of that acceptance, failed sign-in attempts and temporary lockouts. The password is stored only as a hash, never as text. The mobile number is stored, but today it is not shown to anyone in the application or used to contact you.",
+          "why": "To create and manage the account and to sign in. Legal basis: performance of the contract (the Terms you accept when creating an account)."
+        },
+        "sessions": {
+          "title": "Sessions",
+          "what": "For each session: a hash of the refresh token, and the dates it was created, expires and was revoked. The token's value exists only in your browser's cookie.",
+          "why": "To keep you signed in. Legal basis: performance of the contract."
+        },
+        "bookings": {
+          "title": "Bookings",
+          "what": "Who booked, the pitch, the date and time, the price, the status, the date and reason of a cancellation, and no-shows. The club owner sees your name and the number of no-shows you have at their clubs; they do not see your email or your mobile number.",
+          "why": "To make and manage bookings. Legal basis: performance of the contract."
+        },
+        "clubs": {
+          "title": "Clubs and owners",
+          "what": "The club's name, address, location, phone and contact email, which are public on the club's page. The administration sees the owners' name and email. When an owner is deactivated or reactivated, the date, the reason and who did it are recorded.",
+          "why": "To show the clubs and run the platform. Legal basis: performance of the contract and, for the history of deactivations, legitimate interest in keeping that record.",
+          "admin": "The platform's administration sees only counts about players, never their name, email or mobile number."
+        },
+        "emails": {
+          "title": "Emails",
+          "what": "Booking confirmations and cancellations, a reminder 3 hours before the start, the summary of a weekly booking, the notice to the owner of a new booking (each club can turn it off), and the password recovery and password change emails. Each email uses your address, your name and the language you chose for emails, read from the account when it is sent, and the details of what it is about (club, address, pitch, date, time, price and reason for a cancellation, or the link to set a new password). Emails wait in a queue in the database, with the account's identifier and the booking details, but without the address.",
+          "why": "To inform you about your bookings and your account. Legal basis: performance of the contract."
+        },
+        "language": {
+          "title": "Language",
+          "what": "The site is shown in Portuguese or in English. If you have not chosen a language, it follows the language your browser states with each request (the Accept-Language header), without storing it. If you choose one with the PT | EN switch, that choice is kept in a cookie in your browser (see “Cookies and storage in the browser”). When you create an account, the site's language becomes the language of your emails, which you can change in “My account”.",
+          "why": "To show you the site and write the emails in the language you prefer. Legal basis: performance of the contract and, for the cookie, your explicit request when you choose the language."
+        },
+        "ip": {
+          "title": "IP address",
+          "what": "The API limits the number of requests per IP address (for IPv6, per /64 network). The counters are kept in memory, in one-minute windows. When someone goes over a limit, the address (or the network) and the requested path are written to the application's log. The application does not log the IP on every request; the IP also reaches the hosting providers listed below.",
+          "why": "To protect the service against abuse. Legal basis: legitimate interest in keeping the service secure."
+        },
+        "logs": {
+          "title": "Logs",
+          "what": "The API writes logs of how it runs: its start-up, the text of the commands sent to the database (without the values), the emails sent or failed (only the message's identifier and type), the pitch and time when two requests compete for the same time, the account's identifier when a session token is reused, unexpected errors (the method, the requested path and the error) and, when someone goes over a request limit, the IP address (or the network) and the path. The application does not write passwords, tokens or email addresses to the logs. These logs are kept on Render; Vercel keeps the run-time logs of the site's functions. The application sends logs to no other service and does not store them in the database.",
+          "why": "They serve only to keep the service running and secure. Legal basis: legitimate interest in operating and protecting the service."
+        }
+      },
+      "customers": {
+        "title": "Customers without an account",
+        "p1": "An owner can book on behalf of someone who has no account, entering that person's name and mobile number. This data stays with the booking and only that club's owner sees it; the person receives no emails.",
+        "p2": "It is the club owner who decides to enter this data and who answers for it to the customer: they must have a reason to collect it, tell the customer and keep it correct. The platform stores it so the owner can manage the booking, and has a legitimate interest in doing so. If you are one of these customers, you can contact the club or write to <email></email>."
+      },
+      "recipients": {
+        "title": "Who receives the data",
+        "intro": "These providers process data on behalf of the controller, so that the service works:",
+        "vercel": "<b>Vercel</b> hosts the site, which is served by Vercel's global network. It receives every request from the browser: the IP address, the cookies and what you fill in on the forms. The site's functions run in Washington DC (USA).",
+        "render": "<b>Render</b> hosts the API. It receives the requests forwarded by the site, with the same data, and keeps the application's logs. In Frankfurt (Germany).",
+        "supabase": "<b>Supabase</b> hosts the database, where the data described on this page is stored. In Ireland.",
+        "brevo": "<b>Brevo</b> sends the emails. It receives the recipient's address and name and the content of each email. In France.",
+        "github": "<b>GitHub</b> keeps the code and runs the publishing of new versions. It receives no user data."
+      },
+      "transfers": {
+        "title": "Where the data is and transfers outside the European Union",
+        "p1": "The data is stored in the database, in Ireland. The API runs in Frankfurt and the emails are sent through Brevo, in France.",
+        "p2": "The browser only talks to the site, and the requests to the API go through the infrastructure of Vercel, a United States company, whose functions for this site run in Washington DC. So requests with personal data (signing in, booking) go through the network of a United States company and there is a transfer of data to that country.",
+        "p3": "Each provider states, in its own documents, the safeguard it applies to transfers outside the European Economic Area:",
+        "vercel": "<b>Vercel</b> (Vercel Inc., United States): the Standard Contractual Clauses approved by the European Commission (Decision 2021/914), in its Data Processing Addendum, and the statement of participation in the EU-U.S. Data Privacy Framework, in its Privacy Notice.",
+        "render": "<b>Render</b> (Render Services, Inc., United States): the EU-U.S. Data Privacy Framework and, where it does not apply, the same Standard Contractual Clauses, in its Data Processing Addendum. That document states that Render's main operations are in the United States, although the API runs in Frankfurt.",
+        "supabase": "<b>Supabase</b> (Supabase Pte. Ltd., Singapore): the Standard Contractual Clauses, in its Data Processing Addendum. Its privacy policy mentions transfers to the United States and to Singapore.",
+        "brevo": "<b>Brevo</b> (a French company based in Paris): its terms state hosting in France and Belgium and allow processing outside the European Economic Area by sub-processors, with Standard Contractual Clauses and supplementary measures and, for the United States, the EU-U.S. Data Privacy Framework for as long as it remains valid."
+      },
+      "retention": {
+        "title": "For how long",
+        "noLimit": "There is no set period and no automatic deletion: accounts, bookings, data of customers without an account, expired session tokens and messages in the email queue are kept for as long as the demo exists, unless you delete the account or ask for erasure.",
+        "deactivated": "A deactivated account stays stored. A deleted account keeps no personal data. Bookings are never deleted by the application; they only change status.",
+        "counters": "The per-IP request counters last one minute and are lost when the API restarts.",
+        "logs": "Logs are available for 7 days on Render (Hobby plan) and Vercel's run-time logs are kept for 1 hour (Hobby plan), according to each provider's documentation.",
+        "languageCookie": "The language cookie lasts one year from your last choice; you can delete it in your browser's settings.",
+        "noBackups": "No backups of the database are made."
+      },
+      "cookies": {
+        "title": "Cookies and storage in the browser",
+        "intro": "We use only the cookies below, so no cookie notice is needed: the two session cookies are strictly necessary to keep the session, and the language cookie is only created when you choose a language with the PT | EN switch, to keep that choice. There are no analytics or advertising cookies, and the site loads no content from other domains.",
+        "session": "The session cookies only exist after you sign in or create an account, and neither can be read by the page's JavaScript (httpOnly).",
+        "access": "<code>access_token</code>: identifies your session on each request. It lasts 15 minutes. Path <code>/</code>, httpOnly, Secure, SameSite=Lax.",
+        "refresh": "<code>refresh_token</code>: renews the session without asking for the password again. It lasts at most 7 days from when you signed in. Path <code>/api/auth</code>, httpOnly, Secure, SameSite=Strict.",
+        "locale": "<code>NEXT_LOCALE</code>: keeps the language you chose with the switch (<code>pt-PT</code> or <code>en</code>), with or without a session. It lasts one year. Path <code>/</code>, SameSite=Lax, Secure on the published site; it is not httpOnly, because the page writes it when you choose the language. It identifies no one.",
+        "noStorage": "The application stores no data in localStorage or sessionStorage."
+      },
+      "rights": {
+        "title": "Your rights",
+        "intro": "You have the right of access, rectification, erasure, restriction of processing, portability and objection. In the application, in “My account”, you can exercise two of them without writing to anyone:",
+        "access": "<b>Access and portability.</b> “Export my data” downloads a JSON file with your profile (name, email, mobile number, profile, registration date and email language), your bookings (club, pitch, dates, price and status) and the version of the Terms you accepted and when. It does not include the password, tokens, internal identifiers or other people's data.",
+        "erasure": "<b>Erasure.</b> “Delete my account” asks for your password and, in one go, cancels your future bookings and frees those times, replaces your name with “Conta apagada” (Deleted account) and your email with an address that receives no mail, deletes the mobile number, the password, the email language, the record of the Terms acceptance and the emails not yet sent, and ends every session. Your email becomes free for a new account. Past bookings stay in the clubs' history, without identifying you. A reason written by a club when cancelling a booking, or by whoever runs the platform when deactivating an owner, is not changed. We do not send a confirmation email: the confirmation appears on screen.",
+        "owners": "An owner account with clubs cannot be deleted in the application, because a club always has an owner: write to <email></email>. The administrator account cannot be deleted.",
+        "other": "You can see your bookings in “My bookings”, set a new password and change the email language in “My account”. The application has no feature to edit the rest of the profile. For this or any other right, write to <email></email> from your account's email; the request is handled by hand. The demo accounts are shared and have no real holder."
+      },
+      "complaints": {
+        "title": "Complaints",
+        "p1": "You have the right to lodge a complaint with the Portuguese data protection authority, the Comissão Nacional de Proteção de Dados (CNPD)."
+      },
+      "changes": {
+        "title": "Changes",
+        "p1": "This policy may change. When it does, the date and the version at the top of this page are updated. Accounts created before this page existed have no record of acceptance."
+      }
+    }
+  }
+}

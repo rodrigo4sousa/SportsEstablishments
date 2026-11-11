@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { renderWithIntl } from "@/test/intl";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import PrivacyPage from "@/app/(legal)/privacy/page";
 import TermsPage from "@/app/(legal)/terms/page";
@@ -12,7 +13,7 @@ const PAGES = [
 
 describe("legal pages", () => {
   it.each(PAGES)("%s has one h1, the date and the version from the one module", (title, Page) => {
-    render(<Page />);
+    renderWithIntl(<Page />);
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
@@ -20,7 +21,7 @@ describe("legal pages", () => {
   });
 
   it.each(PAGES)("%s names every section after its heading", (_title, Page) => {
-    render(<Page />);
+    renderWithIntl(<Page />);
 
     const sections = screen.getAllByRole("region");
     expect(sections.length).toBeGreaterThan(4);
@@ -30,14 +31,14 @@ describe("legal pages", () => {
   });
 
   it("the privacy policy names the controller and a working contact", () => {
-    render(<PrivacyPage />);
+    renderWithIntl(<PrivacyPage />);
 
     expect(screen.getByText(new RegExp(DATA_CONTROLLER_NAME))).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: DATA_PROTECTION_EMAIL })[0]).toHaveAttribute("href", `mailto:${DATA_PROTECTION_EMAIL}`);
   });
 
   it("the privacy policy lists the session cookies, the processors and where the data is", () => {
-    const { container } = render(<PrivacyPage />);
+    const { container } = renderWithIntl(<PrivacyPage />);
     const text = container.textContent ?? "";
 
     for (const name of ["access_token", "refresh_token", "Vercel", "Render", "Supabase", "Brevo", "GitHub", "CNPD", "2016/679"]) {
@@ -54,7 +55,7 @@ describe("legal pages", () => {
   });
 
   it("the terms say it is a demo and which law applies", () => {
-    const { container } = render(<TermsPage />);
+    const { container } = renderWithIntl(<TermsPage />);
     const text = container.textContent ?? "";
 
     expect(text).toContain("demonstração pessoal, sem fins comerciais");
