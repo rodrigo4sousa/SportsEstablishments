@@ -67,14 +67,14 @@ Context, containers in production and deployment in production. The diagram labe
 The main decisions:
 
 - **Clean Architecture** in the back end, in four projects with dependencies pointing only inwards (Api → Infrastructure → Application → Domain). The Application layer uses `IAppDbContext`; there is no generic repository. See the [logical view](docs/architecture/4plus1/logical.md).
-- **No double bookings, enforced by the database.** A PostgreSQL exclusion constraint (`bookings_no_overlap`) prevents two confirmed bookings of the same pitch from overlapping, and its violation becomes a 409. Blocking and booking first take a lock on the pitch row. A test sends 20 simultaneous requests for the same slot. [ADR 0003](docs/architecture/adr/0003-exclusion-constraint-reservas.md).
-- **Emails through an outbox.** The message is written in the same transaction as the booking or the cancellation, and a worker inside the API sends it later, with `SKIP LOCKED` and retries. [ADR 0004](docs/architecture/adr/0004-outbox-para-emails.md).
-- **Session in httpOnly cookies, on one origin.** Next.js rewrites `/api/*` to the API, so the browser knows a single origin, the cookies are first-party and there is no CORS. A 15-minute JWT and a rotating refresh token, out of reach of the page's JavaScript. [ADR 0002](docs/architecture/adr/0002-sessao-em-cookies-httponly.md).
-- **Slots are computed, not stored**, in blocks of real elapsed time, correct on clock-change days. [ADR 0007](docs/architecture/adr/0007-slots-calculados.md).
+- **No double bookings, enforced by the database.** A PostgreSQL exclusion constraint (`bookings_no_overlap`) prevents two confirmed bookings of the same pitch from overlapping, and its violation becomes a 409. Blocking and booking first take a lock on the pitch row. A test sends 20 simultaneous requests for the same slot. [ADR 0003](docs/architecture/adr/0003-booking-exclusion-constraint.md).
+- **Emails through an outbox.** The message is written in the same transaction as the booking or the cancellation, and a worker inside the API sends it later, with `SKIP LOCKED` and retries. [ADR 0004](docs/architecture/adr/0004-outbox-for-emails.md).
+- **Session in httpOnly cookies, on one origin.** Next.js rewrites `/api/*` to the API, so the browser knows a single origin, the cookies are first-party and there is no CORS. A 15-minute JWT and a rotating refresh token, out of reach of the page's JavaScript. [ADR 0002](docs/architecture/adr/0002-session-in-httponly-cookies.md).
+- **Slots are computed, not stored**, in blocks of real elapsed time, correct on clock-change days. [ADR 0007](docs/architecture/adr/0007-calculated-slots.md).
 
 ## Deployment
 
-In production since 2026-11-09: the site on Vercel, the API and the email worker in one Render service, PostgreSQL on Supabase, email through Brevo and the pipelines on GitHub Actions. The decision is in [ADR 0009](docs/architecture/adr/0009-alvo-de-implantacao.md) and the manual steps in the [runbook](docs/deployment/runbook.md); the settings are in [environment-variables.md](docs/deployment/environment-variables.md). The deploy runs after CI is green on `main`, and only if the `DEPLOY_ENABLED` variable is `true`.
+In production since 2026-11-09: the site on Vercel, the API and the email worker in one Render service, PostgreSQL on Supabase, email through Brevo and the pipelines on GitHub Actions. The decision is in [ADR 0009](docs/architecture/adr/0009-deployment-target.md) and the manual steps in the [runbook](docs/deployment/runbook.md); the settings are in [environment-variables.md](docs/deployment/environment-variables.md). The deploy runs after CI is green on `main`, and only if the `DEPLOY_ENABLED` variable is `true`.
 
 Everything runs on free plans, and that has costs: the API sleeps when idle, and the worker only sends emails while it is awake; the Supabase free plan has no automatic backups; without a domain of its own, the `*.vercel.app` and `*.onrender.com` addresses are used; and the per-IP limits are best-effort, because the API is public. The data is demo data.
 
@@ -106,7 +106,7 @@ npx playwright install chromium     # first time; on Linux add --with-deps
 npm run e2e                         # builds the stack, seeds the demo data, runs the tests, removes the stack
 ```
 
-Or step by step, to run the tests again against the same stack: `npm run stack:up`, then `npm test` (or `npm run test:headed`, `npm run report` for the HTML report), then `npm run stack:down`. The tests use the public demo accounts (and one throwaway account per run), book the first free slot from day 20 ahead on and cancel what they book, so they can run repeatedly on the same database; they refuse to run against any address that is not `localhost`. The workflow [`e2e.yml`](.github/workflows/e2e.yml) does the same on every pull request and push to `main`, separately from CI (the deploy does not wait for it), and uploads the report, traces and videos when it fails. Decision: [ADR 0010](docs/architecture/adr/0010-testes-end-to-end-playwright.md).
+Or step by step, to run the tests again against the same stack: `npm run stack:up`, then `npm test` (or `npm run test:headed`, `npm run report` for the HTML report), then `npm run stack:down`. The tests use the public demo accounts (and one throwaway account per run), book the first free slot from day 20 ahead on and cancel what they book, so they can run repeatedly on the same database; they refuse to run against any address that is not `localhost`. The workflow [`e2e.yml`](.github/workflows/e2e.yml) does the same on every pull request and push to `main`, separately from CI (the deploy does not wait for it), and uploads the report, traces and videos when it fails. Decision: [ADR 0010](docs/architecture/adr/0010-playwright-end-to-end-tests.md).
 
 ## Run locally
 
@@ -149,7 +149,7 @@ The production settings (JWT key, allowed origins, SMTP, database roles) are in 
 
 ## Documentation
 
-The detailed documentation under `docs/` is written in Portuguese.
+The detailed documentation under `docs/` is written in English. The application itself (UI text and API error messages) is still in Portuguese (pt-PT), so documents quote on-screen text in Portuguese followed by its English meaning.
 
 - [Backlog](docs/backlog.md): stories, acceptance criteria, estimates and business rules.
 - [Stack and practices](docs/stack.md): the stack, the back end architecture, authentication, the front end, data, validation and errors, tests and security.

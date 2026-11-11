@@ -1,823 +1,822 @@
-# Backlog — App de Reservas de Campos
+# Backlog — Pitch Booking App
  
 Oct 22, 2026 · @Rodri
  
-O MVP soma 92 pontos (19 histórias de utilizador e 6 técnicas); o que fica para depois soma 45. Uma só app Next.js (React) com três áreas: `/` (jogador), `/manage` (dono) e `/admin` (admin), sobre uma API ASP.NET Core.
+The MVP adds up to 92 points (19 user stories and 6 technical ones); what is left for later adds up to 45. A single Next.js (React) app with three areas: `/` (player), `/manage` (owner) and `/admin` (admin), on top of an ASP.NET Core API. The interface is in Portuguese (pt-PT), so on-screen texts are quoted in Portuguese, followed by their English meaning in parentheses.
  
-## Pontos a rever no T06
+## Points to review in T06
 
-- Limite de pedidos dos endpoints públicos de leitura: mantém-se 120 pedidos por minuto e por IP (`RateLimiting:Public`), a rever na T06.
-- **Alvo da T06 (decidido pelo dono do projeto, substitui a máquina virtual com Caddy da Stack; a ADR 0009, reescrita, foi aceite em 2026-11-09):** Next.js na Vercel, API em Docker no plano gratuito do Render, PostgreSQL no Supabase, SMTP no Brevo, GitHub Actions. As variáveis estão em `docs/deployment/environment-variables.md`.
-- **Provisório (IP do cliente):** a API é pública no Render e os endereços dos seus proxies não se podem listar, por isso em produção usa `ForwardedHeaders__TrustAnyProxy=true`, com um `ForwardedHeaders__ForwardLimit` explícito (1). Quem ligar diretamente à API pode forjar o `X-Forwarded-For`, por isso **o limite por IP é só de melhor esforço e a proteção real contra adivinhar palavras-passe é o bloqueio de conta do Identity**. **Fechado:** `ForwardLimit=1` deu o IP certo do cliente no primeiro deploy (2026-11-09). Fica provisório o resto: o limite por IP é de melhor esforço, e o IP nas chamadas dos Server Components não foi reportado.
-- **Provisório (SMTP em produção):** sem `Email__Host` e `Email__FromAddress`, a API arranca em Production, avisa no log e não envia nada; as mensagens ficam no outbox até o SMTP existir. Substitui, só em Production, a regra da US22 e da T06 «sem eles a API não arranca». Uma das duas sozinha, ou um valor inválido, continua a impedir o arranque.
-- **Fechado (Brevo):** o SMTP na porta 2525 com `StartTls` funcionou no primeiro deploy (2026-11-09); a porta 2525 é a que serve, porque o plano gratuito do Render bloqueia a saída nas portas 25, 465 e 587.
-- **Provisório (migrações):** em Production a API nunca as aplica no arranque, mesmo com `Database__ApplyMigrationsOnStartup=true`; essa definição só conta fora de Production. O esquema novo fica ativo antes da API nova, por isso **cada migração tem de funcionar com a versão anterior da API**.
-- **Provisório (CLI da Vercel):** o `deploy.yml` corre a CLI a partir da raiz do repositório e não de `frontend`. Com o Root Directory do projeto em `frontend`, a CLI à partida de `frontend` procura `frontend/frontend` e falha (testado com a versão fixada).
-- **Provisório (espera pela API):** o `/health` não diz que versão está a correr e, durante um build, o Render continua a servir a instância anterior. Um 200 confirma que a API responde, não que o commit novo já esteja ativo; o site pode ser publicado antes disso.
-- **Provisório (keepalive do Supabase):** a frequência (duas vezes por semana) e o que conta como atividade para o Supabase e para o GitHub não estão definidos em número nas documentações; ver a nota sob a T06.
-- **Provisório (versão do PostgreSQL):** os testes correm em 18.6 e as páginas lidas do Supabase não dizem que versão dá aos projetos novos. As migrações e o `seed-demo` foram também corridos em 17.
+- Request limit of the public read endpoints: it stays at 120 requests per minute per IP (`RateLimiting:Public`), to be reviewed in T06.
+- **T06 target (decided by the project owner, replaces the Stack's virtual machine with Caddy; ADR 0009, rewritten, was accepted on 2026-11-09):** Next.js on Vercel, API in Docker on Render's free plan, PostgreSQL on Supabase, SMTP on Brevo, GitHub Actions. The variables are in `docs/deployment/environment-variables.md`.
+- **Provisional (client IP):** the API is public on Render and the addresses of its proxies cannot be listed, so in production it uses `ForwardedHeaders__TrustAnyProxy=true`, with an explicit `ForwardedHeaders__ForwardLimit` (1). Whoever connects directly to the API can forge `X-Forwarded-For`, so **the per-IP limit is best-effort only and the real protection against guessing passwords is Identity's account lockout**. **Closed:** `ForwardLimit=1` gave the client's right IP on the first deploy (2026-11-09). The rest stays provisional: the per-IP limit is best-effort, and the IP on Server Component calls was not reported.
+- **Provisional (SMTP in production):** without `Email__Host` and `Email__FromAddress`, the API starts in Production, warns in the log and sends nothing; the messages stay in the outbox until SMTP exists. It replaces, in Production only, the rule of US22 and T06 "without them the API does not start". One of the two alone, or an invalid value, still prevents startup.
+- **Closed (Brevo):** SMTP on port 2525 with `StartTls` worked on the first deploy (2026-11-09); port 2525 is the one that works, because Render's free plan blocks outbound ports 25, 465 and 587.
+- **Provisional (migrations):** in Production the API never applies them at startup, even with `Database__ApplyMigrationsOnStartup=true`; that setting only counts outside Production. The new schema goes live before the new API, so **every migration must work with the previous version of the API**.
+- **Provisional (Vercel CLI):** `deploy.yml` runs the CLI from the repository root and not from `frontend`. With the project's Root Directory set to `frontend`, the CLI starting from `frontend` looks for `frontend/frontend` and fails (tested with the pinned version).
+- **Provisional (waiting for the API):** `/health` does not say which version is running and, during a build, Render keeps serving the previous instance. A 200 confirms the API answers, not that the new commit is already active; the site may be published before that.
+- **Provisional (Supabase keepalive):** the frequency (twice a week) and what counts as activity for Supabase and for GitHub are not defined in numbers in the documentation; see the note under T06.
+- **Provisional (PostgreSQL version):** the tests run on 18.6 and the Supabase pages read do not say which version it gives to new projects. The migrations and `seed-demo` were also run on 17.
 
-## Diagramas de arquitetura
+## Architecture diagrams
 
-- **Provisório (`process-runtime` e `logical-layers`):** o pedido de alinhar os diagramas com os do Pokédex manda passar a diagrama de sequência todos os que incluem C4 fora de `c4/`, mas estes dois não são sequências: mostram processos e dependências, sem ordem no tempo. Ficaram como diagramas UML de componentes, com as mesmas caixas e setas, sem nenhum include do C4.
+- **Provisional (`process-runtime` and `logical-layers`):** the request to align the diagrams with the Pokédex's says to turn into sequence diagrams all those that include C4 outside `c4/`, but these two are not sequences: they show processes and dependencies, with no order in time. They stayed as UML component diagrams, with the same boxes and arrows, with no C4 include.
 
-## Melhorias de UX (auditoria)
+## UX improvements (audit)
 
-A auditoria de UX e acessibilidade (`docs/ux-audit.md`, 30 achados em quatro lotes) não é uma história: as correções entram em branches `feat/ux-batch-N-...` próprias, sem mudar regras de negócio nem a API. O estado de cada achado está na secção 9 do relatório.
+The UX and accessibility audit (`docs/ux-audit.md`, 30 findings in four batches) is not a story: the fixes go in their own `feat/ux-batch-N-...` branches, without changing business rules or the API. The status of each finding is in section 9 of the report.
 
-- **Lote 1, fundações: feito.** Foco visível, contraste nos tokens, foco depois das ações, 404 e páginas de erro em pt-PT, títulos, esqueletos, estados vazios, toast para erros inesperados. Os achados que ficaram para outros lotes estão listados no relatório.
-- **Lote 2, fluxo do jogador: feito** (relatório, secção 9): a página do clube com os horários primeiro e, em mobile, uma barra com a ação principal (`position: sticky`, sem dependências), os resultados da pesquisa como ligações inteiras, a lista de reservas por dia, o cabeçalho de mobile com um menu «Conta», o tempo de espera depois de um 429 (`Retry-After`), a introdução na página inicial, e a legenda dos horários. O texto da página do clube diz «por horário» (e não «por slot») ao lado de «horário»; os ecrãs do dono passaram a dizer «horário» no lote 3.
-- **Lote 3, área do dono: feito** (relatório, secção 9): o menu «Conta» também no cabeçalho do dono, atalhos «Calendário», «Estatísticas» e «Editar» em cada clube de `/manage`, o calendário numa página mais larga, um campo de cada vez em mobile (seletor «Campo»), os detalhes da reserva ao lado da grelha com Escape e o foco de volta à caixa, nomes das caixas iguais ao texto visível, estatísticas em cartões em mobile, o nome do clube nas páginas, o foco dos formulários, e «horário» em vez de «slot» nos ecrãs do dono (o campo da API continua `pricePerSlot`). **Decidido depois do lote 2:** a altura das reservas em mobile fica como está (215 px) e não há coluna de contactos em desktop.
-- **Lote 4, admin e passagem final: feito** (relatório, secção 9 e «Fecho»): gráficos do admin com séries a 3:1 e números por cima das barras, os dados de cada gráfico numa tabela que qualquer pessoa abre, as tabelas do admin em cartões em mobile, nomes dos donos como ligações, a página do dono com esqueletos, a coluna fixa das horas e as colunas flexíveis no calendário, o nome do clube e do dono nos títulos do separador, e a passagem de acessibilidade a todos os perfis (zoom a 200 %, reflow a 320 px, teclado, movimento reduzido). A aplicação não tem tema escuro (os tokens `.dark` existem, mas nada aplica a classe): não se acrescentou. Fica de fora, a decidir: tema escuro, cor de marca, teste com leitor de ecrã e em telemóvel real.
-- **Decidido (direção visual):** tema neutro, sem cor de marca por agora; uma introdução curta na página inicial entra no lote 4 (UX-030).
-- **Decidido (navegação, lote 3):** atalhos por clube («Calendário», «Estatísticas») em `/manage` e um menu no cabeçalho do dono e do admin (UX-013).
-- **Decidido (calendário, lote 3):** em mobile, um campo de cada vez com seletor; em desktop, página mais larga só para o calendário (UX-005).
-- **Decidido (página do clube, lote 2):** os slots passam para cima dos contactos; a barra fixa de reserva em mobile só entra se o esforço for S ou M (UX-010).
-- **Erro corrigido, US19 e outros ecrãs (UX-019):** os erros inesperados (500, falha de rede, qualquer coisa que não seja uma resposta 4xx da API) iam para uma mensagem na página, por vezes fora de vista, em vez do toast que o AGENTS.md descreve (`isExpectedApiError` e `unexpectedErrorMessage` em `lib/api/expected-error.ts`). Agora vão para o toast; só o login, a recuperação de palavra-passe, a nova palavra-passe e a reserva continuam a descrever «sem ligação» dentro do formulário, de propósito.
+- **Batch 1, foundations: done.** Visible focus, contrast in the tokens, focus after actions, 404 and error pages in pt-PT, titles, skeletons, empty states, toast for unexpected errors. The findings that were left for other batches are listed in the report.
+- **Batch 2, player flow: done** (report, section 9): the club page with the times first and, on mobile, a bar with the main action (`position: sticky`, no dependencies), the search results as whole links, the booking list by day, the mobile header with a `Conta` (Account) menu, the wait time after a 429 (`Retry-After`), the introduction on the home page, and the legend of the times. The club page's text says `por horário` (per time) (and not "per slot") next to `horário`; the owner's screens started saying `horário` in batch 3.
+- **Batch 3, owner area: done** (report, section 9): the `Conta` menu also in the owner's header, `Calendário` (Calendar), `Estatísticas` (Statistics) and `Editar` (Edit) shortcuts on each club in `/manage`, the calendar on a wider page, one pitch at a time on mobile (`Campo` (Pitch) selector), the booking details beside the grid with Escape and the focus back on the box, box names equal to the visible text, statistics as cards on mobile, the club's name on the pages, form focus, and `horário` instead of "slot" on the owner's screens (the API field is still `pricePerSlot`). **Decided after batch 2:** the height of bookings on mobile stays as it is (215 px) and there is no contacts column on desktop.
+- **Batch 4, admin and final pass: done** (report, section 9 and "Closing"): admin charts with series at 3:1 and numbers above the bars, each chart's data in a table anyone can open, the admin's tables as cards on mobile, owner names as links, the owner page with skeletons, the fixed hours column and flexible columns in the calendar, the club's and owner's name in the tab titles, and the accessibility pass on all profiles (200 % zoom, reflow at 320 px, keyboard, reduced motion). The application has no dark theme (the `.dark` tokens exist, but nothing applies the class): none was added. Left out, to decide: dark theme, brand colour, test with a screen reader and on a real phone.
+- **Decided (visual direction):** neutral theme, no brand colour for now; a short introduction on the home page comes in batch 4 (UX-030).
+- **Decided (navigation, batch 3):** shortcuts per club (`Calendário`, `Estatísticas`) in `/manage` and a menu in the owner's and admin's header (UX-013).
+- **Decided (calendar, batch 3):** on mobile, one pitch at a time with a selector; on desktop, a wider page only for the calendar (UX-005).
+- **Decided (club page, batch 2):** the slots move above the contacts; the fixed booking bar on mobile only comes in if the effort is S or M (UX-010).
+- **Error fixed, US19 and other screens (UX-019):** unexpected errors (500, network failure, anything that is not a 4xx response from the API) went to a message on the page, sometimes out of view, instead of the toast that AGENTS.md describes (`isExpectedApiError` and `unexpectedErrorMessage` in `lib/api/expected-error.ts`). They now go to the toast; only login, password recovery, the new password and booking still describe `sem ligação` (no connection) inside the form, on purpose.
 
-## Convenções e regras de negócio
+## Conventions and business rules
  
-**Formato.** Cada história segue «Como \<perfil>, quero \<ação>, para \<benefício>», com critérios de aceitação testáveis. **M** = MVP, **D** = depois do MVP.
+**Format.** Each story follows "As a \<profile>, I want \<action>, so that \<benefit>", with testable acceptance criteria. **M** = MVP, **D** = after the MVP.
  
-**Story points (Fibonacci: 1, 2, 3, 5, 8).** Medem esforço e incerteza relativos, não horas. A referência é a US02 (registo de dono) = 2 pontos. Depois do primeiro sprint, a tua velocidade (pontos feitos por sprint) é que converte pontos em tempo. Histórias de 8 pontos são candidatas a dividir.
+**Story points (Fibonacci: 1, 2, 3, 5, 8).** They measure relative effort and uncertainty, not hours. The reference is US02 (owner registration) = 2 points. After the first sprint, your velocity (points done per sprint) is what converts points into time. Stories of 8 points are candidates for splitting.
  
-**Perfis.** Jogador, Dono e Admin. O admin é o dono da plataforma: não tem registo público e vê só contagens, nunca dados pessoais de jogadores.
+**Profiles.** Player, Owner and Admin. The admin is the platform owner: it has no public registration and sees only counts, never players' personal data.
  
-**Regras decididas**
+**Decided rules**
  
-- Um email corresponde a uma só conta e a um só perfil.
-- A plataforma é um único marketplace: uma conta de jogador serve em todos os clubes de todos os donos. Não há sites nem domínios por dono.
-- Um dono pode ter vários clubes; cada clube pertence a um só dono.
-- Janela de cancelamento definida por clube, 24 horas por omissão. Conta a que estiver em vigor no momento do cancelamento.
-- Reservas de hoje até 30 dias à frente.
-- Duração do slot por campo: 30, 60 ou 90 minutos.
-- Reservas e cancelamentos nunca se apagam: mudam de estado (Confirmada, Cancelada pelo jogador, Cancelada pelo clube, Falta).
-- Cada reserva guarda o preço do momento em que foi feita.
-- Pagamentos ficam fora do MVP.
-- Datas guardadas em UTC e mostradas em hora de Lisboa.
-## Épico 1 — Contas e acesso
+- One email corresponds to a single account and a single profile.
+- The platform is a single marketplace: one player account works at every club of every owner. There are no per-owner sites or domains.
+- An owner can have several clubs; each club belongs to a single owner.
+- Cancellation window defined per club, 24 hours by default. The one in force at the moment of cancelling counts.
+- Bookings from today up to 30 days ahead.
+- Slot duration per pitch: 30, 60 or 90 minutes.
+- Bookings and cancellations are never deleted: they change state (Confirmed, Cancelled by player, Cancelled by club, No-show).
+- Each booking stores the price at the moment it was made.
+- Payments are out of the MVP.
+- Dates stored in UTC and shown in Lisbon time.
+## Epic 1 — Accounts and access
 
-**Requisito transversal às histórias de autenticação (US01, US03, US04).** Todas as sessões, de qualquer perfil, são renovadas pelo `POST /api/auth/refresh`, que verifica sempre que a conta continua ativa antes de emitir novos tokens. Uma conta desativada não recebe novos tokens, e o pedido de refresh é tratado como falhado (401). Há um teste de integração para este caso.
+**Cross-cutting requirement for the authentication stories (US01, US03, US04).** All sessions, of any profile, are renewed by `POST /api/auth/refresh`, which always checks that the account is still active before issuing new tokens. A deactivated account does not receive new tokens, and the refresh request is treated as failed (401). There is an integration test for this case.
  
-### US01 · Registo de jogador · M · 3 pontos
+### US01 · Player registration · M · 3 points
  
-Como jogador, quero criar conta com email e palavra-passe, para poder reservar campos e gerir as minhas reservas.
+As a player, I want to create an account with email and password, so that I can book pitches and manage my bookings.
  
-- O registo pede nome, email, palavra-passe e telemóvel (opcional).
-- O email tem de ser único; se já existir, aparece uma mensagem a dizê-lo.
-- A palavra-passe tem pelo menos 8 caracteres e é guardada com hash, nunca em texto.
-- Campos inválidos são rejeitados com mensagem por campo, no front end e na API.
-- Depois do registo, o jogador fica com sessão iniciada e vai para a página inicial.
-- A conta criada tem o perfil Jogador.
-- Decidido: pedidos POST, PUT, PATCH e DELETE sem cabeçalho `Origin`, ou com um `Origin` de outro site, são rejeitados com 403 `origin_not_allowed`.
-- Decidido (confirmado):
-  - **Email já usado (compromisso aceite):** o critério pede uma mensagem a dizê-lo, por isso o registo revela que um email tem conta. A API responde 409 com o código `email_taken` e sempre a mesma mensagem («Já existe uma conta com este email.»), seja a conta de jogador, de dono ou de admin, sem mais nenhum dado. A comparação ignora maiúsculas e minúsculas e os espaços à volta; o índice único da base de dados decide registos simultâneos. A alternativa sem enumeração (responder sempre «verifica o teu email» e avisar por email) contraria este critério e o de sessão iniciada logo a seguir. O login (US03) e a recuperação (US05) continuam sem revelar se o email existe. O rate limiting das rotas `/api/auth/*` está feito na US03.
-  - Nome obrigatório, até 100 caracteres; os espaços à volta são removidos.
-  - Email: um endereço simples (sem nome de apresentação), com ponto no domínio e até 256 caracteres; os espaços à volta são removidos; é guardado como foi escrito.
-  - Telemóvel opcional: 9 a 15 algarismos, com `+` inicial opcional; os espaços são removidos. Aceita números estrangeiros.
-  - Palavra-passe: só o mínimo de 8 caracteres, sem máximo nem regras de composição; é usada tal como foi escrita (sem cortar espaços).
-  - Sessão: a validade de 7 dias do refresh token é absoluta (a rotação mantém a data de expiração), por isso é preciso entrar de novo, no máximo, 7 dias depois do registo ou do login. Um refresh token já usado que volte a aparecer termina todas as sessões da conta (docs/stack.md); os separadores renovam um de cada vez (Web Locks, US03), para não terminarem a sessão uns aos outros.
-  - Pedidos anónimos a rotas que não existem recebem 401 (política de fallback que exige sessão), e não 404.
-  - A conta de admin criada pelo seed tem o nome «Administrador».
-  - A chave de assinatura do JWT de desenvolvimento (`Jwt:SigningKey` em `appsettings.Development.json`) está no repositório e só serve para desenvolvimento; fora dele vem sempre de `Jwt__SigningKey`.
-  - As bibliotecas do front end usam versões publicadas há pelo menos duas semanas. Exceção decidida: o `zod` 4.6.7 (publicado a 2026-10-12) foi adotado de imediato porque corrige o aviso de segurança GHSA-mrhx-c7xc-m3w5 (gravidade alta), que fazia falhar o `npm audit` do CI; as versões anteriores têm o aviso. Todas as dependências do `package.json` têm versão exata (sem `^`); mudar uma versão é sempre um commit próprio.
-- Decidido (confirmado):
-  - Conta desativada (requisito do Épico 1): `users.deactivated_at` preenchido. A US29 acrescenta o motivo e o registo de quem desativou.
-  - A página inicial mostra «Olá, \<nome>» no cabeçalho depois do registo, ou as ligações «Entrar» e «Criar conta» sem sessão (o «Entrar» veio com a US03).
-### US02 · Registo de dono · M · 2 pontos
+- Registration asks for name, email, password and mobile number (optional).
+- The email has to be unique; if it already exists, a message says so.
+- The password has at least 8 characters and is stored hashed, never as text.
+- Invalid fields are rejected with a per-field message, on the front end and in the API.
+- After registration, the player is signed in and goes to the home page.
+- The account created has the Player profile.
+- Decided: POST, PUT, PATCH and DELETE requests without an `Origin` header, or with an `Origin` from another site, are rejected with 403 `origin_not_allowed`.
+- Decided (confirmed):
+  - **Email already used (accepted trade-off):** the criterion asks for a message saying so, so registration reveals that an email has an account. The API answers 409 with the code `email_taken` and always the same message (`Já existe uma conta com este email.` (An account with this email already exists.)), whether the account is a player's, an owner's or an admin's, with no other data. The comparison ignores case and surrounding spaces; the database's unique index decides simultaneous registrations. The alternative with no enumeration (always answering "check your email" and notifying by email) contradicts this criterion and the one about being signed in right after. Login (US03) and recovery (US05) still do not reveal whether the email exists. Rate limiting of the `/api/auth/*` routes is done in US03.
+  - Name required, up to 100 characters; surrounding spaces are removed.
+  - Email: a simple address (no display name), with a dot in the domain and up to 256 characters; surrounding spaces are removed; it is stored as typed.
+  - Optional mobile number: 9 to 15 digits, with an optional leading `+`; spaces are removed. Accepts foreign numbers.
+  - Password: only the minimum of 8 characters, with no maximum or composition rules; it is used as typed (spaces are not trimmed).
+  - Session: the 7-day lifetime of the refresh token is absolute (rotation keeps the expiry date), so signing in again is needed, at most, 7 days after registration or login. An already used refresh token that shows up again ends all the account's sessions (docs/stack.md); tabs renew one at a time (Web Locks, US03), so as not to end each other's session.
+  - Anonymous requests to routes that do not exist get 401 (fallback policy that requires a session), and not 404.
+  - The admin account created by the seed is named `Administrador` (Administrator).
+  - The development JWT signing key (`Jwt:SigningKey` in `appsettings.Development.json`) is in the repository and is only for development; outside it, it always comes from `Jwt__SigningKey`.
+  - The front end libraries use versions published at least two weeks ago. Decided exception: `zod` 4.6.7 (published on 2026-10-12) was adopted immediately because it fixes security advisory GHSA-mrhx-c7xc-m3w5 (high severity), which made CI's `npm audit` fail; earlier versions have the advisory. All the dependencies in `package.json` have an exact version (no `^`); changing a version is always a commit of its own.
+- Decided (confirmed):
+  - Deactivated account (Epic 1 requirement): `users.deactivated_at` set. US29 adds the reason and the record of who deactivated.
+  - The home page shows `Olá, <nome>` (Hello, <name>) in the header after registration, or the links `Entrar` (Sign in) and `Criar conta` (Create account) without a session (`Entrar` came with US03).
+### US02 · Owner registration · M · 2 points
  
-Como dono de um clube, quero criar a minha conta de dono, para registar e gerir o meu clube na plataforma.
+As a club owner, I want to create my owner account, so that I can register and manage my club on the platform.
  
-- Existe uma página de registo própria para donos, separada da do jogador.
-- Pede os mesmos dados e aplica as mesmas validações da US01.
-- Um email já usado noutra conta (de qualquer perfil) é rejeitado.
-- A conta criada tem o perfil Dono.
-- Depois do registo, o dono entra em `/manage` e é convidado a criar o primeiro clube.
-- Estado: feita. A página é `/register/owner` e o endpoint é `POST /api/auth/register/owner`: o perfil Dono é fixo no endpoint e nunca vem do pedido, por isso nenhum pedido cria um admin. Mesmo corpo, mesmas validações, o mesmo 409 `email_taken` para qualquer perfil e os mesmos cookies que o registo de jogador. O registo de jogador e o de dono partilham o mesmo limite de pedidos por IP.
-- Decidido: um utilizador com sessão que abra `/login` ou `/register` (incluindo a página de registo de donos) é reencaminhado para a página inicial do seu perfil, com uma verificação no servidor.
-- Depois do registo, `/manage` mostra o estado vazio com o botão «Criar o primeiro clube», que abre o formulário de criação (US06).
-### US03 · Login e logout · M · 5 pontos
+- There is a registration page of its own for owners, separate from the player's.
+- It asks for the same data and applies the same validations as US01.
+- An email already used on another account (of any profile) is rejected.
+- The account created has the Owner profile.
+- After registration, the owner goes to `/manage` and is invited to create the first club.
+- Status: done. The page is `/register/owner` and the endpoint is `POST /api/auth/register/owner`: the Owner profile is fixed in the endpoint and never comes from the request, so no request creates an admin. Same body, same validations, the same 409 `email_taken` for any profile and the same cookies as player registration. Player and owner registration share the same per-IP request limit.
+- Decided: a user with a session who opens `/login` or `/register` (including the owner registration page) is redirected to the home page of their profile, with a check on the server.
+- After registration, `/manage` shows the empty state with the `Criar o primeiro clube` (Create the first club) button, which opens the creation form (US06).
+### US03 · Login and logout · M · 5 points
  
-Como utilizador registado, quero entrar e sair da minha conta, para aceder à área do meu perfil.
+As a registered user, I want to sign in and out of my account, so that I can access my profile's area.
  
-- Login com email e palavra-passe; credenciais erradas mostram uma mensagem genérica, sem revelar se o email existe.
-- Depois do login, o utilizador vai para a área do seu perfil: `/` (jogador), `/manage` (dono) ou `/admin` (admin).
-- O admin criado pelo seed (US04) entra por este login e vai para `/admin` (critério que passou da US04 para aqui, com teste).
-- Notas da US01 para esta história: o `POST /api/auth/refresh`, a rotação e a recusa de contas desativadas já existem.
-- Rate limiting e bloqueio temporário de conta nas rotas `/api/auth/*`. Isto também trava a enumeração de emails pelo registo (US01).
-- Sem nenhum proxy configurado, o `X-Forwarded-For` é ignorado. Em produção é **provisório** (T06, «Pontos a rever no T06»): a API acredita em qualquer ligação, com um limite explícito de entradas, por isso o IP pode ser forjado por quem liga diretamente à API.
-- A sessão usa um access token JWT de curta duração (15 minutos) e um refresh token. Um pedido com access token expirado ou inválido devolve 401; o front end chama então `POST /api/auth/refresh` uma vez e repete o pedido. Só se o refresh falhar é que o utilizador é enviado para o login.
-- O refresh verifica que a conta continua ativa; uma conta desativada não recebe novos tokens (ver requisito transversal do Épico 1 e US29).
-- Quem tenta abrir a área de outro perfil é redirecionado no front end, e a API devolve 403.
-- O logout termina a sessão no browser: recebe o cookie `refresh_token` (que vai para todo o `/api/auth`), revoga esse token na base de dados e apaga os dois cookies com os mesmos caminhos com que foram criados.
-- Uma conta de dono desativada (US29) não consegue entrar.
-- Estado: back end e front end feitos (página `/login`, redirecionamento por perfil, guardas das áreas, botão «Sair», refresh entre separadores).
-- Decidido (front end): o servidor nunca renova a sessão (o cookie `refresh_token` só vai para `/api/auth`). Os guardas vivem nos layouts de `/manage` e `/admin`; sem sessão → `/login?next=<caminho>`; perfil errado → a área desse utilizador. A página de login tenta primeiro um refresh silencioso no browser e, com sucesso, segue para `next`. `next` só é aceite se for um caminho relativo que começa por uma única `/` e pertence à área do utilizador; senão vai para a página inicial do perfil (jogador `/`, dono `/manage`, admin `/admin`). Só um separador de cada vez renova a sessão (Web Locks API).
-- Decidido (confirmado):
-  - **Falha genérica:** email desconhecido, palavra-passe errada, conta bloqueada e conta desativada dão todos o mesmo 401 `invalid_credentials` («Email ou palavra-passe incorretos.»), depois do mesmo trabalho de hash, para o tempo de resposta também não revelar se o email existe. Um email mal formado também dá este 401; só os campos vazios dão 400 `validation_failed`, por campo.
-  - **Bloqueio:** 5 palavras-passe erradas seguidas bloqueiam a conta durante 15 minutos (bloqueio do Identity). Tentativas durante o bloqueio não o prolongam. Um login certo recomeça a contagem. Tentativas erradas em paralelo na mesma conta podem não ser todas contadas (controlo de concorrência do Identity); o rate limiting cobre esse caso.
-  - **Rate limiting:** janela fixa de 1 minuto, por IP do cliente e por rota: login 10, registo 5, refresh 30 pedidos (o refresh tem mais margem porque vários utilizadores podem partilhar um IP). Um cliente IPv6 conta por rede /64. Valores configuráveis em `RateLimiting:Auth`. Acima do limite: 429 `too_many_requests` com `Retry-After`.
-  - **Proxies de confiança:** por omissão nenhum; o IP é o da ligação. Em produção, **provisório** (T06, «Pontos a rever no T06»): `ForwardedHeaders:TrustAnyProxy` com `ForwardedHeaders:ForwardLimit`, porque os proxies do Render não têm endereços que se possam listar. O contentor do Next.js nunca é de confiança: o rewrite passa à frente um `X-Forwarded-For` enviado pelo browser. Em desenvolvimento todos os pedidos partilham um limite (o do contentor do Next.js), o que chega para um programador.
-  - **Páginas públicas (front end):** `/` e as páginas de pesquisa e de clube ficam públicas para todos os perfis; os guardas só existem em `/manage` e `/admin`. Um utilizador com sessão que abra `/login`, `/register` ou `/register/owner` é reencaminhado no servidor para a página inicial do seu perfil (US02).
-  - **Caminho de regresso:** o guarda lê o caminho completo do pedido (cabeçalho `x-pathname`, posto pelo `proxy.ts` mínimo, que o reescreve sempre e não renova tokens nem decide acessos) e envia para `/login?next=<caminho completo>`; o `next` continua a ser validado por `safeNext`.
-  - **`next` e a área do utilizador:** para o jogador, a sua área são as páginas públicas (tudo exceto `/manage`, `/admin`, `/login` e `/register`); um dono só aceita caminhos de `/manage` e um admin só de `/admin`.
-  - **Logout:** responde sempre 204 e apaga os dois cookies, com ou sem sessão válida. Um refresh token já usado que apareça no logout termina todas as sessões da conta, como no refresh.
-  - **Refreshes:** vêm sempre do browser (o cookie `refresh_token` só vai para `/api/auth`, por isso o servidor Next.js nunca renova a sessão); o limite do refresh conta, por isso, o IP real do utilizador.
-- Decidido (confirmado):
-  - O email é comparado sem maiúsculas/minúsculas e sem os espaços à volta; a palavra-passe é usada tal como foi escrita.
-### US04 · Conta de admin criada por seed · M · 2 pontos
+- Login with email and password; wrong credentials show a generic message, without revealing whether the email exists.
+- After login, the user goes to their profile's area: `/` (player), `/manage` (owner) or `/admin` (admin).
+- The admin created by the seed (US04) signs in through this login and goes to `/admin` (criterion that moved from US04 to here, with a test).
+- US01 notes for this story: `POST /api/auth/refresh`, the rotation and the refusal of deactivated accounts already exist.
+- Rate limiting and temporary account lockout on the `/api/auth/*` routes. This also slows down email enumeration through registration (US01).
+- With no proxy configured, `X-Forwarded-For` is ignored. In production it is **provisional** (T06, "Points to review in T06"): the API believes any connection, with an explicit limit of entries, so the IP can be forged by whoever connects directly to the API.
+- The session uses a short-lived JWT access token (15 minutes) and a refresh token. A request with an expired or invalid access token returns 401; the front end then calls `POST /api/auth/refresh` once and repeats the request. Only if the refresh fails is the user sent to login.
+- The refresh checks that the account is still active; a deactivated account does not receive new tokens (see the Epic 1 cross-cutting requirement and US29).
+- Whoever tries to open another profile's area is redirected on the front end, and the API returns 403.
+- Logout ends the session in the browser: it receives the `refresh_token` cookie (which goes to all of `/api/auth`), revokes that token in the database and deletes the two cookies with the same paths they were created with.
+- A deactivated owner account (US29) cannot sign in.
+- Status: back end and front end done (`/login` page, redirect by profile, area guards, `Sair` (Sign out) button, refresh between tabs).
+- Decided (front end): the server never renews the session (the `refresh_token` cookie only goes to `/api/auth`). The guards live in the layouts of `/manage` and `/admin`; no session → `/login?next=<path>`; wrong profile → that user's area. The login page first tries a silent refresh in the browser and, on success, goes on to `next`. `next` is only accepted if it is a relative path starting with a single `/` and belonging to the user's area; otherwise it goes to the profile's home page (player `/`, owner `/manage`, admin `/admin`). Only one tab at a time renews the session (Web Locks API).
+- Decided (confirmed):
+  - **Generic failure:** unknown email, wrong password, locked-out account and deactivated account all give the same 401 `invalid_credentials` (`Email ou palavra-passe incorretos.` (Incorrect email or password.)), after the same hashing work, so that the response time does not reveal whether the email exists either. A malformed email also gives this 401; only empty fields give 400 `validation_failed`, per field.
+  - **Lockout:** 5 wrong passwords in a row lock the account for 15 minutes (Identity lockout). Attempts during the lockout do not extend it. A correct login restarts the count. Wrong attempts in parallel on the same account may not all be counted (Identity's concurrency control); rate limiting covers that case.
+  - **Rate limiting:** fixed window of 1 minute, per client IP and per route: login 10, registration 5, refresh 30 requests (refresh has more margin because several users may share an IP). An IPv6 client counts per /64 network. Values configurable in `RateLimiting:Auth`. Above the limit: 429 `too_many_requests` with `Retry-After`.
+  - **Trusted proxies:** none by default; the IP is the connection's. In production, **provisional** (T06, "Points to review in T06"): `ForwardedHeaders:TrustAnyProxy` with `ForwardedHeaders:ForwardLimit`, because Render's proxies have no addresses that can be listed. The Next.js container is never trusted: the rewrite passes on an `X-Forwarded-For` sent by the browser. In development all requests share one limit (the Next.js container's), which is enough for a developer.
+  - **Public pages (front end):** `/` and the search and club pages stay public for all profiles; the guards only exist in `/manage` and `/admin`. A user with a session who opens `/login`, `/register` or `/register/owner` is redirected on the server to the home page of their profile (US02).
+  - **Return path:** the guard reads the request's full path (the `x-pathname` header, set by the minimal `proxy.ts`, which always overwrites it and neither renews tokens nor decides access) and sends to `/login?next=<full path>`; `next` is still validated by `safeNext`.
+  - **`next` and the user's area:** for the player, their area is the public pages (everything except `/manage`, `/admin`, `/login` and `/register`); an owner only accepts paths under `/manage` and an admin only under `/admin`.
+  - **Logout:** always answers 204 and deletes the two cookies, with or without a valid session. An already used refresh token that shows up on logout ends all the account's sessions, as in refresh.
+  - **Refreshes:** always come from the browser (the `refresh_token` cookie only goes to `/api/auth`, so the Next.js server never renews the session); the refresh limit therefore counts the user's real IP.
+- Decided (confirmed):
+  - The email is compared case-insensitively and without the surrounding spaces; the password is used as typed.
+### US04 · Admin account created by seed · M · 2 points
  
-Como dono da plataforma, quero que a conta de admin seja criada na instalação, para não haver forma pública de alguém se tornar admin.
+As the platform owner, I want the admin account to be created at installation, so that there is no public way for anyone to become an admin.
  
-- A conta de admin é criada no arranque a partir de variáveis de ambiente (email e palavra-passe), se ainda não existir.
-- Não existe nenhum endpoint nem página que crie contas de admin ou promova outras contas a admin.
-- Sem as variáveis definidas, a aplicação arranca sem admin e regista um aviso no log.
-- Só uma das variáveis definida, email inválido ou palavra-passe com menos de 8 caracteres: a API não arranca e mostra um erro claro, que nunca inclui o email nem a palavra-passe.
-- Se já existe um admin, não é criado outro, mesmo com outro email, e o admin existente nunca é alterado (mudar a variável da palavra-passe depois não tem efeito).
-- Se o email já pertence a uma conta de jogador ou de dono, essa conta nunca é promovida a admin; fica um aviso no log, sem o email.
-- O seed corre em todos os ambientes, sempre depois das migrações. Em produção as migrações são aplicadas no deploy (T06), antes de a API arrancar.
-- Mudar a palavra-passe do admin faz-se com o comando `set-admin-password` da API (ver o README, «Changing the admin password»): lê a nova palavra-passe da variável de ambiente `ADMIN_NEW_PASSWORD`, nunca da linha de comandos, valida-a com as regras da US01, atualiza a palavra-passe do admin, termina as sessões dele e nunca escreve o valor em lado nenhum. O procedimento antigo (apagar a conta de admin) já não existe.
-- O critério «o admin entra pelo login normal e vai para `/admin`» passou para a US03.
-- Decisões de implementação:
-  - Variáveis `AdminSeed__Email` e `AdminSeed__Password` (no docker compose, `ADMIN_SEED_EMAIL` e `ADMIN_SEED_PASSWORD` no `.env`). A palavra-passe segue as regras da US01.
-  - Os espaços à volta do email são removidos antes de o validar; o resto da validação é estrita (a palavra-passe é usada tal como está).
-  - As palavras-passe de todas as contas são guardadas com PBKDF2-HMAC-SHA512 e 210 000 iterações (formato v3 do Identity); hashes antigos com menos iterações são atualizados no login seguinte.
-### US05 · Recuperar palavra-passe · D · 3 pontos
+- The admin account is created at startup from environment variables (email and password), if it does not exist yet.
+- There is no endpoint or page that creates admin accounts or promotes other accounts to admin.
+- Without the variables set, the application starts without an admin and logs a warning.
+- Only one of the variables set, invalid email or password with fewer than 8 characters: the API does not start and shows a clear error, which never includes the email or the password.
+- If an admin already exists, another is not created, even with another email, and the existing admin is never changed (changing the password variable afterwards has no effect).
+- If the email already belongs to a player or owner account, that account is never promoted to admin; a warning is left in the log, without the email.
+- The seed runs in every environment, always after the migrations. In production the migrations are applied on deploy (T06), before the API starts.
+- Changing the admin's password is done with the API's `set-admin-password` command (see the README, "Changing the admin password"): it reads the new password from the `ADMIN_NEW_PASSWORD` environment variable, never from the command line, validates it with the US01 rules, updates the admin's password, ends their sessions and never writes the value anywhere. The old procedure (deleting the admin account) no longer exists.
+- The criterion "the admin signs in through the normal login and goes to `/admin`" moved to US03.
+- Implementation decisions:
+  - Variables `AdminSeed__Email` and `AdminSeed__Password` (in docker compose, `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` in `.env`). The password follows the US01 rules.
+  - The surrounding spaces of the email are removed before validating it; the rest of the validation is strict (the password is used as is).
+  - All accounts' passwords are stored with PBKDF2-HMAC-SHA512 and 210,000 iterations (Identity's v3 format); old hashes with fewer iterations are upgraded at the next login.
+### US05 · Recover password · D · 3 points
  
-Como utilizador, quero redefinir a palavra-passe por email, para recuperar o acesso se a esquecer.
+As a user, I want to reset my password by email, so that I can regain access if I forget it.
  
-- O pedido de recuperação mostra sempre a mesma mensagem, exista ou não o email.
-- O email traz uma ligação de uso único que expira ao fim de 1 hora.
-- Uma ligação usada ou expirada mostra erro e permite pedir outra.
-- A nova palavra-passe segue as regras da US01.
-- Estado: feita no back end (`POST /api/auth/password-reset/request` e `POST /api/auth/password-reset/confirm`, os dois emails); a página do pedido (`/forgot-password`) e a da ligação (`/reset-password`) no front end.
-- Decisões de implementação (decididas):
-  - O pedido responde sempre 202 com a mesma mensagem, exista ou não a conta; só um email vazio ou mal escrito é um 400 no campo `email` (isso não revela nada). Só se pesquisa a conta e se põe trabalho na fila: não há email nem hash a calcular no pedido.
-  - Só um jogador ou dono **ativo** recebe o email. Contas desconhecidas, donos e jogadores desativados e o admin não recebem nada (o admin muda a palavra-passe com `set-admin-password`, US04).
-  - No máximo **um email de recuperação por conta a cada 5 minutos**; os pedidos a mais recebem a mesma resposta e não fazem nada. Rate limiting por IP como nas outras rotas de autenticação: **5** pedidos por minuto no pedido e **10** na confirmação (`RateLimiting:Auth:PasswordResetRequestPermitLimit` e `…ConfirmPermitLimit`).
-  - A mensagem da fila (`password_reset`) só guarda o id da conta. O token é criado pelo worker quando envia o email, com o fornecedor de tokens de recuperação do Identity (Data Protection) e validade de **1 hora** (`DataProtectionTokenProviderOptions.TokenLifespan`; esse fornecedor usa o relógio do sistema, não o `TimeProvider`). O token inclui o security stamp da conta, por isso deixa de valer quando a palavra-passe muda: cada ligação funciona uma vez, e uma ligação antiga deixa de funcionar quando se usa uma mais recente.
-  - A ligação é `{PublicSite:BaseUrl}/reset-password?email=…&token=…` (o email e o token escapados). `PublicSite:BaseUrl` é obrigatório (validado no arranque): `http://localhost:3000` em desenvolvimento, o endereço HTTPS público em produção (T06).
-  - A confirmação recebe `{ email, token, newPassword }`. A nova palavra-passe segue a US01 (400 no campo `newPassword`); qualquer ligação má (email desconhecido, token errado, expirado ou já usado, conta desativada ou admin) é o mesmo 400 `invalid_or_expired_reset_link`, sem campos.
-  - Se resultar: 204, palavra-passe mudada pelo Identity (novo security stamp), todos os refresh tokens da conta revogados, bloqueio por tentativas limpo, e um email «A tua palavra-passe foi alterada» na fila (`password_changed`, sem ligação). **Não entra automaticamente**: a pessoa inicia sessão com a nova palavra-passe.
-  - Nunca vão para os logs o email, o token, a ligação ou a palavra-passe (tem teste).
-  - As chaves de Data Protection que protegem os tokens ficam na base de dados (tabela `data_protection_keys`, `PersistKeysToDbContext`, nome de aplicação fixo `SportsBooking`), por isso uma ligação enviada antes de um reinício, de um deploy ou de uma segunda instância continua a funcionar (tem teste). **As cópias de segurança da base de dados guardam também as chaves**: têm de ser tratadas como segredos.
-### US30 · Apagar a conta e exportar os meus dados · D · 5 pontos
+- The recovery request always shows the same message, whether the email exists or not.
+- The email carries a single-use link that expires after 1 hour.
+- A used or expired link shows an error and allows requesting another.
+- The new password follows the US01 rules.
+- Status: done on the back end (`POST /api/auth/password-reset/request` and `POST /api/auth/password-reset/confirm`, both emails); the request page (`/forgot-password`) and the link page (`/reset-password`) on the front end.
+- Implementation decisions (decided):
+  - The request always answers 202 with the same message, whether the account exists or not; only an empty or badly typed email is a 400 on the `email` field (that reveals nothing). It only looks the account up and queues work: there is no email or hash to calculate in the request.
+  - Only an **active** player or owner receives the email. Unknown accounts, deactivated owners and players and the admin receive nothing (the admin changes the password with `set-admin-password`, US04).
+  - At most **one recovery email per account every 5 minutes**; extra requests get the same response and do nothing. Per-IP rate limiting like the other authentication routes: **5** requests per minute on the request and **10** on the confirmation (`RateLimiting:Auth:PasswordResetRequestPermitLimit` and `…ConfirmPermitLimit`).
+  - The queue message (`password_reset`) only stores the account id. The token is created by the worker when it sends the email, with Identity's password-reset token provider (Data Protection) and a validity of **1 hour** (`DataProtectionTokenProviderOptions.TokenLifespan`; that provider uses the system clock, not `TimeProvider`). The token includes the account's security stamp, so it stops being valid when the password changes: each link works once, and an old link stops working when a more recent one is used.
+  - The link is `{PublicSite:BaseUrl}/reset-password?email=…&token=…` (the email and the token escaped). `PublicSite:BaseUrl` is required (validated at startup): `http://localhost:3000` in development, the public HTTPS address in production (T06).
+  - The confirmation receives `{ email, token, newPassword }`. The new password follows US01 (400 on the `newPassword` field); any bad link (unknown email, wrong, expired or already used token, deactivated or admin account) is the same 400 `invalid_or_expired_reset_link`, with no fields.
+  - If it works: 204, password changed by Identity (new security stamp), all the account's refresh tokens revoked, attempt lockout cleared, and a `A tua palavra-passe foi alterada` (Your password was changed) email queued (`password_changed`, no link). **It does not sign in automatically**: the person signs in with the new password.
+  - The email, the token, the link or the password never go to the logs (there is a test).
+  - The Data Protection keys that protect the tokens stay in the database (table `data_protection_keys`, `PersistKeysToDbContext`, fixed application name `SportsBooking`), so a link sent before a restart, a deploy or a second instance keeps working (there is a test). **Database backups also hold the keys**: they must be treated as secrets.
+### US30 · Delete my account and export my data · D · 5 points
 
-Como utilizador, quero apagar a minha conta e descarregar os meus dados, para exercer os meus direitos do RGPD sem ter de escrever um email. Enquanto não existir, a Política de Privacidade (T07) indica o pedido por email, tratado à mão.
+As a user, I want to delete my account and download my data, so that I can exercise my GDPR rights without having to write an email. Until it exists, the Privacy Policy (T07) points to the request by email, handled by hand.
 
-- Na área da conta, um jogador ou dono pode descarregar os seus dados num formato de uso comum (conta e reservas).
-- Pode pedir o apagamento da conta, com confirmação; os dados pessoais deixam de estar associados às reservas, que continuam a existir para os clubes sem identificar a pessoa.
-- O que acontece às contas de dono com clubes e às reservas futuras fica decidido antes de começar (hoje as reservas nunca se apagam e um clube não pode ficar sem dono).
-- Estado: feita (nasceu da T07). Página `/account` («A minha conta»), secção «Privacidade e dados»; `GET /api/me/data-export` e `POST /api/me/delete-account`; migração `AddAccountDeletion` (`users.deleted_at`, opcional, sem tabela nova, por isso o `docs/deployment/supabase-roles.sql` não muda). Decisão e alternativas na [ADR 0011](architecture/adr/0011-apagar-conta-por-anonimizacao.md).
-- **Provisório (decisões da US30, tomadas pelo dono do projeto):**
-  - Exportação: um ficheiro JSON só com os dados da própria pessoa: perfil, reservas (clube, campo, datas, preço, estado) e versão e data da aceitação dos Termos. Sem hashes, tokens, ids internos ou dados de outras pessoas. Limite por IP.
-  - Apagamento: pede de novo a palavra-passe; numa só transação cancela as reservas futuras (libertando os horários), anonimiza a conta (nome fixo «Conta apagada», email `deleted-<id>@deleted.invalid`, palavra-passe e security stamp invalidados, telemóvel e aceitação limpos), apaga os refresh tokens e os emails por enviar. As reservas passadas ficam, sem dados pessoais. Nenhuma linha referenciada é apagada.
-  - Um dono com clubes (422 `owner_has_clubs`, a interface manda contactar a administração) e o admin (422 `admin_cannot_delete_account`) não podem apagar a conta.
-  - Sem email de confirmação: a confirmação é no ecrã e os cookies são limpos.
-- **Provisório (escolhas na implementação, as mais conservadoras onde a história não dizia):**
-  - «Clubes ativos» = qualquer clube: um clube não tem estado próprio, e um clube sem campos ativos continua a ser do dono.
-  - O access token de uma conta apagada deixa de funcionar logo (uma leitura pela chave primária em cada pedido autenticado); é uma exceção à regra dos 15 minutos, que continua a valer para uma conta desativada (US29).
-  - O cancelamento ao apagar ignora a janela de cancelamento e fica como `CancelledByPlayer`; uma reserva que já começou não é tocada.
-  - Uma palavra-passe errada é 400 `invalid_password` (um 401 faria o cliente tentar renovar a sessão) e conta para o bloqueio por tentativas, como no login.
-  - Limites: 5 exportações e 5 tentativas de apagamento por minuto e por IP (`RateLimiting:Auth:AccountExportPermitLimit`, `AccountDeletePermitLimit`).
-  - Não existia uma página de conta: criou-se `/account` para todos os perfis, com ligação «A minha conta» para jogadores e donos; o admin vê só a exportação.
-  - Uma conta apagada sai dos totais e da lista de donos do admin, mas continua nos gráficos de registos.
-  - A exportação de um dono não inclui os clubes (o pedido era perfil, reservas e aceitação).
-  - Ficam por anonimizar, por não serem campos da conta: os motivos escritos à mão por um clube ou por um admin (`owner_status_changes` é só de acrescentar) e as mensagens já fechadas do outbox (só têm o id). A Política diz o primeiro.
-  - `LEGAL_VERSION` passou a `1.1`, porque `legal-info.ts` manda mudar a versão sempre que um texto muda; quem já aceitou a 1.0 não tem de aceitar de novo.
-  - Um quarto fluxo end-to-end, além dos três da T08, a pedido; no E2E o limite de inícios de sessão sobe para 100 por minuto (`e2e/compose.e2e.yml`), porque todos os browsers partilham um endereço.
-## Épico 2 — Configuração do clube
- 
-### US06 · Criar e editar clube · M · 3 pontos
- 
-Como dono, quero criar e editar os meus clubes, para que os jogadores os encontrem com a informação certa.
- 
-- Um clube tem nome, morada, localidade, telefone, email de contacto e janela de cancelamento em horas (24 por omissão).
-- Um dono pode ter vários clubes; cada clube pertence a um só dono.
-- O dono só vê e edita os seus clubes; um pedido a um clube de outro dono devolve 404.
-- Campos obrigatórios em falta são rejeitados com mensagem por campo.
-- Alterar a janela de cancelamento aplica-se aos cancelamentos feitos a partir desse momento.
-- Decidido: a janela de cancelamento lê-se do clube no momento do cancelamento e nunca é copiada para as reservas. A US19 (e a US12) seguem esta regra.
-- Decidido (URLs): ao criar o clube gera-se um `slug` único a partir do nome (por exemplo `clube-desportivo-do-porto`); o `slug` não muda se o nome mudar, para os endereços públicos continuarem a funcionar. Numa colisão acrescenta-se um sufixo numérico (`-2`, `-3`, …). A área do dono usa o GUID público do clube: `/manage/clubs/{id}`.
-- O clube guarda o seu fuso horário (`Europe/Lisbon`). Quando a tabela de clubes existir, repete-se o teste de armazenamento real da T04 com ela: instantes em UTC e fuso do clube guardado.
-- Estado: feita. Back end (`/api/manage/clubs`: criar, listar, ver e editar, com o perfil Dono e a T02) e front end: `/manage` lista os clubes do dono (por nome, 20 por página) e, sem clubes, mostra o estado vazio com «Criar o primeiro clube»; `/manage/clubs/new` cria e `/manage/clubs/{id}` edita (formulário com uma mensagem por campo, erros da API nos campos certos). Um clube que não existe e o clube de outro dono mostram a mesma página «Clube não encontrado»; um id que não é um GUID nem chega à API.
-- Decidido (confirmado):
-  - Os cinco campos de texto são obrigatórios: nome (até 100 caracteres), morada (até 200), localidade (até 100), telefone e email de contacto (as mesmas regras da US01: 9 a 15 algarismos com `+` opcional; um endereço simples com ponto no domínio). Os espaços à volta são removidos, e os do telefone também.
-  - Janela de cancelamento: um número inteiro de horas, de 1 a 168 (uma semana). Ao criar é opcional (24 por omissão); ao editar (`PUT`, que substitui tudo) é obrigatória. A base de dados também a limita (check constraint).
-  - `slug`: letras minúsculas ASCII e algarismos, sem acentos, e tudo o resto passa a um hífen; por exemplo «Clube de Ténis da Foz» dá `clube-de-tenis-da-foz` e «Padel & Co.» dá `padel-co` (o `&` não é traduzido). Um nome sem nada aproveitável dá `clube`. A base é cortada em 80 caracteres, num fim de palavra. Numa colisão acrescenta-se `-2`, `-3`, … (o número a seguir ao maior em uso). O índice único decide criações simultâneas: a que perde tenta de novo com o sufixo seguinte.
-  - Lista do dono: 20 por página por omissão, no máximo 100, ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
-  - Um clube nunca muda de dono, e apagar a conta de um dono com clubes falha em vez de apagar os clubes.
-  - O fuso horário não se edita nem aparece no formulário; a resposta mostra-o (`timeZone`).
-### US07 · Gerir campos · M · 5 pontos
- 
-Como dono, quero adicionar, editar e desativar campos, para controlar o que está disponível para reserva.
- 
-- Um campo tem nome, desporto (de uma lista fixa: futsal, futebol 7, padel, ténis), preço por slot em euros e estado (ativo ou inativo).
-- Mudar o preço só afeta reservas novas; as existentes mantêm o preço do momento da reserva.
-- Um campo inativo não aparece na pesquisa nem aceita reservas.
-- Não é possível desativar um campo com reservas futuras confirmadas; a mensagem indica quantas são.
-- Os campos não se apagam, só se desativam, para manter o histórico.
-- Estado: feita. Back end (`/api/manage/clubs/{clubId}/pitches`: criar, listar, ver, editar, desativar e reativar, com o perfil Dono e a T02) e front end: a página `/manage/clubs/{id}` mostra, por baixo dos dados do clube, a lista de campos (ativos e inativos, por nome, 20 por página) com «Adicionar campo», «Editar», «Desativar» e «Reativar». O desporto é uma lista com as etiquetas «Futsal», «Futebol 7», «Padel» e «Ténis»; o preço escreve-se e mostra-se à portuguesa («12,50 €»; aceita também «12.50») e vai para a API como número. Os campos inativos aparecem marcados com «Inativo». Um nome repetido aparece como erro no campo do nome. Um campo pedido através de um clube que não é o seu dá 404 `pitch_not_found`; o clube de outro dono dá 404 `club_not_found`, como na US06. Feito com a T03/US18: desativar um campo com reservas confirmadas que ainda não acabaram (futuras ou em curso) é recusado com 422 `pitch_has_future_bookings`, e a mensagem e o campo `count` dizem quantas são; a contagem é feita sob o trinco da linha do campo, para nenhuma reserva entrar entre a contagem e a desativação.
-- Decidido (confirmado):
-  - Códigos estáveis do desporto na API, guardados como texto: `futsal`, `football7`, `padel`, `tennis` (os nomes em português são só da interface). Um campo novo começa ativo.
-  - Nome: obrigatório, até 100 caracteres (espaços à volta removidos), único em cada clube sem distinguir maiúsculas de minúsculas (também contra campos inativos); o mesmo nome pode existir noutro clube. Um nome repetido é um erro de validação no campo `name` (400), não um 409.
-  - Preço por slot: maior que 0 € e até 500 €, com no máximo duas casas decimais (`numeric(10,2)`, com check constraint).
-  - O `PUT` substitui nome, desporto e preço; o estado só muda com `POST …/deactivate` e `POST …/reactivate`, que são idempotentes (repetir devolve 200).
-  - Lista do dono: campos ativos e inativos, 20 por página por omissão (no máximo 100), ordenada pelo nome sem distinguir maiúsculas e depois pelo id.
-### US08 · Horário e duração dos slots · M · 5 pontos
- 
-Como dono, quero definir o horário de funcionamento e a duração dos slots de cada campo, para que os slots livres sejam gerados automaticamente.
- 
-- Para cada dia da semana, o dono define hora de abertura e de fecho, ou marca o dia como fechado.
-- A duração do slot é de 30, 60 ou 90 minutos, por campo.
-- Os slots são gerados a partir da abertura, em blocos da duração definida; um bloco que passe da hora de fecho não é gerado.
-- Mudar o horário não altera reservas já feitas; uma reserva fora do novo horário continua válida.
-- As horas são introduzidas e mostradas em hora de Lisboa (T04).
-- O fecho mais tarde é às 00:00 (meia-noite do próprio dia). **Limitação conhecida do MVP:** horários que passam da meia-noite (por exemplo, 22:00–02:00) são rejeitados.
-- Quando a tabela de horários existir, repete-se o teste de armazenamento real da T04 com ela: horários guardados como hora local (`time`) com o fuso do clube, e os slots gerados em UTC.
-- Estado: feita. Front end: em cada campo de `/manage/clubs/{id}` o botão «Horário» abre, por baixo do campo, o editor da semana (sete linhas, segunda-feira primeiro, cada uma com «Fechado» ou hora de abertura e de fecho, mais a duração do slot de 30, 60 ou 90 minutos; guarda a semana toda e os erros da API aparecem na linha e no campo certos) e a pré-visualização dos slots (data de hoje até 30 dias à frente, em hora de Lisboa, com «(verão)» e «(inverno)» na hora repetida de outubro). Back end: `GET` e `PUT /api/manage/clubs/{clubId}/pitches/{pitchId}/schedule` (duração e os sete dias; o `PUT` substitui a semana inteira) e `GET …/slots?date=AAAA-MM-DD` (pré-visualização, só de leitura, dos slots gerados nessa data local, com início e fim em UTC, pelo `SlotGenerator` da T04). Tudo com o perfil Dono e a T02: o clube de outro dono dá 404 `club_not_found` e um campo pedido através de outro clube dá 404 `pitch_not_found`, antes de qualquer validação. Os horários ficam na tabela `pitch_opening_hours` (uma linha por dia aberto, `time` sem fuso); o teste de armazenamento da T04 foi repetido com ela. Mudar o horário ou a duração não mexe nas reservas (a US17 já diz que um slot não está livre se algo se sobrepuser).
-- Decidido (confirmado):
-  - As horas vão de meia em meia hora (09:00, 09:30, …), sem segundos; a API e a base de dados rejeitam o resto (a base de dados verifica só a ordem: fecho depois da abertura ou 00:00).
-  - Um campo novo fica fechado todos os dias e com slots de 60 minutos até o dono definir o horário. Os campos que já existiam antes desta migração ficam também com 60 minutos.
-  - Formato de cada dia: `{ "closed": true }` ou `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (hora local, `HH:mm`). Os sete dias são obrigatórios no `PUT`, e um dia fechado com horas é rejeitado (em vez de as ignorar). Os erros vêm por campo com o caminho JSON (`monday.closes`).
-  - A pré-visualização mostra os slots que o horário gera e marca como bloqueados (`blocked`) os que se sobrepõem a algum bloqueio (US09) e como reservados (`booked`) os que se sobrepõem a uma reserva confirmada (US18), mesmo que essa reserva tenha sido feita numa grelha antiga; ainda não tira os slots que já começaram. Funciona também para um campo inativo. Uma data fora de hoje até 30 dias (em hora de Lisboa) ou mal escrita dá 400 no campo `date`.
-  - Interface: a pré-visualização mostra «Reservado» nos slots com reserva confirmada e «Bloqueado» nos que se sobrepõem a um bloqueio (os dois, quando é o caso); os slots livres não levam marca. A nota por baixo diz que os bloqueios e as reservas aparecem marcados.
-### US09 · Bloquear slots · M · 3 pontos
- 
-Como dono, quero bloquear períodos de um campo, para que ninguém o reserve durante manutenção ou eventos privados.
- 
-- Um bloqueio tem campo, início, fim e motivo (opcional).
-- Os slots dentro de um bloqueio não aparecem como livres para os jogadores.
-- Um bloqueio que se sobreponha a reservas confirmadas é rejeitado, e a mensagem lista essas reservas para o dono decidir (cancelar pela US12).
-- O dono pode remover um bloqueio futuro, e os slots voltam a ficar livres.
-- Os bloqueios aparecem no calendário (US11).
-- Estado: feita. Front end: o botão «Bloqueios» em cada campo de `/manage/clubs/{id}` abre a lista dos bloqueios em curso e futuros (hora de Lisboa, motivo se houver, «Em curso» nos que já começaram), o formulário para criar um (data e hora de início e de fim, que podem ser de dias diferentes, e motivo opcional) e a remoção, com confirmação, dos que ainda não começaram; os erros da API (sobreposição, início no passado, bloqueio já começado) aparecem no sítio certo, e a pré-visualização dos slots mostra «Bloqueado» nos slots afetados. Back end: `POST`, `GET` e `DELETE /api/manage/clubs/{clubId}/pitches/{pitchId}/blocks[/{blockId}]`, com o perfil Dono e a T02 (clube de outro dono: 404 `club_not_found`; campo de outro clube: 404 `pitch_not_found`; bloqueio de outro campo: 404 `block_not_found`). Criar corre numa transação que começa por trancar a linha do campo (`SELECT … FOR UPDATE`, `IPitchLock`) e só depois verifica a sobreposição com outros bloqueios e, desde a T03/US18, com reservas confirmadas: um bloqueio sobre reservas dá 409 `block_overlaps_bookings`, com as horas dessas reservas na mensagem e a lista (`bookings`: id, início e fim em UTC) na resposta. A pré-visualização de slots do dono (US08) marca como `blocked` os slots que se sobrepõem a algum bloqueio.
-- Decidido (confirmado):
-  - O início e o fim chegam como data e hora locais de Lisboa (`2026-10-25T09:00`), de meia em meia hora, e convertem-se com a `ClubTime` (as regras de mudança de hora da T04); a resposta traz instantes UTC. Os bloqueios podem passar da meia-noite (não são horários de funcionamento).
-  - O início não pode estar no passado (começar agora é aceite); o fim tem de ser depois do início e no máximo 90 dias à frente.
-  - Motivo opcional, até 200 caracteres.
-  - Dois bloqueios do mesmo campo não se podem sobrepor (409 `block_overlap`); bloqueios que se tocam (um acaba quando o outro começa) são aceites. A verificação é feita sob o trinco da linha do campo, sem constraint na base de dados.
-  - A lista traz os bloqueios em curso e futuros (os que ainda não acabaram) por ordem de início, 20 por página.
-  - Só se remove um bloqueio que ainda não começou; um que já começou ou acabou dá 422 `block_already_started` e fica no histórico. Remover é apagar a linha.
-  - Um bloqueio pode ser criado num campo inativo.
-### US10 · Preços de ponta e vazio · D · 5 pontos
- 
-Como dono, quero definir preços diferentes por faixa horária, para cobrar mais nas horas de maior procura.
- 
-- O dono define faixas por campo (dias da semana e intervalo de horas), cada uma com o seu preço.
-- Um slot fora de qualquer faixa usa o preço base do campo.
-- Faixas sobrepostas no mesmo campo são rejeitadas.
-- O preço mostrado ao jogador e guardado na reserva é o da faixa do slot.
-- Estado: feita. Back end: faixas, preço único por slot (`Pitch.PriceForSlot`), preço da faixa nas reservas, nos slots públicos e na pré-visualização do dono. Front end: o botão «Faixas de preço» em cada campo de `/manage/clubs/{id}` (ao lado de «Horário» e «Bloqueios», um painel de cada vez) abre a lista das faixas (dias em pt-PT a começar na segunda-feira, horas e preço), o formulário para criar e editar (dias, início, fim, preço; os erros da API vão para o campo certo e a sobreposição aparece por cima dos botões) e a remoção com confirmação; a pré-visualização do dono, o formulário «Nova reserva», a lista de slots do jogador e o resumo da reserva mostram o preço de cada slot, e a página do clube mostra o preço base e uma nota quando o campo tem faixas.
-- Decidido (confirmado):
-  - Uma faixa tem dias da semana (um ou mais), início e fim em hora local do clube, de meia em meia hora (como a US08), fim `00:00` = meia-noite, sem faixas que passem da meia-noite, e um preço com os limites do preço do campo (> 0, ≤ 500 €, duas casas decimais). Id público GUID v7. Máximo de 20 faixas por campo (422 `price_band_limit_reached`).
-  - O preço de um slot (`Pitch.PriceForSlot`) é o da faixa que contém a **hora local de início** do slot nesse dia da semana (início incluído, fim excluído); fora de qualquer faixa, o preço base. Um slot que atravessa o fim de uma faixa (ex.: 90 minutos a partir das 21:00 numa faixa até às 22:00) fica com o preço da faixa onde começa. Na hora repetida de 25 de outubro, os dois slots das 01:00 têm o mesmo preço (conta a hora local).
-  - Faixas do mesmo campo não se sobrepõem se partilharem um dia da semana e as horas se cruzarem; faixas que se tocam (uma acaba quando a outra começa) são aceites. Sobreposição: 409 `price_band_overlap`; os outros erros são 400 `validation_failed` com mensagem por campo (`days`, `start`, `end`, `price`). Criar, alterar e apagar correm sob o trinco do campo (`IPitchLock`), o mesmo das reservas.
-  - As faixas são configuração, não histórico: apagar é apagar a linha (`DELETE …/price-bands/{bandId}`, 204). Alterar ou apagar faixas nunca toca nas reservas existentes, que guardam o preço com que foram feitas.
-  - A pesquisa (US16) continua sem mostrar preços. A página do clube mostra o preço base («Preço base: 18,50 € por horário») e uma nota quando o campo tem faixas (`hasPriceBands`); o preço de cada slot vem em `price` nos slots públicos e na pré-visualização do dono.
-  - Os dias da semana viajam na API como nomes em inglês (`monday` … `sunday`), como as chaves do horário; a interface mostra-os em pt-PT, a começar na segunda-feira.
-  - Só a sobreposição (409 `price_band_overlap`), o limite (422 `price_band_limit_reached`) e o «não encontrada» (404 `price_band_not_found`) têm código próprio; os erros de campo (dias vazios, fim antes do início, hora fora do passo, preço fora dos limites) são 400 `validation_failed` com a mensagem em `days`, `start`, `end` ou `price`.
-  - Texto da página do clube: o preço do campo aparece como «Preço base: 18,50 € por horário» e, por baixo, «Alguns horários têm outro preço; o preço de cada horário aparece na escolha do horário.» quando o campo tem faixas.
-## Épico 3 — Operação do clube
- 
-### US11 · Calendário de reservas · M · 8 pontos
- 
-Como dono, quero ver as reservas de um clube numa vista diária e semanal, para saber o que se passa em cada campo.
- 
-- Vista diária: uma coluna por campo, linhas por hora, com reservas e bloqueios.
-- Vista semanal: um campo de cada vez, escolhido numa lista.
-- Cada reserva mostra o nome do jogador (ou do cliente, na US13), a hora e o estado.
-- Navegação para o dia ou semana anterior e seguinte, e um botão «Hoje».
-- As reservas canceladas não aparecem por omissão.
-- Abrir uma reserva mostra os detalhes e a ação de cancelar.
-- Os bloqueios aparecem no calendário (US09): `GET …/pitches/{pitchId}/blocks` dá os bloqueios em curso e futuros de cada campo.
-- Candidata a dividir: vista diária (5) e vista semanal (3).
-- Estado: feita. Back end (`GET /api/manage/clubs/{clubId}/calendar` e `GET …/bookings/{bookingId}`) e interface (a vista diária e a semanal, `/manage/clubs/{id}/calendar`).
-- Decidido (confirmado):
-  - Back end: o intervalo do calendário tem no máximo 7 dias, ambos incluídos; as datas têm de estar entre 2000 e 2100 (limite defensivo); o dono pode ver qualquer data (passado e futuro, sem a janela de 30 dias dos jogadores).
-  - Back end: uma reserva que atravessa a meia-noite local aparece nos dois dias.
-  - Back end: uma falta (`no_show`) não é um cancelamento e aparece sempre; só as canceladas (pelo jogador ou pelo clube) ficam escondidas sem `includeCancelled=true`.
-  - Back end: um campo inativo só vem na lista se tiver reservas visíveis no intervalo (o mesmo critério que decide que reservas se veem).
-  - Back end: o nome do jogador é o único dado pessoal que o dono vê, e só nos seus clubes: não há email, telefone nem id da conta (há um teste que procura esses valores na resposta).
-  - Interface: a grelha alarga-se (em horas inteiras, dentro do dia) para incluir uma reserva ou um bloqueio fora do horário de abertura, por exemplo de um horário antigo.
-  - Interface: reservas e bloqueios que se sobrepõem (por exemplo uma reserva cancelada e a que a substituiu) ficam lado a lado, em faixas.
-  - Interface: mudar de dia, de vista, de semana ou de campo fecha a reserva aberta.
-  - Interface: um campo que não está no clube, no endereço da vista semanal, conta como o primeiro; um campo inativo que a API devolva aparece marcado «Inativo».
-  - Interface: reservas e bloqueios posicionam-se pelo tempo real decorrido desde o início do dia de Lisboa, e não pelas horas do relógio: o dia 25 de outubro de 2026 (25 horas) tem 25 linhas, com «01:00 (verão)» e «01:00 (inverno)», e o dia 29 de março de 2026 (23 horas) tem 23, sem a 01:00. As horas só se mostram por `lib/datetime.ts`. Um horário de abertura que não existe nesse dia avança para depois do salto, como na API (01:30 → 02:30).
-  - Interface: numa semana com mudança de hora a coluna desse dia mostra «25 h» (ou «23 h») e uma nota por cima diz que as reservas desse dia estão desenhadas pelo tempo realmente decorrido, por isso depois da mudança ficam uma hora desfasadas da escala das horas (a de um dia normal); a hora escrita em cada reserva é sempre a certa.
-- Decidido (confirmado) — decisões da interface:
-  - O calendário diário está em `/manage/clubs/{id}/calendar`, com uma ligação «Calendário de reservas» na página do clube. Uma coluna por campo (os que a API devolve) e uma linha por hora, desde a abertura mais cedo até ao fecho mais tarde desse dia, em horas inteiras. Sem nenhum campo aberto nem reservas ou bloqueios, diz-se isso em vez de se mostrar a grelha.
-  - Cada reserva mostra o nome do jogador, a hora e o estado («Confirmada», «Cancelada pelo jogador», «Cancelada pelo clube», «Falta»), com um estilo por estado; as canceladas ficam riscadas e a tracejado. Um bloqueio tem um estilo à parte (tracejado, riscas) e mostra «Bloqueio», a hora e o motivo, e não se abre. O que está fora do horário de abertura do campo fica sombreado, e um campo fechado nesse dia diz «Fechado».
-  - Navegação: «Dia anterior», «Hoje» (o dia de hoje em Lisboa, não o do navegador), «Dia seguinte» e um campo de data.
-  - O estado da vista está no endereço: `?date=AAAA-MM-DD` (hoje não se escreve, por isso «Hoje» é o endereço simples), `&cancelled=1` e `&booking=<id>`. Uma data inválida conta como hoje e um id que não é GUID é ignorado.
-  - As reservas canceladas estão escondidas por omissão, com a opção «Mostrar reservas canceladas».
-  - Vista semanal («Vista semanal» / «Vista diária»): um campo de cada vez, escolhido numa lista «Campo» (o primeiro por omissão), em sete colunas, de segunda a domingo, com os nomes dos dias em português («Segunda-feira, 04/05/2026»), e linhas por hora, com as mesmas caixas e a mesma regra de posição da vista diária (cada dia pelo tempo real decorrido desde o seu início, em `layoutWeek`, que usa o `layoutDay`). A grelha é partilhada pelas sete colunas, da abertura mais cedo à hora de fecho mais tarde da semana. Um pedido à API por semana (segunda a domingo, 7 dias), com todos os campos; mudar de campo não faz outro pedido.
-  - Navegação semanal: «Semana anterior», «Hoje» (a semana de hoje, em Lisboa) e «Semana seguinte»; o campo de data leva à semana que contém essa data. O estado da vista está no endereço: `?view=week&date=AAAA-MM-DD&pitch=<id>&cancelled=1&booking=<id>` (a vista diária é o valor por omissão e não se escreve; o campo só se escreve na vista semanal).
-  - Abrir uma reserva (carregar nela) mostra os detalhes por baixo da grelha: jogador, campo, data, hora, preço, estado, quando foi feita e, se estiver cancelada, quando e porquê. «Fechar» fecha. Uma reserva que já não existe diz «Esta reserva já não existe.». Um clube que não é do dono (ou não existe) mostra a mesma página «Clube não encontrado» da edição do clube.
-- Decidido (confirmado) — decisões de implementação:
-  - `GET /api/manage/clubs/{clubId}/calendar?from=AAAA-MM-DD&to=AAAA-MM-DD&includeCancelled=false` (perfil Dono, pela T02: o clube de outro dono, ou inexistente, é 404 `club_not_found`, antes de se olhar para a query). `from` e `to` são datas locais do clube, ambas incluídas; `from` não pode ser depois de `to` (400 em `from`/`to`/`includeCancelled`, mensagens em português).
-  - A resposta tem `from`, `to`, `pitches`, `bookings` e `blocks`. Os campos do clube: os campos que a API lista, ordenados pelo nome; cada um com `id`, `name`, `sport`, `status`, `slotDurationMinutes` e `days` (uma entrada por data do intervalo, com `opens` e `closes` locais «HH:mm», ou `null` num dia fechado; fecho «00:00» é meia-noite). Os instantes das reservas e dos bloqueios vão em UTC; a interface mostra-os em hora de Lisboa.
-  - Uma reserva pertence ao intervalo se se sobrepuser a ele (meio-aberto), e um dia é o dia local: a 25 de outubro de 2026 (25 horas) o intervalo é [2026-10-24T23:00Z, 2026-10-26T00:00Z), e as duas 01:30 contam.
-  - Reservas: `id`, `pitchId`, `startsAt`, `endsAt`, `status`, `price` e `bookerName`, por ordem de início. As canceladas (pelo jogador ou pelo clube) só vêm com `includeCancelled=true`. Bloqueios: `id`, `pitchId`, `startsAt`, `endsAt`, `reason`, dos campos listados.
-  - Jogadores e admins recebem 403 nestes endpoints, e sem sessão 401.
-  - `GET /api/manage/clubs/{clubId}/bookings/{bookingId}`: os detalhes (campo, desporto, início, fim, preço, estado, `bookerName`, `createdAt`, `cancelledAt`, `cancellationReason` e `canCancel`, verdadeiro para uma reserva confirmada que ainda não começou). Uma reserva de outro clube, mesmo do mesmo dono, e um id desconhecido são o mesmo 404 `booking_not_found`.
-  - Feito na US13: para uma reserva que o dono fez para um cliente sem conta, `bookerName` traz o nome do cliente e `createdByClub` é verdadeiro (a interface ainda não mostra a marca). O telemóvel só vem nos detalhes.
-### US12 · Cancelar reserva como dono · M · 2 pontos
- 
-Como dono, quero cancelar uma reserva, para resolver problemas como um campo avariado.
- 
-- O dono pode cancelar qualquer reserva futura dos seus clubes, sem o limite da janela de cancelamento.
-- É obrigatório indicar um motivo.
-- A reserva passa a «Cancelada pelo clube» (não é apagada) e o slot volta a ficar livre.
-- O jogador recebe um email com o motivo (US22).
-- Estado: feita. Back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) e a ação nos detalhes da reserva do calendário.
-- Decidido (confirmado):
-  - Corpo `{ "reason": "…" }`: o motivo é obrigatório, sem espaços nas pontas, com no máximo 200 caracteres (400 em `reason`).
-  - Ordem das respostas: clube de outro dono 404 `club_not_found` → reserva que não é deste clube 404 `booking_not_found` (as duas antes de validar o corpo) → 400 → 422 `booking_not_confirmed` (já cancelada, pelo jogador ou pelo clube, ou falta; verifica-se primeiro) → 422 `booking_already_started` (já começou; começar agora conta como começada).
-  - O cancelamento feito pelo jogador (US19) também guarda o instante (`cancelled_at`).
-- Decidido (confirmado) — decisões da interface:
-  - Nos detalhes, uma reserva que a API diz poder cancelar (`canCancel`: confirmada e ainda não começou) tem o botão «Cancelar reserva»; o ecrã nunca o calcula. Abre um formulário com «Motivo do cancelamento» (obrigatório, até 200 caracteres, com a mesma mensagem da API) e «Confirmar cancelamento» / «Manter reserva». Uma reserva confirmada que já começou diz «Esta reserva já começou, por isso já não pode ser cancelada.» e não tem botão.
-  - Depois de cancelar diz «Reserva cancelada. O horário voltou a ficar livre.», os detalhes passam a mostrar o estado, a hora e o motivo, e o calendário recarrega-se (a reserva sai da grelha, a menos que as canceladas estejam à vista). Não se promete nenhum email: o aviso ao jogador é da US22.
-  - As recusas da API mostram a mensagem do código (422 `booking_not_confirmed`, 422 `booking_already_started`, 404 `booking_not_found`), fecham o formulário e recarregam a reserva e o calendário; a mensagem fica mesmo que a reserva recarregada já não ofereça o formulário. Um 400 em `reason` vai para o campo do motivo.
-- Decidido (confirmado) — decisões de implementação:
-  - Não há janela de cancelamento para o clube: pode cancelar até ao instante em que a reserva começa.
-  - Corre sob o trinco do campo (o mesmo das reservas, dos bloqueios e do cancelamento do jogador) e lê a reserva outra vez lá dentro; por isso, se o dono e o jogador cancelam ao mesmo tempo, só um tem sucesso e o outro recebe 422 `booking_not_confirmed`, nunca um 500. A regra está na entidade (`Booking.CancelByClub`).
-  - A reserva passa a `cancelled_by_club` e guarda o motivo (`cancellation_reason`) e o instante (`cancelled_at`); nunca é apagada e o slot volta a ficar livre. A resposta é a reserva, como nos detalhes.
-### US13 · Reserva em nome de um cliente · M · 3 pontos
- 
-Como dono, quero criar uma reserva para um cliente que ligou ou apareceu, para que todas as reservas fiquem no sistema.
- 
-- O dono escolhe campo e slot livre e indica nome e telemóvel do cliente; o cliente não precisa de conta.
-- Aplica-se a mesma regra contra reservas duplicadas da US18 e da T03.
-- A reserva aparece no calendário marcada como «criada pelo clube».
-- Não é enviado email, porque o cliente não tem conta.
-- Estado: feita. Back end (`POST /api/manage/clubs/{clubId}/bookings`) e interface no calendário do dono (vista diária e semanal).
-- Decidido (confirmado):
-  - O telemóvel do cliente é obrigatório (na US01 é opcional).
-  - A janela de 30 dias (hoje até hoje + 30, em Lisboa) aplica-se também ao dono: uma reserva por telefone para daqui a mais de 30 dias é 422 `outside_booking_window`.
-  - Um dono desativado com a sessão ainda válida recebe 422 `club_unavailable` ao criar uma reserva.
-  - O telemóvel que o dono escreveu só se mostra nos detalhes da reserva, nunca no calendário.
-  - Interface: as horas vazias só se oferecem num campo ativo, dentro do horário de abertura, numa hora que ainda não acabou e até 30 dias à frente; são botões fora da ordem do teclado, e o botão «Nova reserva» é a entrada por teclado.
-  - Interface: uma data fora de hoje..+30 volta a hoje no formulário.
-  - Interface: abrir o formulário fecha os detalhes da reserva aberta.
-  - Interface: a verificação de que um horário já começou usa o instante em que a página foi aberta; quem decide, no fim, é a API.
-- Decidido (confirmado) — decisões da interface:
-  - Há duas entradas para o formulário «Nova reserva» no calendário: o botão «Nova reserva» (campo e dia que se estão a ver; na vista semanal, o campo escolhido) e carregar numa hora vazia de um campo (essa hora, esse campo e esse dia, com o slot já escolhido se estiver livre). O botão fica desativado se o clube não tiver campos ativos.
-  - O formulário pede campo (só os ativos), data (de hoje a 30 dias à frente, em Lisboa), um horário livre, o nome e o telemóvel do cliente. Os horários vêm da pré-visualização do dono (`GET …/pitches/{pitchId}/slots`): só se escolhem os livres; os reservados («Reservado»), os bloqueados («Bloqueado») e os que já começaram («Já começou», incluindo o que começa agora) aparecem desativados. Mudar o campo ou a data limpa o horário escolhido.
-  - As validações são as da API, em português: horário («Escolhe um horário livre.»), nome obrigatório e até 100 caracteres, telemóvel obrigatório com 9 a 15 algarismos e «+» opcional (os espaços tiram-se antes de enviar, como na API). Os erros 400 da API vão para os campos.
-  - Num conflito (409 `slot_taken` ou `slot_blocked`) ou num horário que já não existe (422 `invalid_slot`, `slot_started`, `outside_booking_window`, `pitch_inactive`, 404 `pitch_not_found`) mostra-se a mensagem do código no formulário, limpa-se o horário, recarregam-se os horários e o calendário, e o formulário fica aberto com o nome e o telemóvel já escritos. Qualquer outro erro vai para um aviso.
-  - Depois de criar, o calendário vai para o dia da reserva (e, na vista semanal, para o campo dela), mostra-a com os detalhes abertos, e diz «Reserva criada para <nome>.». O formulário diz que o cliente não tem conta e por isso não recebe email.
-  - Uma reserva criada pelo clube diz «Criada pelo clube» nas duas vistas (no quadrado da reserva, com uma barra lateral azul, e na etiqueta para leitores de ecrã) e nos detalhes, onde «Jogador» passa a «Cliente» e aparecem o «Telemóvel» que o dono escreveu e a «Origem: Criada pelo clube». Cancela-se como qualquer reserva (US12), com motivo, e continua a dizer de onde veio.
-- Decidido (confirmado) — decisões de implementação:
-  - Uma reserva é de um jogador ou de um cliente (nome e telemóvel), nunca das duas coisas nem de nenhuma: a check constraint `ck_bookings_player_or_customer` substitui a `ck_bookings_has_player` (migração `AddCustomerBookings`, colunas `customer_name` e `customer_phone`). A exclusion constraint `bookings_no_overlap` não mudou, por isso um cliente e um jogador disputam os mesmos slots.
-  - `POST /api/manage/clubs/{clubId}/bookings` (perfil Dono, pela T02: o clube de outro dono é 404 `club_not_found`, antes de validar o corpo) com `{ pitchId, startsAt, customerName, customerPhone }`. `startsAt` é o instante do início do slot com fuso, como as listas de slots o dão; o fim e o preço vêm do campo, nunca do pedido. 201 com a reserva (a mesma resposta dos detalhes) e `Location: /api/manage/clubs/{clubId}/bookings/{id}`, que `GET …/bookings/{id}` resolve.
-  - Nome e telemóvel seguem as regras da US01: o nome é obrigatório e tem no máximo 100 caracteres; o telemóvel tem um «+» opcional e 9 a 15 algarismos e é guardado sem espaços (400 em `customerName` e `customerPhone`, mensagens em português).
-  - As regras do slot são as da US18, pelo mesmo código (`BookingSlotCheck`, que a US18 também usa) e sob o mesmo trinco do campo: campo inativo 422 `pitch_inactive` → data fora de hoje..+30 em Lisboa 422 `outside_booking_window` → não é um slot 422 `invalid_slot` → já começou 422 `slot_started` → bloqueio 409 `slot_blocked`; outra reserva confirmada que se sobreponha é 409 `slot_taken` (a exclusion constraint, nunca um 500). Um campo que não é deste clube é 404 `pitch_not_found`. A ordem completa: clube (404) → validação (400) → campo (404) → dono ativo → trinco → regras do slot → inserção.
-  - O preço é o do campo no momento e fica guardado; mudar o preço depois não o altera. Não é enviado email (o cliente não tem conta), e a US22 diz isso.
-  - O calendário (`bookerName` e `createdByClub`) e os detalhes (`bookerName`, `createdByClub` e `customerPhone`) mostram estas reservas com o nome do cliente e a marca de criada pelo clube. `bookerName` é o nome de quem fez a reserva: o do jogador, ou o do cliente quando a reserva é do clube.
-  - O dono cancela-as como na US12 (`…/bookings/{id}/cancel`, com motivo) e o slot volta a ficar livre.
-  - Nunca aparecem em lista nenhuma de um jogador (`GET /api/me/bookings` só lê reservas com o `player_id` de quem pede), um jogador que as peça ou cancele por id recebe 404 `booking_not_found`, as páginas públicas só mostram o slot como indisponível (sem nome, telemóvel nem id), e o admin não tem acesso aos endpoints do dono (403).
-### US14 · Ocupação e receita · D · 5 pontos
- 
-Como dono, quero ver a ocupação e a receita dos meus clubes por período, para perceber como está o negócio.
- 
-- Filtros por clube, campo e intervalo de datas.
-- Ocupação = horas reservadas a dividir pelas horas abertas no período, por campo.
-- Receita = soma dos preços das reservas não canceladas.
-- Os números batem certo com o calendário para o mesmo período (verificado por teste).
-- Estado: feita. Back end (`GET /api/manage/clubs/{clubId}/statistics?from=&to=&pitchId=` e `GET /api/manage/statistics?from=&to=`, «por clube») e ecrãs (`/manage/statistics` e `/manage/clubs/{id}/statistics`).
-- Decisões de implementação (decididas):
-  - **Um só cálculo** para o dono e para o admin (US27), `OccupationService`. Horas reservadas = tempo real das reservas **confirmadas e faltas** que se sobrepõem ao período, cortadas nos limites do período; as canceladas (pelo jogador ou pelo clube) ficam de fora. Receita = soma dos preços guardados dessas mesmas reservas, **por inteiro** (uma reserva cortada no limite do período conta o preço todo).
-  - Horas abertas = o tempo reservável: para cada dia de Lisboa, os slots que o horário **em vigor agora** gera (`SlotGenerator`) vezes a duração do slot, em tempo real (não há histórico de horários). Um campo aberto 00:00–00:00 tem 25 slots de 60 minutos a 25/10/2026 e 23 a 29/03/2026; um dia fechado conta 0; os minutos depois do último slot que cabe não se podem reservar e não contam (um campo de 90 minutos aberto 4 h tem 3 h abertas).
-  - Um campo **inativo** não tem horas abertas: entra só com as reservas que já tem no período, e não aparece se não tiver nenhuma.
-  - Ocupação = reservadas / abertas, 0 quando não houve nada aberto; arredondada a 4 casas (0,8125 = 81,25 %), horas a 2 casas. Os totais somam minutos e dividem no fim, nunca fazem a média das taxas.
-  - Período: datas de Lisboa `AAAA-MM-DD`, as duas incluídas; sem datas, os últimos 30 dias (hoje incluído); `from` ≤ `to`; no máximo **366 dias**; datas entre 2000 e 2100; erros 400 por campo em pt-PT. O filtro `pitchId` tem de ser um campo do clube (404 `pitch_not_found`).
-  - As reservas somam-se na base de dados (uma consulta agrupada por campo, com `LEAST`/`GREATEST`); só os horários (poucas linhas por campo) são lidos para memória.
-  - A lista «por clube» tem todos os clubes do dono, também os que não tiveram nada aberto nem reservado (com zeros).
-### US15 · Marcar falta · D · 2 pontos
- 
-Como dono, quero marcar uma reserva passada como falta, para saber que jogadores não aparecem.
- 
-- Só se podem marcar reservas confirmadas cuja hora de fim já passou.
-- O estado passa a «Falta» e a marcação pode ser revertida.
-- O dono vê quantas faltas um jogador tem nos seus clubes.
-- Estado: feita. Back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/no-show` e `…/no-show/undo`) e, nos detalhes da reserva do calendário, os botões «Marcar falta» e «Anular falta» e o número de faltas do jogador.
-- Decisões de implementação (decididas):
-  - Marcar: só uma reserva **confirmada** cuja hora de fim já passou (a hora de fim conta como passada). Primeiro 422 `booking_not_confirmed` (cancelada, ou já é uma falta), depois 422 `booking_not_ended`. Reverter: a falta volta a `confirmed`; uma reserva que não é falta é 422 `booking_not_no_show`. Dono de outro clube, ou reserva de outro clube: 404 (T02); jogador e admin: 403.
-  - Tudo corre sob o `IPitchLock` do campo, como os cancelamentos, e lê a reserva outra vez lá dentro. Se ao reverter outra reserva confirmada já ocupou o horário (uma falta não o ocupa), a constraint `bookings_no_overlap` recusa e a resposta é **409 `slot_taken`**, nunca 500; o pedido não deixa nada a meio.
-  - Pode marcar-se uma reserva de cliente (US13), mas não conta por pessoa: `playerNoShows` é `null` nessas reservas.
-  - Os detalhes da reserva do dono ganham `playerNoShows` (as faltas do jogador em **todos** os clubes desse dono, a reserva incluída; nunca as de outro dono), `canMarkNoShow` (confirmada e já terminou) e `canUndoNoShow` (é uma falta). O dono continua a ver só o nome do jogador.
-## Épico 4 — Pesquisa e reserva
- 
-### US16 · Pesquisar clubes · M · 5 pontos
- 
-Como jogador, quero pesquisar clubes por desporto, localidade e data, para encontrar onde jogar.
- 
-- Filtros: desporto, localidade e data (hoje por omissão).
-- Cada resultado mostra nome, localidade, desportos e se há slots livres na data escolhida.
-- Clubes sem campos ativos, ou de donos desativados, não aparecem. Um campo inativo não conta para a pesquisa: nem o seu desporto aparece nos resultados nem é encontrado pelo filtro de desporto (US07).
-- Uma pesquisa sem resultados mostra uma mensagem clara.
-- Resultados paginados, 20 por página.
-- Abrir um resultado mostra a página do clube, com contactos e campos. O endereço público da página do clube é `/clubs/{slug}` (o `slug` é gerado na US06).
-- A pesquisa funciona sem sessão iniciada.
-- Estado: feita. Back end: `GET /api/clubs`, `GET /api/localities` e `GET /api/clubs/{slug}`, todos públicos e só de leitura, sem dados de jogadores nem do dono. Interface: a página inicial `/` é a pesquisa e `/clubs/{slug}` é a página do clube.
-- Decidido (confirmado):
-  - Um desporto desconhecido é 400 em `sport`. Os códigos são exatamente os estáveis (`futsal`, `football7`, `padel`, `tennis`): «Padel» com maiúscula também é 400.
-  - `page` vai de 1 a 10000 (limite defensivo); outro valor, ou não numérico, é 400 em `page`, com a mensagem em português.
-  - A localidade filtra pelo valor inteiro: igualdade sem distinguir maiúsculas, acentos nem espaços a mais (`clubs.locality_key`, com índice, calculada por `ClubRules.LocalityKey`); não é uma pesquisa por parte do nome («Port» não encontra «Porto»).
-  - `GET /api/localities` devolve uma lista simples de textos (para um select): as localidades dos clubes visíveis, uma por grafia (ignorando maiúsculas e acentos, mostrada numa das grafias em uso), ordenadas.
-  - Cada resultado da pesquisa lista os desportos de todos os campos ativos do clube, mesmo quando se filtra por um desporto.
-  - Na pesquisa a data é opcional (hoje em Lisboa por omissão); nos slots é obrigatória (ver a US17).
-- Decidido (confirmado) — decisões de implementação:
-  - Visível = o dono não está desativado (US29) e o clube tem pelo menos um campo ativo (US07). Tudo o que é público parte de `VisibleClubs`; o que não é visível não existe: um clube desconhecido, sem campos ativos ou de um dono desativado dão o mesmo 404 `club_not_found`.
-  - `GET /api/clubs?sport=&locality=&date=&page=`: 20 por página (fixo), ordenado pelo nome sem distinguir maiúsculas e depois pelo id. `date` é `AAAA-MM-DD`, hoje em Lisboa por omissão, de hoje até hoje + 30; fora disso ou mal escrita é 400 em `date`. Filtros vazios contam como ausentes.
-  - Cada resultado traz só `slug`, `name`, `locality`, `sports` (os desportos dos campos ativos) e `hasFreeSlots` (algum campo ativo tem um slot livre na data, pela mesma regra da US17). Não traz morada nem contactos. A disponibilidade só se calcula para os clubes da página.
-  - `GET /api/clubs/{slug}`: nome, morada, localidade, telefone, email de contacto e os campos ativos (`id`, `name`, `sport`, `pricePerSlot` atual), ordenados pelo nome. O `slug` tem de coincidir exatamente. O id do clube não aparece (é da área do dono).
-- Decidido (confirmado) — decisões da interface:
-  - A pesquisa (`/`) tem um select de desporto («Todos os desportos» e os quatro desportos), um select de localidade (as de `GET /api/localities`) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Pesquisa logo ao mudar um campo, sem botão; funciona sem sessão. A pesquisa fica no endereço (`?sport=&locality=&date=&page=`), por isso pode ser partilhada e o botão «voltar» funciona. Mudar um filtro volta à primeira página; um valor inválido no endereço é ignorado e uma data fora do período mostra o erro sem perguntar à API.
-  - Cada resultado mostra o nome (ligação para `/clubs/{slug}`, com `?date=` se se pesquisou uma data), a localidade, os desportos e «Há horários livres» ou «Sem horários livres». Páginas de 20 com «Anterior», «Seguinte» e «Página X de Y» (só se houver mais de uma). Sem resultados: «Não encontrámos clubes com estes filtros. Experimenta outra localidade, outro desporto ou outra data.» Uma página para lá do fim oferece «Voltar à primeira página».
-  - A página do clube é um Server Component que lê o clube na API interna, sem cookies e sem cache: contactos (telefone e email como ligações) e os campos ativos com o preço por slot em formato pt-PT («18,50 € por slot»). Um clube desconhecido, escondido, ou um slug que não pode existir mostra a página «Clube não encontrado», sem dizer porquê.
-### US17 · Ver slots livres · M · 5 pontos
- 
-Como jogador, quero ver os slots livres de um campo numa data, para escolher a hora.
- 
-- Mostra os slots do dia com hora de início, hora de fim e preço.
-- Um slot não aparece como livre se tiver reserva confirmada, estiver bloqueado, estiver fora do horário ou já tiver começado.
-- Só se podem escolher datas de hoje até 30 dias à frente.
-- Um campo inativo não mostra slots nem aceita reservas (US07).
-- Decidido: um slot não está livre se se sobrepuser a qualquer reserva confirmada ou bloqueio, e não só se tiver o mesmo início. Mudar a duração dos slots de um campo (US08) não altera as reservas existentes, por isso uma reserva antiga pode ficar desalinhada com a nova grelha e ocupar parte de um slot novo; esse slot não aparece como livre.
-- As horas aparecem em hora de Lisboa e estão certas nos dias de mudança de hora (T04).
-- No dia em que a hora atrasa (último domingo de outubro), as horas entre a 01:00 e as 02:00 aparecem duas vezes e levam a indicação «(verão)» ou «(inverno)»; nenhum slot é escondido.
-- Estado: feita. Back end: `GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`, público e só de leitura. Interface: a secção «Horários» da página do clube.
-- Decidido (confirmado):
-  - Na API dos slots a data (`AAAA-MM-DD`) é obrigatória e vai de hoje até hoje + 30 em Lisboa: em falta, mal escrita ou fora do período é 400 em `date`. Na pesquisa (US16) é opcional.
-  - O que está escondido não existe, e isso verifica-se antes da data: um clube desconhecido ou escondido (sem campos ativos, dono desativado), e um campo desconhecido, inativo, de outro clube ou com um id que não é um GUID, são 404 (`club_not_found` ou `pitch_not_found`) mesmo que a data seja inválida.
-  - Quem tem sessão de dono ou de admin vê os slots mas não os pode escolher (não são botões, não há botão de reservar); ver a US18.
-- Decidido (confirmado) — decisões de implementação:
-  - A resposta é `date` e `slots`; cada slot traz `startsAt` e `endsAt` (instantes UTC com fuso), `price` (o preço atual do campo) e um só booleano `available`. Nunca diz porque não está livre, nem quem reservou, nem o id de uma reserva ou de um bloqueio. Um dia fechado devolve a lista vazia.
-  - `available` = não se sobrepõe, nem em parte, a uma reserva confirmada ou a um bloqueio, está dentro do horário e ainda não começou (começar agora conta como começado, como na US18). É uma só conta (`PitchDayCalendar` e `DaySlot.IsFreeAt`), partilhada com a pré-visualização do dono e com o «há slots livres» da pesquisa, e um teste confirma que concordam.
-  - Em 25 de outubro a API devolve os slots como instantes distintos (a hora das 01:00 às 02:00 aparece duas vezes, uma em cada fuso); a etiqueta «(verão)/(inverno)» é da interface.
-- Decidido (confirmado) — decisões da interface:
-  - A secção «Horários» da página do clube tem um select de campo (o primeiro por omissão; mostra nome, desporto e preço) e uma data (hoje em Lisboa por omissão, de hoje até hoje + 30). Os slots do dia aparecem em hora de Lisboa, qualquer que seja o fuso do browser, com o preço, e a hora que se repete em outubro leva «(verão)» ou «(inverno)». O campo e a data ficam no endereço (`?pitch=&date=`).
-  - Um slot que não está livre aparece desativado (`disabled`), sem dizer porquê: nem «reservado», nem «bloqueado», nem «fechado». Um dia sem slots diz «Sem horários neste dia.» Uma data fora do período mostra o erro sem perguntar à API.
-### US18 · Reservar slot · M · 3 pontos
- 
-Como jogador, quero reservar um slot livre, para garantir o campo.
- 
-- Só jogadores com sessão iniciada podem reservar; sem sessão, é pedido o login e o jogador volta ao mesmo slot.
-- Antes de confirmar, aparece um resumo com clube, campo, data, hora e preço.
-- A reserva fica «Confirmada» e guarda o preço desse momento: o preço por slot do campo (US07) copiado para a reserva. Mudar depois o preço do campo nunca altera as reservas existentes.
-- Um campo inativo não aceita reservas (US07).
-- Decidido e feito (T03/US18): desativar um campo com reservas futuras confirmadas é recusado e a mensagem diz quantas são (US07): `POST …/pitches/{pitchId}/deactivate` devolve 422 `pitch_has_future_bookings` com `count` (regra de negócio, como na tabela de códigos da Stack; esta nota dizia antes 409).
-- Decidido e feito (T03/US18): um bloqueio que se sobreponha a reservas confirmadas é rejeitado (409 `block_overlaps_bookings`) e a mensagem lista essas reservas (US09); a verificação está em `BlockService.CreateAsync`, dentro do trinco da linha do campo, e a criação de uma reserva tranca a mesma linha antes de verificar os bloqueios.
-- Estado: feita. Back end com a T03 (`POST /api/bookings`, perfil Jogador); interface na página do clube, com a US16 e a US17. O email de confirmação é da US22; ver as minhas reservas e cancelar é a US19.
-- Decidido (confirmado):
-  - O pedido traz o campo e o início do slot como instante com fuso (`2026-10-25T00:00:00Z`, como as listas de slots o dão), para a hora repetida de outubro nunca ser ambígua.
-  - Códigos: 404 `pitch_not_found` (campo desconhecido); 422 `club_unavailable` (dono desativado), `pitch_inactive`, `outside_booking_window` (data local fora de hoje até 30 dias em Lisboa, incluindo dias passados), `invalid_slot` (um início que não seja um slot gerado: dia fechado, fora do horário, fora da grelha, segundos a mais), `slot_started`; 409 `slot_blocked` (um bloqueio sobrepõe-se, mesmo em parte) e `slot_taken` («Este horário acabou de ser reservado. Escolhe outro.»). Os 422 são verificados por esta ordem; os 409 só depois de trancar a linha do campo.
-  - Um slot que começa exatamente agora conta como começado (`slot_started`).
-  - A desativação de um campo conta as reservas confirmadas que ainda não acabaram: as que estão a decorrer também impedem.
-  - Os estados na API são `confirmed`, `cancelled_by_player`, `cancelled_by_club` e `no_show`; na base de dados ficam com o nome do enum (`Confirmed`, …), como pede a constraint.
-  - A resposta 201 traz o cabeçalho `Location: /api/bookings/{id}` (relativo, como os outros), que `GET /api/bookings/{id}` resolve (US19).
-- Decidido (confirmado) — decisões de implementação:
-  - O fim vem sempre do horário do campo e o preço é o preço por slot atual do campo.
-  - A transação tranca a linha do campo, volta a ler o campo (estado, preço e horário como estão nesse momento), verifica os bloqueios e insere; a sobreposição com outra reserva fica só a cargo da exclusion constraint (23P01 → 409 `slot_taken`), que é a última defesa e a regra também para a US13.
-  - A resposta 201 traz a reserva (`id`, `pitchId`, `clubId`, início e fim em UTC, `price`, `status` = `confirmed`).
-  - Preparado para a US13 e feito nela: `player_id` pode ser nulo na tabela, e a check constraint `ck_bookings_player_or_customer` exige «um jogador, ou o nome e o telemóvel de um cliente», nunca as duas coisas nem nenhuma (antes era a `ck_bookings_has_player`).
-- Decidido (confirmado): a interface da reserva
-  - O que o jogador escolhe (campo, data e slot) fica no endereço (`?pitch=&date=&slot=<instante com fuso>`), não numa store Zustand: é isso que permite voltar ao mesmo slot depois do login e partilhar a ligação. Escolher um slot livre abre, por baixo da lista, o «Resumo da reserva» (clube, campo, data, hora e preço); «Cancelar» fecha-o, e mudar de campo ou de data também.
-  - Sem sessão, o resumo oferece «Entrar para reservar», que vai para `/login?next=<este endereço com campo, data e slot>`; depois do login o jogador volta ao mesmo clube, campo, data e slot, com o resumo aberto. O `safeNext` não precisou de mudar: já aceita uma página pública com query para um jogador, e manda um dono ou um admin para a sua área, porque não podem reservar. Se o slot entretanto deixou de estar livre (ou já não existe), aparece «Este horário já não está disponível. Escolhe outro.» e não há resumo.
-  - Só um jogador vê «Confirmar reserva». Donos e admins veem os slots mas não os podem escolher, nem há botão de reservar, e uma nota diz «Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.»
-  - Em 409 (`slot_taken`, `slot_blocked`) ou 422 (`slot_started`, `invalid_slot`, `outside_booking_window`, `pitch_inactive`, `club_unavailable`) mostra-se a mensagem desse código («Este horário acabou de ser reservado. Escolhe outro.» para `slot_taken`), fecha-se o resumo e recarrega-se a lista de slots. Um 401 (sessão terminada) volta ao login, com regresso ao slot; sem ligação ao servidor mantém-se o resumo para tentar de novo.
-  - Para um visitante, `club_not_found` diz «Este clube já não está disponível.» (a mensagem geral fala a um dono).
-- Decidido (confirmado) — decisões da interface:
-  - Confirmar envia só `pitchId` e `startsAt` (o instante com fuso, tal como a lista o deu); o botão fica desativado enquanto se reserva. Em 201 aparece «Reserva confirmada» com os mesmos dados, a lista de slots e a pesquisa recarregam-se e o slot passa a desativado.
-  - Quem escolhe «Criar conta» no ecrã de login também volta ao mesmo slot: a ligação leva o `next` (`/register?next=…`), a página de registo de jogador lê-o (e a ligação «Entrar» desse ecrã também o mantém) e, depois de criada a conta, o `safeNext` decide se o aceita: um endereço público segue-se, qualquer outro (outro site, área do dono ou do admin, a própria página de login) é ignorado e o jogador vai para a página inicial. O registo de dono não usa `next`.
-- Se o slot foi ocupado entretanto, a API devolve 409 e o jogador vê «Este horário acabou de ser reservado. Escolhe outro.», com a lista de slots atualizada.
-- Não é possível reservar slots passados nem para lá dos 30 dias.
-### US19 · Ver e cancelar as minhas reservas · M · 3 pontos
- 
-Como jogador, quero ver as minhas reservas e cancelar as futuras, para gerir os meus jogos.
- 
-- A lista separa «Próximas» e «Anteriores», ordenadas por data.
-- Cada reserva mostra clube, campo, data, hora, preço e estado.
-- O jogador pode cancelar uma reserva futura até à janela de cancelamento do clube; depois disso, o botão aparece desativado com a explicação.
-- A janela é a que o clube tem no momento do cancelamento (lida de `Club.CancellationWindowHours`), nunca uma cópia guardada na reserva (decidido na US06).
-- A API recusa cancelamentos fora da janela, mesmo que o pedido não venha do front end.
-- A reserva cancelada passa a «Cancelada pelo jogador» e o slot volta a ficar livre.
-- Estado: feita. Back end e interface (a página `/bookings`, «As minhas reservas»). O email de cancelamento é da US22 (o email de cancelamento indica quem cancelou); a US19 não envia emails.
-- Decidido (auditoria de UX, lote 1): um erro inesperado ao cancelar (500 ou falha de rede) mostra um toast, não uma mensagem no topo da lista; o resultado do cancelamento (sucesso ou recusa da API) recebe o foco, por isso fica à vista e é lido uma só vez pelo leitor de ecrã. Não é um aviso ao vivo.
-- Decidido (confirmado):
-  - `scope` é obrigatório na lista das minhas reservas: em falta ou desconhecido é 400 em `scope`.
-  - «Anteriores» são as reservas que já acabaram mais as canceladas (pelo jogador ou pelo clube) e as marcadas como falta, da mais recente para a mais antiga; «Próximas» são as confirmadas que ainda não acabaram, da mais antiga para a mais recente, e uma reserva em curso conta como próxima. Em ambas a ordem é pelo início e depois pelo id.
-  - O prazo de cancelamento (`cancellationDeadline`) só existe para reservas confirmadas; nas outras é `null`.
-  - No instante exato do prazo já não se pode cancelar: só é possível estritamente antes dele.
-  - `booking_not_confirmed` verifica-se antes da janela, por isso a resposta de uma reserva já cancelada não depende do relógio.
-  - Cancelar responde 200 com a reserva já cancelada (`cancelled_by_player`).
-  - As reservas de um clube que entretanto ficou escondido continuam na lista do jogador.
-  - «Próximas» e «Anteriores» são duas ligações numa navegação (com `aria-current`, e cada uma com o seu endereço; antes tinham o papel de separadores, sem se comportarem como tal). A lista agrupa as reservas por dia, com o dia como título («Hoje · …», «Amanhã · …»), e cada reserva é uma linha compacta (hora e clube, depois campo, preço e série). Uma recusa do cancelamento aparece na linha da reserva; o sucesso aparece por cima da lista, na mesma região, e recebe o foco (auditoria de UX, lote 2).
-  - O separador e a página da lista ficam no endereço (`?tab=past&page=2`; «Próximas» e a página 1 são o valor por omissão), por isso um recarregamento ou o botão de voltar mantêm o sítio.
-  - O botão «Cancelar reserva» só segue o `canCancel` da API: quem decide se ainda se pode cancelar é a API, nunca o cálculo no navegador.
-  - A mensagem do 422 `outside_cancellation_window` não leva o prazo (o front end só vê o código); o prazo vê-se na lista, que se recarrega logo a seguir.
-- Decidido (confirmado) — decisões da interface:
-  - A página `/bookings` é só para jogadores: sem sessão vai para `/login?next=<a página, com o separador e a página>` e volta a ela depois de entrar; um dono ou um admin vai para a sua área (`/manage`, `/admin`). A API continua a ser quem decide (401/403).
-  - Mudar de separador volta à primeira página. Uma página do endereço que não é um número de 1 a 99999 conta como a primeira.
-  - Cada reserva mostra o clube (ligação para `/clubs/{slug}`), o campo e o desporto, a data (com o dia da semana e o ano) e a hora em hora de Lisboa (`lib/datetime.ts`, com «(verão)»/«(inverno)» na hora repetida de outubro), o preço pago e o estado em português: «Confirmada», «Cancelada pelo jogador», «Cancelada pelo clube», «Falta».
-  - Só as «Próximas» se podem cancelar (uma reserva confirmada que já acabou, em «Anteriores», não tem botão). O botão «Cancelar reserva» pede uma confirmação na própria linha («Sim, cancelar reserva» / «Manter reserva»; só uma de cada vez). Depois do prazo o botão fica desativado e diz «Já não é possível cancelar: o prazo terminou a dd/mm/aaaa hh:mm.»; antes do prazo diz «Podes cancelar até dd/mm/aaaa hh:mm.».
-  - Depois de cancelar aparece «Reserva cancelada. O horário voltou a ficar livre.» e recarregam-se as listas e os horários livres das páginas públicas (`["my-bookings"]` e `["catalog"]`). Se o pedido for recusado (422 `outside_cancellation_window`, 422 `booking_not_confirmed`, 404 `booking_not_found`) mostra-se a mensagem do código e recarrega-se só a lista; uma sessão que acabou leva ao login. Uma reserva nova (US18) também recarrega «As minhas reservas».
-  - O cabeçalho do jogador tem a ligação «As minhas reservas» (só para o perfil Jogador) e a confirmação de uma reserva tem «Ver as minhas reservas».
-- Decidido (confirmado) — decisões de implementação:
-  - `GET /api/me/bookings?scope=upcoming|past&page=` (perfil Jogador, só as reservas de quem pede, 20 por página). `page` de 1 a 10000, e não numérica também é 400 em `page` (mensagem em português).
-  - Cada reserva traz `id`, `clubName`, `clubSlug`, `pitchName`, `sport`, `startsAt`, `endsAt`, `price` (o que foi pago, não o preço atual do campo), `status`, `canCancel` e `cancellationDeadline` (instante UTC). `canCancel` é verdadeiro se a reserva está confirmada e agora é antes do início menos a janela atual do clube.
-  - `GET /api/bookings/{id}` lê uma reserva própria; a de outro jogador e um id desconhecido são o mesmo 404 `booking_not_found`.
-  - `POST /api/bookings/{id}/cancel` (perfil Jogador). A reserva nunca é apagada e o slot volta a ficar livre, porque a exclusion constraint só olha para as confirmadas. Ordem das recusas: 404 `booking_not_found` → 422 `booking_not_confirmed` → 422 `outside_cancellation_window`, com `cancellationDeadline` (instante UTC) e a janela em horas na mensagem.
-  - A janela lê-se do clube no momento de cancelar, sob o trinco da linha do campo, nunca da reserva (US06). O mesmo trinco serializa dois cancelamentos simultâneos da mesma reserva: um tem sucesso e o outro recebe o 422 `booking_not_confirmed`, nunca um 500.
-  - Donos e admins recebem 403 nos três endpoints, e sem sessão 401.
-  - A tabela `bookings` ganha o índice por jogador e início que a Stack já pedia (`ix_bookings_player_id_starts_at`).
-### US20 · Reserva semanal recorrente · D · 8 pontos
- 
-Como jogador, quero reservar o mesmo slot todas as semanas durante algum tempo, para não ter de reservar à mão.
- 
-- O jogador escolhe o slot e o número de semanas, até 4.
-- Antes de confirmar, o sistema mostra quais das datas estão livres.
-- As datas livres são reservadas numa só operação; as ocupadas são indicadas e ficam de fora.
-- Cada ocorrência é uma reserva independente, que se pode cancelar sozinha.
-- Candidata a dividir.
-- Estado: feita. Back end: `POST /api/bookings/recurring/preview` e `POST /api/bookings/recurring`. Front end: no resumo da reserva (depois de escolher um slot livre) a opção «Repetir semanalmente» com 1 a 4 semanas (1 = sem repetição; a escolha vai no endereço, `?weeks=`, por isso o regresso depois de entrar a mantém); com mais de uma semana mostra cada data (hora de Lisboa e preço) como livre ou indisponível com o motivo em pt-PT, e «Confirmar N reservas» reserva as livres; o resultado mostra o que foi reservado e o que ficou de fora, com a ligação para «As minhas reservas», e quando nenhuma data se reserva mostra a mensagem e as datas pedidas com o motivo. Um visitante escolhe as semanas e entra; só o jogador vê as datas. Em «As minhas reservas» cada reserva de uma série mostra «Reserva semanal: 2 de 4».
-- Decidido (confirmado):
-  - `weeks` é o número de datas, a primeira incluída, de 1 a 4. A data n é o mesmo dia da semana e a mesma hora **local** n semanas depois (`ClubTime`), por isso uma mudança de hora não desloca a hora do jogo; a primeira data é exatamente o instante pedido (na hora repetida de outubro, o verão ou o inverno escolhido).
-  - A pré-visualização só aceita um campo que o público vê (ativo, de um clube visível); outro é 404 `pitch_not_found`. Cada data traz início, fim, preço (`PriceForSlot` dessa data) e `free` ou `unavailable` com um código: `taken`, `blocked`, `not_a_slot`, `outside_window`, `closed` (o campo está fechado nesse dia), `pitch_inactive` e, além da lista pedida, `started` (só a primeira data pode já ter começado). Nunca diz quem reservou.
-  - Reservar corre, data a data e por ordem, as mesmas regras da reserva simples (`BookingSlotCheck` sob o trinco do campo, preço de `PriceForSlot`, inserção pela restrição de exclusão), cada data na sua transação: uma data recusada não impede as outras. As reservas feitas partilham um `series_id`; uma data perdida para a restrição (23P01) fica de fora como `taken`. O campo desconhecido é 404 e o clube de um dono desativado é 422 `club_unavailable`, para o pedido todo, como na reserva simples.
-  - Resposta 201 com as reservas feitas e as datas de fora (com o código) quando se fez pelo menos uma; 409 `series_unavailable` (com `skipped`) quando nenhuma. O `Location` aponta para a primeira reserva feita.
-  - Emails: um só resumo da série para o jogador (as reservas feitas, com data, hora de Lisboa e preço, e as datas de fora com o motivo), numa transação final depois das datas (se o processo cair entre a última reserva e esse passo, perde-se o resumo, nunca uma reserva); nenhuma confirmação por reserva. O email ao dono (US23) e o lembrete (US21) continuam a ser um por reserva feita, na transação dessa reserva.
-  - A lista do jogador e o detalhe de uma reserva trazem `series` (id, posição e total), contando só as reservas que a série fez, canceladas incluídas, por ordem de início («2 de 4»). Cancelar continua a ser por reserva (US19).
-### US21 · Lembrete antes da reserva · D · 3 pontos
- 
-Como jogador, quero receber um lembrete antes da reserva, para não me esquecer.
- 
-- É enviado um email 3 horas antes do início.
-- Reservas canceladas, ou feitas a menos de 3 horas do início, não geram lembrete.
-- Cada reserva gera no máximo um lembrete, mesmo que o serviço reinicie.
-- Estado: feita no back end (outbox e worker, sem interface nova).
-- Decisões de implementação (decididas):
-  - O lembrete entra na fila na mesma transação da reserva (a de um jogador), com a hora de envio `início − 3 h` (um instante: a mudança da hora de 25 de outubro não o desloca; um teste cobre o 01:00 de inverno desse dia). Só se esse momento ainda estiver no futuro: uma reserva feita a **menos de 3 horas, ou a exatamente 3 horas**, do início não gera lembrete (o caso exato é provisório). Reservas de cliente não geram.
-  - A mensagem só guarda o id da reserva; o conteúdo (clube, morada, campo, data, hora de Lisboa, «(verão)»/«(inverno)») lê-se no momento do envio, para o email dizer o que é verdade nessa altura. O destinatário é o email atual do jogador.
-  - Uma reserva feita a menos de 3 horas do início não recebe lembrete **atrasado**: simplesmente não tem lembrete.
-  - Quando chega a hora, o worker só envia se a reserva **ainda está confirmada** e ainda não começou; senão marca a mensagem como **ignorada** (`skipped_at`, com o motivo `booking_not_confirmed` ou `booking_started`, sem contar como falha nem envio) e não envia nada.
-  - Um máximo de um lembrete por reserva é garantido por um índice único (`ux_outbox_messages_booking_notification`, por tipo e id da reserva), por isso nem um bug nem um reinício o duplicam; uma mensagem enviada nunca volta a ser reclamada.
-## Épico 5 — Notificações
- 
-### US22 · Emails ao jogador · M · 3 pontos
- 
-Como jogador, quero receber um email quando reservo e quando uma reserva minha é cancelada, para ter confirmação.
- 
-- O email de confirmação traz clube, morada, campo, data, hora e preço.
-- O email de cancelamento indica quem cancelou e, se foi o clube, o motivo.
-  - O cancelamento feito pelo jogador (US19, `POST /api/bookings/{id}/cancel`) só muda o estado da reserva: o email a avisar vem aqui, em segundo plano, sem fazer falhar o cancelamento.
-  - Uma reserva que o dono cria para um cliente (US13) não gera email de confirmação, e o seu cancelamento pelo dono também não: o cliente não tem conta nem email, só um telemóvel.
-  - O cancelamento feito pelo dono (US12, `POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) guarda o motivo e a hora (`cancellation_reason`, `cancelled_at`) e só muda o estado da reserva: o email com o motivo vem aqui, em segundo plano, sem fazer falhar o cancelamento.
-- O envio é feito em segundo plano; uma falha no envio não falha a reserva nem o cancelamento e fica registada no log.
-- Em desenvolvimento, os emails vão para um serviço de teste (por exemplo, Mailpit) e nunca para endereços reais.
-- Estado: feita no back end (outbox, worker em segundo plano e SMTP). Não há interface: os emails vão para o Mailpit em desenvolvimento (http://localhost:8025).
-- Decidido (confirmado):
-  - Valores por omissão do worker (definições `Outbox`): lotes de 20, uma passagem a cada 10 segundos (logo a seguir se o lote veio cheio), a primeira nova tentativa 1 minuto depois, duplicando até um máximo de 1 hora (1, 2, 4, 8, 16 minutos…), e desiste-se ao fim de 6 tentativas falhadas: a mensagem fica com `failed_at` e é registado um Warning com o id e o tipo, sem o endereço. Uma mensagem para uma conta que já não existe desiste logo (`recipient_not_found`).
-  - A entrega é «pelo menos uma vez»: se o processo parar depois de enviar e antes de registar o envio, essa mensagem volta a sair. Os trincos das linhas do lote ficam presos enquanto o lote é enviado.
-  - Não há ligações para a aplicação nos emails até à T06 (falta o endereço público).
-  - A API não arranca sem `Email:Host` e `Email:FromAddress`.
-- Decidido (confirmado) — decisões de implementação:
-  - Tabela `outbox_messages` (migração `AddOutboxMessages`): `id`, `type` (`booking_confirmed`, `booking_cancelled_by_player`, `booking_cancelled_by_club`), `payload` (jsonb, só o que o email mostra: o id do jogador, o nome, a morada e a localidade do clube, o fuso, o campo, o início, o fim, o preço e, numa cancelação do clube, o motivo), `created_at`, `attempts`, `next_attempt_at`, `sent_at`, `failed_at` e `last_error` (o nome do tipo da exceção, ou `recipient_not_found`; nunca a mensagem da exceção, que pode trazer o endereço). O endereço e o nome do jogador não ficam na tabela: leem-se no momento do envio, por isso o email vai sempre para o endereço atual.
-  - A mensagem é escrita no mesmo `SaveChanges` e na mesma transação (a do trinco do campo) que a reserva ou o cancelamento: uma reserva que perde a corrida (23P01) ou qualquer recusa não deixa email nenhum, e de vários cancelamentos simultâneos só o que vence deixa um. As reservas para clientes sem conta (US13) não geram email, nem a criar nem a cancelar.
-  - O envio é feito por um `BackgroundService` dentro da API, que nunca toca nos pedidos: uma falha ou uma lentidão do SMTP não falha nem atrasa uma reserva ou um cancelamento. Cada passagem cria o seu scope, tira até um lote de mensagens vencidas com `SELECT … FOR UPDATE SKIP LOCKED` (dentro de uma transação que dura até o lote ficar registado), por isso duas instâncias da API nunca enviam a mesma mensagem, e envia-as por SMTP (MailKit). Os trincos das linhas do lote ficam presos enquanto o lote é enviado.
-  - Os emails são em português, com texto simples e uma versão HTML simples com o mesmo conteúdo. Confirmação: assunto «Reserva confirmada: <clube>, dd/mm/aaaa às hh:mm» e clube, morada, campo, data por extenso, hora e preço («18,50 €»). Cancelamento: «Reserva cancelada: …» quando foi o jogador, «O clube cancelou a tua reserva: …» quando foi o clube, que leva também «Motivo». As horas são do fuso do clube, com «(verão)»/«(inverno)» na hora repetida de outubro, como nas páginas.
-  - Definições SMTP em `Email` (validadas no arranque, e sem `Host` e `FromAddress` a API não arranca, exceto em Production, provisório, ver «Pontos a rever no T06»: `Host`, `Port`, `Security` = `None`/`StartTls`/`SslOnConnect`, `Username` e `Password` juntos ou nenhum, `FromAddress`, `FromName`, `TimeoutSeconds`); em desenvolvimento apontam para o Mailpit (`localhost:1025`, e `mailpit:1025` no docker compose). Em produção vêm de variáveis de ambiente (T06). Endereços, corpos dos emails e credenciais SMTP nunca vão para o log.
-### US23 · Email ao dono sobre nova reserva · D · 1 ponto
- 
-Como dono, quero receber um email quando entra uma reserva nova num dos meus clubes, para acompanhar sem abrir a app.
- 
-- O email traz clube, campo, data, hora e nome do jogador.
-- O dono pode desligar estes emails nas definições do clube.
-- As reservas criadas pelo próprio dono (US13) não geram email.
-- Estado: feita. Back end e, nas definições do clube, o interruptor «Receber um email por cada nova reserva».
-- Decisões de implementação (decididas):
-  - Definição por clube `notifyOnNewBooking`, **ligada por omissão** (também nos clubes que já existiam, pela migração). Edita-se no `PUT /api/manage/clubs/{id}` (e pode vir no `POST`); é opcional nos dois: se um pedido não a traz, fica como estava, para que um formulário que não a conhece não desligue os emails.
-  - Quando um jogador reserva, e a definição está ligada, o email do dono entra na fila na mesma transação (uma reserva que perde a corrida não deixa email). O email traz clube, campo, data, hora de Lisboa e o nome do jogador, e nada mais sobre ele.
-  - O destinatário é o email atual do dono do clube, lido no momento do envio. As reservas que o dono faz (US13) não enviam nada, nem ao dono nem a ninguém. A mensagem só guarda o id da reserva.
-  - Se o dono foi **desativado** (US29) antes de o email ser enviado, a mensagem é marcada como ignorada (`skipped_at`, motivo `owner_deactivated`), sem enviar, como um lembrete de uma reserva cancelada; o email nunca vai para os logs.
-## Épico 6 — Administração
- 
-Todas as páginas e endpoints deste épico só respondem ao perfil Admin (403 para os outros) e mostram contagens, nunca nomes ou emails de jogadores.
- 
-### US24 · Indicadores globais · M · 3 pontos
- 
-Como admin, quero ver os totais da plataforma, para saber o tamanho dela.
- 
-- Mostra o número de donos, clubes, campos ativos, jogadores e reservas confirmadas.
-- Contas e clubes desativados aparecem separados dos ativos.
-- Os valores vêm de queries agregadas na base de dados, sem carregar listas para memória.
-- Estado: feita. API (`GET /api/admin/stats`) e os cartões da página `/admin`.
-- Decisões de implementação (decididas):
-  - A resposta tem donos e jogadores como `{ active, deactivated }`, clubes como `{ total, visible, ofDeactivatedOwners, withoutActivePitches }` (os três últimos somam o total: visível = dono ativo e pelo menos um campo ativo, como nas páginas públicas), `activePitches` e `confirmedBookings`. Admins não contam como donos nem jogadores.
-  - Os campos ativos são os campos ativos de donos ativos (os de um dono desativado não estão disponíveis, por isso não contam); as reservas confirmadas são todas as confirmadas, também as passadas, de jogadores e de clientes (US13).
-  - São sete contagens e um `GROUP BY` sobre as contas (perfil e estado): nada é carregado para memória. O DTO das contas só tem perfil, data de registo e estado, por construção sem nome nem email.
-### US25 · Reservas por período · M · 3 pontos
- 
-Como admin, quero ver as reservas ao longo do tempo num gráfico, para perceber se a plataforma está a crescer.
- 
-- Gráfico de reservas por dia, semana ou mês, à escolha.
-- Intervalo de datas configurável, por omissão os últimos 30 dias.
-- Períodos sem reservas aparecem com zero, em vez de desaparecerem do gráfico.
-- As reservas canceladas ficam de fora por omissão, com opção de as incluir.
-- Estado: feita. API (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`) e o gráfico da página `/admin`.
-- Decisões de implementação (decididas):
-  - Uma reserva conta no período em que foi **criada** (não naquele em que se joga), pela data de Lisboa: `date_trunc(unidade, created_at AT TIME ZONE 'Europe/Lisbon')`. Assim 00:30 de 25 de outubro de 2026 (23:30 UTC do dia 24 já é dia 25 em Lisboa) cai no dia 25. Índice novo `ix_bookings_created_at`.
-  - Semanas de segunda a domingo (ISO), meses civis. O intervalo é alargado a períodos inteiros (a resposta diz o `from`/`to` efetivos), por isso nunca há um período parcial.
-  - Por omissão: por dia, os últimos 30 dias de Lisboa (hoje e os 29 anteriores). `from <= to`, datas entre 2000 e 2100, formato `AAAA-MM-DD`; erros 400 com mensagens em pt-PT.
-  - Máximos por pedido: 366 dias, 104 semanas ou 60 meses.
-  - Todos os períodos do intervalo aparecem, com 0 onde não há reservas (preenchidos no serviço, depois de a base contar).
-  - Canceladas (pelo jogador ou pelo clube) ficam de fora; uma falta (`no_show`) conta, porque não é um cancelamento. As reservas feitas pelo clube para um cliente (US13) contam, são reservas da plataforma.
-### US26 · Lista de donos · M · 3 pontos
- 
-Como admin, quero ver a lista de donos com os números de cada um, para saber quem usa a plataforma e quanto.
- 
-- Cada linha mostra nome do dono, email, data de registo, número de clubes, de campos, de reservas e de jogadores distintos que reservaram nos seus clubes.
-- Ordenável por qualquer coluna, com pesquisa por nome ou email do dono.
-- Paginada.
-- Estado: feita. API (`GET /api/admin/owners?search=&sort=&direction=&page=`) e a tabela da página `/admin`.
-- Decisões de implementação (decididas):
-  - Colunas: nome, email, data de registo, desativado, clubes, campos, reservas e jogadores. Ordena-se por `name`, `email`, `registeredAt`, `status`, `clubs`, `pitches`, `bookings` ou `players`, em `asc`/`desc`; nome e email ordenam sem distinguir maiúsculas; o desempate é sempre o id do dono, por isso a ordem é estável. Por omissão, nome ascendente.
-  - A pesquisa procura um pedaço do nome ou do email, sem distinguir maiúsculas (e nunca encontra jogadores). 20 por página.
-  - Campos: só os campos ativos do dono. Reservas: as não canceladas (a falta conta), incluindo as feitas para clientes. Jogadores: jogadores distintos (`COUNT(DISTINCT player_id)`) com reservas não canceladas nos clubes do dono; as reservas de clientes não têm jogador e não contam.
-  - Tudo é calculado pela base de dados, só para os donos da página. Os donos desativados aparecem, com o sinal de desativado.
-### US27 · Clubes com maior ocupação · D · 3 pontos
- 
-Como admin, quero ver os clubes com mais ocupação num período, para saber quais funcionam melhor.
- 
-- Top 10 por taxa de ocupação no período escolhido, com a mesma fórmula da US14.
-- Mostra nome do clube, dono, localidade e taxa.
-- Estado: feita. API (`GET /api/admin/clubs/top-occupation?from=&to=`) e a tabela «Clubes com maior ocupação» da página `/admin`, com o período partilhado com os gráficos.
-- Decisões de implementação (decididas):
-  - Exatamente a fórmula e o período da US14 (`OccupationService`): um clube tem a mesma taxa aqui e nas estatísticas do dono (tem teste). Clubes sem horas abertas no período ficam de fora.
-  - Ordem: a taxa **exata** (reservadas ÷ abertas, antes de arredondar), depois as horas reservadas, depois o id do clube. Os clubes de um dono **desativado** ficam de fora (não estão disponíveis, US29), tal como os campos inativos de um clube não dão horas abertas.
-  - Cada linha tem o id, o slug, o nome do clube, o nome do dono, a localidade, a taxa e as horas reservadas e abertas; nada sobre jogadores.
-### US28 · Novos registos ao longo do tempo · D · 2 pontos
- 
-Como admin, quero ver os novos donos e jogadores ao longo do tempo, para acompanhar a adesão.
- 
-- Gráfico de registos por semana ou mês, separado por perfil.
-- Usa o mesmo filtro de intervalo da US25.
-- Estado: feita. API (`GET /api/admin/registrations?granularity=week|month&from=&to=`) e o gráfico de registos da página `/admin`, com o período partilhado com o gráfico de reservas.
-- Decisões de implementação (decididas):
-  - Conta pela data de Lisboa de `users.registered_at` (`date_trunc` depois de `AT TIME ZONE`, semanas de segunda a domingo), donos e jogadores em separado, nunca o admin; contas desativadas contam (registaram-se).
-  - As regras do intervalo são as da US25, partilhadas no código (`ReportingPeriods.Range`): por omissão os últimos 30 dias, alargados a períodos inteiros, com o `from`/`to` efetivos na resposta, no máximo 104 semanas ou 60 meses, datas entre 2000 e 2100. Só `week` (por omissão) e `month`; `day` é um 400.
-  - Todos os períodos aparecem, com 0 onde não houve registos. Índice novo `ix_users_registered_at`.
-### US29 · Desativar e reativar dono · D · 5 pontos
- 
-Como admin, quero desativar um dono, em caso de abuso ou a pedido dele, para que deixe de usar a plataforma.
- 
-- É obrigatório indicar o motivo.
-- O dono desativado não consegue entrar, e os seus clubes deixam de aparecer na pesquisa e de aceitar reservas.
-- A desativação revoga os refresh tokens do dono, e o `POST /api/auth/refresh` recusa contas desativadas, por isso não é emitido nenhum token novo.
-- **Compromisso aceite (JWT sem estado, validade curta):** um access token já emitido continua válido até expirar, no máximo 15 minutos depois da desativação, porque a API valida o JWT sem consultar a base de dados. Durante esse período o dono ainda consegue fazer pedidos; depois disso, a sessão termina.
-- As reservas futuras não são canceladas automaticamente; o admin vê quantas há antes de confirmar.
-- O admin pode reativar a conta.
-- Cada desativação e reativação fica registada (quem, quando e motivo), e esse registo não pode ser editado.
-- Estado: feita no back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`) e a página `/admin/owners/{id}` (números, estado, histórico e o botão «Desativar dono» / «Reativar dono»).
-- Decisões de implementação (decididas):
-  - `GET /api/admin/owners/{id}` devolve a linha da lista (US26) e `futureBookings`: as reservas confirmadas dos clubes do dono que ainda não terminaram (a que está a decorrer conta; as de clientes também), o número que o admin lê antes de desativar. Um id desconhecido ou de um jogador ou do admin é sempre 404 `owner_not_found`, antes de se ler o corpo.
-  - `deactivate` e `reactivate` levam `{ reason }`: obrigatório, sem espaços nas pontas, no máximo **500** caracteres (400 no campo `reason`). Respondem 200 com o dono como o `GET` o dá. Já desativado: 422 `owner_already_deactivated`; não desativado: 422 `owner_not_deactivated`.
-  - Desativar põe `deactivated_at`, revoga todos os refresh tokens do dono e escreve a linha de registo, tudo na mesma transação; a decisão é um `UPDATE … WHERE deactivated_at IS NULL`, por isso dois admins ao mesmo tempo dão uma mudança e um 422. Não cancela nenhuma reserva. Reativar limpa `deactivated_at` e não restaura sessões: o dono volta a entrar.
-  - Registo em `owner_status_changes` (dono, ação `Deactivated`/`Reactivated`, motivo, admin da sessão, quando). Não há código de alteração nem de remoção, e um trigger da base de dados recusa `UPDATE`, `DELETE` e `TRUNCATE` (SQLSTATE 23001); as chaves para as contas são `RESTRICT`, por isso uma conta com registo não pode ser apagada.
-  - `GET …/history` lista as mudanças, as mais recentes primeiro, com ação (`deactivated`/`reactivated`), motivo, `adminId`, `adminName` e `at`.
-  - Os efeitos já existiam e têm teste: não entra (401 genérico) nem renova a sessão; os clubes saem da pesquisa e da página (404 `club_not_found`) e recusam reservas (422 `club_unavailable`); as reservas futuras ficam confirmadas; reativar repõe tudo.
-  - Um jogador continua a poder cancelar uma reserva num clube de um dono desativado, com a janela de cancelamento normal do clube (tem teste).
-  - O dono desativado não vê as reservas nem os clubes até ser reativado; o jogador vê as suas reservas como sempre.
-## Histórias técnicas
- 
-Não são visíveis para o utilizador, mas sem elas as estimativas das outras histórias ficam erradas. Todas são MVP, exceto a T07, acrescentada depois.
- 
-### T01 · Estrutura, Docker e CI · 5 pontos
- 
-Como programador, quero o projeto a correr com um comando e testado em cada push, para desenvolver sem configuração manual.
- 
-- Repositório com a API ASP.NET Core, a app React em TypeScript e os projetos de testes.
-- `docker compose up` arranca a API, a app, o PostgreSQL e o serviço de email de teste.
-- As migrações EF Core são aplicadas automaticamente em desenvolvimento.
-- GitHub Actions faz build e corre os testes (back end e front end) em cada push e pull request; uma falha bloqueia o merge.
-- Documentação OpenAPI (Swagger) disponível em desenvolvimento.
-- O README explica como correr o projeto localmente.
-### T02 · Autorização por perfil e por dono · 3 pontos
- 
-Como dono da plataforma, quero que cada utilizador só aceda ao que lhe pertence, para que nenhum dono veja ou altere dados de outro.
- 
-- Os endpoints estão protegidos por perfil (Jogador, Dono, Admin) com políticas na API.
-- Os recursos de um clube (clube, campos, bloqueios, reservas) verificam que o clube pertence ao dono autenticado.
-- Pedidos a recursos de outro dono devolvem 404, para não revelar que existem.
-- Testes de integração cobrem: o dono A não lê nem altera dados do dono B; um jogador não acede a `/manage` nem a `/admin`; um dono não acede a `/admin`.
-- Estado: feita para os clubes (US06). O mecanismo é o `OwnedClubs` (Application): todas as consultas da área do dono partem dos clubes do dono com sessão, e um clube de outro dono dá o mesmo 404 `club_not_found` que um clube que não existe. Um teste descobre sozinho todos os endpoints `/api/manage` (401 sem sessão, 403 para jogador e admin, 404 para o clube de outro dono nas rotas com `{clubId}`), por isso cobre também os endpoints que vierem a seguir (campos, bloqueios, reservas). Como usar: ver AGENTS.md.
-### T03 · Sem reservas duplicadas · 5 pontos
- 
-Como jogador, quero ter a certeza de que um slot reservado é só meu, para não chegar ao campo e encontrá-lo ocupado.
- 
-- A base de dados impede duas reservas confirmadas sobrepostas no mesmo campo (por exemplo, com uma exclusion constraint no PostgreSQL), e não só a validação na aplicação.
-- A regra vale também para reservas criadas pelo dono (US13).
-- A sobreposição entre reservas e bloqueios é verificada dentro de uma transação.
-- Teste de integração: vários pedidos simultâneos para o mesmo slot resultam em exatamente um 201 e os restantes 409.
-- A API devolve 409 com uma mensagem clara, nunca um 500.
-- Estado: feita (com a US18). A exclusion constraint `bookings_no_overlap` é a da Stack (`btree_gist`, `pitch_id WITH =`, `tstzrange(starts_at, ends_at) WITH &&`, `WHERE (status = 'Confirmed')`), criada na migração `AddBookings`; o erro 23P01 é 409 `slot_taken`. Reservas e bloqueios trancam a mesma linha do campo (`SELECT … FOR UPDATE`) antes de verificar a sobreposição entre si. Testes: 20 pedidos simultâneos para o mesmo slot dão exatamente um 201 e 19 × 409, nunca 500; uma reserva e um bloqueio ao mesmo tempo nunca ganham os dois; uma reserva cancelada deixa o slot livre para a constraint.
-- Registos (logs) do conflito (decidido): perder a corrida por um slot é esperado, por isso não deve aparecer como erro. O `BookingStore` regista-o ao nível Information (campo e slot, nunca o jogador) e os dois eventos do EF para esta falha, `SaveChangesFailed` e `CommandError`, descem para Debug (sem filtrar as categorias do EF). O `FailedCommandLogger` volta a registar ao nível Error, na mesma categoria e com o mesmo texto do comando, todos os comandos falhados exceto a violação da exclusion constraint `bookings_no_overlap`; por isso nenhuma outra falha (uma consulta, uma chave estrangeira, um índice único) fica em silêncio. Uma falha que ninguém trate continua a chegar ao tratador global de exceções, que a regista ao nível Error e responde 500. Há testes para as duas situações. Alternativa não escolhida: baixar o `CommandError` para todos os comandos falhados.
-### T04 · Datas e fusos horários · 3 pontos
- 
-Como jogador, quero ver sempre as horas certas, para não aparecer à hora errada.
- 
-- Todas as datas são guardadas em UTC; os horários de funcionamento são guardados como hora local, com o fuso do clube (Europe/Lisbon).
-- A geração de slots está certa nos dias de mudança de hora (março e outubro), com testes para esses dias.
-- O front end mostra sempre a hora de Lisboa, seja qual for o fuso do browser.
-### T05 · Dados de demonstração · 2 pontos
- 
-Como programador, quero dados de exemplo realistas, para demonstrar a app e ver o painel de admin com números.
- 
-- Um comando cria donos, clubes, campos, horários, jogadores e reservas dos últimos 60 dias e dos próximos 14.
-- Só corre com uma flag explícita, nunca por engano em produção. Em Production exige ainda `DemoData__AllowInProduction=true` no processo do comando (T06, para a demo pública).
-- Os dados geram números com sentido nos gráficos e nas listas do admin.
-- Estado: feita. Comando `seed-demo` da API (ver o README, «Demo data»).
-- Decisões de implementação (decididas):
-  - O comando é `dotnet run --project backend/src/SportsBooking.Api -- seed-demo` (no docker compose, `docker compose run --rm api seed-demo`). Só corre com exatamente esse argumento, cria os dados e sai sem arrancar o servidor (por isso o worker de emails nunca corre). Recusa-se no ambiente Production sem `DemoData__AllowInProduction=true` e recusa-se se já existir algum dono ou jogador (uma conta de admin não o impede), com uma mensagem e o código de saída 1; é tudo numa só transação.
-  - Dados: 5 donos e 10 clubes (2 por dono) em Porto, Vila Nova de Gaia, Matosinhos, Maia, Lisboa, Oeiras e Cascais, 43 campos dos quatro desportos, com preços realistas (ténis 7 a 16 €, padel 18 a 32 €, futsal 35 a 45 €, futebol 7 de 55 a 70 €), horários (alguns fecham à segunda ou à meia-noite) e slots de 30, 60 e 90 minutos; 5 bloqueios (dois já passados e três futuros, um deles a manutenção de um campo de padel daqui a 5 dias); 60 jogadores registados ao longo dos últimos 90 dias (os donos, antes disso); e cerca de 10 400 reservas dos últimos 60 dias e dos próximos 14: mais ao fim da tarde e ao fim de semana, a crescer ao longo do tempo e a diminuir para a frente, com reservas confirmadas, canceladas pelo jogador (dentro da janela do clube), canceladas pelo clube (com motivo) e faltas no passado, alguns slots libertados que outro jogador voltou a reservar, e cerca de 6 % de reservas para clientes (US13).
-  - É determinístico: uma semente fixa (`20260101`) e tudo calculado a partir do dia de hoje em Lisboa (o «agora» dos dados é o início de hoje). O mesmo dia dá os mesmos nomes, datas, preços e estados; só mudam os ids e os hashes das palavras-passe.
-  - Tudo passa pelas mesmas entidades e regras da aplicação (`Club.Create`, `Pitch.ChangeSchedule`, `Booking.ForPlayer`, `Booking.ForCustomer`, `CancelByPlayer`, `CancelByClub`): só se contorna a regra «não há reservas no passado», porque as reservas são construídas diretamente, sem o serviço. Cada reserva está num slot gerado do seu campo (`Pitch.SlotsOn`), ao preço do campo, fora dos bloqueios, sem sobreposição (a exclusion constraint aceita tudo), criada antes de começar, depois de o jogador se registar e a menos de 30 dias do início.
-  - Uma falta (`no_show`) foi marcada por `Booking.MarkNoShow(now)`, que só aceitava uma reserva confirmada que já acabou (a base da US15, entretanto feita: o serviço do dono usa `Booking.RecordNoShow(now)` e `UndoNoShow()`; `MarkNoShow` é o mesmo que `RecordNoShow(now) == Marked` e só o seed o usa).
-  - As contas têm a data de registo (`users.registered_at`, nova nesta história, preenchida pelo registo e pelo seed; as contas que já existiam ficam com a data da migração): é o que a lista de donos e o gráfico de registos do admin (US26, US28) vão ler.
-  - Todos os endereços são do domínio reservado `example.test` (`dono01`..`dono05`, `jogador01`..`jogador60`, `geral.clube01`..`geral.clube10`) e todas as contas têm a mesma palavra-passe de desenvolvimento, `demo-password-1`, que está no README. Não são criadas mensagens no outbox, por isso o seed não envia email. O comando só escreve contagens, nunca contas nem a palavra-passe.
-  - Contas que já existiam antes da migração ficam com a data da migração como `registered_at`; todas as contas de demonstração partilham o mesmo hash de palavra-passe.
-  - Mistura de resultados das reservas passadas: cerca de 80 % realizadas, 11 % canceladas pelo jogador, 3 % canceladas pelo clube e 6 % faltas; cerca de 6 % das reservas são de clientes sem conta (US13).
-### T06 · Deploy contínuo · 5 pontos
- 
-Como programador, quero que cada merge na main fique publicado automaticamente, para ter sempre uma versão online para mostrar.
- 
-- A aplicação está acessível num URL público com HTTPS.
-- Cada merge na main que passe no CI faz deploy automático.
-- Os segredos (ligação à base de dados, chave JWT, SMTP, conta de admin) vêm de variáveis de ambiente, nunca do repositório.
-  - SMTP (US22, Brevo): `Email__Host`, `Email__Port` (2525, confirmado no primeiro deploy), `Email__Security` (`StartTls`), `Email__Username`, `Email__Password` e `Email__FromAddress` (um remetente verificado no Brevo); sem `Email__Host` e `Email__FromAddress` a API arranca em Production, avisa e não envia (provisório). Com mais de uma instância da API, o worker do outbox pode correr em todas (`SKIP LOCKED`).
-- As migrações são aplicadas no deploy de forma controlada.
-- A base de dados tem dois utilizadores. O migration bundle corre como o dono da base de dados, que cria a extensão `btree_gist` (extensão de confiança no PostgreSQL 13 ou superior) e o resto do esquema. A API liga-se com um utilizador de aplicação separado, só com direitos de leitura e escrita nos dados e sem DDL, por isso nunca altera o esquema nem cria extensões.
-- Existe um endpoint `/health` para verificar se a API está a responder. Só diz se o processo está vivo e não toca na base de dados (parte A da T06).
-- `PublicSite__BaseUrl` é o endereço HTTPS público do site, usado nas ligações dos emails (US05); sem ele a API não arranca.
-- Os endpoints públicos de leitura (`/api/clubs`, `/api/localities`, a página do clube e os slots) têm um limite de pedidos por IP, folgado o suficiente para uma navegação normal (pesquisar, abrir clubes, mudar de data e de campo), para que ninguém os possa usar para extrair todos os dados ou sobrecarregar a API. Responde 429 `too_many_requests` com `Retry-After`, como nas rotas de autenticação, e usa o mesmo IP do cliente (ver o critério de `ForwardedHeaders` abaixo).
-- Estado: **feita e em produção desde 2026-11-09 (primeiro deploy real).** Os workflows (`deploy.yml`, `prod-data.yml`), os papéis da base de dados (`docs/deployment/supabase-roles.sql`) e o [runbook](deployment/runbook.md) foram usados no primeiro deploy. O que o primeiro deploy confirmou: `ForwardLimit=1`, o Brevo na porta 2525 com `StartTls`, o login e um pedido que altera dados pelo rewrite da Vercel (`Origin`, `Set-Cookie`), nada em cache nos rewrites e os campos do Render (Dockerfile, contexto e health check) como no runbook; nada diferiu da documentação. Ficam provisórios os pontos de «Pontos a rever no T06»: IP do cliente (melhor esforço), SMTP em produção, migrações, CLI da Vercel, espera pela API e versão do PostgreSQL. O limite de pedidos dos endpoints públicos de leitura está feito: 120 pedidos por minuto e por IP, um só limite partilhado pelos quatro endpoints (`RateLimiting:Public:Window` / `ReadPermitLimit`, valores provisórios), com a mesma partição por IP e as mesmas regras de proxy de confiança das rotas de autenticação.
-- O Dependabot está ligado (`.github/dependabot.yml`: NuGet, npm, GitHub Actions e os `Dockerfile` do back end e do front end; o Docker acrescentou-se na `chore/repo-hygiene`). **Feito**, antes da T06: todas as segundas-feiras, uma PR agrupada por ecossistema para as atualizações menores e de correção, no máximo 5 PRs abertas (3 nas Actions) e `cooldown` de 14 dias para respeitar a regra das versões com pelo menos duas semanas (as correções de segurança não esperam). As atualizações maiores vêm uma a uma e revêem-se à mão.
-- Higiene do repositório (`chore/repo-hygiene`, depois da T06): licença MIT (`LICENSE`, também em `frontend/package.json`), `SECURITY.md` (como comunicar uma vulnerabilidade; demonstração pessoal, só a `main` tem suporte, sem prazos garantidos) e o CodeQL (`.github/workflows/codeql.yml`: C# e JavaScript/TypeScript, sem build, em cada PR, em cada `push` à `main` e às segundas-feiras; um workflow à parte, de que o `deploy.yml` não depende). O CodeQL (e o relato privado de vulnerabilidades do `SECURITY.md`) só funcionam com o repositório público.
-- **Fechado (`fix/club-not-found`):** a página de um clube que não existe (`/clubs/<desconhecido>`) respondia HTTP 200 em vez de 404. Causa: o `loading.tsx` do grupo `(player)` começa a enviar a resposta antes de o `notFound()` correr, e o estado fica fixado no primeiro byte (o Next.js só acrescenta `noindex`). O mesmo valia para um GUID mal formado em `/manage/clubs/{id}…` e `/admin/owners/{id}`. Correção: o `proxy.ts` responde 404 antes de a página enviar (`lib/not-found-check.ts`): para um slug ou GUID impossível, sem perguntar à API, e para um clube público que a API não tem (um pedido por slug e por minuto, só em carregamentos reais; se a API falhar ou demorar, a página passa). Testes: `src/proxy-not-found.test.ts`, `src/lib/not-found-check.test.ts` e `frontend/scripts/check-not-found.mjs`, que o CI corre contra o build com uma API simulada. **Provisório:** um GUID bem formado que não existe (ou que é de outro dono) continua a responder 200 com o ecrã «não encontrado» no cliente, porque só se sabe com a sessão; são páginas atrás de login. O custo no caminho feliz é um pedido à API na primeira visita a cada clube, por minuto.
-- Os cabeçalhos de segurança `Content-Security-Policy`, `X-Content-Type-Options` e `Referrer-Policy` estão definidos nas respostas, com testes. **Feito**, antes da T06: o site (Next.js, `frontend/src/lib/security-headers.ts`, aplicados em todas as páginas) envia também `Permissions-Policy` restritiva e `frame-ancestors 'none'` e já não envia `X-Powered-By`; a `/reset-password` mantém o seu `Referrer-Policy: no-referrer` e `Cache-Control: no-store`; a API envia `X-Content-Type-Options: nosniff` em todas as respostas e já não envia `Server`; o Swagger continua só em Development. O HSTS e o `upgrade-insecure-requests` ficam **definidos mas desligados**: ligam-se com `ENABLE_HSTS=true` no build do front end (argumento de build do `Dockerfile`; os cabeçalhos ficam escritos no build) e **só na T06**, quando o site for servido por HTTPS. O site publicado envia HSTS (verificado em 2026-11-10: `max-age=63072000; includeSubDomains; preload`, valor da plataforma, a Vercel). A API, que desde a [ADR 0009](architecture/adr/0009-alvo-de-implantacao.md) é pública no Render, envia hoje só `X-Content-Type-Options: nosniff` e não envia `Server` nem HSTS (o navegador só fala com a origem do site, por isso o HSTS que conta é o do site); se o Render acrescenta algum cabeçalho à frente da API, não se verificou. **Provisório:** a política permite `'unsafe-inline'` nos scripts e nos estilos, porque o Next.js com `cacheComponents` envia scripts em linha com os dados de cada página (nem um nonce por pedido nem um hash de build os cobrem; experimentou-se os dois num browser e a aplicação deixou de hidratar) e porque a grelha do calendário e o Sonner usam estilos em linha. Uma política estrita pede um nonce e todas as páginas dinâmicas, ou seja, abdicar do `cacheComponents`: decisão de arquitetura por tomar.
-- O rate limiting só distingue os clientes em produção com `ForwardedHeaders__TrustAnyProxy=true` e `ForwardedHeaders__ForwardLimit=1` (confirmado no primeiro deploy); é de melhor esforço (provisório, ver «Pontos a rever no T06»).
-- Manter a demo ativa (`keepalive.yml`, depois da T06): duas vezes por semana, uma consulta de leitura à base de dados pelo site (`GET /api/localities`), para o Supabase não pausar o projeto por inatividade; não usa segredos e só corre com `DEPLOY_ENABLED=true`. Ver o [runbook](deployment/runbook.md#10-manter-a-demo-ativa) e a [ADR 0009](architecture/adr/0009-alvo-de-implantacao.md).
-  - **Provisório (frequência do keepalive):** a documentação do Supabase diz que um projeto gratuito é pausado com «low activity over a 7-day period» sem dar um número, e que «a few user requests to the database each day» costumam chegar; duas consultas por semana pode ser pouco. Aumentar a frequência é mudar o `cron`.
-  - **Provisório (o que conta como atividade):** a documentação do Supabase não diz se uma visita ao painel conta como atividade na base de dados; a do GitHub não define «repository activity» para a regra dos 60 dias que desativa os workflows agendados nos repositórios públicos.
-- Parte A (código e configuração) feita: proxy para a API definido no build, `Origin` configurável, IP do cliente, imagem Docker para o Render, variáveis em `docs/deployment/environment-variables.md`, comandos em Production.
-### T07 · Termos e Política de Privacidade · 3 pontos
+- In the account area, a player or owner can download their data in a commonly used format (account and bookings).
+- They can request the deletion of the account, with confirmation; the personal data stops being associated with the bookings, which continue to exist for the clubs without identifying the person.
+- What happens to owner accounts with clubs and to future bookings is decided before starting (today bookings are never deleted and a club cannot be left without an owner).
+- Status: done (it came out of T07). Page `/account` (`A minha conta` (My account)), section `Privacidade e dados` (Privacy and data); `GET /api/me/data-export` and `POST /api/me/delete-account`; migration `AddAccountDeletion` (`users.deleted_at`, optional, no new table, so `docs/deployment/supabase-roles.sql` does not change). Decision and alternatives in [ADR 0011](architecture/adr/0011-account-deletion-by-anonymization.md).
+- **Provisional (US30 decisions, taken by the project owner):**
+  - Export: a JSON file with only the person's own data: profile, bookings (club, pitch, dates, price, state) and version and date of the acceptance of the Terms. No hashes, tokens, internal ids or other people's data. Per-IP limit.
+  - Deletion: asks for the password again; in a single transaction it cancels future bookings (freeing the times), anonymizes the account (fixed name `Conta apagada` (Deleted account), email `deleted-<id>@deleted.invalid`, password and security stamp invalidated, phone and acceptance cleared), deletes the refresh tokens and the unsent emails. Past bookings stay, without personal data. No referenced row is deleted.
+  - An owner with clubs (422 `owner_has_clubs`, the interface tells them to contact the administration) and the admin (422 `admin_cannot_delete_account`) cannot delete the account.
+  - No confirmation email: confirmation is on screen and the cookies are cleared.
+- **Provisional (choices made in the implementation, the most conservative where the story did not say):**
+  - "Active clubs" = any club: a club has no state of its own, and a club with no active pitches still belongs to the owner.
+  - The access token of a deleted account stops working at once (a read by primary key on every authenticated request); it is an exception to the 15-minute rule, which still holds for a deactivated account (US29).
+  - The cancellation on deletion ignores the cancellation window and becomes `CancelledByPlayer`; a booking that has already started is not touched.
+  - A wrong password is 400 `invalid_password` (a 401 would make the client try to renew the session) and counts towards the attempt lockout, as in login.
+  - Limits: 5 exports and 5 deletion attempts per minute per IP (`RateLimiting:Auth:AccountExportPermitLimit`, `AccountDeletePermitLimit`).
+  - There was no account page: `/account` was created for all profiles, with an `A minha conta` link for players and owners; the admin sees only the export.
+  - A deleted account leaves the admin's totals and owners list, but stays in the registrations charts.
+  - An owner's export does not include the clubs (the request was profile, bookings and acceptance).
+  - Left unanonymized, because they are not account fields: reasons written by hand by a club or by an admin (`owner_status_changes` is append-only) and the already closed outbox messages (they only have the id). The Policy states the first.
+  - `LEGAL_VERSION` became `1.1`, because `legal-info.ts` says to change the version whenever a text changes; whoever already accepted 1.0 does not have to accept again.
+  - A fourth end-to-end flow, in addition to T08's three, on request; in E2E the sign-in limit goes up to 100 per minute (`e2e/compose.e2e.yml`), because all the browsers share one address.
+## Epic 2 — Club setup
+ 
+### US06 · Create and edit club · M · 3 points
+ 
+As an owner, I want to create and edit my clubs, so that players find them with the right information.
+ 
+- A club has a name, address, locality, phone, contact email and cancellation window in hours (24 by default).
+- An owner can have several clubs; each club belongs to a single owner.
+- The owner only sees and edits their own clubs; a request for another owner's club returns 404.
+- Missing required fields are rejected with a per-field message.
+- Changing the cancellation window applies to cancellations made from that moment on.
+- Decided: the cancellation window is read from the club at the moment of cancelling and is never copied into the bookings. US19 (and US12) follow this rule.
+- Decided (URLs): when the club is created a unique `slug` is generated from the name (for example `clube-desportivo-do-porto`); the `slug` does not change if the name changes, so the public addresses keep working. On a collision a numeric suffix is added (`-2`, `-3`, …). The owner area uses the club's public GUID: `/manage/clubs/{id}`.
+- The club stores its time zone (`Europe/Lisbon`). When the clubs table exists, T04's real storage test is repeated with it: instants in UTC and the club's time zone stored.
+- Status: done. Back end (`/api/manage/clubs`: create, list, view and edit, with the Owner profile and T02) and front end: `/manage` lists the owner's clubs (by name, 20 per page) and, with no clubs, shows the empty state with `Criar o primeiro clube`; `/manage/clubs/new` creates and `/manage/clubs/{id}` edits (form with one message per field, API errors on the right fields). A club that does not exist and another owner's club show the same `Clube não encontrado` (Club not found) page; an id that is not a GUID does not even reach the API.
+- Decided (confirmed):
+  - The five text fields are required: name (up to 100 characters), address (up to 200), locality (up to 100), phone and contact email (the same rules as US01: 9 to 15 digits with optional `+`; a simple address with a dot in the domain). Surrounding spaces are removed, and the phone's too.
+  - Cancellation window: a whole number of hours, from 1 to 168 (one week). On creation it is optional (24 by default); on editing (`PUT`, which replaces everything) it is required. The database also limits it (check constraint).
+  - `slug`: ASCII lowercase letters and digits, no accents, and everything else becomes a hyphen; for example "Clube de Ténis da Foz" gives `clube-de-tenis-da-foz` and "Padel & Co." gives `padel-co` (the `&` is not translated). A name with nothing usable gives `clube`. The base is cut at 80 characters, at a word end. On a collision `-2`, `-3`, … is added (the number after the largest in use). The unique index decides simultaneous creations: the one that loses tries again with the next suffix.
+  - Owner's list: 20 per page by default, at most 100, ordered by name ignoring case and then by id.
+  - A club never changes owner, and deleting the account of an owner with clubs fails instead of deleting the clubs.
+  - The time zone is not edited and does not appear in the form; the response shows it (`timeZone`).
+### US07 · Manage pitches · M · 5 points
+ 
+As an owner, I want to add, edit and deactivate pitches, so that I control what is available for booking.
+ 
+- A pitch has a name, sport (from a fixed list: futsal, 7-a-side football, padel, tennis), price per slot in euros and status (active or inactive).
+- Changing the price only affects new bookings; existing ones keep the price from the time of booking.
+- An inactive pitch does not appear in the search or accept bookings.
+- A pitch with future confirmed bookings cannot be deactivated; the message says how many there are.
+- Pitches are not deleted, only deactivated, to keep the history.
+- Status: done. Back end (`/api/manage/clubs/{clubId}/pitches`: create, list, view, edit, deactivate and reactivate, with the Owner profile and T02) and front end: the `/manage/clubs/{id}` page shows, below the club's data, the list of pitches (active and inactive, by name, 20 per page) with `Adicionar campo` (Add pitch), `Editar` (Edit), `Desativar` (Deactivate) and `Reativar` (Reactivate). The sport is a list with the labels `Futsal`, `Futebol 7` (7-a-side football), `Padel` and `Ténis` (Tennis); the price is typed and shown the Portuguese way (`12,50 €`; it also accepts `12.50`) and goes to the API as a number. Inactive pitches appear marked `Inativo` (Inactive). A repeated name appears as an error on the name field. A pitch requested through a club that is not its own gives 404 `pitch_not_found`; another owner's club gives 404 `club_not_found`, as in US06. Done with T03/US18: deactivating a pitch with confirmed bookings that have not ended yet (future or in progress) is refused with 422 `pitch_has_future_bookings`, and the message and the `count` field say how many there are; the count is made under the pitch row's lock, so no booking can enter between the count and the deactivation.
+- Decided (confirmed):
+  - Stable sport codes in the API, stored as text: `futsal`, `football7`, `padel`, `tennis` (the Portuguese names are only for the interface). A new pitch starts active.
+  - Name: required, up to 100 characters (surrounding spaces removed), unique in each club ignoring case (also against inactive pitches); the same name can exist in another club. A repeated name is a validation error on the `name` field (400), not a 409.
+  - Price per slot: greater than €0 and up to €500, with at most two decimal places (`numeric(10,2)`, with a check constraint).
+  - `PUT` replaces name, sport and price; the status only changes with `POST …/deactivate` and `POST …/reactivate`, which are idempotent (repeating returns 200).
+  - Owner's list: active and inactive pitches, 20 per page by default (at most 100), ordered by name ignoring case and then by id.
+### US08 · Schedule and slot duration · M · 5 points
+ 
+As an owner, I want to define the opening hours and slot duration of each pitch, so that the free slots are generated automatically.
+ 
+- For each weekday, the owner sets the opening and closing time, or marks the day as closed.
+- The slot duration is 30, 60 or 90 minutes, per pitch.
+- Slots are generated from opening, in blocks of the defined duration; a block that goes past the closing time is not generated.
+- Changing the schedule does not alter bookings already made; a booking outside the new schedule stays valid.
+- Times are entered and shown in Lisbon time (T04).
+- The latest closing time is 00:00 (midnight of the same day). **Known MVP limitation:** schedules that go past midnight (for example, 22:00–02:00) are rejected.
+- When the schedules table exists, T04's real storage test is repeated with it: schedules stored as local time (`time`) with the club's time zone, and the slots generated in UTC.
+- Status: done. Front end: on each pitch in `/manage/clubs/{id}` the `Horário` (Schedule) button opens, below the pitch, the week editor (seven rows, Monday first, each with `Fechado` (Closed) or opening and closing time, plus the slot duration of 30, 60 or 90 minutes; it saves the whole week and the API errors appear on the right row and field) and the slot preview (today's date up to 30 days ahead, in Lisbon time, with `(verão)` ("(summer)") and `(inverno)` ("(winter)") in October's repeated hour). Back end: `GET` and `PUT /api/manage/clubs/{clubId}/pitches/{pitchId}/schedule` (duration and the seven days; `PUT` replaces the whole week) and `GET …/slots?date=YYYY-MM-DD` (read-only preview of the slots generated on that local date, with start and end in UTC, by T04's `SlotGenerator`). Everything with the Owner profile and T02: another owner's club gives 404 `club_not_found` and a pitch requested through another club gives 404 `pitch_not_found`, before any validation. The schedules live in the `pitch_opening_hours` table (one row per open day, `time` without a time zone); T04's storage test was repeated with it. Changing the schedule or the duration does not touch bookings (US17 already says a slot is not free if anything overlaps).
+- Decided (confirmed):
+  - Times go in half-hour steps (09:00, 09:30, …), without seconds; the API and the database reject anything else (the database only checks the order: closing after opening, or 00:00).
+  - A new pitch is closed every day and has 60-minute slots until the owner sets the schedule. Pitches that existed before this migration also get 60 minutes.
+  - Format of each day: `{ "closed": true }` or `{ "closed": false, "opens": "09:00", "closes": "22:00" }` (local time, `HH:mm`). All seven days are required in the `PUT`, and a closed day with times is rejected (instead of ignoring them). Errors come per field with the JSON path (`monday.closes`).
+  - The preview shows the slots the schedule generates and marks as blocked (`blocked`) those that overlap a block (US09) and as booked (`booked`) those that overlap a confirmed booking (US18), even if that booking was made on an old grid; it does not yet remove slots that have already started. It also works for an inactive pitch. A date outside today to 30 days (in Lisbon time) or badly typed gives 400 on the `date` field.
+  - Interface: the preview shows `Reservado` (Booked) on slots with a confirmed booking and `Bloqueado` (Blocked) on those that overlap a block (both, when that is the case); free slots carry no mark. The note below says that blocks and bookings appear marked.
+### US09 · Block slots · M · 3 points
+ 
+As an owner, I want to block periods of a pitch, so that nobody books it during maintenance or private events.
+ 
+- A block has a pitch, start, end and reason (optional).
+- Slots inside a block do not appear as free to players.
+- A block that overlaps confirmed bookings is rejected, and the message lists those bookings so the owner can decide (cancel through US12).
+- The owner can remove a future block, and the slots become free again.
+- Blocks appear in the calendar (US11).
+- Status: done. Front end: the `Bloqueios` (Blocks) button on each pitch in `/manage/clubs/{id}` opens the list of current and future blocks (Lisbon time, reason if any, `Em curso` (In progress) on those that have already started), the form to create one (start and end date and time, which can be on different days, and an optional reason) and the removal, with confirmation, of those that have not started; the API errors (overlap, start in the past, block already started) appear in the right place, and the slot preview shows `Bloqueado` on the affected slots. Back end: `POST`, `GET` and `DELETE /api/manage/clubs/{clubId}/pitches/{pitchId}/blocks[/{blockId}]`, with the Owner profile and T02 (another owner's club: 404 `club_not_found`; pitch of another club: 404 `pitch_not_found`; block of another pitch: 404 `block_not_found`). Creating runs in a transaction that starts by locking the pitch row (`SELECT … FOR UPDATE`, `IPitchLock`) and only then checks the overlap with other blocks and, since T03/US18, with confirmed bookings: a block over bookings gives 409 `block_overlaps_bookings`, with those bookings' times in the message and the list (`bookings`: id, start and end in UTC) in the response. The owner's slot preview (US08) marks as `blocked` the slots that overlap any block.
+- Decided (confirmed):
+  - The start and end arrive as Lisbon local date and time (`2026-10-25T09:00`), in half-hour steps, and are converted with `ClubTime` (T04's clock-change rules); the response carries UTC instants. Blocks can go past midnight (they are not opening hours).
+  - The start cannot be in the past (starting now is accepted); the end has to be after the start and at most 90 days ahead.
+  - Optional reason, up to 200 characters.
+  - Two blocks on the same pitch cannot overlap (409 `block_overlap`); blocks that touch (one ends when the other starts) are accepted. The check is made under the pitch row's lock, with no database constraint.
+  - The list has the current and future blocks (those that have not ended yet) in order of start, 20 per page.
+  - Only a block that has not started yet is removed; one that has started or ended gives 422 `block_already_started` and stays in the history. Removing is deleting the row.
+  - A block can be created on an inactive pitch.
+### US10 · Peak and off-peak prices · D · 5 points
+ 
+As an owner, I want to define different prices per time band, so that I charge more at the hours of highest demand.
+ 
+- The owner defines bands per pitch (weekdays and time range), each with its own price.
+- A slot outside any band uses the pitch's base price.
+- Overlapping bands on the same pitch are rejected.
+- The price shown to the player and stored in the booking is that of the slot's band.
+- Status: done. Back end: bands, a single price per slot (`Pitch.PriceForSlot`), the band's price in bookings, in the public slots and in the owner's preview. Front end: the `Faixas de preço` (Price bands) button on each pitch in `/manage/clubs/{id}` (beside `Horário` and `Bloqueios`, one panel at a time) opens the list of bands (days in pt-PT starting on Monday, times and price), the form to create and edit (days, start, end, price; API errors go to the right field and the overlap appears above the buttons) and removal with confirmation; the owner's preview, the `Nova reserva` (New booking) form, the player's slot list and the booking summary show each slot's price, and the club page shows the base price and a note when the pitch has bands.
+- Decided (confirmed):
+  - A band has weekdays (one or more), start and end in the club's local time, in half-hour steps (like US08), end `00:00` = midnight, no bands that go past midnight, and a price with the pitch price's limits (> 0, ≤ €500, two decimal places). Public id GUID v7. At most 20 bands per pitch (422 `price_band_limit_reached`).
+  - A slot's price (`Pitch.PriceForSlot`) is that of the band that contains the slot's **local start time** on that weekday (start included, end excluded); outside any band, the base price. A slot that crosses the end of a band (e.g. 90 minutes from 21:00 in a band until 22:00) gets the price of the band where it starts. In the repeated hour of 25 October, the two 01:00 slots have the same price (the local time counts).
+  - Bands on the same pitch do not overlap if they share a weekday and the times cross; bands that touch (one ends when the other starts) are accepted. Overlap: 409 `price_band_overlap`; the other errors are 400 `validation_failed` with a per-field message (`days`, `start`, `end`, `price`). Creating, changing and deleting run under the pitch lock (`IPitchLock`), the same as bookings'.
+  - Bands are configuration, not history: deleting is deleting the row (`DELETE …/price-bands/{bandId}`, 204). Changing or deleting bands never touches existing bookings, which keep the price they were made with.
+  - The search (US16) still shows no prices. The club page shows the base price (`Preço base: 18,50 € por horário` (Base price: €18.50 per time)) and a note when the pitch has bands (`hasPriceBands`); each slot's price comes in `price` in the public slots and in the owner's preview.
+  - Weekdays travel in the API as English names (`monday` … `sunday`), like the schedule's keys; the interface shows them in pt-PT, starting on Monday.
+  - Only the overlap (409 `price_band_overlap`), the limit (422 `price_band_limit_reached`) and "not found" (404 `price_band_not_found`) have a code of their own; the field errors (empty days, end before start, time off the step, price outside the limits) are 400 `validation_failed` with the message in `days`, `start`, `end` or `price`.
+  - Club page text: the pitch's price appears as `Preço base: 18,50 € por horário` and, below, `Alguns horários têm outro preço; o preço de cada horário aparece na escolha do horário.` (Some times have another price; each time's price appears when choosing the time.) when the pitch has bands.
+## Epic 3 — Club operations
+ 
+### US11 · Booking calendar · M · 8 points
+ 
+As an owner, I want to see a club's bookings in a daily and weekly view, so that I know what is going on at each pitch.
+ 
+- Daily view: one column per pitch, rows per hour, with bookings and blocks.
+- Weekly view: one pitch at a time, chosen from a list.
+- Each booking shows the player's name (or the customer's, in US13), the time and the status.
+- Navigation to the previous and next day or week, and a `Hoje` (Today) button.
+- Cancelled bookings do not appear by default.
+- Opening a booking shows the details and the cancel action.
+- Blocks appear in the calendar (US09): `GET …/pitches/{pitchId}/blocks` gives each pitch's current and future blocks.
+- Candidate for splitting: daily view (5) and weekly view (3).
+- Status: done. Back end (`GET /api/manage/clubs/{clubId}/calendar` and `GET …/bookings/{bookingId}`) and interface (the daily and weekly view, `/manage/clubs/{id}/calendar`).
+- Decided (confirmed):
+  - Back end: the calendar range is at most 7 days, both included; dates have to be between 2000 and 2100 (defensive limit); the owner can see any date (past and future, without the players' 30-day window).
+  - Back end: a booking that crosses local midnight appears on both days.
+  - Back end: a no-show (`no_show`) is not a cancellation and always appears; only cancelled ones (by the player or by the club) are hidden without `includeCancelled=true`.
+  - Back end: an inactive pitch only comes in the list if it has visible bookings in the range (the same criterion that decides which bookings are seen).
+  - Back end: the player's name is the only personal data the owner sees, and only in their clubs: no email, phone or account id (there is a test that looks for those values in the response).
+  - Interface: the grid widens (in whole hours, within the day) to include a booking or a block outside the opening hours, for example from an old schedule.
+  - Interface: bookings and blocks that overlap (for example a cancelled booking and the one that replaced it) sit side by side, in lanes.
+  - Interface: changing day, view, week or pitch closes the open booking.
+  - Interface: a pitch that is not in the club, in the weekly view's address, counts as the first; an inactive pitch that the API returns appears marked `Inativo`.
+  - Interface: bookings and blocks are positioned by real elapsed time since the start of the Lisbon day, and not by clock hours: 25 October 2026 (25 hours) has 25 rows, with `01:00 (verão)` and `01:00 (inverno)`, and 29 March 2026 (23 hours) has 23, without 01:00. Times are only shown through `lib/datetime.ts`. An opening time that does not exist on that day moves forward past the gap, as in the API (01:30 → 02:30).
+  - Interface: in a week with a clock change the column of that day shows `25 h` (or `23 h`) and a note above says that the bookings of that day are drawn by the time actually elapsed, so after the change they are an hour out of step with the hours scale (that of a normal day); the time written on each booking is always right.
+- Decided (confirmed) — interface decisions:
+  - The daily calendar is at `/manage/clubs/{id}/calendar`, with a `Calendário de reservas` (Booking calendar) link on the club page. One column per pitch (those the API returns) and one row per hour, from the earliest opening to the latest closing of that day, in whole hours. With no pitch open and no bookings or blocks, it says so instead of showing the grid.
+  - Each booking shows the player's name, the time and the status (`Confirmada` (Confirmed), `Cancelada pelo jogador` (Cancelled by the player), `Cancelada pelo clube` (Cancelled by the club), `Falta` (No-show)), with one style per status; cancelled ones are struck through and dashed. A block has a style of its own (dashed, stripes) and shows `Bloqueio` (Block), the time and the reason, and cannot be opened. What is outside the pitch's opening hours is shaded, and a pitch closed on that day says `Fechado` (Closed).
+  - Navigation: `Dia anterior` (Previous day), `Hoje` (today in Lisbon, not the browser's), `Dia seguinte` (Next day) and a date field.
+  - The view state is in the address: `?date=YYYY-MM-DD` (today is not written, so `Hoje` is the plain address), `&cancelled=1` and `&booking=<id>`. An invalid date counts as today and an id that is not a GUID is ignored.
+  - Cancelled bookings are hidden by default, with the option `Mostrar reservas canceladas` (Show cancelled bookings).
+  - Weekly view (`Vista semanal` (Weekly view) / `Vista diária` (Daily view)): one pitch at a time, chosen from a `Campo` (Pitch) list (the first by default), in seven columns, Monday to Sunday, with the day names in Portuguese (`Segunda-feira, 04/05/2026` (Monday, 04/05/2026)), and rows per hour, with the same boxes and the same position rule as the daily view (each day by the real time elapsed since its start, in `layoutWeek`, which uses `layoutDay`). The grid is shared by the seven columns, from the earliest opening to the latest closing time of the week. One request to the API per week (Monday to Sunday, 7 days), with all the pitches; changing pitch makes no other request.
+  - Weekly navigation: `Semana anterior` (Previous week), `Hoje` (today's week, in Lisbon) and `Semana seguinte` (Next week); the date field leads to the week that contains that date. The view state is in the address: `?view=week&date=YYYY-MM-DD&pitch=<id>&cancelled=1&booking=<id>` (the daily view is the default and is not written; the pitch is only written in the weekly view).
+  - Opening a booking (clicking it) shows the details below the grid: player, pitch, date, time, price, status, when it was made and, if cancelled, when and why. `Fechar` (Close) closes. A booking that no longer exists says `Esta reserva já não existe.` (This booking no longer exists.). A club that is not the owner's (or does not exist) shows the same `Clube não encontrado` page as club editing.
+- Decided (confirmed) — implementation decisions:
+  - `GET /api/manage/clubs/{clubId}/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD&includeCancelled=false` (Owner profile, through T02: another owner's club, or a non-existent one, is 404 `club_not_found`, before looking at the query). `from` and `to` are the club's local dates, both included; `from` cannot be after `to` (400 on `from`/`to`/`includeCancelled`, messages in Portuguese).
+  - The response has `from`, `to`, `pitches`, `bookings` and `blocks`. The club's pitches: the pitches the API lists, ordered by name; each with `id`, `name`, `sport`, `status`, `slotDurationMinutes` and `days` (one entry per date in the range, with local `opens` and `closes` "HH:mm", or `null` on a closed day; closing "00:00" is midnight). The instants of bookings and blocks go in UTC; the interface shows them in Lisbon time.
+  - A booking belongs to the range if it overlaps it (half-open), and a day is the local day: on 25 October 2026 (25 hours) the range is [2026-10-24T23:00Z, 2026-10-26T00:00Z), and both 01:30s count.
+  - Bookings: `id`, `pitchId`, `startsAt`, `endsAt`, `status`, `price` and `bookerName`, in order of start. Cancelled ones (by the player or by the club) only come with `includeCancelled=true`. Blocks: `id`, `pitchId`, `startsAt`, `endsAt`, `reason`, of the pitches listed.
+  - Players and admins get 403 on these endpoints, and 401 without a session.
+  - `GET /api/manage/clubs/{clubId}/bookings/{bookingId}`: the details (pitch, sport, start, end, price, status, `bookerName`, `createdAt`, `cancelledAt`, `cancellationReason` and `canCancel`, true for a confirmed booking that has not started). A booking of another club, even the same owner's, and an unknown id are the same 404 `booking_not_found`.
+  - Done in US13: for a booking that the owner made for a customer without an account, `bookerName` carries the customer's name and `createdByClub` is true (the interface does not yet show the mark). The phone number only comes in the details.
+### US12 · Cancel booking as owner · M · 2 points
+ 
+As an owner, I want to cancel a booking, so that I can resolve problems such as a broken pitch.
+ 
+- The owner can cancel any future booking of their clubs, without the cancellation window's limit.
+- Giving a reason is required.
+- The booking becomes `Cancelada pelo clube` (Cancelled by the club) (it is not deleted) and the slot is free again.
+- The player receives an email with the reason (US22).
+- Status: done. Back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) and the action in the calendar's booking details.
+- Decided (confirmed):
+  - Body `{ "reason": "…" }`: the reason is required, trimmed, at most 200 characters (400 on `reason`).
+  - Order of responses: another owner's club 404 `club_not_found` → booking that is not this club's 404 `booking_not_found` (both before validating the body) → 400 → 422 `booking_not_confirmed` (already cancelled, by the player or by the club, or no-show; checked first) → 422 `booking_already_started` (already started; starting now counts as started).
+  - The cancellation made by the player (US19) also stores the instant (`cancelled_at`).
+- Decided (confirmed) — interface decisions:
+  - In the details, a booking that the API says can be cancelled (`canCancel`: confirmed and not yet started) has the `Cancelar reserva` (Cancel booking) button; the screen never calculates it. It opens a form with `Motivo do cancelamento` (Reason for cancellation) (required, up to 200 characters, with the same message as the API) and `Confirmar cancelamento` (Confirm cancellation) / `Manter reserva` (Keep booking). A confirmed booking that has already started says `Esta reserva já começou, por isso já não pode ser cancelada.` (This booking has already started, so it can no longer be cancelled.) and has no button.
+  - After cancelling it says `Reserva cancelada. O horário voltou a ficar livre.` (Booking cancelled. The time is free again.), the details show the status, the time and the reason, and the calendar reloads (the booking leaves the grid, unless cancelled ones are in view). No email is promised: the notice to the player belongs to US22.
+  - The API's refusals show the message of the code (422 `booking_not_confirmed`, 422 `booking_already_started`, 404 `booking_not_found`), close the form and reload the booking and the calendar; the message stays even if the reloaded booking no longer offers the form. A 400 on `reason` goes to the reason field.
+- Decided (confirmed) — implementation decisions:
+  - There is no cancellation window for the club: it can cancel up to the instant the booking starts.
+  - It runs under the pitch lock (the same as bookings', blocks' and the player's cancellation) and reads the booking again inside it; so if the owner and the player cancel at the same time, only one succeeds and the other gets 422 `booking_not_confirmed`, never a 500. The rule is in the entity (`Booking.CancelByClub`).
+  - The booking becomes `cancelled_by_club` and stores the reason (`cancellation_reason`) and the instant (`cancelled_at`); it is never deleted and the slot is free again. The response is the booking, as in the details.
+### US13 · Booking on behalf of a customer · M · 3 points
+ 
+As an owner, I want to create a booking for a customer who phoned or turned up, so that all bookings are in the system.
+ 
+- The owner picks a pitch and a free slot and gives the customer's name and mobile number; the customer does not need an account.
+- The same rule against duplicate bookings from US18 and T03 applies.
+- The booking appears in the calendar marked as "created by the club".
+- No email is sent, because the customer has no account.
+- Status: done. Back end (`POST /api/manage/clubs/{clubId}/bookings`) and interface in the owner's calendar (daily and weekly view).
+- Decided (confirmed):
+  - The customer's mobile number is required (in US01 it is optional).
+  - The 30-day window (today to today + 30, in Lisbon) also applies to the owner: a phone booking for more than 30 days from now is 422 `outside_booking_window`.
+  - A deactivated owner with a still valid session gets 422 `club_unavailable` when creating a booking.
+  - The mobile number the owner typed is only shown in the booking details, never in the calendar.
+  - Interface: empty hours are only offered on an active pitch, within the opening hours, at an hour that has not ended yet and up to 30 days ahead; they are buttons outside the keyboard order, and the `Nova reserva` button is the keyboard entry point.
+  - Interface: a date outside today..+30 goes back to today in the form.
+  - Interface: opening the form closes the open booking's details.
+  - Interface: the check that a time has already started uses the instant the page was opened; whoever decides, in the end, is the API.
+- Decided (confirmed) — interface decisions:
+  - There are two entry points to the `Nova reserva` (New booking) form in the calendar: the `Nova reserva` button (the pitch and day being viewed; in the weekly view, the chosen pitch) and clicking an empty hour of a pitch (that hour, that pitch and that day, with the slot already chosen if it is free). The button is disabled if the club has no active pitches.
+  - The form asks for the pitch (active only), date (from today to 30 days ahead, in Lisbon), a free time, and the customer's name and mobile number. The times come from the owner's preview (`GET …/pitches/{pitchId}/slots`): only free ones can be chosen; the booked ones (`Reservado`), the blocked ones (`Bloqueado`) and those that have already started (`Já começou` (Already started), including the one starting now) appear disabled. Changing the pitch or the date clears the chosen time.
+  - The validations are the API's, in Portuguese: time (`Escolhe um horário livre.` (Choose a free time.)), name required and up to 100 characters, mobile number required with 9 to 15 digits and optional "+" (spaces are removed before sending, as in the API). The API's 400 errors go to the fields.
+  - On a conflict (409 `slot_taken` or `slot_blocked`) or a time that no longer exists (422 `invalid_slot`, `slot_started`, `outside_booking_window`, `pitch_inactive`, 404 `pitch_not_found`) the code's message is shown in the form, the time is cleared, the times and the calendar are reloaded, and the form stays open with the name and mobile number already typed. Any other error goes to a notice.
+  - After creating, the calendar goes to the booking's day (and, in the weekly view, to its pitch), shows it with the details open, and says `Reserva criada para <nome>.` (Booking created for <name>.). The form says that the customer has no account and so receives no email.
+  - A booking created by the club says `Criada pelo clube` (Created by the club) in both views (in the booking's square, with a blue side bar, and in the label for screen readers) and in the details, where `Jogador` (Player) becomes `Cliente` (Customer) and the `Telemóvel` (Mobile number) the owner typed and the `Origem: Criada pelo clube` (Origin: Created by the club) appear. It is cancelled like any booking (US12), with a reason, and still says where it came from.
+- Decided (confirmed) — implementation decisions:
+  - A booking is a player's or a customer's (name and mobile number), never both and never neither: the check constraint `ck_bookings_player_or_customer` replaces `ck_bookings_has_player` (migration `AddCustomerBookings`, columns `customer_name` and `customer_phone`). The exclusion constraint `bookings_no_overlap` did not change, so a customer and a player compete for the same slots.
+  - `POST /api/manage/clubs/{clubId}/bookings` (Owner profile, through T02: another owner's club is 404 `club_not_found`, before validating the body) with `{ pitchId, startsAt, customerName, customerPhone }`. `startsAt` is the instant of the slot's start with a time zone, as the slot lists give it; the end and the price come from the pitch, never from the request. 201 with the booking (the same response as the details) and `Location: /api/manage/clubs/{clubId}/bookings/{id}`, which `GET …/bookings/{id}` resolves.
+  - Name and mobile number follow the US01 rules: the name is required and has at most 100 characters; the mobile number has an optional "+" and 9 to 15 digits and is stored without spaces (400 on `customerName` and `customerPhone`, messages in Portuguese).
+  - The slot rules are US18's, through the same code (`BookingSlotCheck`, which US18 also uses) and under the same pitch lock: inactive pitch 422 `pitch_inactive` → date outside today..+30 in Lisbon 422 `outside_booking_window` → not a slot 422 `invalid_slot` → already started 422 `slot_started` → block 409 `slot_blocked`; another confirmed booking that overlaps is 409 `slot_taken` (the exclusion constraint, never a 500). A pitch that is not this club's is 404 `pitch_not_found`. The complete order: club (404) → validation (400) → pitch (404) → active owner → lock → slot rules → insert.
+  - The price is the pitch's at the time and is stored; changing the price afterwards does not alter it. No email is sent (the customer has no account), and US22 says so.
+  - The calendar (`bookerName` and `createdByClub`) and the details (`bookerName`, `createdByClub` and `customerPhone`) show these bookings with the customer's name and the created-by-the-club mark. `bookerName` is the name of whoever made the booking: the player's, or the customer's when the booking is the club's.
+  - The owner cancels them as in US12 (`…/bookings/{id}/cancel`, with a reason) and the slot is free again.
+  - They never appear in any player's list (`GET /api/me/bookings` only reads bookings with the requester's `player_id`), a player who requests or cancels one by id gets 404 `booking_not_found`, the public pages only show the slot as unavailable (no name, phone or id), and the admin has no access to the owner's endpoints (403).
+### US14 · Occupation and revenue · D · 5 points
+ 
+As an owner, I want to see my clubs' occupation and revenue by period, so that I understand how the business is doing.
+ 
+- Filters by club, pitch and date range.
+- Occupation = booked hours divided by open hours in the period, per pitch.
+- Revenue = sum of the prices of non-cancelled bookings.
+- The numbers match the calendar for the same period (verified by a test).
+- Status: done. Back end (`GET /api/manage/clubs/{clubId}/statistics?from=&to=&pitchId=` and `GET /api/manage/statistics?from=&to=`, "per club") and screens (`/manage/statistics` and `/manage/clubs/{id}/statistics`).
+- Implementation decisions (decided):
+  - **A single calculation** for the owner and the admin (US27), `OccupationService`. Booked hours = real time of the **confirmed bookings and no-shows** that overlap the period, clipped at the period's limits; cancelled ones (by the player or by the club) are left out. Revenue = sum of the stored prices of those same bookings, **in full** (a booking clipped at the period's limit counts its whole price).
+  - Open hours = bookable time: for each Lisbon day, the slots that the schedule **in force now** generates (`SlotGenerator`) times the slot duration, in real time (there is no schedule history). A pitch open 00:00–00:00 has 25 slots of 60 minutes on 25/10/2026 and 23 on 29/03/2026; a closed day counts 0; the minutes after the last slot that fits cannot be booked and do not count (a 90-minute pitch open 4 h has 3 h open).
+  - An **inactive** pitch has no open hours: it only enters with the bookings it already has in the period, and does not appear if it has none.
+  - Occupation = booked / open, 0 when nothing was open; rounded to 4 places (0.8125 = 81.25 %), hours to 2 places. Totals add up minutes and divide at the end, never average the rates.
+  - Period: Lisbon dates `YYYY-MM-DD`, both included; without dates, the last 30 days (today included); `from` ≤ `to`; at most **366 days**; dates between 2000 and 2100; per-field 400 errors in pt-PT. The `pitchId` filter has to be a pitch of the club (404 `pitch_not_found`).
+  - Bookings are added up in the database (one query grouped by pitch, with `LEAST`/`GREATEST`); only the schedules (few rows per pitch) are read into memory.
+  - The "per club" list has all the owner's clubs, also those that had nothing open or booked (with zeros).
+### US15 · Mark no-show · D · 2 points
+ 
+As an owner, I want to mark a past booking as a no-show, so that I know which players do not turn up.
+ 
+- Only confirmed bookings whose end time has passed can be marked.
+- The status becomes `Falta` (No-show) and the marking can be reversed.
+- The owner sees how many no-shows a player has in their clubs.
+- Status: done. Back end (`POST /api/manage/clubs/{clubId}/bookings/{bookingId}/no-show` and `…/no-show/undo`) and, in the calendar's booking details, the `Marcar falta` (Mark no-show) and `Anular falta` (Undo no-show) buttons and the player's number of no-shows.
+- Implementation decisions (decided):
+  - Marking: only a **confirmed** booking whose end time has passed (the end time counts as passed). First 422 `booking_not_confirmed` (cancelled, or already a no-show), then 422 `booking_not_ended`. Undoing: the no-show goes back to `confirmed`; a booking that is not a no-show is 422 `booking_not_no_show`. Another club's owner, or a booking of another club: 404 (T02); player and admin: 403.
+  - Everything runs under the pitch's `IPitchLock`, like the cancellations, and reads the booking again inside it. If, when undoing, another confirmed booking has already taken the time (a no-show does not occupy it), the `bookings_no_overlap` constraint refuses and the response is **409 `slot_taken`**, never 500; the request leaves nothing half-done.
+  - A customer's booking (US13) can be marked, but it does not count per person: `playerNoShows` is `null` on those bookings.
+  - The owner's booking details gain `playerNoShows` (the player's no-shows in **all** of that owner's clubs, the booking included; never those of another owner), `canMarkNoShow` (confirmed and already ended) and `canUndoNoShow` (it is a no-show). The owner still only sees the player's name.
+## Epic 4 — Search and booking
+ 
+### US16 · Search clubs · M · 5 points
+ 
+As a player, I want to search clubs by sport, locality and date, so that I find where to play.
+ 
+- Filters: sport, locality and date (today by default).
+- Each result shows name, locality, sports and whether there are free slots on the chosen date.
+- Clubs without active pitches, or of deactivated owners, do not appear. An inactive pitch does not count for the search: neither its sport appears in the results nor is it found by the sport filter (US07).
+- A search with no results shows a clear message.
+- Paginated results, 20 per page.
+- Opening a result shows the club's page, with contacts and pitches. The public address of the club page is `/clubs/{slug}` (the `slug` is generated in US06).
+- The search works without a session.
+- Status: done. Back end: `GET /api/clubs`, `GET /api/localities` and `GET /api/clubs/{slug}`, all public and read-only, with no data about players or the owner. Interface: the home page `/` is the search and `/clubs/{slug}` is the club page.
+- Decided (confirmed):
+  - An unknown sport is 400 on `sport`. The codes are exactly the stable ones (`futsal`, `football7`, `padel`, `tennis`): "Padel" with a capital is also 400.
+  - `page` goes from 1 to 10000 (defensive limit); any other value, or a non-numeric one, is 400 on `page`, with the message in Portuguese.
+  - The locality filters by the whole value: equality ignoring case, accents and extra spaces (`clubs.locality_key`, with an index, calculated by `ClubRules.LocalityKey`); it is not a search by part of the name ("Port" does not find "Porto").
+  - `GET /api/localities` returns a plain list of texts (for a select): the localities of the visible clubs, one per spelling (ignoring case and accents, shown in one of the spellings in use), sorted.
+  - Each search result lists the sports of all the club's active pitches, even when filtering by a sport.
+  - In the search the date is optional (today in Lisbon by default); in the slots it is required (see US17).
+- Decided (confirmed) — implementation decisions:
+  - Visible = the owner is not deactivated (US29) and the club has at least one active pitch (US07). Everything public starts from `VisibleClubs`; what is not visible does not exist: an unknown club, one without active pitches or one of a deactivated owner give the same 404 `club_not_found`.
+  - `GET /api/clubs?sport=&locality=&date=&page=`: 20 per page (fixed), ordered by name ignoring case and then by id. `date` is `YYYY-MM-DD`, today in Lisbon by default, from today to today + 30; outside that or badly typed is 400 on `date`. Empty filters count as absent.
+  - Each result carries only `slug`, `name`, `locality`, `sports` (the sports of the active pitches) and `hasFreeSlots` (some active pitch has a free slot on the date, by the same rule as US17). It carries no address or contacts. Availability is only calculated for the clubs on the page.
+  - `GET /api/clubs/{slug}`: name, address, locality, phone, contact email and the active pitches (`id`, `name`, `sport`, current `pricePerSlot`), ordered by name. The `slug` has to match exactly. The club's id does not appear (it belongs to the owner area).
+- Decided (confirmed) — interface decisions:
+  - The search (`/`) has a sport select (`Todos os desportos` (All sports) and the four sports), a locality select (those from `GET /api/localities`) and a date (today in Lisbon by default, from today to today + 30). It searches as soon as a field changes, with no button; it works without a session. The search stays in the address (`?sport=&locality=&date=&page=`), so it can be shared and the back button works. Changing a filter goes back to the first page; an invalid value in the address is ignored and a date outside the period shows the error without asking the API.
+  - Each result shows the name (link to `/clubs/{slug}`, with `?date=` if a date was searched), the locality, the sports and `Há horários livres` (There are free times) or `Sem horários livres` (No free times). Pages of 20 with `Anterior` (Previous), `Seguinte` (Next) and `Página X de Y` (Page X of Y) (only if there is more than one). No results: `Não encontrámos clubes com estes filtros. Experimenta outra localidade, outro desporto ou outra data.` (We found no clubs with these filters. Try another locality, another sport or another date.) A page past the end offers `Voltar à primeira página` (Back to the first page).
+  - The club page is a Server Component that reads the club from the internal API, without cookies and without cache: contacts (phone and email as links) and the active pitches with the price per slot in pt-PT format (`18,50 € por slot` (€18.50 per slot)). An unknown or hidden club, or a slug that cannot exist, shows the `Clube não encontrado` page, without saying why.
+### US17 · See free slots · M · 5 points
+ 
+As a player, I want to see a pitch's free slots on a date, so that I can choose the time.
+ 
+- Shows the day's slots with start time, end time and price.
+- A slot does not appear as free if it has a confirmed booking, is blocked, is outside the opening hours or has already started.
+- Only dates from today up to 30 days ahead can be chosen.
+- An inactive pitch shows no slots and accepts no bookings (US07).
+- Decided: a slot is not free if it overlaps any confirmed booking or block, and not only if it has the same start. Changing a pitch's slot duration (US08) does not alter existing bookings, so an old booking may end up misaligned with the new grid and occupy part of a new slot; that slot does not appear as free.
+- Times appear in Lisbon time and are right on clock-change days (T04).
+- On the day the clock goes back (last Sunday of October), the hours between 01:00 and 02:00 appear twice and carry the indication `(verão)` ("(summer)") or `(inverno)` ("(winter)"); no slot is hidden.
+- Status: done. Back end: `GET /api/clubs/{slug}/pitches/{pitchId}/slots?date=`, public and read-only. Interface: the `Horários` (Times) section of the club page.
+- Decided (confirmed):
+  - In the slots API the date (`YYYY-MM-DD`) is required and goes from today to today + 30 in Lisbon: missing, badly typed or outside the period is 400 on `date`. In the search (US16) it is optional.
+  - What is hidden does not exist, and that is checked before the date: an unknown or hidden club (no active pitches, deactivated owner), and an unknown, inactive pitch, one of another club or with an id that is not a GUID, are 404 (`club_not_found` or `pitch_not_found`) even if the date is invalid.
+  - Whoever has an owner or admin session sees the slots but cannot choose them (they are not buttons, there is no book button); see US18.
+- Decided (confirmed) — implementation decisions:
+  - The response is `date` and `slots`; each slot carries `startsAt` and `endsAt` (UTC instants with a time zone), `price` (the pitch's current price) and a single boolean `available`. It never says why it is not free, nor who booked, nor the id of a booking or a block. A closed day returns an empty list.
+  - `available` = does not overlap, even partly, a confirmed booking or a block, is within the opening hours and has not started yet (starting now counts as started, as in US18). It is a single calculation (`PitchDayCalendar` and `DaySlot.IsFreeAt`), shared with the owner's preview and with the search's "has free slots", and a test confirms they agree.
+  - On 25 October the API returns the slots as distinct instants (the hour from 01:00 to 02:00 appears twice, once in each time zone); the "(verão)/(inverno)" label belongs to the interface.
+- Decided (confirmed) — interface decisions:
+  - The `Horários` section of the club page has a pitch select (the first by default; shows name, sport and price) and a date (today in Lisbon by default, from today to today + 30). The day's slots appear in Lisbon time, whatever the browser's time zone, with the price, and the hour that repeats in October carries `(verão)` or `(inverno)`. The pitch and the date stay in the address (`?pitch=&date=`).
+  - A slot that is not free appears disabled (`disabled`), without saying why: not "booked", not "blocked", not "closed". A day with no slots says `Sem horários neste dia.` (No times on this day.) A date outside the period shows the error without asking the API.
+### US18 · Book slot · M · 3 points
+ 
+As a player, I want to book a free slot, so that I secure the pitch.
+ 
+- Only signed-in players can book; without a session, login is requested and the player returns to the same slot.
+- Before confirming, a summary appears with club, pitch, date, time and price.
+- The booking becomes `Confirmada` (Confirmed) and stores the price of that moment: the pitch's price per slot (US07) copied into the booking. Changing the pitch's price afterwards never alters existing bookings.
+- An inactive pitch accepts no bookings (US07).
+- Decided and done (T03/US18): deactivating a pitch with future confirmed bookings is refused and the message says how many there are (US07): `POST …/pitches/{pitchId}/deactivate` returns 422 `pitch_has_future_bookings` with `count` (a business rule, as in the Stack's code table; this note used to say 409).
+- Decided and done (T03/US18): a block that overlaps confirmed bookings is rejected (409 `block_overlaps_bookings`) and the message lists those bookings (US09); the check is in `BlockService.CreateAsync`, inside the pitch row's lock, and creating a booking locks the same row before checking the blocks.
+- Status: done. Back end with T03 (`POST /api/bookings`, Player profile); interface on the club page, with US16 and US17. The confirmation email belongs to US22; seeing my bookings and cancelling is US19.
+- Decided (confirmed):
+  - The request carries the pitch and the slot's start as an instant with a time zone (`2026-10-25T00:00:00Z`, as the slot lists give it), so that October's repeated hour is never ambiguous.
+  - Codes: 404 `pitch_not_found` (unknown pitch); 422 `club_unavailable` (deactivated owner), `pitch_inactive`, `outside_booking_window` (local date outside today to 30 days in Lisbon, including past days), `invalid_slot` (a start that is not a generated slot: closed day, outside the opening hours, off the grid, extra seconds), `slot_started`; 409 `slot_blocked` (a block overlaps, even partly) and `slot_taken` (`Este horário acabou de ser reservado. Escolhe outro.` (This time was just booked. Choose another.)). The 422s are checked in this order; the 409s only after locking the pitch row.
+  - A slot that starts exactly now counts as started (`slot_started`).
+  - Deactivating a pitch counts the confirmed bookings that have not ended yet: those in progress also prevent it.
+  - The statuses in the API are `confirmed`, `cancelled_by_player`, `cancelled_by_club` and `no_show`; in the database they are stored with the enum's name (`Confirmed`, …), as the constraint requires.
+  - The 201 response carries the header `Location: /api/bookings/{id}` (relative, like the others), which `GET /api/bookings/{id}` resolves (US19).
+- Decided (confirmed) — implementation decisions:
+  - The end always comes from the pitch's schedule and the price is the pitch's current price per slot.
+  - The transaction locks the pitch row, reads the pitch again (status, price and schedule as they are at that moment), checks the blocks and inserts; overlap with another booking is left only to the exclusion constraint (23P01 → 409 `slot_taken`), which is the last defence and the rule for US13 too.
+  - The 201 response carries the booking (`id`, `pitchId`, `clubId`, start and end in UTC, `price`, `status` = `confirmed`).
+  - Prepared for US13 and done in it: `player_id` can be null in the table, and the check constraint `ck_bookings_player_or_customer` requires "a player, or the name and mobile number of a customer", never both and never neither (before it was `ck_bookings_has_player`).
+- Decided (confirmed): the booking interface
+  - What the player chooses (pitch, date and slot) stays in the address (`?pitch=&date=&slot=<instant with a time zone>`), not in a Zustand store: that is what allows returning to the same slot after login and sharing the link. Choosing a free slot opens, below the list, the `Resumo da reserva` (Booking summary) (club, pitch, date, time and price); `Cancelar` (Cancel) closes it, and so does changing pitch or date.
+  - Without a session, the summary offers `Entrar para reservar`, which goes to `/login?next=<this address with pitch, date and slot>`; after login the player returns to the same club, pitch, date and slot, with the summary open. `safeNext` did not need to change: it already accepts a public page with a query for a player, and sends an owner or an admin to their own area, because they cannot book. If the slot has in the meantime stopped being free (or no longer exists), `Este horário já não está disponível. Escolhe outro.` (This time is no longer available. Choose another.) appears and there is no summary.
+  - Only a player sees `Confirmar reserva`. Owners and admins see the slots but cannot choose them, and there is no book button, and a note says `Só os jogadores podem fazer reservas. Entra com uma conta de jogador para reservar.` (Only players can make bookings. Sign in with a player account to book.)
+  - On 409 (`slot_taken`, `slot_blocked`) or 422 (`slot_started`, `invalid_slot`, `outside_booking_window`, `pitch_inactive`, `club_unavailable`) the message of that code is shown (`Este horário acabou de ser reservado. Escolhe outro.` for `slot_taken`), the summary is closed and the slot list is reloaded. A 401 (session ended) goes back to login, with a return to the slot; with no connection to the server the summary stays so as to try again.
+  - For a visitor, `club_not_found` says `Este clube já não está disponível.` (This club is no longer available.) (the general message speaks to an owner).
+- Decided (confirmed) — interface decisions:
+  - Confirming sends only `pitchId` and `startsAt` (the instant with a time zone, as the list gave it); the button is disabled while booking. On 201, `Reserva confirmada` (Booking confirmed) appears with the same data, the slot list and the search reload and the slot becomes disabled.
+  - Whoever chooses `Criar conta` on the login screen also returns to the same slot: the link carries the `next` (`/register?next=…`), the player registration page reads it (and the `Entrar` link on that screen also keeps it) and, after the account is created, `safeNext` decides whether to accept it: a public address is followed, any other (another site, owner or admin area, the login page itself) is ignored and the player goes to the home page. Owner registration does not use `next`.
+- If the slot was taken in the meantime, the API returns 409 and the player sees `Este horário acabou de ser reservado. Escolhe outro.`, with the slot list updated.
+- Past slots or slots beyond 30 days cannot be booked.
+### US19 · See and cancel my bookings · M · 3 points
+ 
+As a player, I want to see my bookings and cancel future ones, so that I manage my games.
+ 
+- The list separates `Próximas` (Upcoming) and `Anteriores` (Past), ordered by date.
+- Each booking shows club, pitch, date, time, price and status.
+- The player can cancel a future booking up to the club's cancellation window; after that, the button appears disabled with the explanation.
+- The window is the one the club has at the moment of cancelling (read from `Club.CancellationWindowHours`), never a copy stored in the booking (decided in US06).
+- The API refuses cancellations outside the window, even if the request does not come from the front end.
+- The cancelled booking becomes `Cancelada pelo jogador` (Cancelled by the player) and the slot is free again.
+- Status: done. Back end and interface (the `/bookings` page, `As minhas reservas` (My bookings)). The cancellation email belongs to US22 (the cancellation email says who cancelled); US19 sends no emails.
+- Decided (UX audit, batch 1): an unexpected error when cancelling (500 or network failure) shows a toast, not a message at the top of the list; the cancellation's result (success or API refusal) receives the focus, so it stays in view and is read once by the screen reader. It is not a live notice.
+- Decided (confirmed):
+  - `scope` is required on the my-bookings list: missing or unknown is 400 on `scope`.
+  - "Past" are the bookings that have already ended plus the cancelled ones (by the player or by the club) and those marked as no-show, from the most recent to the oldest; "Upcoming" are the confirmed ones that have not ended yet, from the oldest to the most recent, and a booking in progress counts as upcoming. In both the order is by start and then by id.
+  - The cancellation deadline (`cancellationDeadline`) only exists for confirmed bookings; for the others it is `null`.
+  - At the exact instant of the deadline it can no longer be cancelled: it is only possible strictly before it.
+  - `booking_not_confirmed` is checked before the window, so the response for an already cancelled booking does not depend on the clock.
+  - Cancelling answers 200 with the already cancelled booking (`cancelled_by_player`).
+  - Bookings of a club that has in the meantime become hidden stay in the player's list.
+  - `Próximas` and `Anteriores` are two links in a navigation (with `aria-current`, and each with its own address; before they had the role of tabs, without behaving like them). The list groups the bookings by day, with the day as the title (`Hoje · …` (Today · …), `Amanhã · …` (Tomorrow · …)), and each booking is a compact row (time and club, then pitch, price and series). A cancellation refusal appears on the booking's row; success appears above the list, in the same region, and receives the focus (UX audit, batch 2).
+  - The tab and the list's page stay in the address (`?tab=past&page=2`; `Próximas` and page 1 are the default), so a reload or the back button keeps the place.
+  - The `Cancelar reserva` button only follows the API's `canCancel`: whoever decides whether it can still be cancelled is the API, never a calculation in the browser.
+  - The message of 422 `outside_cancellation_window` does not carry the deadline (the front end only sees the code); the deadline is seen in the list, which reloads right after.
+- Decided (confirmed) — interface decisions:
+  - The `/bookings` page is for players only: without a session it goes to `/login?next=<the page, with the tab and the page>` and returns to it after signing in; an owner or an admin goes to their area (`/manage`, `/admin`). The API is still the one that decides (401/403).
+  - Changing tab goes back to the first page. A page in the address that is not a number from 1 to 99999 counts as the first.
+  - Each booking shows the club (link to `/clubs/{slug}`), the pitch and sport, the date (with the weekday and the year) and the time in Lisbon time (`lib/datetime.ts`, with `(verão)`/`(inverno)` in October's repeated hour), the price paid and the status in Portuguese: `Confirmada`, `Cancelada pelo jogador`, `Cancelada pelo clube`, `Falta`.
+  - Only the `Próximas` can be cancelled (a confirmed booking that has already ended, in `Anteriores`, has no button). The `Cancelar reserva` button asks for a confirmation on the row itself (`Sim, cancelar reserva` (Yes, cancel booking) / `Manter reserva` (Keep booking); only one at a time). After the deadline the button is disabled and says `Já não é possível cancelar: o prazo terminou a dd/mm/aaaa hh:mm.` (It is no longer possible to cancel: the deadline ended on dd/mm/yyyy hh:mm.); before the deadline it says `Podes cancelar até dd/mm/aaaa hh:mm.` (You can cancel until dd/mm/yyyy hh:mm.).
+  - After cancelling, `Reserva cancelada. O horário voltou a ficar livre.` (Booking cancelled. The time is free again.) appears and the lists and the free times of the public pages reload (`["my-bookings"]` and `["catalog"]`). If the request is refused (422 `outside_cancellation_window`, 422 `booking_not_confirmed`, 404 `booking_not_found`) the code's message is shown and only the list reloads; a session that ended leads to login. A new booking (US18) also reloads `As minhas reservas`.
+  - The player's header has the `As minhas reservas` link (Player profile only) and a booking's confirmation has `Ver as minhas reservas` (See my bookings).
+- Decided (confirmed) — implementation decisions:
+  - `GET /api/me/bookings?scope=upcoming|past&page=` (Player profile, only the requester's bookings, 20 per page). `page` from 1 to 10000, and non-numeric is also 400 on `page` (message in Portuguese).
+  - Each booking carries `id`, `clubName`, `clubSlug`, `pitchName`, `sport`, `startsAt`, `endsAt`, `price` (what was paid, not the pitch's current price), `status`, `canCancel` and `cancellationDeadline` (UTC instant). `canCancel` is true if the booking is confirmed and now is before the start minus the club's current window.
+  - `GET /api/bookings/{id}` reads one's own booking; another player's and an unknown id are the same 404 `booking_not_found`.
+  - `POST /api/bookings/{id}/cancel` (Player profile). The booking is never deleted and the slot is free again, because the exclusion constraint only looks at confirmed ones. Order of refusals: 404 `booking_not_found` → 422 `booking_not_confirmed` → 422 `outside_cancellation_window`, with `cancellationDeadline` (UTC instant) and the window in hours in the message.
+  - The window is read from the club at the moment of cancelling, under the pitch row's lock, never from the booking (US06). The same lock serializes two simultaneous cancellations of the same booking: one succeeds and the other gets 422 `booking_not_confirmed`, never a 500.
+  - Owners and admins get 403 on the three endpoints, and 401 without a session.
+  - The `bookings` table gets the index by player and start that the Stack already asked for (`ix_bookings_player_id_starts_at`).
+### US20 · Recurring weekly booking · D · 8 points
+ 
+As a player, I want to book the same slot every week for some time, so that I do not have to book by hand.
+ 
+- The player chooses the slot and the number of weeks, up to 4.
+- Before confirming, the system shows which of the dates are free.
+- The free dates are booked in a single operation; the taken ones are indicated and left out.
+- Each occurrence is an independent booking, which can be cancelled on its own.
+- Candidate for splitting.
+- Status: done. Back end: `POST /api/bookings/recurring/preview` and `POST /api/bookings/recurring`. Front end: in the booking summary (after choosing a free slot) the `Repetir semanalmente` (Repeat weekly) option with 1 to 4 weeks (1 = no repeat; the choice goes in the address, `?weeks=`, so the return after signing in keeps it); with more than one week it shows each date (Lisbon time and price) as free or unavailable with the reason in pt-PT, and `Confirmar N reservas` (Confirm N bookings) books the free ones; the result shows what was booked and what was left out, with the link to `As minhas reservas`, and when no date can be booked it shows the message and the requested dates with the reason. A visitor chooses the weeks and signs in; only the player sees the dates. In `As minhas reservas` each booking of a series shows `Reserva semanal: 2 de 4` (Weekly booking: 2 of 4).
+- Decided (confirmed):
+  - `weeks` is the number of dates, the first included, from 1 to 4. Date n is the same weekday and the same **local** time n weeks later (`ClubTime`), so a clock change does not shift the game's time; the first date is exactly the requested instant (in October's repeated hour, the summer or winter one chosen).
+  - The preview only accepts a pitch the public sees (active, of a visible club); any other is 404 `pitch_not_found`. Each date carries start, end, price (`PriceForSlot` of that date) and `free` or `unavailable` with a code: `taken`, `blocked`, `not_a_slot`, `outside_window`, `closed` (the pitch is closed on that day), `pitch_inactive` and, beyond the requested list, `started` (only the first date can have already started). It never says who booked.
+  - Booking runs, date by date and in order, the same rules as the single booking (`BookingSlotCheck` under the pitch lock, price from `PriceForSlot`, insertion through the exclusion constraint), each date in its own transaction: a refused date does not stop the others. The bookings made share a `series_id`; a date lost to the constraint (23P01) is left out as `taken`. An unknown pitch is 404 and a deactivated owner's club is 422 `club_unavailable`, for the whole request, as in the single booking.
+  - Response 201 with the bookings made and the dates left out (with the code) when at least one was made; 409 `series_unavailable` (with `skipped`) when none. `Location` points to the first booking made.
+  - Emails: a single summary of the series for the player (the bookings made, with date, Lisbon time and price, and the dates left out with the reason), in a final transaction after the dates (if the process crashes between the last booking and that step, the summary is lost, never a booking); no confirmation per booking. The owner email (US23) and the reminder (US21) remain one per booking made, in that booking's transaction.
+  - The player's list and a booking's detail carry `series` (id, position and total), counting only the bookings the series made, cancelled ones included, in order of start (`2 de 4` (2 of 4)). Cancelling remains per booking (US19).
+### US21 · Reminder before the booking · D · 3 points
+ 
+As a player, I want to receive a reminder before the booking, so that I do not forget.
+ 
+- An email is sent 3 hours before the start.
+- Cancelled bookings, or bookings made less than 3 hours before the start, generate no reminder.
+- Each booking generates at most one reminder, even if the service restarts.
+- Status: done on the back end (outbox and worker, no new interface).
+- Implementation decisions (decided):
+  - The reminder goes into the queue in the same transaction as the booking (a player's), with the send time `start − 3 h` (an instant: the 25 October clock change does not shift it; a test covers that day's winter 01:00). Only if that moment is still in the future: a booking made **less than 3 hours, or exactly 3 hours,** before the start generates no reminder (the exact case is provisional). Customer bookings generate none.
+  - The message only stores the booking id; the content (club, address, pitch, date, Lisbon time, `(verão)`/`(inverno)`) is read at send time, so that the email says what is true at that moment. The recipient is the player's current email.
+  - A booking made less than 3 hours before the start gets no **late** reminder: it simply has no reminder.
+  - When the time comes, the worker only sends if the booking is **still confirmed** and has not started; otherwise it marks the message as **skipped** (`skipped_at`, with the reason `booking_not_confirmed` or `booking_started`, counting neither as a failure nor as a send) and sends nothing.
+  - A maximum of one reminder per booking is guaranteed by a unique index (`ux_outbox_messages_booking_notification`, by type and booking id), so neither a bug nor a restart duplicates it; a sent message is never claimed again.
+## Epic 5 — Notifications
+ 
+### US22 · Emails to the player · M · 3 points
+ 
+As a player, I want to receive an email when I book and when one of my bookings is cancelled, so that I have confirmation.
+ 
+- The confirmation email carries club, address, pitch, date, time and price.
+- The cancellation email says who cancelled and, if it was the club, the reason.
+  - The cancellation made by the player (US19, `POST /api/bookings/{id}/cancel`) only changes the booking's state: the email that notifies it comes here, in the background, without making the cancellation fail.
+  - A booking that the owner creates for a customer (US13) generates no confirmation email, and its cancellation by the owner does not either: the customer has no account or email, only a phone number.
+  - The cancellation made by the owner (US12, `POST /api/manage/clubs/{clubId}/bookings/{bookingId}/cancel`) stores the reason and the time (`cancellation_reason`, `cancelled_at`) and only changes the booking's state: the email with the reason comes here, in the background, without making the cancellation fail.
+- Sending is done in the background; a sending failure does not fail the booking or the cancellation and is recorded in the log.
+- In development, emails go to a test service (for example, Mailpit) and never to real addresses.
+- Status: done on the back end (outbox, background worker and SMTP). There is no interface: emails go to Mailpit in development (http://localhost:8025).
+- Decided (confirmed):
+  - Worker defaults (`Outbox` settings): batches of 20, one pass every 10 seconds (right after if the batch came back full), the first retry 1 minute later, doubling up to a maximum of 1 hour (1, 2, 4, 8, 16 minutes…), and giving up after 6 failed attempts: the message gets `failed_at` and a Warning is logged with the id and the type, without the address. A message for an account that no longer exists gives up at once (`recipient_not_found`).
+  - Delivery is "at least once": if the process stops after sending and before recording the send, that message goes out again. The batch rows' locks are held while the batch is sent.
+  - There are no links to the application in the emails until T06 (the public address is missing).
+  - The API does not start without `Email:Host` and `Email:FromAddress`.
+- Decided (confirmed) — implementation decisions:
+  - Table `outbox_messages` (migration `AddOutboxMessages`): `id`, `type` (`booking_confirmed`, `booking_cancelled_by_player`, `booking_cancelled_by_club`), `payload` (jsonb, only what the email shows: the player's id, the name, the club's address and locality, the time zone, the pitch, the start, the end, the price and, on a club cancellation, the reason), `created_at`, `attempts`, `next_attempt_at`, `sent_at`, `failed_at` and `last_error` (the exception type's name, or `recipient_not_found`; never the exception's message, which may carry the address). The player's address and name are not stored in the table: they are read at send time, so the email always goes to the current address.
+  - The message is written in the same `SaveChanges` and the same transaction (the pitch lock's) as the booking or the cancellation: a booking that loses the race (23P01) or any refusal leaves no email at all, and of several simultaneous cancellations only the winner leaves one. Bookings for customers without an account (US13) generate no email, neither on creating nor on cancelling.
+  - Sending is done by a `BackgroundService` inside the API, which never touches the requests: an SMTP failure or slowness neither fails nor delays a booking or a cancellation. Each pass creates its scope, takes up to a batch of due messages with `SELECT … FOR UPDATE SKIP LOCKED` (inside a transaction that lasts until the batch is recorded), so two API instances never send the same message, and sends them over SMTP (MailKit). The batch rows' locks are held while the batch is sent.
+  - The emails are in Portuguese, with plain text and a simple HTML version with the same content. Confirmation: subject `Reserva confirmada: <clube>, dd/mm/aaaa às hh:mm` (Booking confirmed: <club>, dd/mm/yyyy at hh:mm) and club, address, pitch, date spelled out, time and price (`18,50 €`). Cancellation: `Reserva cancelada: …` (Booking cancelled: …) when it was the player, `O clube cancelou a tua reserva: …` (The club cancelled your booking: …) when it was the club, which also carries `Motivo` (Reason). The times are in the club's time zone, with `(verão)`/`(inverno)` in October's repeated hour, as on the pages.
+  - SMTP settings in `Email` (validated at startup, and without `Host` and `FromAddress` the API does not start, except in Production, provisional, see "Points to review in T06": `Host`, `Port`, `Security` = `None`/`StartTls`/`SslOnConnect`, `Username` and `Password` together or neither, `FromAddress`, `FromName`, `TimeoutSeconds`); in development they point to Mailpit (`localhost:1025`, and `mailpit:1025` in docker compose). In production they come from environment variables (T06). Addresses, email bodies and SMTP credentials never go to the log.
+### US23 · Owner email about a new booking · D · 1 point
+ 
+As an owner, I want to receive an email when a new booking comes into one of my clubs, so that I keep track without opening the app.
+ 
+- The email carries club, pitch, date, time and the player's name.
+- The owner can turn these emails off in the club settings.
+- Bookings created by the owner themselves (US13) generate no email.
+- Status: done. Back end and, in the club settings, the `Receber um email por cada nova reserva` (Receive an email for each new booking) switch.
+- Implementation decisions (decided):
+  - Per-club setting `notifyOnNewBooking`, **on by default** (also on clubs that already existed, through the migration). It is edited in `PUT /api/manage/clubs/{id}` (and may come in the `POST`); it is optional in both: if a request does not carry it, it stays as it was, so that a form that does not know it does not turn the emails off.
+  - When a player books, and the setting is on, the owner's email goes into the queue in the same transaction (a booking that loses the race leaves no email). The email carries club, pitch, date, Lisbon time and the player's name, and nothing else about them.
+  - The recipient is the club owner's current email, read at send time. Bookings the owner makes (US13) send nothing, neither to the owner nor to anyone. The message only stores the booking id.
+  - If the owner was **deactivated** (US29) before the email is sent, the message is marked as skipped (`skipped_at`, reason `owner_deactivated`), without sending, like a reminder for a cancelled booking; the email never goes to the logs.
+## Epic 6 — Administration
+ 
+All the pages and endpoints of this epic only answer the Admin profile (403 for the others) and show counts, never players' names or emails.
+ 
+### US24 · Global indicators · M · 3 points
+ 
+As an admin, I want to see the platform's totals, so that I know its size.
+ 
+- Shows the number of owners, clubs, active pitches, players and confirmed bookings.
+- Deactivated accounts and clubs appear separated from the active ones.
+- The values come from aggregate queries in the database, without loading lists into memory.
+- Status: done. API (`GET /api/admin/stats`) and the cards on the `/admin` page.
+- Implementation decisions (decided):
+  - The response has owners and players as `{ active, deactivated }`, clubs as `{ total, visible, ofDeactivatedOwners, withoutActivePitches }` (the last three add up to the total: visible = active owner and at least one active pitch, as on the public pages), `activePitches` and `confirmedBookings`. Admins count neither as owners nor as players.
+  - Active pitches are the active pitches of active owners (those of a deactivated owner are not available, so they do not count); confirmed bookings are all the confirmed ones, also past ones, of players and customers (US13).
+  - There are seven counts and one `GROUP BY` over the accounts (profile and state): nothing is loaded into memory. The accounts DTO only has profile, registration date and state, by construction without name or email.
+### US25 · Bookings over a period · M · 3 points
+ 
+As an admin, I want to see bookings over time in a chart, so that I understand whether the platform is growing.
+ 
+- Chart of bookings per day, week or month, as chosen.
+- Configurable date range, the last 30 days by default.
+- Periods with no bookings appear with zero, instead of disappearing from the chart.
+- Cancelled bookings are left out by default, with an option to include them.
+- Status: done. API (`GET /api/admin/bookings-over-time?granularity=&from=&to=&includeCancelled=`) and the chart on the `/admin` page.
+- Implementation decisions (decided):
+  - A booking counts in the period in which it was **created** (not the one in which it is played), by Lisbon's date: `date_trunc(unit, created_at AT TIME ZONE 'Europe/Lisbon')`. So 00:30 on 25 October 2026 (23:30 UTC on the 24th is already the 25th in Lisbon) falls on the 25th. New index `ix_bookings_created_at`.
+  - Weeks from Monday to Sunday (ISO), calendar months. The range is widened to whole periods (the response gives the effective `from`/`to`), so there is never a partial period.
+  - By default: by day, the last 30 Lisbon days (today and the previous 29). `from <= to`, dates between 2000 and 2100, format `YYYY-MM-DD`; 400 errors with pt-PT messages.
+  - Maximums per request: 366 days, 104 weeks or 60 months.
+  - All the periods in the range appear, with 0 where there are no bookings (filled in the service, after the database counts).
+  - Cancelled ones (by the player or by the club) are left out; a no-show (`no_show`) counts, because it is not a cancellation. Bookings made by the club for a customer (US13) count, they are platform bookings.
+### US26 · Owners list · M · 3 points
+ 
+As an admin, I want to see the list of owners with each one's numbers, so that I know who uses the platform and how much.
+ 
+- Each row shows the owner's name, email, registration date, number of clubs, pitches, bookings and distinct players who booked at their clubs.
+- Sortable by any column, with a search by the owner's name or email.
+- Paginated.
+- Status: done. API (`GET /api/admin/owners?search=&sort=&direction=&page=`) and the table on the `/admin` page.
+- Implementation decisions (decided):
+  - Columns: name, email, registration date, deactivated, clubs, pitches, bookings and players. Sorted by `name`, `email`, `registeredAt`, `status`, `clubs`, `pitches`, `bookings` or `players`, in `asc`/`desc`; name and email sort ignoring case; the tie-break is always the owner's id, so the order is stable. By default, name ascending.
+  - The search looks for a piece of the name or email, ignoring case (and never finds players). 20 per page.
+  - Pitches: only the owner's active pitches. Bookings: the non-cancelled ones (a no-show counts), including those made for customers. Players: distinct players (`COUNT(DISTINCT player_id)`) with non-cancelled bookings at the owner's clubs; customer bookings have no player and do not count.
+  - Everything is calculated by the database, only for the owners on the page. Deactivated owners appear, with the deactivated mark.
+### US27 · Clubs with the highest occupation · D · 3 points
+ 
+As an admin, I want to see the clubs with the most occupation in a period, so that I know which ones work best.
+ 
+- Top 10 by occupation rate in the chosen period, with the same formula as US14.
+- Shows the club's name, owner, locality and rate.
+- Status: done. API (`GET /api/admin/clubs/top-occupation?from=&to=`) and the `Clubes com maior ocupação` (Clubs with the highest occupation) table on the `/admin` page, with the period shared with the charts.
+- Implementation decisions (decided):
+  - Exactly US14's formula and period (`OccupationService`): a club has the same rate here and in the owner's statistics (there is a test). Clubs with no open hours in the period are left out.
+  - Order: the **exact** rate (booked ÷ open, before rounding), then the booked hours, then the club's id. Clubs of a **deactivated** owner are left out (they are not available, US29), just as a club's inactive pitches give no open hours.
+  - Each row has the id, the slug, the club's name, the owner's name, the locality, the rate and the booked and open hours; nothing about players.
+### US28 · New registrations over time · D · 2 points
+ 
+As an admin, I want to see new owners and players over time, so that I follow adoption.
+ 
+- Chart of registrations per week or month, separated by profile.
+- Uses the same range filter as US25.
+- Status: done. API (`GET /api/admin/registrations?granularity=week|month&from=&to=`) and the registrations chart on the `/admin` page, with the period shared with the bookings chart.
+- Implementation decisions (decided):
+  - Counts by Lisbon's date of `users.registered_at` (`date_trunc` after `AT TIME ZONE`, weeks from Monday to Sunday), owners and players separately, never the admin; deactivated accounts count (they registered).
+  - The range rules are US25's, shared in the code (`ReportingPeriods.Range`): by default the last 30 days, widened to whole periods, with the effective `from`/`to` in the response, at most 104 weeks or 60 months, dates between 2000 and 2100. Only `week` (default) and `month`; `day` is a 400.
+  - All the periods appear, with 0 where there were no registrations. New index `ix_users_registered_at`.
+### US29 · Deactivate and reactivate owner · D · 5 points
+ 
+As an admin, I want to deactivate an owner, in case of abuse or at their request, so that they stop using the platform.
+ 
+- Giving a reason is required.
+- The deactivated owner cannot sign in, and their clubs stop appearing in the search and accepting bookings.
+- Deactivation revokes the owner's refresh tokens, and `POST /api/auth/refresh` refuses deactivated accounts, so no new token is issued.
+- **Accepted trade-off (stateless JWT, short lifetime):** an already issued access token stays valid until it expires, at most 15 minutes after the deactivation, because the API validates the JWT without querying the database. During that period the owner can still make requests; after that, the session ends.
+- Future bookings are not cancelled automatically; the admin sees how many there are before confirming.
+- The admin can reactivate the account.
+- Each deactivation and reactivation is recorded (who, when and reason), and that record cannot be edited.
+- Status: done on the back end (`GET /api/admin/owners/{id}`, `POST …/deactivate`, `POST …/reactivate`, `GET …/history`) and the `/admin/owners/{id}` page (numbers, status, history and the `Desativar dono` (Deactivate owner) / `Reativar dono` (Reactivate owner) button).
+- Implementation decisions (decided):
+  - `GET /api/admin/owners/{id}` returns the list row (US26) and `futureBookings`: the confirmed bookings of the owner's clubs that have not ended yet (the one in progress counts; customers' too), the number the admin reads before deactivating. An unknown id or a player's or the admin's is always 404 `owner_not_found`, before the body is read.
+  - `deactivate` and `reactivate` take `{ reason }`: required, trimmed, at most **500** characters (400 on the `reason` field). They answer 200 with the owner as `GET` gives it. Already deactivated: 422 `owner_already_deactivated`; not deactivated: 422 `owner_not_deactivated`.
+  - Deactivating sets `deactivated_at`, revokes all the owner's refresh tokens and writes the record row, all in the same transaction; the decision is an `UPDATE … WHERE deactivated_at IS NULL`, so two admins at the same time give one change and one 422. It cancels no booking. Reactivating clears `deactivated_at` and does not restore sessions: the owner signs in again.
+  - Record in `owner_status_changes` (owner, action `Deactivated`/`Reactivated`, reason, the session's admin, when). There is no code that changes or removes it, and a database trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` (SQLSTATE 23001); the keys to the accounts are `RESTRICT`, so an account with a record cannot be deleted.
+  - `GET …/history` lists the changes, the most recent first, with action (`deactivated`/`reactivated`), reason, `adminId`, `adminName` and `at`.
+  - The effects already existed and have tests: they cannot sign in (generic 401) or renew the session; their clubs leave the search and the page (404 `club_not_found`) and refuse bookings (422 `club_unavailable`); future bookings stay confirmed; reactivating restores everything.
+  - A player can still cancel a booking at a deactivated owner's club, with the club's normal cancellation window (there is a test).
+  - The deactivated owner does not see the bookings or the clubs until reactivated; the player sees their bookings as always.
+## Technical stories
+ 
+They are not visible to the user, but without them the other stories' estimates are wrong. All are MVP, except T07, added later.
+ 
+### T01 · Structure, Docker and CI · 5 points
+ 
+As a developer, I want the project to run with one command and be tested on every push, so that I develop without manual setup.
+ 
+- Repository with the ASP.NET Core API, the React app in TypeScript and the test projects.
+- `docker compose up` starts the API, the app, PostgreSQL and the test email service.
+- The EF Core migrations are applied automatically in development.
+- GitHub Actions builds and runs the tests (back end and front end) on every push and pull request; a failure blocks the merge.
+- OpenAPI documentation (Swagger) available in development.
+- The README explains how to run the project locally.
+### T02 · Authorization by profile and by owner · 3 points
+ 
+As the platform owner, I want each user to access only what belongs to them, so that no owner sees or changes another's data.
+ 
+- The endpoints are protected by profile (Player, Owner, Admin) with policies in the API.
+- A club's resources (club, pitches, blocks, bookings) check that the club belongs to the authenticated owner.
+- Requests for another owner's resources return 404, so as not to reveal that they exist.
+- Integration tests cover: owner A neither reads nor changes owner B's data; a player does not access `/manage` or `/admin`; an owner does not access `/admin`.
+- Status: done for the clubs (US06). The mechanism is `OwnedClubs` (Application): all the owner area's queries start from the signed-in owner's clubs, and another owner's club gives the same 404 `club_not_found` as a club that does not exist. A test discovers all the `/api/manage` endpoints by itself (401 without a session, 403 for player and admin, 404 for another owner's club on the routes with `{clubId}`), so it also covers the endpoints that come next (pitches, blocks, bookings). How to use it: see AGENTS.md.
+### T03 · No duplicate bookings · 5 points
+ 
+As a player, I want to be sure that a booked slot is only mine, so that I do not get to the pitch and find it taken.
+ 
+- The database prevents two overlapping confirmed bookings on the same pitch (for example, with a PostgreSQL exclusion constraint), and not only validation in the application.
+- The rule also holds for bookings created by the owner (US13).
+- The overlap between bookings and blocks is checked inside a transaction.
+- Integration test: several simultaneous requests for the same slot result in exactly one 201 and the rest 409.
+- The API returns 409 with a clear message, never a 500.
+- Status: done (with US18). The exclusion constraint `bookings_no_overlap` is the Stack's (`btree_gist`, `pitch_id WITH =`, `tstzrange(starts_at, ends_at) WITH &&`, `WHERE (status = 'Confirmed')`), created in the `AddBookings` migration; the 23P01 error is 409 `slot_taken`. Bookings and blocks lock the same pitch row (`SELECT … FOR UPDATE`) before checking the overlap between them. Tests: 20 simultaneous requests for the same slot give exactly one 201 and 19 × 409, never 500; a booking and a block at the same time never both win; a cancelled booking leaves the slot free for the constraint.
+### T04 · Dates and time zones · 3 points
+ 
+As a player, I want to always see the right times, so that I do not turn up at the wrong time.
+ 
+- All dates are stored in UTC; opening hours are stored as local time, with the club's time zone (Europe/Lisbon).
+- Slot generation is right on clock-change days (March and October), with tests for those days.
+- The front end always shows Lisbon time, whatever the browser's time zone.
+### T05 · Demo data · 2 points
+ 
+As a developer, I want realistic sample data, so that I can demonstrate the app and see the admin dashboard with numbers.
+ 
+- A command creates owners, clubs, pitches, schedules, players and bookings for the last 60 days and the next 14.
+- It only runs with an explicit flag, never by mistake in production. In Production it also requires `DemoData__AllowInProduction=true` on the command's process (T06, for the public demo).
+- The data generates meaningful numbers in the admin's charts and lists.
+- Status: done. API command `seed-demo` (see the README, "Demo data").
+- Implementation decisions (decided):
+  - The command is `dotnet run --project backend/src/SportsBooking.Api -- seed-demo` (in docker compose, `docker compose run --rm api seed-demo`). It only runs with exactly that argument, creates the data and exits without starting the server (so the email worker never runs). It refuses in the Production environment without `DemoData__AllowInProduction=true` and refuses if there is already any owner or player (an admin account does not prevent it), with a message and exit code 1; everything is in a single transaction.
+  - Data: 5 owners and 10 clubs (2 per owner) in Porto, Vila Nova de Gaia, Matosinhos, Maia, Lisboa, Oeiras and Cascais, 43 pitches of the four sports, with realistic prices (tennis €7 to €16, padel €18 to €32, futsal €35 to €45, 7-a-side football €55 to €70), schedules (some close on Monday or at midnight) and slots of 30, 60 and 90 minutes; 5 blocks (two already past and three future, one of them the maintenance of a padel pitch 5 days from now); 60 players registered over the last 90 days (the owners, before that); and about 10,400 bookings from the last 60 days and the next 14: more in the late afternoon and at weekends, growing over time and shrinking going forward, with confirmed bookings, bookings cancelled by the player (within the club's window), cancelled by the club (with a reason) and no-shows in the past, some freed slots that another player booked again, and about 6 % of bookings for customers (US13).
+  - It is deterministic: a fixed seed (`20260101`) and everything calculated from today's date in Lisbon (the data's "now" is the start of today). The same day gives the same names, dates, prices and states; only the ids and the password hashes change.
+  - Everything goes through the same entities and rules as the application (`Club.Create`, `Pitch.ChangeSchedule`, `Booking.ForPlayer`, `Booking.ForCustomer`, `CancelByPlayer`, `CancelByClub`): only the rule "no bookings in the past" is bypassed, because the bookings are built directly, without the service. Each booking is in a generated slot of its pitch (`Pitch.SlotsOn`), at the pitch's price, outside the blocks, with no overlap (the exclusion constraint accepts everything), created before it starts, after the player registered and less than 30 days before the start.
+  - A no-show (`no_show`) was marked by `Booking.MarkNoShow(now)`, which only accepted a confirmed booking that has already ended (the basis of US15, meanwhile done: the owner's service uses `Booking.RecordNoShow(now)` and `UndoNoShow()`; `MarkNoShow` is the same as `RecordNoShow(now) == Marked` and only the seed uses it).
+  - The accounts have a registration date (`users.registered_at`, new in this story, filled in by registration and by the seed; accounts that already existed get the migration's date): it is what the admin's owners list and registrations chart (US26, US28) will read.
+  - All the addresses are from the reserved domain `example.test` (`dono01`..`dono05`, `jogador01`..`jogador60`, `geral.clube01`..`geral.clube10`) and all the accounts have the same development password, `demo-password-1`, which is in the README. No messages are created in the outbox, so the seed sends no email. The command only writes counts, never accounts or the password.
+  - Accounts that already existed before the migration get the migration's date as `registered_at`; all the demo accounts share the same password hash.
+  - Mix of outcomes of past bookings: about 80 % completed, 11 % cancelled by the player, 3 % cancelled by the club and 6 % no-shows; about 6 % of bookings are for customers without an account (US13).
+### T06 · Continuous deployment · 5 points
+ 
+As a developer, I want every merge to main to be published automatically, so that I always have a version online to show.
+ 
+- The application is reachable at a public URL with HTTPS.
+- Every merge to main that passes CI deploys automatically.
+- The secrets (database connection, JWT key, SMTP, admin account) come from environment variables, never from the repository.
+  - SMTP (US22, Brevo): `Email__Host`, `Email__Port` (2525, confirmed on the first deploy), `Email__Security` (`StartTls`), `Email__Username`, `Email__Password` and `Email__FromAddress` (a sender verified on Brevo); without `Email__Host` and `Email__FromAddress` the API starts in Production, warns and sends nothing (provisional). With more than one API instance, the outbox worker can run in all of them (`SKIP LOCKED`).
+- The migrations are applied on deploy in a controlled way.
+- The database has two users. The migration bundle runs as the database owner, who creates the `btree_gist` extension (a trusted extension in PostgreSQL 13 or later) and the rest of the schema. The API connects with a separate application user, with only read and write rights on the data and no DDL, so it never changes the schema or creates extensions.
+- There is a `/health` endpoint to check whether the API is responding. It only says whether the process is alive and does not touch the database (part A of T06).
+- `PublicSite__BaseUrl` is the site's public HTTPS address, used in the emails' links (US05); without it the API does not start.
+- The public read endpoints (`/api/clubs`, `/api/localities`, the club page and the slots) have a per-IP request limit, loose enough for normal browsing (searching, opening clubs, changing date and pitch), so that nobody can use them to extract all the data or overload the API. It answers 429 `too_many_requests` with `Retry-After`, as on the authentication routes, and uses the same client IP (see the `ForwardedHeaders` criterion below).
+- Status: **done and in production since 2026-11-09 (first real deploy).** The workflows (`deploy.yml`, `prod-data.yml`), the database roles (`docs/deployment/supabase-roles.sql`) and the [runbook](deployment/runbook.md) were used on the first deploy. What the first deploy confirmed: `ForwardLimit=1`, Brevo on port 2525 with `StartTls`, login and a request that changes data through the Vercel rewrite (`Origin`, `Set-Cookie`), nothing cached on the rewrites and Render's fields (Dockerfile, context and health check) as in the runbook; nothing differed from the documentation. The points in "Points to review in T06" stay provisional: client IP (best-effort), SMTP in production, migrations, Vercel CLI, waiting for the API and PostgreSQL version. The request limit of the public read endpoints is done: 120 requests per minute per IP, a single limit shared by the four endpoints (`RateLimiting:Public:Window` / `ReadPermitLimit`, provisional values), with the same per-IP partition and the same trusted-proxy rules as the authentication routes.
+- Dependabot is on (`.github/dependabot.yml`: NuGet, npm, GitHub Actions and the back end and front end `Dockerfile`s; Docker was added in `chore/repo-hygiene`). **Done**, before T06: every Monday, one PR grouped per ecosystem for minor and patch updates, at most 5 open PRs (3 on Actions) and a 14-day `cooldown` to respect the rule of versions at least two weeks old (security fixes do not wait). Major updates come one by one and are reviewed by hand.
+- Repository hygiene (`chore/repo-hygiene`, after T06): MIT licence (`LICENSE`, also in `frontend/package.json`), `SECURITY.md` (how to report a vulnerability; personal demo, only `main` is supported, no guaranteed deadlines) and CodeQL (`.github/workflows/codeql.yml`: C# and JavaScript/TypeScript, no build, on every PR, on every `push` to `main` and on Mondays; a separate workflow, which `deploy.yml` does not depend on). CodeQL (and `SECURITY.md`'s private vulnerability reporting) only work with the repository public.
+- **Closed (`fix/club-not-found`):** the page of a club that does not exist (`/clubs/<unknown>`) answered HTTP 200 instead of 404. Cause: the `(player)` group's `loading.tsx` starts sending the response before `notFound()` runs, and the status is fixed on the first byte (Next.js only adds `noindex`). The same held for a malformed GUID in `/manage/clubs/{id}…` and `/admin/owners/{id}`. Fix: `proxy.ts` answers 404 before the page sends (`lib/not-found-check.ts`): for an impossible slug or GUID, without asking the API, and for a public club the API does not have (one request per slug per minute, only on real loads; if the API fails or is slow, the page goes through). Tests: `src/proxy-not-found.test.ts`, `src/lib/not-found-check.test.ts` and `frontend/scripts/check-not-found.mjs`, which CI runs against the build with a simulated API. **Provisional:** a well-formed GUID that does not exist (or that is another owner's) still answers 200 with the client's "not found" screen, because it is only known with the session; these are pages behind a login. The cost on the happy path is one API request on the first visit to each club, per minute.
+- The security headers `Content-Security-Policy`, `X-Content-Type-Options` and `Referrer-Policy` are set on the responses, with tests. **Done**, before T06: the site (Next.js, `frontend/src/lib/security-headers.ts`, applied to all pages) also sends a restrictive `Permissions-Policy` and `frame-ancestors 'none'` and no longer sends `X-Powered-By`; `/reset-password` keeps its `Referrer-Policy: no-referrer` and `Cache-Control: no-store`; the API sends `X-Content-Type-Options: nosniff` on every response and no longer sends `Server`; Swagger stays Development-only. HSTS and `upgrade-insecure-requests` are **defined but off**: they are turned on with `ENABLE_HSTS=true` in the front end build (the `Dockerfile`'s build argument; the headers are written at build time) and **only in T06**, when the site is served over HTTPS. The published site sends HSTS (verified on 2026-11-10: `max-age=63072000; includeSubDomains; preload`, the platform's value, Vercel's). The API, which since [ADR 0009](architecture/adr/0009-deployment-target.md) is public on Render, today sends only `X-Content-Type-Options: nosniff` and sends neither `Server` nor HSTS (the browser only talks to the site's origin, so the HSTS that counts is the site's); whether Render adds any header in front of the API was not verified. **Provisional:** the policy allows `'unsafe-inline'` in scripts and styles, because Next.js with `cacheComponents` sends inline scripts with each page's data (neither a per-request nonce nor a build hash covers them; both were tried in a browser and the application stopped hydrating) and because the calendar grid and Sonner use inline styles. A strict policy requires a nonce and all pages dynamic, that is, giving up `cacheComponents`: an architecture decision still to be made.
+- Rate limiting only tells clients apart in production with `ForwardedHeaders__TrustAnyProxy=true` and `ForwardedHeaders__ForwardLimit=1` (confirmed on the first deploy); it is best-effort (provisional, see "Points to review in T06").
+- Keeping the demo alive (`keepalive.yml`, after T06): twice a week, a read query against the database through the site (`GET /api/localities`), so that Supabase does not pause the project for inactivity; it uses no secrets and only runs with `DEPLOY_ENABLED=true`. See the [runbook](deployment/runbook.md#10-keep-the-demo-alive) and [ADR 0009](architecture/adr/0009-deployment-target.md).
+  - **Provisional (keepalive frequency):** Supabase's documentation says a free project is paused with "low activity over a 7-day period" without giving a number, and that "a few user requests to the database each day" usually suffice; two queries a week may be too few. Increasing the frequency means changing the `cron`.
+  - **Provisional (what counts as activity):** Supabase's documentation does not say whether a visit to the dashboard counts as database activity; GitHub's does not define "repository activity" for the 60-day rule that disables scheduled workflows in public repositories.
+- Part A (code and configuration) done: proxy to the API set at build time, configurable `Origin`, client IP, Docker image for Render, variables in `docs/deployment/environment-variables.md`, commands in Production.
+### T07 · Terms and Privacy Policy · 3 points
 
-Como dono da plataforma, quero publicar os Termos e Condições e a Política de Privacidade e guardar a aceitação no registo, para que quem cria conta saiba o que aceita e que dados são tratados.
+As the platform owner, I want to publish the Terms and Conditions and the Privacy Policy and record acceptance at registration, so that whoever creates an account knows what they accept and which data is processed.
 
-- Existem as páginas `/terms` e `/privacy`, geradas no servidor, com um layout comum, títulos e regiões corretos, e com «Última atualização» e a versão, que vive num só módulo.
-- Todas as páginas têm no rodapé uma ligação para as duas.
-- Cada afirmação de facto pode ser confirmada no repositório, em `docs/deployment` ou na aplicação a correr; o que não se pode confirmar diz «a confirmar».
-- A Política diz quem é o responsável e o contacto, que dados são recolhidos e para quê, a base legal de cada finalidade, os subcontratantes e o que cada um recebe, quanto tempo os dados ficam, os cookies, os direitos do RGPD e como exercê-los, a queixa à CNPD e quem responde pelos dados dos clientes sem conta introduzidos pelos donos.
-- Os Termos dizem o que é o serviço (demonstração pessoal, sem fins comerciais e sem garantias, que pode ser desligada e demora a acordar), as contas, as regras das reservas, as responsabilidades dos donos, a utilização aceitável, a disponibilidade e os limites de responsabilidade, as alterações, a lei portuguesa e o contacto.
-- Só há cookies estritamente necessários e, por isso, não há banner; os cookies e o armazenamento descritos são os que se observam no browser.
-- Os dois registos (jogador e dono) têm uma caixa obrigatória, «Li e aceito os Termos e Condições e tomei conhecimento da Política de Privacidade», com ligações para as duas páginas e mensagem de erro se não estiver marcada, utilizável com teclado e leitor de ecrã.
-- A API guarda a versão aceite e a data (`TimeProvider`) em colunas opcionais de `users`, pelo mesmo caminho nos dois registos. Um registo sem aceitação é recusado com um código estável.
-- Uma só migração compatível com a versão anterior da API (colunas opcionais, sem mexer em dados). As contas que já existem e as de demonstração ficam sem valor, não são bloqueadas e nunca se diz que aceitaram.
-- O axe não encontra violações em `/terms`, `/privacy` e no formulário de registo.
-- Estado: feita. Páginas em `frontend/src/app/(legal)`, versão e data em `features/legal/legal-info.ts`, rodapé no layout raiz (`SiteFooter`). Pedido de registo com `acceptedTermsVersion`; colunas `users.accepted_terms_version` e `users.terms_accepted_at` (migração `AddTermsAcceptance`); sem aceitação, 400 `terms_not_accepted`, com a mensagem em `errors.acceptedTermsVersion`. Os erros dos outros campos vêm primeiro (400 `validation_failed`). O `docs/deployment/supabase-roles.sql` não muda: os direitos são por tabela e as colunas novas herdam-nos.
-- Verificado na aplicação a correr (docker compose): dois cookies, `access_token` (`/`, httpOnly, Secure, Lax, 15 minutos) e `refresh_token` (`/api/auth`, httpOnly, Secure, Strict, 7 dias), só depois de entrar; nada em `localStorage` nem em `sessionStorage`; nenhum pedido a outra origem (as fontes são servidas pelo próprio site).
-- Ícone do site: original, desenhado à mão para este projeto (`frontend/src/app/icon.svg`, licença MIT do projeto), com `favicon.ico` e `apple-icon.png` gerados por `scripts/generate-icons.mjs`; substitui o favicon de origem desconhecida.
-- **Provisório (janela do deploy):** a API nova fica ativa antes do site novo, por isso, durante esses minutos, o registo pelo site antigo recebe 400. Não há forma barata de o evitar num só deploy: a alternativa, publicar primeiro o site e só depois exigir a aceitação na API, pede duas entregas e deixa contas sem registo de aceitação nesse intervalo. Aceite numa demonstração.
-- **Provisório (textos legais):** as bases legais de cada finalidade e a divisão de responsabilidades sobre os dados dos clientes sem conta foram escritas de forma conservadora e sem revisão jurídica.
-- Localizações e transferências (seguimento da T07, 2026-11-10, Política versão 1.2). Indicadas pelo dono do projeto: API no Render em Frankfurt, base de dados no Supabase em West EU (Irlanda), Brevo em França e funções da Vercel em Washington DC (EUA); o site é servido pela rede global da Vercel e o proxy de `/api/*` passa pela sua infraestrutura. Salvaguardas lidas nos documentos de cada fornecedor em 2026-11-10: Vercel, Data Processing Addendum (atualizado a 2026-03-17, Schedule 3: Cláusulas Contratuais-Tipo, Decisão 2021/914) e Privacy Notice (2026-06-01, secção 10: Data Privacy Framework); Render, Data Processing Addendum (secção 6.2: Data Privacy Framework e, em alternativa, as Cláusulas) e Privacy Policy; Supabase, Data Processing Addendum (versão 1, 2026-08-01, cláusula 12 e Schedule 2: Cláusulas, módulos 2 e 3) e Privacy Notice (secção 6); Brevo, Terms of Service (versão de 2025-10-01, anexo de tratamento de dados: Cláusulas e medidas suplementares, Data Privacy Framework para os EUA, e lista de subcontratantes com alojamento em França e na Bélgica).
-- **Provisório (salvaguardas):** a Política atribui cada salvaguarda ao documento do próprio fornecedor; a certificação no Data Privacy Framework não foi confirmada na lista oficial (dataprivacyframework.gov), que não se conseguiu consultar de forma automática.
-- Conservação dos registos (seguimento da T07, fechado a 2026-11-10, Política versão 1.3): o dono do projeto confirmou os planos gratuitos (serviço web gratuito do Render num workspace Hobby, e Vercel Hobby). Lido nas documentações dos fornecedores nesse dia: Render, página «Logging» (secção «Log limits» → «Retention period»: «Hobby — 7 days», a conservação depende do plano do workspace; a página não mostra data; a página de preços diz o mesmo) e Vercel, página «Runtime logs» (atualizada a 2026-08-28: «Hobby — 1 hour of logs») e página «Limits» (atualizada a 2026-09-16: «Runtime logs are stored for 1 hour on Hobby»). O que a aplicação regista foi verificado no código: só registos na consola, sem envio para outro serviço e sem tabela de registos; nível `Information` (`Microsoft.AspNetCore` em `Warning`); em produção, o texto dos comandos SQL sem os valores (`EnableSensitiveDataLogging` desligado; o Npgsql não inclui os detalhes dos erros); 429 com a partição do cliente e o caminho; erros inesperados com o método, o caminho e a exceção; nenhuma chamada regista email, palavra-passe ou token. A Política deixou de ter pontos «a confirmar».
-- **Provisório (versão aceite):** a API guarda a versão que o site envia (não vazia, até 32 caracteres) e não a compara com uma lista, para o site continuar a ser o único sítio que define as versões.
-### T08 · Testes end-to-end · 3 pontos
+- The `/terms` and `/privacy` pages exist, generated on the server, with a common layout, correct titles and regions, and with "Last updated" and the version, which lives in a single module.
+- All pages have a link to both in the footer.
+- Every statement of fact can be confirmed in the repository, in `docs/deployment` or in the running application; what cannot be confirmed says "to be confirmed".
+- The Policy says who is responsible and the contact, which data is collected and what for, the legal basis of each purpose, the processors and what each one receives, how long the data is kept, the cookies, the GDPR rights and how to exercise them, the complaint to the CNPD and who answers for the data of customers without an account entered by owners.
+- The Terms say what the service is (personal demo, non-commercial and without guarantees, which may be shut down and takes time to wake up), accounts, booking rules, owners' responsibilities, acceptable use, availability and limits of liability, changes, Portuguese law and the contact.
+- There are only strictly necessary cookies and, therefore, no banner; the cookies and storage described are those observed in the browser.
+- Both registrations (player and owner) have a required checkbox, `Li e aceito os Termos e Condições e tomei conhecimento da Política de Privacidade` (I have read and accept the Terms and Conditions and have taken note of the Privacy Policy), with links to the two pages and an error message if it is not ticked, usable with keyboard and screen reader.
+- The API stores the accepted version and the date (`TimeProvider`) in optional columns of `users`, through the same path in both registrations. A registration without acceptance is refused with a stable code.
+- A single migration compatible with the previous API version (optional columns, without touching data). Existing and demo accounts get no value, are not blocked and are never said to have accepted.
+- axe finds no violations on `/terms`, `/privacy` and the registration form.
+- Status: done. Pages in `frontend/src/app/(legal)`, version and date in `features/legal/legal-info.ts`, footer in the root layout (`SiteFooter`). Registration request with `acceptedTermsVersion`; columns `users.accepted_terms_version` and `users.terms_accepted_at` (migration `AddTermsAcceptance`); without acceptance, 400 `terms_not_accepted`, with the message in `errors.acceptedTermsVersion`. The other fields' errors come first (400 `validation_failed`). `docs/deployment/supabase-roles.sql` does not change: the rights are per table and the new columns inherit them.
+- Verified in the running application (docker compose): two cookies, `access_token` (`/`, httpOnly, Secure, Lax, 15 minutes) and `refresh_token` (`/api/auth`, httpOnly, Secure, Strict, 7 days), only after signing in; nothing in `localStorage` or `sessionStorage`; no request to another origin (the fonts are served by the site itself).
+- Site icon: original, hand-drawn for this project (`frontend/src/app/icon.svg`, the project's MIT licence), with `favicon.ico` and `apple-icon.png` generated by `scripts/generate-icons.mjs`; replaces the favicon of unknown origin.
+- **Provisional (deploy window):** the new API goes live before the new site, so, during those minutes, registration through the old site gets 400. There is no cheap way to avoid it in a single deploy: the alternative, publishing the site first and only then requiring acceptance in the API, takes two deliveries and leaves accounts without an acceptance record in the interval. Accepted in a demo.
+- **Provisional (legal texts):** the legal bases of each purpose and the division of responsibilities over the data of customers without an account were written conservatively and without legal review.
+- Locations and transfers (T07 follow-up, 2026-11-10, Policy version 1.2). Stated by the project owner: API on Render in Frankfurt, database on Supabase in West EU (Ireland), Brevo in France and Vercel functions in Washington DC (USA); the site is served by Vercel's global network and the `/api/*` proxy passes through its infrastructure. Safeguards read in each provider's documents on 2026-11-10: Vercel, Data Processing Addendum (updated 2026-03-17, Schedule 3: Standard Contractual Clauses, Decision 2021/914) and Privacy Notice (2026-06-01, section 10: Data Privacy Framework); Render, Data Processing Addendum (section 6.2: Data Privacy Framework and, alternatively, the Clauses) and Privacy Policy; Supabase, Data Processing Addendum (version 1, 2026-08-01, clause 12 and Schedule 2: Clauses, modules 2 and 3) and Privacy Notice (section 6); Brevo, Terms of Service (version of 2025-10-01, data processing annex: Clauses and supplementary measures, Data Privacy Framework for the USA, and a list of processors with hosting in France and Belgium).
+- **Provisional (safeguards):** the Policy attributes each safeguard to the provider's own document; certification in the Data Privacy Framework was not confirmed in the official list (dataprivacyframework.gov), which could not be consulted automatically.
+- Retention of logs (T07 follow-up, closed on 2026-11-10, Policy version 1.3): the project owner confirmed the free plans (Render's free web service in a Hobby workspace, and Vercel Hobby). Read in the providers' documentation that day: Render, "Logging" page (section "Log limits" → "Retention period": "Hobby — 7 days", retention depends on the workspace plan; the page shows no date; the pricing page says the same) and Vercel, "Runtime logs" page (updated 2026-08-28: "Hobby — 1 hour of logs") and "Limits" page (updated 2026-09-16: "Runtime logs are stored for 1 hour on Hobby"). What the application logs was verified in the code: console logs only, with no sending to another service and no logs table; `Information` level (`Microsoft.AspNetCore` at `Warning`); in production, the text of SQL commands without the values (`EnableSensitiveDataLogging` off; Npgsql does not include error details); 429 with the client partition and the path; unexpected errors with the method, the path and the exception; no call logs an email, password or token. The Policy no longer has "to be confirmed" points.
+- **Provisional (accepted version):** the API stores the version the site sends (non-empty, up to 32 characters) and does not compare it with a list, so that the site remains the only place that defines the versions.
+### T08 · End-to-end tests · 3 points
 
-Como programador, quero um conjunto pequeno e estável de testes end-to-end que corra no CI contra a stack real, para ter um sinal de que o site, a API e a base de dados funcionam juntos.
+As a developer, I want a small, stable set of end-to-end tests that runs in CI against the real stack, so that I have a signal that the site, the API and the database work together.
 
-- Existe `e2e/` (Playwright, só Chromium), com três fluxos e não mais: (1) o jogador entra com uma conta semeada, reserva um horário livre, vê-o em «As minhas reservas» e cancela; (2) dois jogadores, em dois contextos do browser, têm o mesmo horário no ecrã: o segundo recebe o 409 `slot_taken` e a mensagem da interface, e só existe uma reserva; (3) o dono entra, vê a reserva no calendário e um clube que não existe responde 404 a sério.
-- Corre contra o `docker compose` do repositório com os dados de demonstração (`e2e/scripts/stack.mjs`), localmente (`npm run e2e` em `e2e/`) e no CI (`.github/workflows/e2e.yml`, à parte do `ci.yml` para o `deploy.yml` não esperar por ele). Decisão e alternativas na [ADR 0010](architecture/adr/0010-testes-end-to-end-playwright.md).
-- Estáveis: localizadores por papel e nome, sem esperas fixas, um worker, uma repetição só no CI, `trace` e `video` na primeira repetição e o relatório carregado como artefacto quando falha.
-- Repetíveis na mesma base de dados: cada teste usa dias a partir do dia 20 e cancela as reservas que faz.
-- Estado: feita. **Provisório:** os 3 pontos e a classificação «Depois»; o E2E não é obrigatório para o merge (a `main` não tem proteção de branch, confere-se à mão).
+- `e2e/` exists (Playwright, Chromium only), with three flows and no more: (1) the player signs in with a seeded account, books a free time, sees it in `As minhas reservas` and cancels; (2) two players, in two browser contexts, have the same time on screen: the second gets the 409 `slot_taken` and the interface's message, and only one booking exists; (3) the owner signs in, sees the booking in the calendar and a club that does not exist really answers 404.
+- It runs against the repository's `docker compose` with the demo data (`e2e/scripts/stack.mjs`), locally (`npm run e2e` in `e2e/`) and in CI (`.github/workflows/e2e.yml`, separate from `ci.yml` so that `deploy.yml` does not wait for it). Decision and alternatives in [ADR 0010](architecture/adr/0010-playwright-end-to-end-tests.md).
+- Stable: locators by role and name, no fixed waits, one worker, one retry only in CI, `trace` and `video` on the first retry and the report uploaded as an artifact on failure.
+- Repeatable on the same database: each test uses days from day 20 on and cancels the bookings it makes.
+- Status: done. **Provisional:** the 3 points and the "After" classification; E2E is not required for the merge (`main` has no branch protection, it is checked by hand).
 
-## Resumo de pontos
+## Points summary
  
-| Épico | MVP (histórias) | MVP (pontos) | Depois (histórias) | Depois (pontos) | Feitas (histórias) | Feitas (pontos) |
+| Epic | MVP (stories) | MVP (points) | After (stories) | After (points) | Done (stories) | Done (points) |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 — Contas e acesso | 4 | 12 | 2 | 8 | 6 de 6 | 20 de 20 |
-| 2 — Configuração do clube | 4 | 16 | 1 | 5 | 5 de 5 | 21 de 21 |
-| 3 — Operação do clube | 3 | 13 | 2 | 7 | 5 de 5 | 20 de 20 |
-| 4 — Pesquisa e reserva | 4 | 16 | 2 | 11 | 6 de 6 | 27 de 27 |
-| 5 — Notificações | 1 | 3 | 1 | 1 | 2 de 2 | 4 de 4 |
-| 6 — Administração | 3 | 9 | 3 | 10 | 6 de 6 | 19 de 19 |
-| Histórias técnicas | 6 | 23 | 2 | 6 | 8 de 8 | 29 de 29 |
-| **Total** | **25** | **92** | **13** | **48** | **38 de 38** | **140 de 140** |
+| 1 — Accounts and access | 4 | 12 | 2 | 8 | 6 of 6 | 20 of 20 |
+| 2 — Club setup | 4 | 16 | 1 | 5 | 5 of 5 | 21 of 21 |
+| 3 — Club operations | 3 | 13 | 2 | 7 | 5 of 5 | 20 of 20 |
+| 4 — Search and booking | 4 | 16 | 2 | 11 | 6 of 6 | 27 of 27 |
+| 5 — Notifications | 1 | 3 | 1 | 1 | 2 of 2 | 4 of 4 |
+| 6 — Administration | 3 | 9 | 3 | 10 | 6 of 6 | 19 of 19 |
+| Technical stories | 6 | 23 | 2 | 6 | 8 of 8 | 29 of 29 |
+| **Total** | **25** | **92** | **13** | **48** | **38 of 38** | **140 of 140** |
 
-Estado: todas as histórias estão feitas. A **T06 (deploy contínuo, 5 pontos)** está em produção desde 2026-11-09.
+Status: all the stories are done. **T06 (continuous deployment, 5 points)** has been in production since 2026-11-09.
  
-As duas histórias de 8 pontos (US11 e US20) são as primeiras a dividir se não couberem num sprint.
+The two 8-point stories (US11 and US20) are the first to split if they do not fit in a sprint.
